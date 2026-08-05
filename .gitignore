@@ -1,0 +1,17 @@
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code (configs locais)
+.claude/
+
+# Temporários
+*.tmp
+*.log
