@@ -1,13 +1,13 @@
 /* ===== VARIÁVEIS DE COR ===== */
 :root {
-  --blush: #F8DDE3;
-  --rosegold: #C9A38D;
-  --rosegold-dark: #b08a78;
-  --rosegold-light: #dbbcac;
-  --bege: #EFE6E1;
-  --cinza-claro: #F5F5F5;
+  --blush: #F7EFE4;
+  --rosegold: #827161;
+  --rosegold-dark: #685A4E;
+  --rosegold-light: #AFA398;
+  --bege: #FFFAF5;
+  --cinza-claro: #F7EFE4;
   --cinza-texto: #4A4A4A;
-  --branco: #FFFFFF;
+  --branco: #FFFAF5;
 }
 
 /* ===== RESET & BASE ===== */
@@ -30,15 +30,15 @@ body { font-family: 'Poppins', sans-serif; color: var(--cinza-texto); }
 
 /* ===== GRADIENTES ===== */
 .hero-gradient {
-  background: linear-gradient(135deg, var(--blush) 0%, var(--bege) 45%, #FFFFFF 100%);
+  background: linear-gradient(135deg, var(--blush) 0%, var(--bege) 45%, #FFFAF5 100%);
 }
 .sobre-gradient {
-  background: linear-gradient(to right, #FFFFFF 50%, var(--cinza-claro) 50%);
+  background: linear-gradient(to right, #FFFAF5 50%, var(--cinza-claro) 50%);
 }
 
 /* ===== NAVBAR ===== */
 nav { transition: all 0.35s ease; }
-nav.scrolled { background: rgba(255,255,255,0.97); box-shadow: 0 2px 20px rgba(201,163,141,0.15); }
+nav.scrolled { background: rgba(255,255,255,0.97); box-shadow: 0 2px 20px rgba(130,113,97,0.15); }
 
 /* ===== BOTÕES ===== */
 .btn-primary {
@@ -54,7 +54,7 @@ nav.scrolled { background: rgba(255,255,255,0.97); box-shadow: 0 2px 20px rgba(2
   transition: all 0.3s ease;
   border: 2px solid var(--rosegold);
 }
-.btn-primary:hover { background-color: var(--rosegold-dark); border-color: var(--rosegold-dark); box-shadow: 0 8px 25px rgba(201,163,141,0.35); transform: translateY(-1px); }
+.btn-primary:hover { background-color: var(--rosegold-dark); border-color: var(--rosegold-dark); box-shadow: 0 8px 25px rgba(130,113,97,0.35); transform: translateY(-1px); }
 
 .btn-outline {
   background-color: transparent;
@@ -88,9 +88,9 @@ nav.scrolled { background: rgba(255,255,255,0.97); box-shadow: 0 2px 20px rgba(2
 
 /* ===== CARDS DE SERVIÇO ===== */
 .service-card {
-  background: #fff;
-  border-radius: 1.25rem;
-  padding: 2rem 1.5rem;
+  background: #FFFAF5;
+  border-radius: 1rem;
+  padding: 1.5rem 1.1rem;
   text-align: center;
   border: 1px solid transparent;
   transition: all 0.35s ease;
@@ -99,17 +99,18 @@ nav.scrolled { background: rgba(255,255,255,0.97); box-shadow: 0 2px 20px rgba(2
 .service-card:hover {
   border-color: var(--blush);
   transform: translateY(-6px);
-  box-shadow: 0 16px 40px rgba(201,163,141,0.18);
+  box-shadow: 0 16px 40px rgba(130,113,97,0.18);
 }
 .service-icon {
-  width: 3.5rem;
-  height: 3.5rem;
-  background: var(--blush);
-  border-radius: 1rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  background: transparent;
+  border: 1.5px solid var(--rosegold);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 1rem;
+  margin: 0 auto 0.875rem;
   transition: all 0.3s ease;
   color: var(--rosegold);
 }
@@ -129,7 +130,7 @@ nav.scrolled { background: rgba(255,255,255,0.97); box-shadow: 0 2px 20px rgba(2
 }
 .result-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 35px rgba(201,163,141,0.25);
+  box-shadow: 0 12px 35px rgba(130,113,97,0.25);
 }
 .before-after-container {
   position: relative;
@@ -147,7 +148,7 @@ nav.scrolled { background: rgba(255,255,255,0.97); box-shadow: 0 2px 20px rgba(2
   justify-content: flex-start;
 }
 .after-half {
-  background: linear-gradient(160deg, #FFFFFF 0%, #F0F0F0 40%, #E8E8E8 100%);
+  background: linear-gradient(160deg, #FFFAF5 0%, #F0F0F0 40%, #E8E8E8 100%);
   justify-content: flex-end;
 }
 .ba-label {
@@ -158,29 +159,15 @@ nav.scrolled { background: rgba(255,255,255,0.97); box-shadow: 0 2px 20px rgba(2
   border-radius: 99px;
 }
 .ba-label.antes { background: rgba(180,140,60,0.85); color: #fff; }
-.ba-label.depois { background: rgba(201,163,141,0.9); color: #fff; }
+.ba-label.depois { background: rgba(130,113,97,0.9); color: #fff; }
 .result-card .divider-line {
   position: absolute;
   left: 50%;
   top: 0;
   bottom: 0;
   width: 3px;
-  background: #fff;
+  background: #FFFAF5;
   transform: translateX(-50%);
-}
-.result-card .divider-circle {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 2rem;
-  height: 2rem;
-  background: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 .tooth-smile {
   width: 100%;
@@ -194,7 +181,7 @@ nav.scrolled { background: rgba(255,255,255,0.97); box-shadow: 0 2px 20px rgba(2
 
 /* ===== DEPOIMENTOS ===== */
 .testimonial-card {
-  background: #fff;
+  background: #FFFAF5;
   border-radius: 1.25rem;
   padding: 2rem;
   border: 1px solid var(--blush);
@@ -229,11 +216,11 @@ nav.scrolled { background: rgba(255,255,255,0.97); box-shadow: 0 2px 20px rgba(2
 .swiper-pagination-bullet-active { background: var(--rosegold) !important; }
 .swiper-button-next::after, .swiper-button-prev::after { color: var(--rosegold) !important; font-size: 1.25rem !important; font-weight: 700 !important; }
 .swiper-button-next, .swiper-button-prev {
-  background: #fff;
+  background: #FFFAF5;
   border-radius: 50%;
   width: 3rem !important;
   height: 3rem !important;
-  box-shadow: 0 4px 15px rgba(201,163,141,0.25);
+  box-shadow: 0 4px 15px rgba(130,113,97,0.25);
 }
 
 /* ===== FILTROS DA GALERIA ===== */
@@ -263,10 +250,10 @@ nav.scrolled { background: rgba(255,255,255,0.97); box-shadow: 0 2px 20px rgba(2
   font-family: 'Poppins', sans-serif;
   color: var(--cinza-texto);
   transition: border-color 0.2s ease;
-  background: #fff;
+  background: #FFFAF5;
   outline: none;
 }
-.form-input:focus { border-color: var(--rosegold); box-shadow: 0 0 0 3px rgba(201,163,141,0.1); }
+.form-input:focus { border-color: var(--rosegold); box-shadow: 0 0 0 3px rgba(130,113,97,0.1); }
 .form-input::placeholder { color: #aaa; }
 
 /* ===== PILL LABELS ===== */
@@ -316,16 +303,6 @@ footer a:hover { color: var(--rosegold); }
   z-index: 0;
 }
 
-/* ===== MAPA ===== */
-.map-iframe {
-  width: 100%;
-  height: 100%;
-  min-height: 300px;
-  border-radius: 1rem;
-  border: none;
-  filter: saturate(0.8) contrast(0.9);
-}
-
 /* ===== INFO DE CONTATO ===== */
 .contact-info-item {
   display: flex;
@@ -346,6 +323,23 @@ footer a:hover { color: var(--rosegold); }
   flex-shrink: 0;
   color: var(--rosegold);
 }
+
+/* ===== GRIDS RESPONSIVOS =====
+   Usam classe dedicada em vez de "style=grid-template-columns + classe Tailwind
+   lg:grid-cols-*" porque o style inline sempre vence a classe utilitária
+   (maior especificidade), o que quebrava o breakpoint. */
+.grid-2col { grid-template-columns: 1fr; }
+@media (min-width: 1024px) { .grid-2col { grid-template-columns: 1fr 1fr; } }
+
+.grid-2to3col { grid-template-columns: 1fr; }
+@media (min-width: 1024px) { .grid-2to3col { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1280px) { .grid-2to3col { grid-template-columns: 1fr 1fr 1fr; } }
+
+.grid-4col { grid-template-columns: 1fr; }
+@media (min-width: 1024px) { .grid-4col { grid-template-columns: repeat(4, 1fr); } }
+
+.grid-credentials { grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 640px) { .grid-credentials { grid-template-columns: repeat(4, 1fr); } }
 
 /* ===== RESPONSIVIDADE ===== */
 @media (max-width: 768px) {
