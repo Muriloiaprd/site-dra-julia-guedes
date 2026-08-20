@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# TODO: adicionar a linha "Sitemap: https://seudominio.com/sitemap.xml"
+# assim que o site estiver publicado em um domínio definitivo.

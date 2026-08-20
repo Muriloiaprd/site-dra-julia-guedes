@@ -9,6 +9,18 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Rede lenta ou CDN do AOS fora do ar: sem isso as seções ficam com
+  // opacity:0/pointer-events:none para sempre (ver auditoria F6.4).
+  setTimeout(function () {
+    if (typeof AOS === 'undefined') {
+      document.querySelectorAll('[data-aos]').forEach(function (el) {
+        el.style.opacity = '1';
+        el.style.transform = 'none';
+        el.style.pointerEvents = 'auto';
+      });
+    }
+  }, 4000);
+
   // ===== SWIPER DEPOIMENTOS =====
   if (typeof Swiper !== 'undefined') {
     new Swiper('.swiper-depoimentos', {
@@ -27,6 +39,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ===== FORMULÁRIO → WHATSAPP =====
+  // Único listener de submit do formulário — não duplicar com uma diretiva
+  // Alpine @submit no HTML (ver auditoria F1.1: isso já causou duas abas
+  // do WhatsApp abrindo ao mesmo tempo).
   const form = document.getElementById('contact-form');
   if (form) {
     form.addEventListener('submit', function (e) {
@@ -43,6 +58,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const text = `Olá, Dra. Julia! 😊\n\nMeu nome é *${name}*.\nTelefone: ${phone}\nE-mail: ${email || 'Não informado'}\n\nMensagem:\n${message}`;
       window.open(`https://wa.me/5532984624848?text=${encodeURIComponent(text)}`, '_blank');
+
+      const success = document.getElementById('form-success');
+      if (success) success.style.display = 'block';
+      form.reset();
     });
   }
 

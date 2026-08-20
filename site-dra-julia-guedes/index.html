@@ -4,8 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dra. Julia Guedes — Odontologia Estética em Cataguases-MG</title>
-  <meta name="description" content="Dra. Julia Guedes Gonçalves — Odontologia estética e preventiva em Cataguases-MG. Clareamento dental, facetas de resina, lentes de contato dental, implantes e muito mais. Agende sua consulta!">
+  <meta name="description" content="Dra. Julia Guedes — Odontologia estética em Cataguases-MG. Clareamento, facetas, implantes e mais. Agende sua consulta!">
   <meta name="robots" content="index, follow">
+  <!-- TODO: preencher href com a URL final assim que o site for publicado em um domínio -->
   <link rel="canonical" href="">
 
   <!-- Open Graph -->
@@ -13,6 +14,15 @@
   <meta property="og:description" content="Cuidando do seu sorriso com carinho e excelência. Agende sua consulta!">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="pt_BR">
+  <!-- TODO: trocar para URL absoluta (https://seudominio.com/...) assim que o domínio for definido -->
+  <meta property="og:image" content="assets/images/dra-julia-hero.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Dra. Julia Guedes — Odontologia Estética | Cataguases-MG">
+  <meta name="twitter:description" content="Cuidando do seu sorriso com carinho e excelência. Agende sua consulta!">
+  <meta name="twitter:image" content="assets/images/dra-julia-hero.jpg">
+
+  <!-- Favicon -->
+  <link rel="icon" href="assets/images/favicon.svg" type="image/svg+xml">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +38,14 @@
   <!-- Custom CSS -->
   <link rel="stylesheet" href="assets/css/custom.css">
 
-  <!-- Tailwind CSS CDN -->
+  <!-- Sem isso, se o JavaScript estiver desligado o AOS nunca roda e o site inteiro
+       fica com opacity:0/pointer-events:none (ver auditoria F6.4). -->
+  <noscript><style>[data-aos]{ opacity:1 !important; transform:none !important; pointer-events:auto !important; }</style></noscript>
+
+  <!-- Tailwind CSS CDN: usado só para classes utilitárias de visibilidade responsiva
+       (hidden / lg:flex / lg:hidden / xl:block). Para grid-template-columns, veja as
+       classes .grid-* comentadas em assets/css/custom.css — estilo inline tem
+       especificidade maior que classe do Tailwind, por isso os dois sistemas coexistem. -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Schema.org Structured Data -->
@@ -99,6 +116,7 @@
         <a href="#servicos"    class="nav-link" style="font-size:0.78rem; font-weight:500; letter-spacing:0.04em; text-transform:uppercase; color:#4A4A4A; text-decoration:none; transition:color .2s;">Serviços</a>
         <a href="#resultados"  class="nav-link" style="font-size:0.78rem; font-weight:500; letter-spacing:0.04em; text-transform:uppercase; color:#4A4A4A; text-decoration:none; transition:color .2s;">Resultados</a>
         <a href="#depoimentos" class="nav-link" style="font-size:0.78rem; font-weight:500; letter-spacing:0.04em; text-transform:uppercase; color:#4A4A4A; text-decoration:none; transition:color .2s;">Depoimentos</a>
+        <a href="#faq"         class="nav-link" style="font-size:0.78rem; font-weight:500; letter-spacing:0.04em; text-transform:uppercase; color:#4A4A4A; text-decoration:none; transition:color .2s;">Dúvidas</a>
         <a href="#contato"     class="nav-link" style="font-size:0.78rem; font-weight:500; letter-spacing:0.04em; text-transform:uppercase; color:#4A4A4A; text-decoration:none; transition:color .2s;">Contato</a>
       </div>
 
@@ -132,6 +150,7 @@
         <a @click="mobileOpen=false" href="#servicos"    style="color:#4A4A4A; text-decoration:none; font-weight:500;">Serviços</a>
         <a @click="mobileOpen=false" href="#resultados"  style="color:#4A4A4A; text-decoration:none; font-weight:500;">Resultados</a>
         <a @click="mobileOpen=false" href="#depoimentos" style="color:#4A4A4A; text-decoration:none; font-weight:500;">Depoimentos</a>
+        <a @click="mobileOpen=false" href="#faq"         style="color:#4A4A4A; text-decoration:none; font-weight:500;">Dúvidas</a>
         <a @click="mobileOpen=false" href="#contato"     style="color:#4A4A4A; text-decoration:none; font-weight:500;">Contato</a>
         <a href="https://wa.me/5532984624848?text=Olá%2C+Dra.+Julia!+Gostaria+de+agendar+uma+consulta." target="_blank" @click="mobileOpen=false" class="btn-primary" style="justify-content:center; margin-top:0.5rem;">Agendar Consulta</a>
       </div>
@@ -158,7 +177,7 @@
           <em style="color:#827161; font-style:italic;">sorriso</em> com carinho<br>
           e excelência.
         </h1>
-        <p style="color:#888; font-size:1.05rem; line-height:1.8; max-width:460px; margin-bottom:2rem;">
+        <p style="color:#5c5c5c; font-size:1.05rem; line-height:1.8; max-width:460px; margin-bottom:2rem;">
           Tratamentos personalizados que unem tecnologia, estética e cuidado para transformar sorrisos e valorizar o que há de mais bonito em você.
         </p>
         <div style="display:flex; flex-wrap:wrap; gap:1rem;">
@@ -172,6 +191,7 @@
       <!-- Foto Hero -->
       <div data-aos="fade-left" style="display:flex; justify-content:flex-end; align-items:flex-end; position:relative;">
         <img src="assets/images/dra-julia-hero.jpg" alt="Dra. Julia Guedes, cirurgiã-dentista, sorrindo"
+             width="630" height="976"
              style="width:100%; max-width:340px; height:auto; border-radius:1.5rem;
                     -webkit-mask-image:linear-gradient(to right, transparent 0, #000 45px);
                     mask-image:linear-gradient(to right, transparent 0, #000 45px);">
@@ -193,7 +213,7 @@
             </svg>
           </div>
           <p style="font-weight:600; font-size:0.95rem; color:#4A4A4A; margin-bottom:0.3rem;">Excelência Clínica</p>
-          <p style="font-size:0.8rem; color:#999; line-height:1.6;">Tratamentos de alto padrão com resultados comprovados.</p>
+          <p style="font-size:0.8rem; color:#6b6b6b; line-height:1.6;">Tratamentos de alto padrão com resultados comprovados.</p>
         </div>
 
         <div data-aos="fade-up" data-aos-delay="80">
@@ -203,7 +223,7 @@
             </svg>
           </div>
           <p style="font-weight:600; font-size:0.95rem; color:#4A4A4A; margin-bottom:0.3rem;">Atendimento Humanizado</p>
-          <p style="font-size:0.8rem; color:#999; line-height:1.6;">Cada paciente é único e recebe atenção personalizada.</p>
+          <p style="font-size:0.8rem; color:#6b6b6b; line-height:1.6;">Cada paciente é único e recebe atenção personalizada.</p>
         </div>
 
         <div data-aos="fade-up" data-aos-delay="160">
@@ -213,7 +233,7 @@
             </svg>
           </div>
           <p style="font-weight:600; font-size:0.95rem; color:#4A4A4A; margin-bottom:0.3rem;">Tecnologia de Ponta</p>
-          <p style="font-size:0.8rem; color:#999; line-height:1.6;">Equipamentos modernos para mais conforto e precisão.</p>
+          <p style="font-size:0.8rem; color:#6b6b6b; line-height:1.6;">Equipamentos modernos para mais conforto e precisão.</p>
         </div>
 
         <div data-aos="fade-up" data-aos-delay="240">
@@ -223,7 +243,7 @@
             </svg>
           </div>
           <p style="font-weight:600; font-size:0.95rem; color:#4A4A4A; margin-bottom:0.3rem;">Centro de Cataguases</p>
-          <p style="font-size:0.8rem; color:#999; line-height:1.6;">Fácil acesso no coração da cidade.</p>
+          <p style="font-size:0.8rem; color:#6b6b6b; line-height:1.6;">Fácil acesso no coração da cidade.</p>
         </div>
 
       </div>
@@ -259,7 +279,7 @@
         <div style="position:absolute; bottom:2rem; left:-2rem; background:#FFFAF5; border-radius:1.25rem; padding:1rem 1.25rem; box-shadow:0 10px 30px rgba(0,0,0,0.08); max-width:200px;" class="hidden lg:block">
           <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
             <div style="width:8px; height:8px; border-radius:50%; background:#827161;"></div>
-            <p style="font-size:0.7rem; color:#999; text-transform:uppercase; letter-spacing:.1em;">CRO-MG</p>
+            <p style="font-size:0.7rem; color:#6b6b6b; text-transform:uppercase; letter-spacing:.1em;">CRO-MG</p>
           </div>
           <p class="font-serif" style="font-family:'Playfair Display',serif; font-size:0.95rem; color:#4A4A4A; font-weight:600;">Julia Guedes Gonçalves</p>
           <p style="font-size:0.75rem; color:#827161;">Cirurgiã-Dentista</p>
@@ -272,10 +292,10 @@
         <h2 class="font-serif" style="font-family:'Playfair Display',serif; font-size:clamp(2rem,4vw,2.75rem); font-weight:700; color:#4A4A4A; line-height:1.25; margin-bottom:1.25rem;">
           História que<br>inspira confiança
         </h2>
-        <p style="color:#777; line-height:1.85; margin-bottom:1rem;">
+        <p style="color:#5c5c5c; line-height:1.85; margin-bottom:1rem;">
           Apaixonada por transformar sorrisos e impactar vidas através da odontologia humanizada e de excelência. Com anos de dedicação, estudo e atualização constante, meu propósito é oferecer tratamentos personalizados que unem tecnologia, estética e cuidado em cada detalhe.
         </p>
-        <p style="color:#777; line-height:1.85; margin-bottom:2rem;">
+        <p style="color:#5c5c5c; line-height:1.85; margin-bottom:2rem;">
           Cada paciente é único e merece um atendimento especial. Por isso, combino o que há de mais moderno em odontologia com o acolhimento e a atenção que cada pessoa merece.
         </p>
 
@@ -290,7 +310,7 @@
               </svg>
             </div>
             <p style="font-weight:600; font-size:0.82rem; color:#4A4A4A; margin-bottom:0.2rem;">Formação Acadêmica</p>
-            <p style="font-size:0.72rem; color:#999; line-height:1.5;">Odontologia pela Universidade Federal</p>
+            <p style="font-size:0.72rem; color:#6b6b6b; line-height:1.5;">Odontologia pela Universidade Federal</p>
           </div>
 
           <!-- Especializações -->
@@ -301,7 +321,7 @@
               </svg>
             </div>
             <p style="font-weight:600; font-size:0.82rem; color:#4A4A4A; margin-bottom:0.2rem;">Especializações</p>
-            <p style="font-size:0.72rem; color:#999; line-height:1.5;">Estética, Implantodontia e Ortodontia</p>
+            <p style="font-size:0.72rem; color:#6b6b6b; line-height:1.5;">Estética, Implantodontia e Ortodontia</p>
           </div>
 
           <!-- Certificações -->
@@ -312,7 +332,7 @@
               </svg>
             </div>
             <p style="font-weight:600; font-size:0.82rem; color:#4A4A4A; margin-bottom:0.2rem;">Certificações</p>
-            <p style="font-size:0.72rem; color:#999; line-height:1.5;">Cursos nacionais e internacionais</p>
+            <p style="font-size:0.72rem; color:#6b6b6b; line-height:1.5;">Cursos nacionais e internacionais</p>
           </div>
 
           <!-- Missão -->
@@ -323,7 +343,7 @@
               </svg>
             </div>
             <p style="font-weight:600; font-size:0.82rem; color:#4A4A4A; margin-bottom:0.2rem;">Missão</p>
-            <p style="font-size:0.72rem; color:#999; line-height:1.5;">Devolver autoestima e bem-estar pelo seu sorriso</p>
+            <p style="font-size:0.72rem; color:#6b6b6b; line-height:1.5;">Devolver autoestima e bem-estar pelo seu sorriso</p>
           </div>
         </div>
 
@@ -357,8 +377,8 @@
             </svg>
           </div>
           <h3 style="font-weight:600; font-size:1rem; color:#4A4A4A; margin-bottom:0.5rem;">Clareamento Dental</h3>
-          <p style="font-size:0.8rem; color:#999; line-height:1.7; margin-bottom:1.25rem;">Deixe seu sorriso mais branco e iluminado com segurança e eficiência.</p>
-          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse no Clareamento Dental." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Saiba mais →</a>
+          <p style="font-size:0.8rem; color:#6b6b6b; line-height:1.7; margin-bottom:1.25rem;">Deixe seu sorriso mais branco e iluminado com segurança e eficiência.</p>
+          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse no Clareamento Dental." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Perguntar sobre isso →</a>
         </div>
 
         <!-- 2. Facetas de Resina -->
@@ -369,8 +389,8 @@
             </svg>
           </div>
           <h3 style="font-weight:600; font-size:1rem; color:#4A4A4A; margin-bottom:0.5rem;">Facetas de Resina</h3>
-          <p style="font-size:0.8rem; color:#999; line-height:1.7; margin-bottom:1.25rem;">Correção de formato e imperfeições com mínimo desgaste e resultado natural.</p>
-          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse em Facetas de Resina." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Saiba mais →</a>
+          <p style="font-size:0.8rem; color:#6b6b6b; line-height:1.7; margin-bottom:1.25rem;">Correção de formato e imperfeições com mínimo desgaste e resultado natural.</p>
+          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse em Facetas de Resina." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Perguntar sobre isso →</a>
         </div>
 
         <!-- 3. Lentes de Contato Dental -->
@@ -383,8 +403,8 @@
             </svg>
           </div>
           <h3 style="font-weight:600; font-size:1rem; color:#4A4A4A; margin-bottom:0.5rem;">Lentes de Contato Dental</h3>
-          <p style="font-size:0.8rem; color:#999; line-height:1.7; margin-bottom:1.25rem;">Sorriso perfeito com mínimo desgaste, translucidez e beleza natural.</p>
-          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse em Lentes de Contato Dental." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Saiba mais →</a>
+          <p style="font-size:0.8rem; color:#6b6b6b; line-height:1.7; margin-bottom:1.25rem;">Sorriso perfeito com mínimo desgaste, translucidez e beleza natural.</p>
+          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse em Lentes de Contato Dental." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Perguntar sobre isso →</a>
         </div>
 
         <!-- 4. Implantes Dentários -->
@@ -396,8 +416,8 @@
             </svg>
           </div>
           <h3 style="font-weight:600; font-size:1rem; color:#4A4A4A; margin-bottom:0.5rem;">Implantes Dentários</h3>
-          <p style="font-size:0.8rem; color:#999; line-height:1.7; margin-bottom:1.25rem;">Solução segura e definitiva para dentes ausentes com alta durabilidade.</p>
-          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse em Implantes Dentários." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Saiba mais →</a>
+          <p style="font-size:0.8rem; color:#6b6b6b; line-height:1.7; margin-bottom:1.25rem;">Solução segura e definitiva para dentes ausentes com alta durabilidade.</p>
+          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse em Implantes Dentários." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Perguntar sobre isso →</a>
         </div>
 
         <!-- 5. Ortodontia -->
@@ -409,8 +429,8 @@
             </svg>
           </div>
           <h3 style="font-weight:600; font-size:1rem; color:#4A4A4A; margin-bottom:0.5rem;">Ortodontia</h3>
-          <p style="font-size:0.8rem; color:#999; line-height:1.7; margin-bottom:1.25rem;">Alinhamento dental para um sorriso harmonioso e mordida correta.</p>
-          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse em Ortodontia." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Saiba mais →</a>
+          <p style="font-size:0.8rem; color:#6b6b6b; line-height:1.7; margin-bottom:1.25rem;">Alinhamento dental para um sorriso harmonioso e mordida correta.</p>
+          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse em Ortodontia." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Perguntar sobre isso →</a>
         </div>
 
         <!-- 6. Limpeza e Profilaxia -->
@@ -422,8 +442,8 @@
             </svg>
           </div>
           <h3 style="font-weight:600; font-size:1rem; color:#4A4A4A; margin-bottom:0.5rem;">Limpeza e Profilaxia</h3>
-          <p style="font-size:0.8rem; color:#999; line-height:1.7; margin-bottom:1.25rem;">Prevenção e o melhor cuidado para manter seu sorriso saudável.</p>
-          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse em Limpeza e Profilaxia." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Saiba mais →</a>
+          <p style="font-size:0.8rem; color:#6b6b6b; line-height:1.7; margin-bottom:1.25rem;">Prevenção e o melhor cuidado para manter seu sorriso saudável.</p>
+          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse em Limpeza e Profilaxia." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Perguntar sobre isso →</a>
         </div>
 
         <!-- 7. Tratamento de Canal -->
@@ -435,8 +455,8 @@
             </svg>
           </div>
           <h3 style="font-weight:600; font-size:1rem; color:#4A4A4A; margin-bottom:0.5rem;">Tratamento de Canal</h3>
-          <p style="font-size:0.8rem; color:#999; line-height:1.7; margin-bottom:1.25rem;">Alívio da dor e preservação do dente natural com conforto e precisão.</p>
-          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse em Tratamento de Canal." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Saiba mais →</a>
+          <p style="font-size:0.8rem; color:#6b6b6b; line-height:1.7; margin-bottom:1.25rem;">Alívio da dor e preservação do dente natural com conforto e precisão.</p>
+          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse em Tratamento de Canal." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Perguntar sobre isso →</a>
         </div>
 
         <!-- 8. Avaliação Preventiva -->
@@ -447,14 +467,14 @@
             </svg>
           </div>
           <h3 style="font-weight:600; font-size:1rem; color:#4A4A4A; margin-bottom:0.5rem;">Avaliação Preventiva</h3>
-          <p style="font-size:0.8rem; color:#999; line-height:1.7; margin-bottom:1.25rem;">Cuide da saúde bucal e previna problemas antes que se tornem maiores.</p>
-          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse em uma Avaliação Preventiva." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Saiba mais →</a>
+          <p style="font-size:0.8rem; color:#6b6b6b; line-height:1.7; margin-bottom:1.25rem;">Cuide da saúde bucal e previna problemas antes que se tornem maiores.</p>
+          <a href="https://wa.me/5532984624848?text=Olá! Tenho interesse em uma Avaliação Preventiva." target="_blank" style="font-size:0.75rem; font-weight:600; color:#827161; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase;">Perguntar sobre isso →</a>
         </div>
       </div>
 
       <div style="text-align:center; margin-top:3rem;" data-aos="fade-up">
         <a href="https://wa.me/5532984624848?text=Olá, Dra. Julia! Gostaria de saber mais sobre os serviços disponíveis." target="_blank" class="btn-outline" style="display:inline-flex;">
-          Ver todos os serviços &rarr;
+          Falar sobre os serviços &rarr;
         </a>
       </div>
     </div>
@@ -579,7 +599,7 @@
 
       <div style="text-align:center; margin-top:3rem;" data-aos="fade-up">
         <a href="https://wa.me/5532984624848?text=Olá! Gostaria de ver mais resultados e agendar uma avaliação." target="_blank" class="btn-outline" style="display:inline-flex;">
-          Ver mais resultados &rarr;
+          Perguntar sobre os resultados &rarr;
         </a>
       </div>
     </div>
@@ -615,7 +635,7 @@
               <span style="font-weight:700; font-size:1.1rem; color:#4A4A4A;">5,0</span>
               <span style="color:#FBBC05; font-size:0.9rem;">⭐⭐⭐⭐⭐</span>
             </div>
-            <p style="font-size:0.72rem; color:#999;">+150 avaliações no Google</p>
+            <p style="font-size:0.72rem; color:#6b6b6b;">+150 avaliações no Google</p>
           </div>
         </a>
       </div>
@@ -635,7 +655,7 @@
                 <div class="avatar-placeholder">A</div>
                 <div>
                   <p style="font-weight:600; font-size:0.875rem; color:#4A4A4A;">Ana Paula M.</p>
-                  <p style="font-size:0.75rem; color:#999;">Paciente · Clareamento</p>
+                  <p style="font-size:0.75rem; color:#6b6b6b;">Paciente · Clareamento</p>
                 </div>
                 <div style="margin-left:auto; color:#FBBC05; font-size:0.85rem;">⭐⭐⭐⭐⭐</div>
               </div>
@@ -653,7 +673,7 @@
                 <div class="avatar-placeholder" style="background:linear-gradient(135deg,#FFFAF5,#827161);">C</div>
                 <div>
                   <p style="font-weight:600; font-size:0.875rem; color:#4A4A4A;">Carlos Henrique T.</p>
-                  <p style="font-size:0.75rem; color:#999;">Paciente · Implante</p>
+                  <p style="font-size:0.75rem; color:#6b6b6b;">Paciente · Implante</p>
                 </div>
                 <div style="margin-left:auto; color:#FBBC05; font-size:0.85rem;">⭐⭐⭐⭐⭐</div>
               </div>
@@ -671,7 +691,7 @@
                 <div class="avatar-placeholder" style="background:linear-gradient(135deg,#F7EFE4,#827161);">F</div>
                 <div>
                   <p style="font-weight:600; font-size:0.875rem; color:#4A4A4A;">Fernanda R.</p>
-                  <p style="font-size:0.75rem; color:#999;">Paciente · Facetas</p>
+                  <p style="font-size:0.75rem; color:#6b6b6b;">Paciente · Facetas</p>
                 </div>
                 <div style="margin-left:auto; color:#FBBC05; font-size:0.85rem;">⭐⭐⭐⭐⭐</div>
               </div>
@@ -689,7 +709,7 @@
                 <div class="avatar-placeholder" style="background:linear-gradient(135deg,#FFFAF5,#685A4E);">M</div>
                 <div>
                   <p style="font-weight:600; font-size:0.875rem; color:#4A4A4A;">Márcia Oliveira</p>
-                  <p style="font-size:0.75rem; color:#999;">Paciente · Família</p>
+                  <p style="font-size:0.75rem; color:#6b6b6b;">Paciente · Família</p>
                 </div>
                 <div style="margin-left:auto; color:#FBBC05; font-size:0.85rem;">⭐⭐⭐⭐⭐</div>
               </div>
@@ -707,7 +727,7 @@
                 <div class="avatar-placeholder" style="background:linear-gradient(135deg,#F7EFE4,#FFFAF5);">R</div>
                 <div>
                   <p style="font-weight:600; font-size:0.875rem; color:#4A4A4A;">Ricardo Souza</p>
-                  <p style="font-size:0.75rem; color:#999;">Paciente · Prevenção</p>
+                  <p style="font-size:0.75rem; color:#6b6b6b;">Paciente · Prevenção</p>
                 </div>
                 <div style="margin-left:auto; color:#FBBC05; font-size:0.85rem;">⭐⭐⭐⭐⭐</div>
               </div>
@@ -741,7 +761,7 @@
         <h2 class="font-serif" style="font-family:'Playfair Display',serif; font-size:clamp(2rem,4vw,2.75rem); font-weight:700; color:#4A4A4A; line-height:1.25;">
           Vamos conversar?
         </h2>
-        <p style="color:#999; margin-top:0.75rem; max-width:450px; margin-left:auto; margin-right:auto;">
+        <p style="color:#6b6b6b; margin-top:0.75rem; max-width:450px; margin-left:auto; margin-right:auto;">
           Entre em contato e agende sua consulta. Estamos prontos para cuidar do seu sorriso!
         </p>
       </div>
@@ -757,7 +777,7 @@
               <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             </div>
             <div>
-              <p style="font-size:0.75rem; color:#999; text-transform:uppercase; letter-spacing:.08em; margin-bottom:0.2rem;">Telefone / WhatsApp</p>
+              <p style="font-size:0.75rem; color:#6b6b6b; text-transform:uppercase; letter-spacing:.08em; margin-bottom:0.2rem;">Telefone / WhatsApp</p>
               <a href="https://wa.me/5532984624848?text=Olá%2C+Dra.+Julia!+Gostaria+de+agendar+uma+consulta." target="_blank" style="font-weight:500; color:#4A4A4A; text-decoration:none; font-size:0.95rem;">(32) 98462-4848</a>
               <p style="font-size:0.75rem; color:#827161; margin-top:0.2rem;">Clique para abrir o WhatsApp</p>
             </div>
@@ -772,7 +792,7 @@
               </svg>
             </div>
             <div>
-              <p style="font-size:0.75rem; color:#999; text-transform:uppercase; letter-spacing:.08em; margin-bottom:0.2rem;">Instagram</p>
+              <p style="font-size:0.75rem; color:#6b6b6b; text-transform:uppercase; letter-spacing:.08em; margin-bottom:0.2rem;">Instagram</p>
               <a href="https://instagram.com/draju_guedes" target="_blank" style="font-weight:500; color:#4A4A4A; text-decoration:none; font-size:0.95rem;">@draju_guedes</a>
             </div>
           </div>
@@ -785,7 +805,7 @@
               </svg>
             </div>
             <div>
-              <p style="font-size:0.75rem; color:#999; text-transform:uppercase; letter-spacing:.08em; margin-bottom:0.2rem;">Facebook</p>
+              <p style="font-size:0.75rem; color:#6b6b6b; text-transform:uppercase; letter-spacing:.08em; margin-bottom:0.2rem;">Facebook</p>
               <a href="https://facebook.com/drajuliaguedes" target="_blank" style="font-weight:500; color:#4A4A4A; text-decoration:none; font-size:0.95rem;">/drajuliaguedes</a>
             </div>
           </div>
@@ -798,7 +818,7 @@
               </svg>
             </div>
             <div>
-              <p style="font-size:0.75rem; color:#999; text-transform:uppercase; letter-spacing:.08em; margin-bottom:0.2rem;">Endereço</p>
+              <p style="font-size:0.75rem; color:#6b6b6b; text-transform:uppercase; letter-spacing:.08em; margin-bottom:0.2rem;">Endereço</p>
               <p style="font-weight:500; color:#4A4A4A; font-size:0.9rem; line-height:1.5;">Praça Rui Barbosa, 170 - Sl 403<br>Centro, Cataguases - MG<br>CEP 36770-034</p>
               <a href="https://maps.google.com/maps/place//data=!4m2!3m1!1s0xa2d13448a9ee61:0x381b7c0914902b50?entry=s" target="_blank" style="font-size:0.8rem; color:#827161; font-weight:600; text-decoration:none; display:inline-block; margin-top:0.5rem;">
                 Ver no Google Maps →
@@ -823,40 +843,41 @@
               </div>
               <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
                 <span style="color:#666;">Domingo</span>
-                <span style="color:#999;">Fechado</span>
+                <span style="color:#6b6b6b;">Fechado</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Formulário -->
-        <div data-aos="fade-up" x-data="{ name: '', phone: '', email: '', message: '', sent: false }">
+        <!-- Formulário
+             Envio tratado inteiramente em assets/js/main.js (única fonte de verdade —
+             não adicione um segundo listener de submit aqui, ver auditoria F1.1). -->
+        <div data-aos="fade-up">
           <h3 class="font-serif" style="font-family:'Playfair Display',serif; font-size:1.35rem; font-weight:600; color:#4A4A4A; margin-bottom:1.5rem;">Envie uma mensagem</h3>
-          <form id="contact-form" style="display:flex; flex-direction:column; gap:1rem;" @submit.prevent="
-            if (!name || !phone || !message) { alert('Preencha nome, telefone e mensagem.'); return; }
-            const txt = 'Olá, Dra. Julia! 😊\n\nMeu nome é *' + name + '*.\nTelefone: ' + phone + '\nE-mail: ' + (email || 'Não informado') + '\n\nMensagem:\n' + message;
-            window.open('https://wa.me/5532984624848?text=' + encodeURIComponent(txt), '_blank');
-          ">
+          <form id="contact-form" style="display:flex; flex-direction:column; gap:1rem;">
             <div>
-              <label style="font-size:0.8rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">Nome completo *</label>
-              <input id="f-name" x-model="name" type="text" placeholder="Seu nome" required class="form-input">
+              <label for="f-name" style="font-size:0.8rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">Nome completo *</label>
+              <input id="f-name" type="text" placeholder="Seu nome" required class="form-input">
             </div>
             <div>
-              <label style="font-size:0.8rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">Telefone / WhatsApp *</label>
-              <input id="f-phone" x-model="phone" type="tel" placeholder="(32) 99999-9999" required class="form-input">
+              <label for="f-phone" style="font-size:0.8rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">Telefone / WhatsApp *</label>
+              <input id="f-phone" type="tel" placeholder="(32) 99999-9999" required class="form-input">
             </div>
             <div>
-              <label style="font-size:0.8rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">E-mail</label>
-              <input id="f-email" x-model="email" type="email" placeholder="seu@email.com" class="form-input">
+              <label for="f-email" style="font-size:0.8rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">E-mail</label>
+              <input id="f-email" type="email" placeholder="seu@email.com" class="form-input">
             </div>
             <div>
-              <label style="font-size:0.8rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">Mensagem *</label>
-              <textarea id="f-message" x-model="message" placeholder="Olá! Gostaria de agendar uma consulta..." required class="form-input" rows="4" style="resize:vertical;"></textarea>
+              <label for="f-message" style="font-size:0.8rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">Mensagem *</label>
+              <textarea id="f-message" placeholder="Olá! Gostaria de agendar uma consulta..." required class="form-input" rows="4" style="resize:vertical;"></textarea>
             </div>
             <button type="submit" class="btn-primary" style="justify-content:center; margin-top:0.5rem; width:100%;">
               <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
               Enviar pelo WhatsApp
             </button>
+            <p id="form-success" role="status" style="display:none; font-size:0.85rem; color:#3E7F53; background:#E1EBDF; border-radius:0.75rem; padding:0.75rem 1rem; margin:0;">
+              Mensagem pronta! Continue a conversa na aba do WhatsApp que abriu.
+            </p>
           </form>
         </div>
 
@@ -902,7 +923,7 @@
             </svg>
           </button>
           <div x-show="open === 1" x-transition style="padding:0 1.5rem 1.25rem; border-top:1px solid #F7EFE4;">
-            <p style="font-size:0.875rem; color:#777; line-height:1.8; margin-top:1rem;">
+            <p style="font-size:0.875rem; color:#5c5c5c; line-height:1.8; margin-top:1rem;">
               O agendamento é feito exclusivamente pelo WhatsApp: <a href="https://wa.me/5532984624848?text=Olá%2C+Dra.+Julia!+Gostaria+de+agendar+uma+consulta." target="_blank" style="color:#827161; font-weight:600;">(32) 98462-4848</a>. É só mandar uma mensagem e a equipe vai te atender e confirmar o melhor horário para você!
             </p>
           </div>
@@ -918,7 +939,7 @@
             </svg>
           </button>
           <div x-show="open === 2" x-transition style="padding:0 1.5rem 1.25rem; border-top:1px solid #F7EFE4;">
-            <p style="font-size:0.875rem; color:#777; line-height:1.8; margin-top:1rem;">
+            <p style="font-size:0.875rem; color:#5c5c5c; line-height:1.8; margin-top:1rem;">
               Atendemos pacientes particulares. Entre em contato pelo WhatsApp para verificar condições de pagamento e formas de parcelamento disponíveis.
             </p>
           </div>
@@ -934,7 +955,7 @@
             </svg>
           </button>
           <div x-show="open === 3" x-transition style="padding:0 1.5rem 1.25rem; border-top:1px solid #F7EFE4;">
-            <p style="font-size:0.875rem; color:#777; line-height:1.8; margin-top:1rem;">
+            <p style="font-size:0.875rem; color:#5c5c5c; line-height:1.8; margin-top:1rem;">
               Aceitamos cartão de crédito, débito, PIX e dinheiro. Para tratamentos mais extensos, trabalhamos com parcelamento. Consulte as condições pelo WhatsApp.
             </p>
           </div>
@@ -950,7 +971,7 @@
             </svg>
           </button>
           <div x-show="open === 4" x-transition style="padding:0 1.5rem 1.25rem; border-top:1px solid #F7EFE4;">
-            <p style="font-size:0.875rem; color:#777; line-height:1.8; margin-top:1rem;">
+            <p style="font-size:0.875rem; color:#5c5c5c; line-height:1.8; margin-top:1rem;">
               Sabemos que o medo do dentista é muito comum e levamos isso muito a sério. A Dra. Julia conduz cada procedimento com calma, explicando tudo passo a passo e respeitando o seu ritmo. Muitos pacientes que chegam com ansiedade tornam-se grandes fãs do consultório!
             </p>
           </div>
@@ -966,7 +987,7 @@
             </svg>
           </button>
           <div x-show="open === 5" x-transition style="padding:0 1.5rem 1.25rem; border-top:1px solid #F7EFE4;">
-            <p style="font-size:0.875rem; color:#777; line-height:1.8; margin-top:1rem;">
+            <p style="font-size:0.875rem; color:#5c5c5c; line-height:1.8; margin-top:1rem;">
               Sim! Atendemos toda a família. Nosso atendimento é pensado para ser acolhedor e tranquilo, inclusive para os pequenos. Consulte a faixa etária recomendada diretamente pelo WhatsApp.
             </p>
           </div>
@@ -982,7 +1003,7 @@
             </svg>
           </button>
           <div x-show="open === 6" x-transition style="padding:0 1.5rem 1.25rem; border-top:1px solid #F7EFE4;">
-            <p style="font-size:0.875rem; color:#777; line-height:1.8; margin-top:1rem;">
+            <p style="font-size:0.875rem; color:#5c5c5c; line-height:1.8; margin-top:1rem;">
               Depende do tipo de consulta. Uma avaliação preventiva dura em média 30 a 45 minutos. Procedimentos como clareamento ou facetas podem exigir sessões de 1 a 2 horas. O tempo será informado no momento do agendamento.
             </p>
           </div>
@@ -991,7 +1012,7 @@
       </div>
 
       <div style="text-align:center; margin-top:2.5rem;" data-aos="fade-up">
-        <p style="font-size:0.875rem; color:#999; margin-bottom:1rem;">Tem outra dúvida? Fale diretamente com a gente!</p>
+        <p style="font-size:0.875rem; color:#6b6b6b; margin-bottom:1rem;">Tem outra dúvida? Fale diretamente com a gente!</p>
         <a href="https://wa.me/5532984624848?text=Olá%2C+Dra.+Julia!+Tenho+uma+dúvida." target="_blank" class="btn-primary" style="display:inline-flex;">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
           Perguntar pelo WhatsApp
@@ -1035,20 +1056,21 @@
 
         <!-- Navegação -->
         <div>
-          <h4 style="color:#F7EFE4; font-weight:600; font-size:0.9rem; margin-bottom:1.25rem; text-transform:uppercase; letter-spacing:.1em;">Navegação</h4>
+          <h3 style="color:#F7EFE4; font-weight:600; font-size:0.9rem; margin-bottom:1.25rem; text-transform:uppercase; letter-spacing:.1em;">Navegação</h3>
           <nav style="display:flex; flex-direction:column; gap:0.6rem;">
             <a href="#inicio"      style="font-size:0.85rem; color:#aaa; text-decoration:none;">Início</a>
             <a href="#sobre"       style="font-size:0.85rem; color:#aaa; text-decoration:none;">Sobre</a>
             <a href="#servicos"    style="font-size:0.85rem; color:#aaa; text-decoration:none;">Serviços</a>
             <a href="#resultados"  style="font-size:0.85rem; color:#aaa; text-decoration:none;">Resultados</a>
             <a href="#depoimentos" style="font-size:0.85rem; color:#aaa; text-decoration:none;">Depoimentos</a>
+            <a href="#faq"         style="font-size:0.85rem; color:#aaa; text-decoration:none;">Dúvidas</a>
             <a href="#contato"     style="font-size:0.85rem; color:#aaa; text-decoration:none;">Contato</a>
           </nav>
         </div>
 
         <!-- Horários -->
         <div>
-          <h4 style="color:#F7EFE4; font-weight:600; font-size:0.9rem; margin-bottom:1.25rem; text-transform:uppercase; letter-spacing:.1em;">Horários</h4>
+          <h3 style="color:#F7EFE4; font-weight:600; font-size:0.9rem; margin-bottom:1.25rem; text-transform:uppercase; letter-spacing:.1em;">Horários</h3>
           <div style="display:flex; flex-direction:column; gap:0.5rem;">
             <div style="display:flex; justify-content:space-between; gap:1rem; font-size:0.82rem;">
               <span style="color:#aaa;">Segunda a Sexta</span>
@@ -1060,14 +1082,14 @@
             </div>
             <div style="display:flex; justify-content:space-between; gap:1rem; font-size:0.82rem;">
               <span style="color:#aaa;">Domingo</span>
-              <span style="color:#777;">Fechado</span>
+              <span style="color:#aaa;">Fechado</span>
             </div>
           </div>
         </div>
 
         <!-- Informações -->
         <div>
-          <h4 style="color:#F7EFE4; font-weight:600; font-size:0.9rem; margin-bottom:1.25rem; text-transform:uppercase; letter-spacing:.1em;">Informações</h4>
+          <h3 style="color:#F7EFE4; font-weight:600; font-size:0.9rem; margin-bottom:1.25rem; text-transform:uppercase; letter-spacing:.1em;">Informações</h3>
           <div style="display:flex; flex-direction:column; gap:0.75rem; font-size:0.82rem; color:#aaa; line-height:1.6;">
             <p>Praça Rui Barbosa, 170 - Sl 403<br>Centro, Cataguases - MG</p>
             <a href="tel:+5532984624848" style="color:#aaa; text-decoration:none;">(32) 98462-4848</a>
@@ -1078,10 +1100,10 @@
 
       <!-- Linha divisória + Copyright -->
       <div style="border-top:1px solid #ffffff15; padding-top:2rem; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:1rem;">
-        <p style="font-size:0.78rem; color:#777;">
+        <p style="font-size:0.78rem; color:#aaa;">
           &copy; 2025 Dra. Julia Guedes Gonçalves &mdash; Odontologia Estética. Todos os direitos reservados.
         </p>
-        <p style="font-size:0.78rem; color:#555;">
+        <p style="font-size:0.78rem; color:#aaa;">
           Desenvolvido com carinho para cuidar do seu sorriso 🌸
         </p>
       </div>
