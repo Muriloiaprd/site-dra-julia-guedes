@@ -1,0 +1,854 @@
+<title>Anatomia do Site</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --bg:#FBF7F1;
+    --surface:#FFFFFF;
+    --surface-2:#F4EBE1;
+    --border:#E7DACB;
+    --border-soft:#EFE3D4;
+    --ink:#362F29;
+    --ink-soft:#7A6F65;
+    --ink-faint:#A79A8D;
+    --accent-visual:#B4805A;
+    --accent-read:#7C6A8C;
+    --accent-interact:#4F7D58;
+    --tag-bg:#F4EBE1;
+    --tag-ink:#6B5B4D;
+    --tag-border:#DCC9B4;
+    --pin-bg:#F1E6D8;
+    --shadow:0 1px 2px rgba(54,47,41,0.04);
+    --shadow-lg:0 12px 32px rgba(54,47,41,0.08);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#201B17;
+      --surface:#28221D;
+      --surface-2:#332A23;
+      --border:#443628;
+      --border-soft:#3A2E24;
+      --ink:#F3ECE4;
+      --ink-soft:#C2B3A4;
+      --ink-faint:#8C7C6D;
+      --accent-visual:#DCA579;
+      --accent-read:#BBA1CE;
+      --accent-interact:#8FC398;
+      --tag-bg:#362C24;
+      --tag-ink:#E1CDB4;
+      --tag-border:#4C3D30;
+      --pin-bg:#332821;
+      --shadow:0 1px 2px rgba(0,0,0,0.2);
+      --shadow-lg:0 12px 32px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#201B17;
+    --surface:#28221D;
+    --surface-2:#332A23;
+    --border:#443628;
+    --border-soft:#3A2E24;
+    --ink:#F3ECE4;
+    --ink-soft:#C2B3A4;
+    --ink-faint:#8C7C6D;
+    --accent-visual:#DCA579;
+    --accent-read:#BBA1CE;
+    --accent-interact:#8FC398;
+    --tag-bg:#362C24;
+    --tag-ink:#E1CDB4;
+    --tag-border:#4C3D30;
+    --pin-bg:#332821;
+    --shadow:0 1px 2px rgba(0,0,0,0.2);
+    --shadow-lg:0 12px 32px rgba(0,0,0,0.35);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Poppins',sans-serif;
+    font-size:15px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{margin:0; font-family:'Playfair Display',serif; text-wrap:balance;}
+  code, .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  a{color:inherit;}
+
+  .shell{
+    max-width:1180px;
+    margin:0 auto;
+    padding:3rem 1.5rem 6rem;
+    display:grid;
+    grid-template-columns:230px minmax(0,1fr);
+    gap:3rem;
+    align-items:start;
+  }
+  @media (max-width:900px){
+    .shell{grid-template-columns:1fr; gap:2rem; padding:2rem 1.25rem 4rem;}
+  }
+
+  /* ===== SIDEBAR / TOC ===== */
+  .toc{
+    position:sticky;
+    top:2rem;
+    display:flex;
+    flex-direction:column;
+    gap:1.5rem;
+  }
+  @media (max-width:900px){
+    .toc{position:static;}
+  }
+  .toc-title{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.68rem;
+    font-weight:600;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+  }
+  .toc-list{
+    list-style:none;
+    margin:0.5rem 0 0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:0.15rem;
+  }
+  @media (max-width:900px){
+    .toc-list{flex-direction:row; flex-wrap:wrap; gap:0.4rem;}
+  }
+  .toc-list a{
+    display:flex;
+    align-items:baseline;
+    gap:0.5rem;
+    text-decoration:none;
+    padding:0.3rem 0.5rem;
+    border-radius:0.4rem;
+    font-size:0.82rem;
+    color:var(--ink-soft);
+    transition:background .15s ease, color .15s ease;
+  }
+  .toc-list a:hover{background:var(--surface-2); color:var(--ink);}
+  .toc-list a .n{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.68rem;
+    color:var(--ink-faint);
+    min-width:1.1rem;
+  }
+  @media (max-width:900px){
+    .toc-list a{background:var(--surface); border:1px solid var(--border-soft); font-size:0.76rem; padding:0.3rem 0.6rem;}
+  }
+
+  .legend{
+    display:flex;
+    flex-direction:column;
+    gap:0.5rem;
+    padding:0.9rem 1rem;
+    background:var(--surface);
+    border:1px solid var(--border-soft);
+    border-radius:0.7rem;
+  }
+  .legend-item{display:flex; align-items:center; gap:0.5rem; font-size:0.76rem; color:var(--ink-soft);}
+  .legend-dot{width:0.55rem; height:0.55rem; border-radius:50%; flex-shrink:0;}
+
+  .toc-actions{display:flex; gap:0.5rem;}
+  .toc-btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.68rem;
+    letter-spacing:0.04em;
+    color:var(--ink-soft);
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:0.4rem;
+    padding:0.4rem 0.6rem;
+    cursor:pointer;
+  }
+  .toc-btn:hover{background:var(--surface-2); color:var(--ink);}
+  .toc-btn:focus-visible, a:focus-visible, summary:focus-visible{
+    outline:2px solid var(--accent-interact);
+    outline-offset:2px;
+  }
+
+  /* ===== MAIN COLUMN ===== */
+  main{min-width:0;}
+
+  .doc-head{margin-bottom:2.25rem;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.72rem;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--accent-visual);
+    margin-bottom:0.6rem;
+    display:block;
+  }
+  .doc-head h1{font-size:clamp(1.9rem,3.4vw,2.5rem); font-weight:700; color:var(--ink); margin-bottom:0.75rem;}
+  .doc-head p{max-width:62ch; color:var(--ink-soft); font-size:0.95rem;}
+  .doc-head .tip{
+    margin-top:1rem;
+    display:flex;
+    gap:0.6rem;
+    align-items:flex-start;
+    font-size:0.85rem;
+    color:var(--ink-soft);
+    background:var(--surface-2);
+    border-radius:0.6rem;
+    padding:0.75rem 1rem;
+    max-width:62ch;
+  }
+  .doc-head .tip svg{flex-shrink:0; margin-top:0.15rem; color:var(--accent-interact);}
+  .doc-head .tip b{color:var(--ink); font-weight:600;}
+
+  .group-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.7rem;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin:2.25rem 0 0.75rem;
+    display:flex;
+    align-items:center;
+    gap:0.6rem;
+  }
+  .group-label::after{content:""; height:1px; flex:1; background:var(--border);}
+  .group-label:first-of-type{margin-top:0;}
+
+  /* ===== NODE (details/summary) ===== */
+  .node{
+    background:var(--surface);
+    border:1px solid var(--border-soft);
+    border-radius:0.9rem;
+    margin-bottom:0.75rem;
+    box-shadow:var(--shadow);
+    scroll-margin-top:1.5rem;
+    overflow:hidden;
+  }
+  .node.pinned{border-style:dashed;}
+
+  .node > summary{
+    list-style:none;
+    cursor:pointer;
+    padding:1.1rem 1.35rem;
+    display:flex;
+    align-items:center;
+    gap:1rem;
+  }
+  .node > summary::-webkit-details-marker{display:none;}
+  .node-num{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.78rem;
+    color:var(--ink-faint);
+    min-width:1.4rem;
+  }
+  .pin-icon{color:var(--ink-faint); flex-shrink:0;}
+  .node-title{
+    font-family:'Playfair Display',serif;
+    font-weight:600;
+    font-size:1.05rem;
+    color:var(--ink);
+    flex:1;
+    min-width:0;
+  }
+  .node-title em{font-style:normal; color:var(--ink-soft); font-weight:400; font-size:0.9rem;}
+  .node-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.72rem;
+    color:var(--tag-ink);
+    background:var(--tag-bg);
+    border:1px solid var(--tag-border);
+    padding:0.2rem 0.5rem;
+    border-radius:0.35rem;
+    white-space:nowrap;
+  }
+  .chevron{
+    color:var(--ink-faint);
+    transition:transform .2s ease;
+    flex-shrink:0;
+  }
+  .node[open] > summary .chevron{transform:rotate(90deg);}
+
+  .node-body{
+    padding:0 1.35rem 1.5rem;
+    border-top:1px solid var(--border-soft);
+  }
+  .node-note{
+    font-size:0.83rem;
+    color:var(--ink-soft);
+    padding:1rem 0 0.25rem;
+    max-width:70ch;
+  }
+  .cats{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:1.1rem;
+    margin-top:1rem;
+  }
+  @media (max-width:720px){
+    .cats{grid-template-columns:1fr;}
+  }
+  .cat h4{
+    display:flex;
+    align-items:center;
+    gap:0.4rem;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.72rem;
+    font-weight:600;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    margin-bottom:0.65rem;
+  }
+  .cat-visual h4{color:var(--accent-visual);}
+  .cat-read h4{color:var(--accent-read);}
+  .cat-interact h4{color:var(--accent-interact);}
+  .cat ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0.6rem;}
+  .cat li{
+    padding-left:0.7rem;
+    border-left:2px solid var(--border);
+  }
+  .cat-visual li{border-color:color-mix(in srgb, var(--accent-visual) 45%, transparent);}
+  .cat-read li{border-color:color-mix(in srgb, var(--accent-read) 45%, transparent);}
+  .cat-interact li{border-color:color-mix(in srgb, var(--accent-interact) 45%, transparent);}
+  .item-label{display:block; font-size:0.85rem; font-weight:500; color:var(--ink);}
+  .item-note{display:block; font-size:0.78rem; color:var(--ink-soft); margin-top:0.1rem;}
+  .item-tag{
+    display:inline-block;
+    margin-top:0.3rem;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.68rem;
+    color:var(--tag-ink);
+    background:var(--tag-bg);
+    border:1px solid var(--tag-border);
+    padding:0.1rem 0.4rem;
+    border-radius:0.3rem;
+  }
+
+  /* cross-ref table for CTA node */
+  .ref-table{width:100%; border-collapse:collapse; margin-top:1rem; font-size:0.82rem;}
+  .ref-table th{
+    text-align:left;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.68rem;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    font-weight:600;
+    padding:0.4rem 0.7rem;
+    border-bottom:1px solid var(--border);
+  }
+  .ref-table td{
+    padding:0.55rem 0.7rem;
+    border-bottom:1px solid var(--border-soft);
+    color:var(--ink-soft);
+    vertical-align:top;
+  }
+  .ref-table td:first-child{color:var(--ink); font-weight:500;}
+  .ref-table tr:last-child td{border-bottom:none;}
+  .wrap-x{overflow-x:auto;}
+
+  .doc-foot{
+    margin-top:3rem;
+    padding-top:1.5rem;
+    border-top:1px solid var(--border);
+    font-size:0.78rem;
+    color:var(--ink-faint);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:0.5rem;
+  }
+</style>
+
+<div class="shell">
+  <nav class="toc">
+    <div>
+      <span class="toc-title">Neste mapa</span>
+      <ul class="toc-list">
+        <li><a href="#l-header"><span class="n">••</span> Camadas fixas</a></li>
+        <li><a href="#s1"><span class="n">01</span> Início</a></li>
+        <li><a href="#s2"><span class="n">02</span> Sobre</a></li>
+        <li><a href="#s3"><span class="n">03</span> Serviços</a></li>
+        <li><a href="#s4"><span class="n">04</span> Resultados</a></li>
+        <li><a href="#s5"><span class="n">05</span> Depoimentos</a></li>
+        <li><a href="#s6"><span class="n">06</span> Dúvidas</a></li>
+        <li><a href="#s7"><span class="n">07</span> Contato</a></li>
+        <li><a href="#s8"><span class="n">08</span> Chamada final</a></li>
+        <li><a href="#s9"><span class="n">09</span> Agendar Consulta</a></li>
+        <li><a href="#s10"><span class="n">10</span> Rodapé</a></li>
+      </ul>
+    </div>
+
+    <div class="legend">
+      <span class="toc-title">Legenda</span>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--accent-visual)"></span>Visualizar</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--accent-read)"></span>Ler</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--accent-interact)"></span>Interagir</div>
+    </div>
+
+    <div class="toc-actions">
+      <button class="toc-btn" id="btn-expand">Expandir tudo</button>
+      <button class="toc-btn" id="btn-collapse">Recolher</button>
+    </div>
+  </nav>
+
+  <main>
+    <header class="doc-head">
+      <span class="eyebrow">site-dra-julia-guedes / index.html</span>
+      <h1>Anatomia do site</h1>
+      <p>Mapa de toda a página — na ordem em que ela aparece na tela — dividido por seção. Cada seção separa o que ela <b style="color:var(--ink)">mostra</b>, o que ela <b style="color:var(--ink)">diz</b> e onde dá pra <b style="color:var(--ink)">clicar</b>. As etiquetas em <code class="mono" style="font-size:0.82em;">monospace</code> são o seletor real usado no código.</p>
+      <div class="tip">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 16v-5M12 8h.01"/></svg>
+        <span><b>Como usar:</b> ache o item que quer mudar e me manda a etiqueta junto — ex. "muda o texto de <code class="mono">item-tag</code>-estilo <code class="mono">#faq pergunta 3</code>" — daí eu vou direto no código certo, sem precisar adivinhar.</span>
+      </div>
+    </header>
+
+    <div class="group-label" id="l-header">Camadas fixas — sempre visíveis, não fazem parte da rolagem</div>
+
+    <details class="node pinned">
+      <summary>
+        <svg class="pin-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2a5 5 0 015 5c0 3.5-5 11-5 11S7 10.5 7 7a5 5 0 015-5z"/><circle cx="12" cy="7" r="2"/></svg>
+        <span class="node-title">Cabeçalho <em>— navegação fixa no topo</em></span>
+        <span class="node-tag">&lt;nav&gt;</span>
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="node-body">
+        <p class="node-note">Fica fixo (<code class="mono">position:fixed</code>) no topo da tela o tempo todo, sobre todas as seções. Ganha fundo sólido ao rolar a página.</p>
+        <div class="cats">
+          <div class="cat cat-visual">
+            <h4>Visualizar</h4>
+            <ul>
+              <li><span class="item-label">Logo (dente + nome)</span><span class="item-note">ícone SVG + "Dra. Júlia Guedes" + "Odontologia Estética"</span></li>
+              <li><span class="item-label">Ícone hambúrguer</span><span class="item-note">só aparece no mobile</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-read">
+            <h4>Ler</h4>
+            <ul>
+              <li><span class="item-label">Nenhum texto além dos rótulos de link</span><span class="item-note">a navegação é só de clique</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-interact">
+            <h4>Interagir</h4>
+            <ul>
+              <li><span class="item-label">7 links de âncora</span><span class="item-note">Início, Sobre, Serviços, Resultados, Depoimentos, Dúvidas, Contato</span><span class="item-tag">.nav-link</span></li>
+              <li><span class="item-label">Botão "Agendar Consulta"</span><span class="item-note">abre WhatsApp com mensagem pronta</span><span class="item-tag">.btn-primary</span></li>
+              <li><span class="item-label">Ícone-botão WhatsApp circular</span><span class="item-note">ao lado do botão principal, só desktop</span></li>
+              <li><span class="item-label">Hambúrguer → menu mobile</span><span class="item-note">abre painel com os mesmos 7 links + CTA</span><span class="item-tag">@click="mobileOpen"</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="node pinned">
+      <summary>
+        <svg class="pin-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2a5 5 0 015 5c0 3.5-5 11-5 11S7 10.5 7 7a5 5 0 015-5z"/><circle cx="12" cy="7" r="2"/></svg>
+        <span class="node-title">Botão WhatsApp flutuante <em>— canto inferior direito</em></span>
+        <span class="node-tag">.whatsapp-float</span>
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="node-body">
+        <p class="node-note">Ícone verde fixo, visível em cima de qualquer seção durante toda a rolagem.</p>
+        <div class="cats">
+          <div class="cat cat-visual">
+            <h4>Visualizar</h4>
+            <ul><li><span class="item-label">Ícone circular verde do WhatsApp</span></li></ul>
+          </div>
+          <div class="cat cat-read"><h4>Ler</h4><ul><li><span class="item-label">— nenhum texto</span></li></ul></div>
+          <div class="cat cat-interact">
+            <h4>Interagir</h4>
+            <ul><li><span class="item-label">Link direto para o WhatsApp</span><span class="item-note">sem mensagem pré-definida (diferente dos outros CTAs)</span></li></ul>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <div class="group-label">Seções — na ordem em que aparecem rolando a página</div>
+
+    <!-- 01 INÍCIO -->
+    <details class="node" id="s1" open>
+      <summary>
+        <span class="node-num">01</span>
+        <span class="node-title">Início <em>— Hero Banner</em></span>
+        <span class="node-tag">#inicio</span>
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="node-body">
+        <div class="cats">
+          <div class="cat cat-visual">
+            <h4>Visualizar</h4>
+            <ul>
+              <li><span class="item-label">Foto de fundo full-bleed</span><span class="item-note">consultório + Dra. Júlia atendendo</span><span class="item-tag">.hero-banner-img</span></li>
+              <li><span class="item-label">Gradiente sobre a foto</span><span class="item-note">dá contraste pro texto</span><span class="item-tag">.hero-banner-overlay</span></li>
+              <li><span class="item-label">Painel flutuante translúcido</span><span class="item-note">fundo desfocado atrás do texto</span><span class="item-tag">.hero-banner-text</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-read">
+            <h4>Ler</h4>
+            <ul>
+              <li><span class="item-label">Título (4 linhas)</span><span class="item-note">"Cuidando do / seu sorriso / com carinho / e excelência."</span></li>
+              <li><span class="item-label">Parágrafo justificado</span><span class="item-note">"Mais que transformar sorrisos, realizo tratamentos..."</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-interact">
+            <h4>Interagir</h4>
+            <ul>
+              <li><span class="item-label">Botão "Agendar Consulta"</span><span class="item-note">único clique da seção → WhatsApp</span><span class="item-tag">.btn-primary</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <p class="node-note" style="margin-top:1.4rem; padding-top:1rem; border-top:1px dashed var(--border);"><b style="color:var(--ink);">Faixa extra logo abaixo</b> (sem título de seção, sem id) — "Por que nos escolher":</p>
+        <div class="cats">
+          <div class="cat cat-visual">
+            <h4>Visualizar</h4>
+            <ul><li><span class="item-label">6 ícones circulares</span><span class="item-note">faixa horizontal com scroll</span></li></ul>
+          </div>
+          <div class="cat cat-read">
+            <h4>Ler</h4>
+            <ul><li><span class="item-label">6 pares título + descrição</span><span class="item-note">Excelência Clínica, Atendimento Humanizado, Tecnologia de Ponta, Centro de Cataguases, Horários Flexíveis, Ambiente Acolhedor</span></li></ul>
+          </div>
+          <div class="cat cat-interact">
+            <h4>Interagir</h4>
+            <ul><li><span class="item-label">— nenhum clique</span><span class="item-note">só arrastar/rolar horizontalmente</span></li></ul>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- 02 SOBRE -->
+    <details class="node" id="s2">
+      <summary>
+        <span class="node-num">02</span>
+        <span class="node-title">Sobre <em>— história da Dra. Júlia</em></span>
+        <span class="node-tag">#sobre</span>
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="node-body">
+        <div class="cats">
+          <div class="cat cat-visual">
+            <h4>Visualizar</h4>
+            <ul>
+              <li><span class="item-label">Foto do consultório</span><span class="item-note">cantos arredondados + sombra</span><span class="item-tag">ambiente-consultorio.png</span></li>
+              <li><span class="item-label">2 círculos decorativos</span><span class="item-note">atrás da foto</span></li>
+              <li><span class="item-label">Card flutuante</span><span class="item-note">nome + CRO-MG 52930, sobre a foto (só telas grandes)</span><span class="item-tag">hidden lg:block</span></li>
+              <li><span class="item-label">4 ícones de credenciais</span><span class="item-note">em grade, ao lado do texto</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-read">
+            <h4>Ler</h4>
+            <ul>
+              <li><span class="item-label">Selo "Sobre a Dentista"</span></li>
+              <li><span class="item-label">Título "História que inspira confiança"</span></li>
+              <li><span class="item-label">2 parágrafos de biografia</span></li>
+              <li><span class="item-label">4 credenciais</span><span class="item-note">Formação Acadêmica (UFJF), Especializações (Prótese Dentária), Certificações, Missão</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-interact">
+            <h4>Interagir</h4>
+            <ul>
+              <li><span class="item-label">Botão "Conhecer mais sobre a dentista →"</span><span class="item-note">rola até a seção Contato — não abre WhatsApp</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- 03 SERVICOS -->
+    <details class="node" id="s3">
+      <summary>
+        <span class="node-num">03</span>
+        <span class="node-title">Serviços <em>— tratamentos oferecidos</em></span>
+        <span class="node-tag">#servicos</span>
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="node-body">
+        <div class="cats">
+          <div class="cat cat-visual">
+            <h4>Visualizar</h4>
+            <ul>
+              <li><span class="item-label">Carrossel de 8 cards</span><span class="item-note">um ícone SVG próprio por card</span><span class="item-tag">.swiper-servicos</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-read">
+            <h4>Ler</h4>
+            <ul>
+              <li><span class="item-label">Título "Soluções completas para o seu sorriso"</span></li>
+              <li><span class="item-label">8 títulos + descrições curtas</span><span class="item-note">Clareamento Dental, Facetas de Resina, Lentes de Contato Dental, Implantes Dentários, Ortodontia, Limpeza e Profilaxia, Tratamento de Canal, Avaliação Preventiva</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-interact">
+            <h4>Interagir</h4>
+            <ul>
+              <li><span class="item-label">Setas prev/next do carrossel</span><span class="item-tag">.swiper-button-prev/next</span></li>
+              <li><span class="item-label">8x "Perguntar sobre isso →"</span><span class="item-note">um link por card, cada um com mensagem de WhatsApp específica do serviço</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- 04 RESULTADOS -->
+    <details class="node" id="s4">
+      <summary>
+        <span class="node-num">04</span>
+        <span class="node-title">Resultados <em>— antes/depois</em></span>
+        <span class="node-tag">#resultados</span>
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="node-body">
+        <p class="node-note"><b style="color:var(--ink);">Nota:</b> os 4 cards ainda usam placeholders com emoji — as fotos reais de antes/depois ainda não foram inseridas.</p>
+        <div class="cats">
+          <div class="cat cat-visual">
+            <h4>Visualizar</h4>
+            <ul>
+              <li><span class="item-label">Grade de 4 cards antes/depois</span><span class="item-note">divisor central entre as duas metades</span><span class="item-tag">.before-after-container</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-read">
+            <h4>Ler</h4>
+            <ul>
+              <li><span class="item-label">Título "Resultados que transformam"</span></li>
+              <li><span class="item-label">Rótulos "Antes" / "Depois"</span><span class="item-note">em cada card</span></li>
+              <li><span class="item-label">4 legendas</span><span class="item-note">Clareamento, Facetas, Lentes de Contato, Implantes</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-interact">
+            <h4>Interagir</h4>
+            <ul>
+              <li><span class="item-label">4 botões de filtro</span><span class="item-note">Todos / Clareamento / Facetas / Implantes — mostram e escondem cards</span><span class="item-tag">x-data="filter"</span></li>
+              <li><span class="item-label">"Perguntar sobre os resultados →"</span><span class="item-tag">.btn-outline</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- 05 DEPOIMENTOS -->
+    <details class="node" id="s5">
+      <summary>
+        <span class="node-num">05</span>
+        <span class="node-title">Depoimentos <em>— avaliações de pacientes</em></span>
+        <span class="node-tag">#depoimentos</span>
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="node-body">
+        <div class="cats">
+          <div class="cat cat-visual">
+            <h4>Visualizar</h4>
+            <ul>
+              <li><span class="item-label">Carrossel de 6 cards</span><span class="item-tag">.swiper-depoimentos</span></li>
+              <li><span class="item-label">Avatares</span><span class="item-note">fotos genéricas femininas/masculinas, não reais</span></li>
+              <li><span class="item-label">Badge colorido do Google</span><span class="item-note">nota 5,0 com 5 estrelas</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-read">
+            <h4>Ler</h4>
+            <ul>
+              <li><span class="item-label">Título "O que nossos pacientes dizem"</span></li>
+              <li><span class="item-label">6 depoimentos reais do Google</span><span class="item-note">Alessandra Moraes, Fabio Batista, Viviane Dal Sasso, Ivone Esteves, Clara Peres, Talita Portela — nome + texto + estrelas</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-interact">
+            <h4>Interagir</h4>
+            <ul>
+              <li><span class="item-label">Badge Google clicável</span><span class="item-note">abre a página de avaliações</span></li>
+              <li><span class="item-label">Botão "Ver mais" por card</span><span class="item-note">expande o texto truncado</span><span class="item-tag">.ver-mais-btn</span></li>
+              <li><span class="item-label">Setas prev/next do carrossel</span></li>
+              <li><span class="item-label">"Deixar minha avaliação no Google →"</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- 06 FAQ -->
+    <details class="node" id="s6">
+      <summary>
+        <span class="node-num">06</span>
+        <span class="node-title">Dúvidas <em>— perguntas frequentes</em></span>
+        <span class="node-tag">#faq</span>
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="node-body">
+        <div class="cats">
+          <div class="cat cat-visual">
+            <h4>Visualizar</h4>
+            <ul><li><span class="item-label">Seta (chevron) que gira 180°</span><span class="item-note">ao abrir cada pergunta</span></li></ul>
+          </div>
+          <div class="cat cat-read">
+            <h4>Ler</h4>
+            <ul>
+              <li><span class="item-label">Título "Perguntas frequentes"</span></li>
+              <li><span class="item-label">6 perguntas + respostas</span><span class="item-note">Agendamento, Convênios, Formas de pagamento, Medo de dentista, Atendimento infantil, Duração da consulta</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-interact">
+            <h4>Interagir</h4>
+            <ul>
+              <li><span class="item-label">6 botões accordion</span><span class="item-note">clique abre/fecha a resposta, um por vez</span><span class="item-tag">x-data="{open:null}"</span></li>
+              <li><span class="item-label">"Perguntar pelo WhatsApp →"</span><span class="item-note">CTA final da seção</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- 07 CONTATO -->
+    <details class="node" id="s7">
+      <summary>
+        <span class="node-num">07</span>
+        <span class="node-title">Contato <em>— formulário e dados</em></span>
+        <span class="node-tag">#contato</span>
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="node-body">
+        <p class="node-note"><b style="color:var(--ink);">Nota:</b> não há mapa interativo embutido — o "Ver no Google Maps" é um link que abre o Maps em outra aba. O formulário não envia e-mail: ele monta uma mensagem e abre o WhatsApp.</p>
+        <div class="cats">
+          <div class="cat cat-visual">
+            <h4>Visualizar</h4>
+            <ul>
+              <li><span class="item-label">Foto profissional da Dra. Júlia</span><span class="item-note">coluna direita, só em telas extra-grandes</span><span class="item-tag">hidden xl:block</span></li>
+              <li><span class="item-label">Ícones de telefone, Instagram e endereço</span></li>
+              <li><span class="item-label">Card de horários</span><span class="item-note">fundo bege, dentro da coluna de informações</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-read">
+            <h4>Ler</h4>
+            <ul>
+              <li><span class="item-label">Título "Vamos conversar?"</span></li>
+              <li><span class="item-label">Telefone, @instagram, endereço completo</span></li>
+              <li><span class="item-label">Horários</span><span class="item-note">Seg–Sex, Sábado, Domingo</span></li>
+              <li><span class="item-label">Rótulos do formulário</span><span class="item-note">Nome completo, Telefone/WhatsApp, E-mail, Mensagem</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-interact">
+            <h4>Interagir</h4>
+            <ul>
+              <li><span class="item-label">Telefone → abre WhatsApp</span></li>
+              <li><span class="item-label">Link do Instagram</span><span class="item-note">abre em nova aba</span></li>
+              <li><span class="item-label">"Ver no Google Maps →"</span><span class="item-note">link externo, não é mapa embutido</span></li>
+              <li><span class="item-label">Formulário (4 campos)</span><span class="item-tag">#contact-form</span></li>
+              <li><span class="item-label">Botão "Enviar pelo WhatsApp"</span><span class="item-note">monta a mensagem e redireciona</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- 08 CTA FINAL -->
+    <details class="node" id="s8">
+      <summary>
+        <span class="node-num">08</span>
+        <span class="node-title">Chamada final <em>— "Pronta para cuidar do seu sorriso"</em></span>
+        <span class="node-tag">pré-rodapé</span>
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="node-body">
+        <div class="cats">
+          <div class="cat cat-visual">
+            <h4>Visualizar</h4>
+            <ul>
+              <li><span class="item-label">Fundo em gradiente marrom/rosegold escuro</span><span class="item-note">contraste com o resto do site, que é claro</span></li>
+              <li><span class="item-label">2 círculos decorativos</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-read">
+            <h4>Ler</h4>
+            <ul>
+              <li><span class="item-label">Título "Pronta para cuidar do seu sorriso"</span></li>
+              <li><span class="item-label">Parágrafo de reforço</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-interact">
+            <h4>Interagir</h4>
+            <ul>
+              <li><span class="item-label">Botão "Agendar minha consulta"</span><span class="item-note">pill branca, único clique da seção</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- 09 BOTAO AGENDAR CONSULTA (transversal) -->
+    <details class="node" id="s9">
+      <summary>
+        <span class="node-num">09</span>
+        <span class="node-title">Botão "Agendar Consulta" <em>— aparece em 6 lugares</em></span>
+        <span class="node-tag">.btn-primary</span>
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="node-body">
+        <p class="node-note">Este não é um bloco único — é o mesmo CTA repetido em pontos diferentes da página, sempre abrindo o WhatsApp <span class="mono">(32) 98462-4848</span>, cada um com uma mensagem pré-escrita diferente.</p>
+        <div class="wrap-x">
+          <table class="ref-table">
+            <thead><tr><th>Onde aparece</th><th>Texto do botão</th><th>Mensagem pré-preenchida</th></tr></thead>
+            <tbody>
+              <tr><td>Cabeçalho (desktop)</td><td>"Agendar Consulta"</td><td>"Olá, Dra. Julia! Gostaria de agendar uma consulta."</td></tr>
+              <tr><td>Menu mobile</td><td>"Agendar Consulta"</td><td>mesma mensagem do cabeçalho</td></tr>
+              <tr><td>01 · Início (hero)</td><td>"Agendar Consulta"</td><td>mesma mensagem do cabeçalho</td></tr>
+              <tr><td>06 · Dúvidas (rodapé da seção)</td><td>"Perguntar pelo WhatsApp"</td><td>"Olá, Dra. Julia! Tenho uma dúvida."</td></tr>
+              <tr><td>08 · Chamada final</td><td>"Agendar minha consulta"</td><td>mesma mensagem do cabeçalho</td></tr>
+              <tr><td>Botão flutuante (canto da tela)</td><td>— só ícone, sem texto</td><td>sem mensagem pré-definida</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+    <!-- 10 RODAPE -->
+    <details class="node" id="s10">
+      <summary>
+        <span class="node-num">10</span>
+        <span class="node-title">Rodapé <em>— links, dados jurídicos e redes</em></span>
+        <span class="node-tag">&lt;footer&gt;</span>
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="node-body">
+        <div class="cats">
+          <div class="cat cat-visual">
+            <h4>Visualizar</h4>
+            <ul>
+              <li><span class="item-label">Logo (ícone de dente)</span><span class="item-note">repete o do cabeçalho, em tom claro sobre fundo escuro</span></li>
+              <li><span class="item-label">3 ícones de redes sociais</span><span class="item-note">Instagram, Facebook, WhatsApp</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-read">
+            <h4>Ler</h4>
+            <ul>
+              <li><span class="item-label">Descrição curta da clínica</span></li>
+              <li><span class="item-label">Horários</span><span class="item-note">repetido da seção Contato</span></li>
+              <li><span class="item-label">Endereço, telefone, CRO-MG 52930</span></li>
+              <li><span class="item-label">Lista de 8 tratamentos</span><span class="item-note">links de SEO, mesmos serviços da seção 03</span></li>
+              <li><span class="item-label">Copyright</span><span class="item-note">"© 2025 Dra. Julia Guedes Gonçalves"</span></li>
+            </ul>
+          </div>
+          <div class="cat cat-interact">
+            <h4>Interagir</h4>
+            <ul>
+              <li><span class="item-label">3 ícones sociais clicáveis</span></li>
+              <li><span class="item-label">7 links de navegação</span><span class="item-note">mesmas âncoras do cabeçalho</span></li>
+              <li><span class="item-label">Link de telefone</span><span class="item-tag">tel:</span></li>
+              <li><span class="item-label">"Falar pelo WhatsApp"</span></li>
+              <li><span class="item-label">8 links de tratamentos</span><span class="item-note">cada um abre WhatsApp com mensagem específica</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <div class="doc-foot">
+      <span>site-dra-julia-guedes/index.html — 1180 linhas</span>
+      <span>gerado a partir do código atual do site</span>
+    </div>
+  </main>
+</div>
+
+<script>
+  document.getElementById('btn-expand').addEventListener('click', () => {
+    document.querySelectorAll('.node').forEach(n => n.open = true);
+  });
+  document.getElementById('btn-collapse').addEventListener('click', () => {
+    document.querySelectorAll('.node').forEach(n => n.open = false);
+  });
+</script>

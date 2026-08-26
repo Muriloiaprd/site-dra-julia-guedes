@@ -79,6 +79,9 @@
   <!-- ================================================================== -->
   <!-- BOTÃO WHATSAPP FLUTUANTE                                            -->
   <!-- ================================================================== -->
+  <!-- NOTA: fica fixo no canto da tela por cima de todas as seções durante
+       toda a rolagem (position:fixed em .whatsapp-float, custom.css). Único
+       CTA do site sem mensagem pré-preenchida. -->
   <div class="whatsapp-float">
     <a href="https://wa.me/5532984624848" target="_blank" rel="noopener" aria-label="Falar no WhatsApp">
       <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" viewBox="0 0 24 24">
@@ -90,6 +93,11 @@
   <!-- ================================================================== -->
   <!-- NAVEGAÇÃO                                                           -->
   <!-- ================================================================== -->
+  <!-- NOTA: position:fixed — fica sobre todas as seções o tempo todo.
+       "scrolled" (Alpine, definido em x-data do <body>) troca o fundo
+       transparente por sólido ao rolar a página. O link ativo (.nav-link)
+       é destacado dinamicamente pelo scroll listener em main.js, não por
+       CSS puro — ver "ACTIVE NAV LINK ON SCROLL". -->
   <nav :class="scrolled ? 'scrolled' : ''"
        style="position:fixed; top:0; left:0; right:0; z-index:999; padding: 1.25rem 0;">
     <div style="max-width:1280px; margin:0 auto; padding:0 1.5rem; display:flex; align-items:center; justify-content:space-between;">
@@ -130,7 +138,8 @@
         </a>
       </div>
 
-      <!-- Hambúrguer Mobile -->
+      <!-- Hambúrguer Mobile: alterna mobileOpen, que controla o ícone (x-show
+           abaixo) e o painel "Menu Mobile" logo depois deste bloco. -->
       <button @click="mobileOpen = !mobileOpen" aria-label="Menu" class="lg:hidden" style="background:none; border:none; cursor:pointer; padding:0.25rem; color:#4A4A4A;">
         <svg x-show="!mobileOpen" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/>
@@ -160,6 +169,12 @@
   <!-- ================================================================== -->
   <!-- SEÇÃO 1: HERO                                                       -->
   <!-- ================================================================== -->
+  <!-- NOTA: banner full-bleed em 3 camadas empilhadas (custom.css):
+       .hero-banner-img (foto, travada no tamanho nativo do arquivo — nunca
+       amplia além da resolução real, só encolhe) > .hero-banner-overlay
+       (gradiente pra dar contraste) > .hero-banner-text (painel flutuante
+       com o texto, por cima de tudo). Único clique da seção é o botão
+       "Agendar Consulta" mais abaixo. -->
   <section id="inicio" class="hero-banner">
 
     <img src="assets/images/Banner_atendimento_2.png" alt="Dra. Julia Guedes atendendo uma paciente no consultório odontológico" class="hero-banner-img">
@@ -191,6 +206,8 @@
   <!-- ================================================================== -->
   <!-- FAIXA: POR QUE NOS ESCOLHER                                        -->
   <!-- ================================================================== -->
+  <!-- NOTA: puramente informativa, sem nenhum clique. Rola horizontalmente
+       (overflow-x:auto + scroll-snap) quando os 6 itens não cabem na tela. -->
   <section style="background:#FFFAF5; padding:3rem 0; border-bottom:1px solid #F7EFE4;">
     <div style="max-width:1280px; margin:0 auto; padding:0 1.5rem;">
       <div style="display:flex; gap:1.5rem; overflow-x:auto; scroll-snap-type:x proximity; padding-bottom:0.5rem; text-align:center;">
@@ -262,6 +279,8 @@
   <!-- ================================================================== -->
   <!-- SEÇÃO 2: SOBRE A DENTISTA                                           -->
   <!-- ================================================================== -->
+  <!-- NOTA: único clique da seção é o botão final, que rola até #contato
+       (âncora interna) — não abre WhatsApp como os outros CTAs do site. -->
   <section id="sobre" style="padding:4.5rem 0; background:#FFFAF5; overflow:hidden;">
     <div style="max-width:1280px; margin:0 auto; padding:0 1.5rem; display:grid; gap:3rem; align-items:center;" class="grid-2col">
 
@@ -358,6 +377,10 @@
   <!-- ================================================================== -->
   <!-- SEÇÃO 3: SERVIÇOS                                                   -->
   <!-- ================================================================== -->
+  <!-- NOTA: .swiper-servicos é inicializado em main.js (Swiper.js via CDN)
+       — a quantidade de cards visíveis por vez muda por breakpoint ali,
+       não aqui no HTML. Cada card tem seu próprio link "Perguntar sobre
+       isso" com mensagem de WhatsApp já preenchida com o nome do serviço. -->
   <section id="servicos" style="padding:6rem 0; background:#F7EFE4;">
     <div style="max-width:1280px; margin:0 auto; padding:0 1.5rem;">
       <div style="text-align:center; margin-bottom:3.5rem;" data-aos="fade-up">
@@ -501,6 +524,10 @@
   <!-- ================================================================== -->
   <!-- SEÇÃO 4: RESULTADOS                                                 -->
   <!-- ================================================================== -->
+  <!-- NOTA: filtro controlado por Alpine (x-data="filter" aqui embaixo).
+       Cada botão só troca a variável "filter"; cada card decide se aparece
+       via x-show="filter==='todos' || filter==='X'" — pra um card entrar
+       num filtro novo, adicione a condição correspondente no x-show dele. -->
   <section id="resultados" style="padding:6rem 0; background:#FFFAF5;">
     <div style="max-width:1280px; margin:0 auto; padding:0 1.5rem;"
          x-data="{ filter: 'todos' }">
@@ -626,6 +653,10 @@
   <!-- ================================================================== -->
   <!-- SEÇÃO 5: DEPOIMENTOS                                                -->
   <!-- ================================================================== -->
+  <!-- NOTA: .swiper-depoimentos tem autoplay (5s), inicializado em main.js.
+       Cada texto trava em 5 linhas por CSS (line-clamp); o botão "Ver mais"
+       só some/aparece conforme o texto realmente foi cortado ou não —
+       essa checagem e o toggle expandir/recolher também são em main.js. -->
   <section id="depoimentos" style="padding:6rem 0; background:#F7EFE4; overflow:hidden;">
     <div style="max-width:1280px; margin:0 auto; padding:0 1.5rem;">
 
@@ -787,6 +818,9 @@
   <!-- ================================================================== -->
   <!-- SEÇÃO 6: CONTATO                                                    -->
   <!-- ================================================================== -->
+  <!-- NOTA: "Ver no Google Maps" é um link externo — não há mapa embutido
+       (iframe) nesta seção. O formulário não envia e-mail: ver comentário
+       "Formulário" mais abaixo sobre o envio via WhatsApp. -->
   <section id="contato" style="padding:6rem 0; background:#FFFAF5;">
     <div style="max-width:1280px; margin:0 auto; padding:0 1.5rem;">
 
@@ -915,6 +949,11 @@
   <!-- ================================================================== -->
   <!-- FAQ                                                                 -->
   <!-- ================================================================== -->
+  <!-- NOTA: accordion controlado por Alpine (x-data="{open:null}" logo
+       abaixo) — só uma pergunta fica aberta por vez, guardada pelo número
+       do @click de cada botão. Pra adicionar uma pergunta nova, copie um
+       bloco inteiro e troque esse número (open===N) em todos os 3 lugares
+       onde ele aparece dentro do bloco. -->
   <section id="faq" style="padding:6rem 0; background:#F7EFE4;">
     <div style="max-width:800px; margin:0 auto; padding:0 1.5rem;">
 
@@ -1038,6 +1077,8 @@
   <!-- ================================================================== -->
   <!-- CTA FINAL                                                           -->
   <!-- ================================================================== -->
+  <!-- NOTA: seção "pré-rodapé" sem id (não é destino de nenhum link do
+       menu). Único clique é o botão "Agendar minha consulta". -->
   <section style="background:linear-gradient(135deg, #685A4E 0%, #827161 100%); padding:4.5rem 0; position:relative; overflow:hidden;">
     <div class="deco-circle" style="width:320px; height:320px; background:#ffffff; opacity:0.05; top:-120px; right:-80px;"></div>
     <div class="deco-circle" style="width:180px; height:180px; background:#ffffff; opacity:0.06; bottom:-60px; left:-40px;"></div>
@@ -1061,6 +1102,9 @@
   <!-- ================================================================== -->
   <!-- RODAPÉ                                                              -->
   <!-- ================================================================== -->
+  <!-- NOTA: coluna "Navegação" repete as mesmas 7 âncoras do menu do topo.
+       Bloco "Tratamentos" logo abaixo é só para SEO (links de texto pro
+       WhatsApp, um por serviço) — mesma lista de nomes da SEÇÃO 3. -->
   <footer style="background:#332B24; color:#ccc; padding:4rem 0 2rem;">
     <div style="max-width:1280px; margin:0 auto; padding:0 1.5rem;">
 
