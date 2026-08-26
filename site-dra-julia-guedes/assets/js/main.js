@@ -21,6 +21,22 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }, 4000);
 
+  // ===== SWIPER SERVIÇOS =====
+  if (typeof Swiper !== 'undefined') {
+    new Swiper('.swiper-servicos', {
+      slidesPerView: 1.5,
+      spaceBetween: 20,
+      loop: true,
+      navigation: { nextEl: '.swiper-servicos .swiper-button-next', prevEl: '.swiper-servicos .swiper-button-prev' },
+      breakpoints: {
+        480:  { slidesPerView: 2.2 },
+        768:  { slidesPerView: 3.2 },
+        1024: { slidesPerView: 4.2 },
+        1280: { slidesPerView: 5 },
+      },
+    });
+  }
+
   // ===== SWIPER DEPOIMENTOS =====
   if (typeof Swiper !== 'undefined') {
     new Swiper('.swiper-depoimentos', {
@@ -28,7 +44,6 @@ document.addEventListener('DOMContentLoaded', function () {
       spaceBetween: 24,
       loop: true,
       autoplay: { delay: 5000, disableOnInteraction: false },
-      pagination: { el: '.swiper-pagination', clickable: true },
       navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
       breakpoints: {
         640:  { slidesPerView: 1.2 },
@@ -37,6 +52,27 @@ document.addEventListener('DOMContentLoaded', function () {
       },
     });
   }
+
+  // ===== "VER MAIS" NOS DEPOIMENTOS =====
+  // O texto trava em 5 linhas via CSS (line-clamp). Só mostramos o botão
+  // quando o texto realmente foi cortado, comparando altura visível x altura real.
+  document.querySelectorAll('.testimonial-card').forEach(function (card) {
+    const text = card.querySelector('.testimonial-text');
+    const btn = card.querySelector('.ver-mais-btn');
+    if (!text || !btn) return;
+
+    if (text.scrollHeight <= text.clientHeight + 2) {
+      // Mantém o espaço reservado (não remove do layout) para todos os
+      // cards continuarem com a mesma altura, com ou sem o botão.
+      btn.style.visibility = 'hidden';
+      return;
+    }
+
+    btn.addEventListener('click', function () {
+      const expanded = text.classList.toggle('expanded');
+      btn.textContent = expanded ? 'Ver menos' : 'Ver mais';
+    });
+  });
 
   // ===== FORMULÁRIO → WHATSAPP =====
   // Único listener de submit do formulário — não duplicar com uma diretiva
