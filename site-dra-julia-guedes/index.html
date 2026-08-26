@@ -15,11 +15,11 @@
   <meta property="og:type" content="website">
   <meta property="og:locale" content="pt_BR">
   <!-- TODO: trocar para URL absoluta (https://seudominio.com/...) assim que o domínio for definido -->
-  <meta property="og:image" content="assets/images/dra-julia-hero.jpg">
+  <meta property="og:image" content="assets/images/Banner_atendimento_2.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Dra. Julia Guedes — Odontologia Estética | Cataguases-MG">
   <meta name="twitter:description" content="Cuidando do seu sorriso com carinho e excelência. Agende sua consulta!">
-  <meta name="twitter:image" content="assets/images/dra-julia-hero.jpg">
+  <meta name="twitter:image" content="assets/images/Banner_atendimento_2.png">
 
   <!-- Favicon -->
   <link rel="icon" href="assets/images/favicon.svg" type="image/svg+xml">
@@ -104,7 +104,7 @@
           <path d="M12 10.5c.5-1.5 4-2.5 8 0" stroke="#827161" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
         <span style="display:flex; flex-direction:column; line-height:1.15;">
-          <span class="font-serif" style="font-size:1rem; font-weight:600; color:#4A4A4A; font-family:'Playfair Display',serif;">Dra. Julia Guedes</span>
+          <span class="font-serif" style="font-size:1rem; font-weight:600; color:#4A4A4A; font-family:'Playfair Display',serif;">Dra. Júlia Guedes</span>
           <span style="font-size:0.62rem; font-weight:500; color:#827161; text-transform:uppercase; letter-spacing:0.12em;">Odontologia Estética</span>
         </span>
       </a>
@@ -160,25 +160,23 @@
   <!-- ================================================================== -->
   <!-- SEÇÃO 1: HERO                                                       -->
   <!-- ================================================================== -->
-  <section id="inicio" class="hero-gradient" style="display:flex; align-items:center; padding-top:2rem; padding-bottom:2.5rem; position:relative; overflow:hidden;">
+  <section id="inicio" class="hero-banner">
 
-    <!-- Círculos decorativos -->
-    <div class="deco-circle" style="width:420px; height:420px; background:#F7EFE4; opacity:0.35; top:-80px; right:-100px;"></div>
-    <div class="deco-circle" style="width:200px; height:200px; background:#FFFAF5; opacity:0.6; bottom:40px; left:-50px;"></div>
-    <div class="deco-circle" style="width:80px; height:80px; background:#827161; opacity:0.12; top:35%; left:30%;"></div>
+    <img src="assets/images/Banner_atendimento_2.png" alt="Dra. Julia Guedes atendendo uma paciente no consultório odontológico" class="hero-banner-img">
+    <div class="hero-banner-overlay"></div>
 
-    <div style="max-width:1280px; margin:0 auto; padding:1.5rem 1.5rem 3rem; display:grid; gap:3rem; width:100%; position:relative; z-index:1;" class="grid-2col">
+    <div style="max-width:1280px; margin:0 auto; padding:0 1.5rem; width:100%; position:relative; z-index:2;">
 
       <!-- Texto -->
-      <div data-aos="fade-right" style="display:flex; flex-direction:column; justify-content:center; position:relative;">
-        <span class="pill-label">Odontologia Estética e Preventiva</span>
-        <h1 class="font-serif" style="font-family:'Playfair Display',serif; font-size:clamp(2.5rem,5vw,3.75rem); font-weight:700; color:#4A4A4A; line-height:1.18; margin-bottom:1.25rem;">
-          Cuidando do seu<br>
-          <em style="color:#827161; font-style:italic;">sorriso</em> com carinho<br>
+      <div data-aos="fade-right" class="hero-banner-text">
+        <h1 class="font-serif" style="font-family:'Playfair Display',serif; font-size:clamp(2.5rem,5vw,3.75rem); font-weight:700; color:#4A4A4A; line-height:1.18;">
+          Cuidando do<br>
+          seu <em style="color:#827161; font-style:italic;">sorriso</em><br>
+          com carinho<br>
           e excelência.
         </h1>
-        <p style="color:#5c5c5c; font-size:1.05rem; line-height:1.8; max-width:460px; margin-bottom:2rem;">
-          Tratamentos personalizados que unem tecnologia, estética e cuidado para transformar sorrisos e valorizar o que há de mais bonito em você.
+        <p style="color:#5c5c5c; font-size:0.95rem; line-height:1.8; max-width:460px; text-align:justify;">
+          Mais que transformar sorrisos, realizo tratamentos personalizados que unem inovação, tecnologia, cuidado e atenção a cada detalhe. O objetivo? Valorizar o que há de mais bonito em você e trazer segurança, conforto e resultados que surpreendem.
         </p>
         <div style="display:flex; flex-wrap:wrap; gap:1rem;">
           <a href="https://wa.me/5532984624848?text=Olá%2C+Dra.+Julia!+Gostaria+de+agendar+uma+consulta." target="_blank" rel="noopener" class="btn-primary">
@@ -186,15 +184,6 @@
             Agendar Consulta
           </a>
         </div>
-      </div>
-
-      <!-- Foto Hero -->
-      <div data-aos="fade-left" style="display:flex; justify-content:flex-end; align-items:flex-end; position:relative;">
-        <img src="assets/images/dra-julia-hero.jpg" alt="Dra. Julia Guedes, cirurgiã-dentista, sorrindo"
-             width="630" height="976"
-             style="width:100%; max-width:340px; height:auto; border-radius:1.5rem;
-                    -webkit-mask-image:linear-gradient(to right, transparent 0, #000 45px);
-                    mask-image:linear-gradient(to right, transparent 0, #000 45px);">
       </div>
     </div>
   </section>
@@ -845,19 +834,6 @@
           <div class="contact-info-item">
             <div class="contact-icon">
               <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" d="M17 2H7a5 5 0 00-5 5v10a5 5 0 005 5h10a5 5 0 005-5V7a5 5 0 00-5-5z"/>
-                <path d="M16 8h-2a2 2 0 00-2 2v2h4l-.5 3H12v7H9v-7H7v-3h2v-2a4 4 0 014-4h3v3z" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <div>
-              <p style="font-size:0.75rem; color:#6b6b6b; text-transform:uppercase; letter-spacing:.08em; margin-bottom:0.2rem;">Facebook</p>
-              <a href="https://facebook.com/drajuliaguedes" target="_blank" style="font-weight:500; color:#4A4A4A; text-decoration:none; font-size:0.95rem;">/drajuliaguedes</a>
-            </div>
-          </div>
-
-          <div class="contact-info-item">
-            <div class="contact-icon">
-              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                 <path stroke-linecap="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
               </svg>
@@ -901,19 +877,19 @@
           <h3 class="font-serif" style="font-family:'Playfair Display',serif; font-size:1.35rem; font-weight:600; color:#4A4A4A; margin-bottom:1.5rem;">Envie uma mensagem</h3>
           <form id="contact-form" style="display:flex; flex-direction:column; gap:1rem;">
             <div>
-              <label for="f-name" style="font-size:0.8rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">Nome completo *</label>
+              <label for="f-name" style="font-size:0.95rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">Nome completo *</label>
               <input id="f-name" type="text" placeholder="Seu nome" required class="form-input">
             </div>
             <div>
-              <label for="f-phone" style="font-size:0.8rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">Telefone / WhatsApp *</label>
+              <label for="f-phone" style="font-size:0.95rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">Telefone / WhatsApp *</label>
               <input id="f-phone" type="tel" placeholder="(32) 99999-9999" required class="form-input">
             </div>
             <div>
-              <label for="f-email" style="font-size:0.8rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">E-mail</label>
+              <label for="f-email" style="font-size:0.95rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">E-mail</label>
               <input id="f-email" type="email" placeholder="seu@email.com" class="form-input">
             </div>
             <div>
-              <label for="f-message" style="font-size:0.8rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">Mensagem *</label>
+              <label for="f-message" style="font-size:0.95rem; font-weight:500; color:#666; display:block; margin-bottom:0.35rem;">Mensagem *</label>
               <textarea id="f-message" placeholder="Olá! Gostaria de agendar uma consulta..." required class="form-input" rows="4" style="resize:vertical;"></textarea>
             </div>
             <button type="submit" class="btn-primary" style="justify-content:center; margin-top:0.5rem; width:100%;">
@@ -927,16 +903,9 @@
         </div>
 
         <!-- Foto -->
-        <!-- INSERIR: Foto da clínica/consultório recebendo pacientes -->
         <div data-aos="fade-left" class="hidden xl:block">
-          <div style="height:100%; min-height:460px; border-radius:1.25rem; overflow:hidden; box-shadow:0 20px 50px rgba(130,113,97,0.2); background:linear-gradient(160deg, #F7EFE4 0%, #FFFAF5 60%, #82716122 100%); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:0.75rem;">
-            <div style="width:80px; height:80px; border-radius:50%; background:#82716122; display:flex; align-items:center; justify-content:center; border:2px dashed #82716166;">
-              <svg width="38" height="38" fill="none" stroke="#827161" stroke-width="1.2" viewBox="0 0 24 24">
-                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                <path stroke-linecap="round" d="M9 12h6M9 16h4"/>
-              </svg>
-            </div>
-            <p style="color:#82716199; font-size:0.8rem; font-style:italic; text-align:center; padding:0 2rem;">Inserir foto da clínica ou dos pacientes</p>
+          <div style="height:100%; min-height:460px; border-radius:1.25rem; overflow:hidden; box-shadow:0 20px 50px rgba(130,113,97,0.2);">
+            <img src="assets/images/Julia_foto_profisisonal_2.jpeg" alt="Dra. Júlia Guedes" style="width:100%; height:100%; object-fit:cover; object-position:top center; display:block;">
           </div>
         </div>
       </div>

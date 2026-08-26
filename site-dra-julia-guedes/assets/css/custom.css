@@ -37,7 +37,7 @@ body { font-family: 'Poppins', sans-serif; color: var(--cinza-texto); }
 }
 
 /* ===== NAVBAR ===== */
-nav { transition: all 0.35s ease; }
+nav { transition: all 0.35s ease; background: #FFFAF5; box-shadow: 0 1px 0 rgba(130,113,97,0.1); }
 nav.scrolled { background: rgba(255,255,255,0.97); box-shadow: 0 2px 20px rgba(130,113,97,0.15); }
 
 /* ===== BOTÕES ===== */
@@ -264,7 +264,7 @@ nav.scrolled { background: rgba(255,255,255,0.97); box-shadow: 0 2px 20px rgba(1
 /* ===== FORMULÁRIO ===== */
 .form-input {
   width: 100%;
-  padding: 0.875rem 1rem;
+  padding: 0.65rem 0.875rem;
   border: 1.5px solid #e5e5e5;
   border-radius: 0.75rem;
   font-size: 0.875rem;
@@ -362,10 +362,68 @@ footer a:hover { color: var(--rosegold); }
 .grid-credentials { grid-template-columns: repeat(2, 1fr); }
 @media (min-width: 640px) { .grid-credentials { grid-template-columns: repeat(4, 1fr); } }
 
+/* ===== HERO BANNER FULL-BLEED =====
+   Imagem ocupa a seção inteira, de ponta a ponta. Ela fica travada no
+   tamanho NATIVO do arquivo (2006x784) via max-width/max-height —
+   encolhe em telas menores, mas nunca amplia além da resolução real,
+   então nunca perde qualidade. Um gradiente (.hero-banner-overlay) cria
+   contraste pro texto por cima da foto, já que essa imagem não tem uma
+   área vazia reservada como a anterior. */
+.hero-banner {
+  position: relative;
+  overflow: hidden;
+  min-height: 820px;
+  display: flex;
+  align-items: center;
+  padding-top: 4.5rem;
+  padding-bottom: 3.5rem;
+  background: #FFFAF5;
+}
+.hero-banner-img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  max-width: 2006px;
+  max-height: 784px;
+  object-fit: cover;
+  object-position: center;
+  z-index: 0;
+}
+.hero-banner-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(90deg, rgba(255,250,245,0.4) 0%, rgba(255,250,245,0.22) 30%, rgba(255,250,245,0.08) 50%, rgba(255,250,245,0) 65%);
+  pointer-events: none;
+}
+.hero-banner-text {
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-left: -2rem;
+  margin-top: 0.5rem;
+  background: rgba(255,250,245,0.92);
+  backdrop-filter: blur(8px);
+  border-radius: 1.5rem;
+  padding: 2rem 2.5rem;
+  box-shadow: 0 30px 60px -12px rgba(74,74,74,0.3), 0 12px 24px -8px rgba(74,74,74,0.18);
+}
+.hero-banner-text h1 {
+  margin-bottom: 0.5rem;
+}
+
 /* ===== RESPONSIVIDADE ===== */
 @media (max-width: 768px) {
-  .hero-gradient { padding-top: 5rem; }
   .about-photo { order: -1; }
+  .hero-banner { min-height: 0; padding-top: 5.5rem; flex-direction: column; align-items: stretch; }
+  .hero-banner-img { position: relative; top: auto; left: auto; transform: none; width: 100%; height: 320px; max-width: none; object-position: 60% center; }
+  .hero-banner-overlay { display: none; }
+  .hero-banner-text { max-width: 100%; margin-left: 0; background: none; backdrop-filter: none; box-shadow: none; border-radius: 0; padding: 2rem 0 0; }
 }
 
 /* ===== AOS OVERRIDES ===== */
