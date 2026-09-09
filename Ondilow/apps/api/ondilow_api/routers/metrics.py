@@ -57,21 +57,37 @@ def get_load_metrics(
 def get_heatmap(
     current_user: CurrentUser,
     db: DbSession,
-    days: Annotated[int, Query(ge=7, le=365)] = 90,
+    days: Annotated[int, Query(ge=7, le=365)] = 112,
 ) -> list[HeatmapDay]:
-    """Retorna carga diaria por modalidade para o heatmap semanal."""
+    """Retorna carga diaria por modalidade para o heatmap, calculada das atividades."""
+    from datetime import datetime, timezone
+    from ondilow_api.metrics.load import compute_tss
+    from ondilow_api.models.user import AthleteProfile
+
     since = date.today() - timedelta(days=days)
-    rows = db.execute(
-        select(DailyMetric)
+    since_dt = datetime(since.year, since.month, since.day, tzinfo=timezone.utc)
+
+    profile = db.execute(
+        select(AthleteProfile).where(AthleteProfile.user_id == current_user.id)
+    ).scalar_one_or_none()
+
+    activities = db.execute(
+        select(Activity)
         .where(
-            DailyMetric.user_id == current_user.id,
-            DailyMetric.sport.is_not(None),
-            DailyMetric.date >= since,
-            DailyMetric.daily_load > 0,
+            Activity.user_id == current_user.id,
+            Activity.deleted_at.is_(None),
+            Activity.start_time >= since_dt,
         )
-        .order_by(DailyMetric.date.asc())
+        .order_by(Activity.start_time.asc())
     ).scalars().all()
+
+    # agrupa TSS por (date, sport)
+    by_date_sport: dict[tuple[date, str], float] = {}
+    for act in activities:
+        key = (act.start_time.date(), act.sport)
+        by_date_sport[key] = by_date_sport.get(key, 0.0) + compute_tss(act, profile)
+
     return [
-        HeatmapDay(date=r.date, sport=r.sport, daily_load=float(r.daily_load or 0))
-        for r in rows
+        HeatmapDay(date=d, sport=sport, daily_load=round(load, 2))
+        for (d, sport), load in sorted(by_date_sport.items())
     ]
