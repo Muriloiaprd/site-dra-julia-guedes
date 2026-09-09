@@ -16,14 +16,109 @@ import {
 } from "recharts";
 
 import { Logo } from "@/components/Logo";
-import { clearToken, fetchLoadMetrics, fetchMe, type DailyMetric } from "@/lib/api";
+import { clearToken, fetchHeatmap, fetchLoadMetrics, fetchMe, type DailyMetric, type HeatmapDay } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
 const DAY_OPTIONS = [30, 60, 90, 180, 365];
 
+const SPORT_COLOR_MAP: Record<string, string> = {
+  run: "#2f81f7",
+  trail_run: "#388bfd",
+  bike: "#3fb950",
+  mtb: "#56d364",
+  swim: "#a371f7",
+  open_water_swim: "#bc8cff",
+  other: "#8b949e",
+};
+
+function heatmapColor(load: number, sport: string | null): string {
+  const base = SPORT_COLOR_MAP[sport ?? ""] ?? "#2f81f7";
+  if (load <= 0) return "#21262d";
+  if (load < 30) return base + "55";
+  if (load < 60) return base + "99";
+  if (load < 100) return base + "cc";
+  return base;
+}
+
+function TrainingHeatmap({ data }: { data: HeatmapDay[] }) {
+  if (data.length === 0) return null;
+
+  // agrupa por data -> {sport, load} para o primeiro esporte do dia (maior carga)
+  const byDate = new Map<string, { load: number; sport: string | null }>();
+  for (const d of data) {
+    const existing = byDate.get(d.date);
+    if (!existing || (d.daily_load ?? 0) > existing.load) {
+      byDate.set(d.date, { load: d.daily_load ?? 0, sport: d.sport });
+    }
+  }
+
+  // gera 15 semanas retroativas (105 dias)
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const weeks: { date: string; load: number; sport: string | null }[][] = [];
+
+  // começa no domingo da semana que contém (hoje - 104 dias)
+  const start = new Date(today);
+  start.setDate(start.getDate() - 104 - start.getDay());
+
+  let cur = new Date(start);
+  for (let w = 0; w < 16; w++) {
+    const week: { date: string; load: number; sport: string | null }[] = [];
+    for (let d = 0; d < 7; d++) {
+      const iso = cur.toISOString().split("T")[0];
+      const entry = byDate.get(iso);
+      week.push({ date: iso, load: entry?.load ?? 0, sport: entry?.sport ?? null });
+      cur.setDate(cur.getDate() + 1);
+    }
+    weeks.push(week);
+  }
+
+  const DAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="flex gap-1 min-w-max">
+        {/* rótulos dos dias */}
+        <div className="flex flex-col gap-1 mr-1 pt-6">
+          {DAYS.map((d, i) => (
+            <div key={i} className="h-3 w-3 flex items-center justify-center text-[9px] text-brand-muted">
+              {i % 2 === 1 ? d : ""}
+            </div>
+          ))}
+        </div>
+        {weeks.map((week, wi) => {
+          // label do mês na primeira semana do mês
+          const firstDay = new Date(week[0].date + "T12:00:00");
+          const showMonth = firstDay.getDate() <= 7;
+          return (
+            <div key={wi} className="flex flex-col gap-1">
+              <div className="h-5 flex items-end justify-center">
+                {showMonth && (
+                  <span className="text-[9px] text-brand-muted">
+                    {firstDay.toLocaleDateString("pt-BR", { month: "short" })}
+                  </span>
+                )}
+              </div>
+              {week.map((cell, di) => (
+                <div
+                  key={di}
+                  title={`${cell.date}${cell.load > 0 ? ` — TSS: ${cell.load.toFixed(0)}` : ""}`}
+                  className="h-3 w-3 rounded-sm cursor-default transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: heatmapColor(cell.load, cell.sport) }}
+                />
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function MetricsPage() {
   const router = useRouter();
   const [data, setData] = useState<DailyMetric[]>([]);
+  const [heatmap, setHeatmap] = useState<HeatmapDay[]>([]);
   const [days, setDays] = useState(90);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,10 +132,14 @@ export default function MetricsPage() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetchLoadMetrics(days)
-      .then(setData)
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Erro"))
-      .finally(() => setLoading(false));
+    Promise.allSettled([
+      fetchLoadMetrics(days),
+      fetchHeatmap(112),
+    ]).then(([loadRes, heatRes]) => {
+      if (loadRes.status === "fulfilled") setData(loadRes.value);
+      else setError(loadRes.reason instanceof Error ? loadRes.reason.message : "Erro");
+      if (heatRes.status === "fulfilled") setHeatmap(heatRes.value);
+    }).finally(() => setLoading(false));
   }, [days]);
 
   const latest = data[data.length - 1];
@@ -208,6 +307,27 @@ export default function MetricsPage() {
                   <Line type="monotone" dataKey="ACWR" stroke="#e3b341" strokeWidth={2} dot={false} connectNulls />
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+          )}
+        </section>
+
+        {/* heatmap */}
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-muted">
+            Heatmap de treinos (últimas 16 semanas)
+          </h2>
+          {loading ? (
+            <div className="h-24 animate-pulse rounded-lg bg-brand-surface" />
+          ) : (
+            <div className="rounded-lg border border-brand-border bg-brand-surface p-4">
+              <TrainingHeatmap data={heatmap} />
+              <div className="mt-3 flex items-center gap-3 text-xs text-brand-muted">
+                <span>Menos</span>
+                {["#21262d", "#2f81f755", "#2f81f799", "#2f81f7cc", "#2f81f7"].map((c, i) => (
+                  <div key={i} className="h-3 w-3 rounded-sm" style={{ backgroundColor: c }} />
+                ))}
+                <span>Mais</span>
+              </div>
             </div>
           )}
         </section>

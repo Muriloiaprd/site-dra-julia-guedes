@@ -172,10 +172,12 @@ export async function fetchMe(): Promise<User | null> {
 export async function fetchActivities(
   limit = 50,
   offset = 0,
-  sport?: string
+  sport?: string,
+  days?: string,
 ): Promise<ActivitySummary[]> {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
   if (sport) params.set("sport", sport);
+  if (days) params.set("days", days);
   return apiFetch<ActivitySummary[]>(`/activities?${params}`);
 }
 
@@ -336,6 +338,83 @@ export async function removeGarminCredentials(): Promise<void> {
     method: "DELETE",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
+}
+
+// ---------- equipamentos ----------
+
+export interface EquipmentItem {
+  id: string;
+  name: string;
+  type: string;
+  brand: string | null;
+  model: string | null;
+  purchase_date: string | null;
+  retired_at: string | null;
+  initial_distance_m: number;
+  total_distance_m: number;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface EquipmentCreate {
+  name: string;
+  type: string;
+  brand?: string | null;
+  model?: string | null;
+  purchase_date?: string | null;
+  initial_distance_m?: number;
+  notes?: string | null;
+}
+
+export interface EquipmentUpdate {
+  name?: string;
+  type?: string;
+  brand?: string | null;
+  model?: string | null;
+  purchase_date?: string | null;
+  retired_at?: string | null;
+  initial_distance_m?: number;
+  notes?: string | null;
+}
+
+export async function fetchEquipment(): Promise<EquipmentItem[]> {
+  return apiFetch<EquipmentItem[]>("/equipment");
+}
+
+export async function createEquipment(data: EquipmentCreate): Promise<EquipmentItem> {
+  return apiFetch<EquipmentItem>("/equipment", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateEquipment(id: string, data: EquipmentUpdate): Promise<EquipmentItem> {
+  return apiFetch<EquipmentItem>(`/equipment/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteEquipment(id: string): Promise<void> {
+  const token = getToken();
+  await fetch(`/api/equipment/${id}`, {
+    method: "DELETE",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+}
+
+// ---------- heatmap ----------
+
+export interface HeatmapDay {
+  date: string;
+  sport: string | null;
+  daily_load: number;
+}
+
+export async function fetchHeatmap(days = 90): Promise<HeatmapDay[]> {
+  return apiFetch<HeatmapDay[]>(`/metrics/heatmap?days=${days}`);
 }
 
 // ---------- upload ----------

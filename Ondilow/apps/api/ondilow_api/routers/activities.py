@@ -1,6 +1,7 @@
 import hashlib
 import uuid
 from dataclasses import asdict
+from datetime import date, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
@@ -79,6 +80,7 @@ def list_activities(
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
     sport: str | None = None,
+    days: Annotated[int | None, Query(ge=1, le=365)] = None,
 ) -> list[Activity]:
     stmt = (
         select(Activity)
@@ -89,6 +91,9 @@ def list_activities(
     )
     if sport:
         stmt = stmt.where(Activity.sport == sport)
+    if days:
+        since = date.today() - timedelta(days=days)
+        stmt = stmt.where(Activity.start_time >= since)
     return list(db.execute(stmt).scalars())
 
 

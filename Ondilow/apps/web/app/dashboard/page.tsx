@@ -39,6 +39,14 @@ const SPORTS = [
   { value: "other", label: "Outro" },
 ];
 
+const PERIODS = [
+  { value: "", label: "Sempre" },
+  { value: "7", label: "7d" },
+  { value: "30", label: "30d" },
+  { value: "90", label: "90d" },
+  { value: "365", label: "1 ano" },
+];
+
 const PAGE_SIZE = 20;
 
 export default function DashboardPage() {
@@ -47,6 +55,7 @@ export default function DashboardPage() {
   const [activities, setActivities] = useState<ActivitySummary[]>([]);
   const [records, setRecords] = useState<PersonalRecord[]>([]);
   const [sport, setSport] = useState("");
+  const [period, setPeriod] = useState("");
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -68,7 +77,7 @@ export default function DashboardPage() {
     setError(null);
     try {
       const [acts, recs] = await Promise.all([
-        fetchActivities(PAGE_SIZE, offset, sport || undefined),
+        fetchActivities(PAGE_SIZE, offset, sport || undefined, period || undefined),
         fetchRecords(),
       ]);
       setActivities(acts);
@@ -78,7 +87,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [sport, offset]);
+  }, [sport, period, offset]);
 
   useEffect(() => {
     if (user) loadActivities();
@@ -127,7 +136,8 @@ export default function DashboardPage() {
         <div className="flex items-center gap-4 text-sm">
           <Link href="/metrics" className="text-brand-muted hover:text-brand-accent">Carga</Link>
           <Link href="/predictions" className="text-brand-muted hover:text-brand-accent">Previsões</Link>
-          <Link href="/integrations" className="text-brand-muted hover:text-brand-accent">Garmin</Link>
+          <Link href="/equipment" className="text-brand-muted hover:text-brand-accent hidden sm:inline">Equipamentos</Link>
+          <Link href="/integrations" className="text-brand-muted hover:text-brand-accent hidden sm:inline">Garmin</Link>
           <Link href="/profile" className="text-brand-muted hover:text-brand-accent">Perfil</Link>
           <span className="text-brand-muted hidden sm:inline">{user?.email}</span>
           <button onClick={handleLogout} className="text-brand-accent hover:underline">
@@ -204,20 +214,38 @@ export default function DashboardPage() {
         )}
 
         {/* filtros */}
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          {SPORTS.map((s) => (
-            <button
-              key={s.value}
-              onClick={() => { setSport(s.value); setOffset(0); }}
-              className={`rounded-full border px-3 py-1 text-sm transition-colors ${
-                sport === s.value
-                  ? "border-brand-accent bg-brand-accent text-white"
-                  : "border-brand-border text-brand-muted hover:border-brand-accent hover:text-brand-accent"
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
+        <div className="mb-4 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {SPORTS.map((s) => (
+              <button
+                key={s.value}
+                onClick={() => { setSport(s.value); setOffset(0); }}
+                className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                  sport === s.value
+                    ? "border-brand-accent bg-brand-accent text-white"
+                    : "border-brand-border text-brand-muted hover:border-brand-accent hover:text-brand-accent"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-brand-muted">Período:</span>
+            {PERIODS.map((p) => (
+              <button
+                key={p.value}
+                onClick={() => { setPeriod(p.value); setOffset(0); }}
+                className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                  period === p.value
+                    ? "border-brand-accent bg-brand-accent text-white"
+                    : "border-brand-border text-brand-muted hover:border-brand-accent hover:text-brand-accent"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* lista de atividades */}
