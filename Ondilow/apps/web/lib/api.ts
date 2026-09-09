@@ -295,6 +295,49 @@ export async function simulateTsb(
   });
 }
 
+// ---------- integracoes ----------
+
+export interface IntegrationStatus {
+  provider: string;
+  is_enabled: boolean;
+  last_sync_at: string | null;
+  last_sync_status: "success" | "error" | null;
+  last_sync_error: string | null;
+  has_credentials: boolean;
+}
+
+export interface SyncResult {
+  imported: number;
+  skipped: number;
+  errors: string[];
+}
+
+export async function fetchGarminStatus(): Promise<IntegrationStatus> {
+  return apiFetch<IntegrationStatus>("/integrations/garmin");
+}
+
+export async function saveGarminCredentials(email: string, password: string): Promise<IntegrationStatus> {
+  return apiFetch<IntegrationStatus>("/integrations/garmin/credentials", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function triggerGarminSync(limit = 25): Promise<SyncResult> {
+  return apiFetch<SyncResult>(`/integrations/garmin/sync?limit=${limit}`, {
+    method: "POST",
+  });
+}
+
+export async function removeGarminCredentials(): Promise<void> {
+  const token = getToken();
+  await fetch("/api/integrations/garmin/credentials", {
+    method: "DELETE",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+}
+
 // ---------- upload ----------
 
 export async function uploadActivity(file: File): Promise<UploadResult> {

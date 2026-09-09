@@ -127,6 +127,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-4 text-sm">
           <Link href="/metrics" className="text-brand-muted hover:text-brand-accent">Carga</Link>
           <Link href="/predictions" className="text-brand-muted hover:text-brand-accent">Previsões</Link>
+          <Link href="/integrations" className="text-brand-muted hover:text-brand-accent">Garmin</Link>
           <Link href="/profile" className="text-brand-muted hover:text-brand-accent">Perfil</Link>
           <span className="text-brand-muted hidden sm:inline">{user?.email}</span>
           <button onClick={handleLogout} className="text-brand-accent hover:underline">
