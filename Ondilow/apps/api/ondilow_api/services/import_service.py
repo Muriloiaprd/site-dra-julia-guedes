@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ondilow_api.config import settings
+from ondilow_api.metrics.records import update_records
 from ondilow_api.models import Activity, ActivityLap, ActivityPoint
 from ondilow_api.parsers.base import NormalizedActivity
 
@@ -108,6 +109,9 @@ def import_activity(
     db.add(activity)
     db.commit()
     db.refresh(activity)
+
+    update_records(db, activity)
+
     return ImportResult(activity.id, False, activity.sport, _as_float(activity.distance_m), len(kept))
 
 

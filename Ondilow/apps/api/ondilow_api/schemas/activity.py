@@ -59,6 +59,21 @@ class ActivityDetail(ActivitySummary):
     points: list[ActivityPointOut] = []
 
 
+class SplitOut(BaseModel):
+    index: int
+    distance_m: float
+    duration_s: int
+    pace_s_per_km: float | None = None
+    avg_hr: int | None = None
+    elevation_gain_m: float | None = None
+
+
+class ZoneBucketOut(BaseModel):
+    zone: int
+    seconds: int
+    percent: float
+
+
 class UploadItemResult(BaseModel):
     activity_id: uuid.UUID
     duplicate: bool

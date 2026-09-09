@@ -1,5 +1,6 @@
 import hashlib
 import uuid
+from dataclasses import asdict
 from typing import Annotated
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
@@ -7,13 +8,17 @@ from sqlalchemy import select
 
 from ondilow_api.config import settings
 from ondilow_api.deps import CurrentUser, DbSession
+from ondilow_api.metrics import compute_splits, default_hr_zones, hr_zone_distribution
+from ondilow_api.metrics.basic import PointLike
 from ondilow_api.models import Activity
 from ondilow_api.parsers import ParserError, UnsupportedFormatError, parse_file
 from ondilow_api.schemas.activity import (
     ActivityDetail,
     ActivitySummary,
+    SplitOut,
     UploadItemResult,
     UploadResponse,
+    ZoneBucketOut,
 )
 from ondilow_api.services.import_service import file_sha256, import_activity
 
@@ -99,6 +104,55 @@ def get_activity(activity_id: uuid.UUID, current_user: CurrentUser, db: DbSessio
     if activity is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Atividade nao encontrada")
     return activity
+
+
+@router.get("/{activity_id}/splits", response_model=list[SplitOut])
+def get_splits(
+    activity_id: uuid.UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+    split_m: Annotated[float, Query(ge=100, le=42195)] = 1000.0,
+) -> list[SplitOut]:
+    activity = _load_activity(db, activity_id, current_user.id)
+    points = [
+        PointLike(elapsed_time_s=p.elapsed_time_s, distance_m=_f(p.distance_m), altitude_m=_f(p.altitude_m), hr=p.hr)
+        for p in activity.points
+    ]
+    return [SplitOut(**asdict(s)) for s in compute_splits(points, split_m)]
+
+
+@router.get("/{activity_id}/zones", response_model=list[ZoneBucketOut])
+def get_zones(activity_id: uuid.UUID, current_user: CurrentUser, db: DbSession) -> list[ZoneBucketOut]:
+    activity = _load_activity(db, activity_id, current_user.id)
+    profile = current_user.profile
+    if profile and profile.hr_zones:
+        zones = profile.hr_zones
+    elif profile and profile.max_hr:
+        zones = default_hr_zones(profile.max_hr)
+    else:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Configure max_hr (ou zonas) no perfil para calcular zonas de FC",
+        )
+    points = [PointLike(elapsed_time_s=p.elapsed_time_s, hr=p.hr) for p in activity.points]
+    return [ZoneBucketOut(**asdict(z)) for z in hr_zone_distribution(points, zones)]
+
+
+def _load_activity(db: DbSession, activity_id: uuid.UUID, user_id: uuid.UUID) -> Activity:
+    activity = db.execute(
+        select(Activity).where(
+            Activity.id == activity_id,
+            Activity.user_id == user_id,
+            Activity.deleted_at.is_(None),
+        )
+    ).scalar_one_or_none()
+    if activity is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Atividade nao encontrada")
+    return activity
+
+
+def _f(v) -> float | None:
+    return float(v) if v is not None else None
 
 
 def _derived_hash(file_hash: str, index: int) -> str:

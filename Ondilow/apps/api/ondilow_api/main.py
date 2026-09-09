@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ondilow_api.config import settings
 from ondilow_api.logging_setup import configure_logging
-from ondilow_api.routers import activities, auth
+from ondilow_api.routers import activities, auth, profile
 
 
 @asynccontextmanager
@@ -28,6 +28,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(activities.router)
+app.include_router(profile.router)
 
 
 @app.get("/health", tags=["health"])
