@@ -25,6 +25,7 @@ import {
   fetchActivity,
   fetchSplits,
   fetchZones,
+  getToken,
   type ActivityDetail,
   type Split,
   type ZoneBucket,
@@ -59,6 +60,7 @@ export default function ActivityPage() {
   const [zones, setZones] = useState<ZoneBucket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<"card" | "story" | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -120,6 +122,28 @@ export default function ActivityPage() {
   const hasHr = activity.avg_hr != null;
   const hasAlt = activity.elevation_gain_m != null;
 
+  async function handleExport(template: "card" | "story") {
+    setExporting(template);
+    try {
+      const token = getToken();
+      const res = await fetch(`/api/activities/${id}/export?template=${template}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Erro ao gerar imagem");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ondilow_${template}_${id}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // silencia — o botão volta ao estado normal
+    } finally {
+      setExporting(null);
+    }
+  }
+
   return (
     <main className="min-h-screen">
       {/* header */}
@@ -133,6 +157,22 @@ export default function ActivityPage() {
             <span className="text-sm text-brand-muted">
               {formatDate(activity.start_time)} · {formatTime(activity.start_time)}
             </span>
+            <button
+              onClick={() => handleExport("card")}
+              disabled={exporting !== null}
+              className="rounded-md border border-brand-border px-3 py-1.5 text-xs hover:border-brand-accent hover:text-brand-accent disabled:opacity-50"
+              title="Card 1080x1080"
+            >
+              {exporting === "card" ? "Gerando…" : "📷 Card"}
+            </button>
+            <button
+              onClick={() => handleExport("story")}
+              disabled={exporting !== null}
+              className="rounded-md border border-brand-border px-3 py-1.5 text-xs hover:border-brand-accent hover:text-brand-accent disabled:opacity-50"
+              title="Story 1080x1920"
+            >
+              {exporting === "story" ? "Gerando…" : "📱 Story"}
+            </button>
           </div>
         </div>
       </header>
