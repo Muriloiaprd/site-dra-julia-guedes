@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 
+
 import { Logo } from "@/components/Logo";
 import { SportBadge } from "@/components/SportBadge";
 import {
@@ -113,7 +114,9 @@ export default function DashboardPage() {
       <header className="flex items-center justify-between border-b border-brand-border px-6 py-4">
         <Logo />
         <div className="flex items-center gap-4 text-sm">
-          <span className="text-brand-muted">{user?.email}</span>
+          <Link href="/metrics" className="text-brand-muted hover:text-brand-accent">Carga</Link>
+          <Link href="/profile" className="text-brand-muted hover:text-brand-accent">Perfil</Link>
+          <span className="text-brand-muted hidden sm:inline">{user?.email}</span>
           <button onClick={handleLogout} className="text-brand-accent hover:underline">
             Sair
           </button>

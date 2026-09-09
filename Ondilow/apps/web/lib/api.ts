@@ -209,6 +209,21 @@ export async function fetchRecords(): Promise<PersonalRecord[]> {
   return apiFetch<PersonalRecord[]>("/records");
 }
 
+// ---------- metricas de carga ----------
+
+export interface DailyMetric {
+  date: string;
+  daily_load: number | null;
+  ctl: number | null;
+  atl: number | null;
+  tsb: number | null;
+  acwr: number | null;
+}
+
+export async function fetchLoadMetrics(days = 90): Promise<DailyMetric[]> {
+  return apiFetch<DailyMetric[]>(`/metrics/load?days=${days}`);
+}
+
 // ---------- upload ----------
 
 export interface UploadResult {

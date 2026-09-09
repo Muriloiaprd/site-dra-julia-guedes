@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ondilow_api.config import settings
+from ondilow_api.metrics.load import update_daily_metrics
 from ondilow_api.metrics.records import update_records
 from ondilow_api.models import Activity, ActivityLap, ActivityPoint
 from ondilow_api.parsers.base import NormalizedActivity
@@ -111,6 +112,7 @@ def import_activity(
     db.refresh(activity)
 
     update_records(db, activity)
+    update_daily_metrics(db, user_id, from_date=activity.start_time.date())
 
     return ImportResult(activity.id, False, activity.sport, _as_float(activity.distance_m), len(kept))
 
