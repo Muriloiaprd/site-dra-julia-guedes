@@ -1,3 +1,11 @@
+from ondilow_api.models.activity import Activity, ActivityLap, ActivityPoint
 from ondilow_api.models.user import AthleteProfile, User, UserIntegration
 
-__all__ = ["User", "AthleteProfile", "UserIntegration"]
+__all__ = [
+    "User",
+    "AthleteProfile",
+    "UserIntegration",
+    "Activity",
+    "ActivityPoint",
+    "ActivityLap",
+]
