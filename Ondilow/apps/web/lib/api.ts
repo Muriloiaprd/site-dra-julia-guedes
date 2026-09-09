@@ -237,6 +237,66 @@ export interface UploadResult {
   }[];
 }
 
+// ---------- previsoes ----------
+
+export interface RacePrediction {
+  distance: string;
+  distance_m: number;
+  predicted_s: number;
+  confidence: number;
+  source: string;
+  vdot: number;
+}
+
+export interface RiskAssessment {
+  level: "low" | "moderate" | "high" | "unknown";
+  reasons: string[];
+  recommendation: string;
+}
+
+export interface TrainingRecommendation {
+  type: "hard" | "moderate" | "easy" | "rest" | "unknown";
+  label: string;
+  color: string;
+  detail: string | null;
+}
+
+export interface PredictionsOverview {
+  race_predictions: RacePrediction[];
+  risk: RiskAssessment;
+  recommendation: TrainingRecommendation;
+}
+
+export interface SimulatedDay {
+  date: string;
+  ctl: number;
+  atl: number;
+  tsb: number;
+  planned_tss: number;
+}
+
+export async function fetchPredictionsOverview(): Promise<PredictionsOverview> {
+  return apiFetch<PredictionsOverview>("/predictions/overview");
+}
+
+export async function simulateTsb(
+  plannedTss: number[],
+  currentCtl?: number,
+  currentAtl?: number
+): Promise<SimulatedDay[]> {
+  return apiFetch<SimulatedDay[]>("/predictions/simulate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      planned_tss: plannedTss,
+      current_ctl: currentCtl ?? null,
+      current_atl: currentAtl ?? null,
+    }),
+  });
+}
+
+// ---------- upload ----------
+
 export async function uploadActivity(file: File): Promise<UploadResult> {
   const token = getToken();
   const form = new FormData();

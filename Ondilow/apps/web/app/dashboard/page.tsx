@@ -11,10 +11,12 @@ import {
   clearToken,
   fetchActivities,
   fetchMe,
+  fetchPredictionsOverview,
   fetchRecords,
   uploadActivity,
   type ActivitySummary,
   type PersonalRecord,
+  type TrainingRecommendation,
   type User,
 } from "@/lib/api";
 import {
@@ -50,6 +52,7 @@ export default function DashboardPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [recommendation, setRecommendation] = useState<TrainingRecommendation | null>(null);
 
   // carrega usuário
   useEffect(() => {
@@ -80,6 +83,14 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user) loadActivities();
   }, [user, loadActivities]);
+
+  useEffect(() => {
+    if (user) {
+      fetchPredictionsOverview()
+        .then((d) => setRecommendation(d.recommendation))
+        .catch(() => { /* silencia — nao bloqueia o dashboard */ });
+    }
+  }, [user]);
 
   function handleLogout() {
     clearToken();
@@ -115,6 +126,7 @@ export default function DashboardPage() {
         <Logo />
         <div className="flex items-center gap-4 text-sm">
           <Link href="/metrics" className="text-brand-muted hover:text-brand-accent">Carga</Link>
+          <Link href="/predictions" className="text-brand-muted hover:text-brand-accent">Previsões</Link>
           <Link href="/profile" className="text-brand-muted hover:text-brand-accent">Perfil</Link>
           <span className="text-brand-muted hidden sm:inline">{user?.email}</span>
           <button onClick={handleLogout} className="text-brand-accent hover:underline">
@@ -124,6 +136,24 @@ export default function DashboardPage() {
       </header>
 
       <div className="mx-auto max-w-5xl px-4 py-8">
+        {/* card de recomendação de hoje */}
+        {recommendation && (
+          <Link
+            href="/predictions"
+            className="mb-6 flex items-center justify-between rounded-lg border p-4 transition-opacity hover:opacity-90"
+            style={{ borderColor: recommendation.color + "40", backgroundColor: recommendation.color + "12" }}
+          >
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted">Hoje</p>
+              <p className="font-medium" style={{ color: recommendation.color }}>{recommendation.label}</p>
+              {recommendation.detail && (
+                <p className="text-xs text-brand-muted mt-0.5">{recommendation.detail}</p>
+              )}
+            </div>
+            <span className="text-xs text-brand-muted">Ver previsões →</span>
+          </Link>
+        )}
+
         {/* upload banner */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-brand-border bg-brand-surface p-4">
           <div>
