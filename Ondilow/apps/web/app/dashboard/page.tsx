@@ -546,11 +546,12 @@ export default function DashboardPage() {
       <div style={{ padding: "1.25rem 2rem" }}>
 
         {/* ─── ROW 1: STATUS + ÚLTIMA ATIVIDADE + PRÓXIMO TREINO ───────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 300px", gap: "1rem", marginBottom: "1rem", alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 300px", gap: "1rem", marginBottom: "1rem" }}>
 
           {/* Status do Atleta */}
           <div style={{
             gridColumn: "1", gridRow: "1",
+            display: "flex", flexDirection: "column", justifyContent: "center",
             background: "linear-gradient(135deg, #0c1a10 0%, #0a1208 100%)",
             border: "1px solid rgba(0,255,102,0.14)", borderRadius: 14, padding: "0.7rem 1rem",
             position: "relative", overflow: "hidden",
@@ -694,33 +695,36 @@ export default function DashboardPage() {
                 const dayActs = stats.curActs.filter(a => sameDay(new Date(a.start_time), d));
                 const sport = dayActs[0]?.sport;
                 const hasActivity = !!sport;
+                const accent = isToday ? "#00FF66" : hasActivity ? "#FFC145" : null;
                 return (
                   <div key={i} style={{
-                    display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "0.45rem 0.3rem",
-                    borderRadius: 9, position: "relative",
-                    background: isToday ? "rgba(0,255,102,0.09)" : hasActivity ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.015)",
-                    border: isToday ? "1px solid rgba(0,255,102,0.38)" : hasActivity ? "1px solid rgba(255,255,255,0.15)" : "1px solid #171717",
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, padding: "0.6rem 0.35rem",
+                    borderRadius: 12, position: "relative",
+                    background: accent ? "linear-gradient(160deg, #1e1e1e 0%, #0a0a0a 100%)" : "rgba(255,255,255,0.015)",
+                    boxShadow: accent ? `-2px -2px 6px rgba(255,255,255,0.04), 4px 5px 14px rgba(0,0,0,0.6), inset 0 0 0 1px ${accent}28` : "none",
+                    border: accent ? "none" : "1px solid #171717",
                     transition: "all .2s",
                   }}>
                     {hasActivity && !isToday && (
-                      <div style={{ position: "absolute", top: 4, right: 4, width: 5, height: 5, borderRadius: "50%", background: "#00FF66", boxShadow: "0 0 4px rgba(0,255,102,0.7)" }} />
+                      <div style={{ position: "absolute", top: 6, right: 6, width: 6, height: 6, borderRadius: "50%", background: "#00FF66", boxShadow: "0 0 5px rgba(0,255,102,0.8)" }} />
                     )}
-                    <span style={{ fontSize: "0.58rem", fontWeight: 700, color: isToday ? "#00FF66" : "#aaaaaa" }}>{WEEK_LABELS[i]}</span>
                     <div style={{
-                      width: 25, height: 25, borderRadius: 7,
-                      background: isToday ? "rgba(0,255,102,0.18)" : hasActivity ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.03)",
-                      border: `1px solid ${isToday ? "rgba(0,255,102,0.42)" : hasActivity ? "rgba(255,255,255,0.24)" : "#232323"}`,
+                      width: "72%", aspectRatio: "1", borderRadius: 11,
+                      background: accent ? `radial-gradient(circle at 50% 35%, ${accent}48, ${accent}12 75%)` : "rgba(255,255,255,0.03)",
+                      border: `1px solid ${accent ? `${accent}55` : "#232323"}`,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: "0.8rem",
-                      boxShadow: isToday ? "0 0 10px rgba(0,255,102,0.2)" : undefined,
+                      fontSize: "1.3rem",
+                      boxShadow: accent ? `0 0 12px ${accent}55, inset 0 0 9px ${accent}30` : undefined,
                     }}>
-                      {sport ? (SPORT_EMOJI[sport] ?? "⚡") : isFuture ? <span style={{ fontSize: "0.6rem", color: "#8f8f8f" }}>{d.getDate()}</span> : <span style={{ fontSize: "0.58rem", color: "#767676" }}>—</span>}
+                      {sport ? (SPORT_EMOJI[sport] ?? "⚡") : isFuture ? <span style={{ fontSize: "0.75rem", color: "#8f8f8f" }}>{d.getDate()}</span> : <span style={{ fontSize: "0.68rem", color: "#767676" }}>—</span>}
                     </div>
+                    <div style={{ fontSize: "0.64rem", fontWeight: 800, color: accent ?? (isFuture ? "#9d9d9d" : "#767676"), lineHeight: 1.15, textAlign: "center" }}>
+                      {sport ? sportLabel(sport).split(" ")[0] : isFuture ? "Planejado" : "Descanso"}
+                    </div>
+                    {accent && <div style={{ width: "55%", height: 1, background: `${accent}55` }} />}
                     <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: "0.52rem", color: isToday ? "#00FF66" : hasActivity ? "#f2f2f2" : isFuture ? "#9d9d9d" : "#767676", fontWeight: hasActivity || isToday ? 700 : 500, lineHeight: 1.25 }}>
-                        {sport ? sportLabel(sport).split(" ")[0] : isFuture ? "Planejado" : "Descanso"}
-                      </div>
-                      <div style={{ fontSize: "0.48rem", color: "#767676", marginTop: 1 }}>
+                      <div style={{ fontSize: "0.56rem", fontWeight: 700, color: accent ?? "#aaaaaa" }}>{WEEK_LABELS[i]}</div>
+                      <div style={{ fontSize: "0.5rem", color: accent ? `${accent}99` : "#767676", marginTop: 1 }}>
                         {d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
                       </div>
                     </div>
