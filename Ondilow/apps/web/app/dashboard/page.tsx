@@ -2,10 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
-
-import { Logo } from "@/components/Logo";
 import { SportBadge } from "@/components/SportBadge";
 import {
   clearToken,
@@ -62,6 +60,8 @@ export default function DashboardPage() {
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recommendation, setRecommendation] = useState<TrainingRecommendation | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
 
   // carrega usuário
   useEffect(() => {
@@ -101,14 +101,7 @@ export default function DashboardPage() {
     }
   }, [user]);
 
-  function handleLogout() {
-    clearToken();
-    router.push("/login");
-  }
-
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function processFile(file: File) {
     setUploading(true);
     setUploadMsg(null);
     try {
@@ -124,29 +117,26 @@ export default function DashboardPage() {
       setUploadMsg(e instanceof Error ? e.message : "Erro no upload");
     } finally {
       setUploading(false);
-      e.target.value = "";
     }
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await processFile(file);
+    e.target.value = "";
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
   }
 
   return (
     <main className="min-h-screen">
-      {/* header */}
-      <header className="flex items-center justify-between border-b border-brand-border px-6 py-4">
-        <Logo />
-        <div className="flex items-center gap-4 text-sm">
-          <Link href="/metrics" className="text-brand-muted hover:text-brand-accent">Carga</Link>
-          <Link href="/predictions" className="text-brand-muted hover:text-brand-accent">Previsões</Link>
-          <Link href="/equipment" className="text-brand-muted hover:text-brand-accent hidden sm:inline">Equipamentos</Link>
-          <Link href="/integrations" className="text-brand-muted hover:text-brand-accent hidden sm:inline">Garmin</Link>
-          <Link href="/profile" className="text-brand-muted hover:text-brand-accent">Perfil</Link>
-          <span className="text-brand-muted hidden sm:inline">{user?.email}</span>
-          <button onClick={handleLogout} className="text-brand-accent hover:underline">
-            Sair
-          </button>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-6 py-8">
         {/* card de recomendação de hoje */}
         {recommendation && (
           <Link
@@ -165,26 +155,78 @@ export default function DashboardPage() {
           </Link>
         )}
 
-        {/* upload banner */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-brand-border bg-brand-surface p-4">
-          <div>
-            <p className="font-medium">Importar Atividade</p>
-            <p className="text-sm text-brand-muted">FIT, GPX, TCX ou CSV histórico</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {uploadMsg && (
-              <span className="text-sm text-brand-success">{uploadMsg}</span>
+        {/* zona de import drag-and-drop */}
+        <div
+          ref={dropRef}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          className="mb-8 relative rounded-2xl transition-all duration-200"
+          style={{
+            background: dragOver ? "rgba(0,255,102,0.06)" : "rgba(17,17,17,0.9)",
+            border: dragOver ? "2px dashed rgba(0,255,102,0.7)" : "2px dashed rgba(0,255,102,0.2)",
+            boxShadow: dragOver ? "0 0 30px rgba(0,255,102,0.12)" : "none",
+          }}
+        >
+          {/* linha de brilho no topo */}
+          <div className="absolute left-0 right-0 top-0 h-px rounded-t-2xl"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,102,0.4), transparent)" }} />
+
+          <div className="flex flex-col items-center justify-center gap-4 px-8 py-10 text-center">
+            {/* ícone upload */}
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full blur-xl" style={{ background: "rgba(0,255,102,0.15)" }} />
+              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl"
+                style={{ background: "rgba(0,255,102,0.08)", border: "1px solid rgba(0,255,102,0.2)" }}>
+                {uploading ? (
+                  <svg className="animate-spin" width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <circle cx="14" cy="14" r="10" stroke="rgba(0,255,102,0.2)" strokeWidth="3"/>
+                    <path d="M14 4 A10 10 0 0 1 24 14" stroke="#00FF66" strokeWidth="3" strokeLinecap="round"/>
+                  </svg>
+                ) : (
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00FF66" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-base font-bold text-white" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                {uploading ? "Processando arquivo…" : "Arraste seu arquivo aqui"}
+              </p>
+              <p className="mt-1 text-sm" style={{ color: "#888" }}>
+                {uploading ? "Aguarde um momento" : "ou clique para selecionar"}
+              </p>
+            </div>
+
+            {uploadMsg ? (
+              <div className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium"
+                style={{ background: "rgba(0,255,102,0.08)", border: "1px solid rgba(0,255,102,0.2)", color: "#00FF66" }}>
+                ✓ {uploadMsg}
+              </div>
+            ) : (
+              <label className="cursor-pointer rounded-xl px-6 py-2.5 text-sm font-bold text-black transition-all"
+                style={{ background: "linear-gradient(90deg, #00FF66, #C6FF00)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 0 20px rgba(0,255,102,0.35)")}
+                onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
+              >
+                {uploading ? "Enviando…" : "Escolher arquivo"}
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".fit,.gpx,.tcx,.csv"
+                  onChange={handleUpload}
+                  disabled={uploading}
+                />
+              </label>
             )}
-            <label className="cursor-pointer rounded-md bg-brand-accent px-4 py-2 text-sm font-medium text-white hover:bg-brand-accentHover">
-              {uploading ? "Enviando…" : "Selecionar arquivo"}
-              <input
-                type="file"
-                className="hidden"
-                accept=".fit,.gpx,.tcx,.csv"
-                onChange={handleUpload}
-                disabled={uploading}
-              />
-            </label>
+
+            <p className="text-xs" style={{ color: "#555" }}>
+              FIT · GPX · TCX · CSV — nada é enviado a servidores externos
+            </p>
           </div>
         </div>
 
@@ -222,7 +264,7 @@ export default function DashboardPage() {
                 onClick={() => { setSport(s.value); setOffset(0); }}
                 className={`rounded-full border px-3 py-1 text-sm transition-colors ${
                   sport === s.value
-                    ? "border-brand-accent bg-brand-accent text-white"
+                    ? "border-brand-accent bg-brand-accent text-black font-semibold"
                     : "border-brand-border text-brand-muted hover:border-brand-accent hover:text-brand-accent"
                 }`}
               >
@@ -238,7 +280,7 @@ export default function DashboardPage() {
                 onClick={() => { setPeriod(p.value); setOffset(0); }}
                 className={`rounded-full border px-3 py-1 text-xs transition-colors ${
                   period === p.value
-                    ? "border-brand-accent bg-brand-accent text-white"
+                    ? "border-brand-accent bg-brand-accent text-black font-semibold"
                     : "border-brand-border text-brand-muted hover:border-brand-accent hover:text-brand-accent"
                 }`}
               >

@@ -52,19 +52,19 @@ export function sportLabel(sport: string): string {
 
 export function sportColor(sport: string): string {
   const colors: Record<string, string> = {
-    run: "#2f81f7",
-    trail_run: "#3fb950",
-    treadmill: "#58a6ff",
-    bike: "#f0883e",
-    mtb: "#d29922",
-    gravel: "#bc8cff",
-    indoor_bike: "#e3b341",
-    swim: "#39c5cf",
-    open_water_swim: "#20b2aa",
-    multisport: "#ff7b72",
-    other: "#8b949e",
+    run: "#00FF66",
+    trail_run: "#00CC50",
+    treadmill: "#00FF66",
+    bike: "#C6FF00",
+    mtb: "#99CC00",
+    gravel: "#AADD00",
+    indoor_bike: "#C6FF00",
+    swim: "#00CFFF",
+    open_water_swim: "#0099CC",
+    multisport: "#FF6B6B",
+    other: "#888888",
   };
-  return colors[sport] ?? "#8b949e";
+  return colors[sport] ?? "#888888";
 }
 
 export function recordLabel(type: string): string {

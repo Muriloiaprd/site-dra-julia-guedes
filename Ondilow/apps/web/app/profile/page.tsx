@@ -1,12 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { Logo } from "@/components/Logo";
 import {
-  clearToken,
   fetchMe,
   fetchProfile,
   updateProfile,
@@ -68,17 +65,7 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen">
-      <header className="flex items-center justify-between border-b border-brand-border px-6 py-4">
-        <Logo />
-        <div className="flex items-center gap-4 text-sm">
-          <Link href="/dashboard" className="text-brand-muted hover:text-brand-accent">Dashboard</Link>
-          <button onClick={() => { clearToken(); router.push("/login"); }} className="text-brand-accent hover:underline">
-            Sair
-          </button>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-2xl px-4 py-8">
+      <div className="mx-auto max-w-2xl px-6 py-8">
         <h1 className="text-xl font-semibold mb-6">Perfil do Atleta</h1>
 
         <form onSubmit={handleSave} className="space-y-6">
@@ -164,7 +151,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={saving}
-              className="rounded-md bg-brand-accent px-6 py-2 text-sm font-medium text-white hover:bg-brand-accentHover disabled:opacity-50"
+              className="rounded-xl bg-brand-accent px-6 py-2 text-sm font-bold text-black hover:bg-brand-accentHover disabled:opacity-50 transition-colors"
             >
               {saving ? "Salvando…" : "Salvar Perfil"}
             </button>

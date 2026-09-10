@@ -10,15 +10,24 @@ const config: Config = {
       colors: {
         // Tokens de marca Ondilow - placeholders neutros ate as imagens finais chegarem.
         brand: {
-          bg: "#0d1117",
-          surface: "#161b22",
-          border: "#30363d",
-          text: "#e6edf3",
-          muted: "#8b949e",
-          accent: "#2f81f7",
-          accentHover: "#4a94f8",
-          success: "#3fb950",
+          bg: "#0A0A0A",
+          surface: "#111111",
+          border: "#1e1e1e",
+          text: "#FFFFFF",
+          muted: "#888888",
+          accent: "#00FF66",
+          accentHover: "#C6FF00",
+          success: "#00FF66",
           danger: "#f85149",
+        },
+        ondilow: {
+          bg: "#0A0A0A",
+          surface: "#111111",
+          border: "#1e1e1e",
+          border2: "#2a2a2a",
+          green: "#00FF66",
+          lime: "#C6FF00",
+          muted: "#888888",
         },
       },
       fontFamily: {

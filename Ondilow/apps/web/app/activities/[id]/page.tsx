@@ -44,10 +44,10 @@ const ActivityMap = dynamic(
 );
 
 const ZONE_COLORS: Record<number, string> = {
-  1: "#58a6ff",
-  2: "#3fb950",
-  3: "#e3b341",
-  4: "#f0883e",
+  1: "#00FF66",
+  2: "#C6FF00",
+  3: "#FFD700",
+  4: "#FF8C00",
   5: "#f85149",
 };
 
@@ -146,17 +146,20 @@ export default function ActivityPage() {
 
   return (
     <main className="min-h-screen">
-      {/* header */}
-      <header className="border-b border-brand-border px-6 py-4">
-        <div className="mx-auto max-w-5xl flex items-center justify-between">
-          <Link href="/dashboard" className="text-sm text-brand-muted hover:text-brand-accent">
-            ← Dashboard
-          </Link>
+      <div className="mx-auto max-w-5xl px-6 py-8 space-y-8">
+        {/* breadcrumb e ações */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Link href="/dashboard" className="text-sm text-brand-muted hover:text-brand-accent">
+              ← Dashboard
+            </Link>
+            <span className="text-brand-border">·</span>
             <SportBadge sport={activity.sport} />
             <span className="text-sm text-brand-muted">
               {formatDate(activity.start_time)} · {formatTime(activity.start_time)}
             </span>
+          </div>
+          <div className="flex items-center gap-2">
             <button
               onClick={() => handleExport("card")}
               disabled={exporting !== null}
@@ -175,9 +178,6 @@ export default function ActivityPage() {
             </button>
           </div>
         </div>
-      </header>
-
-      <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
         {/* título e métricas */}
         <section>
           <h1 className="text-xl font-semibold mb-4">
@@ -220,15 +220,15 @@ export default function ActivityPage() {
             <div className="rounded-lg border border-brand-border bg-brand-surface p-4">
               <ResponsiveContainer width="100%" height={180}>
                 <AreaChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#30363d" />
-                  <XAxis dataKey="distKm" stroke="#8b949e" fontSize={12} tickFormatter={(v) => `${v}km`} />
-                  <YAxis stroke="#8b949e" fontSize={12} tickFormatter={(v) => `${v}m`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
+                  <XAxis dataKey="distKm" stroke="#888" fontSize={12} tickFormatter={(v) => `${v}km`} />
+                  <YAxis stroke="#888" fontSize={12} tickFormatter={(v) => `${v}m`} />
                   <Tooltip
-                    contentStyle={{ background: "#161b22", border: "1px solid #30363d", borderRadius: 6 }}
+                    contentStyle={{ background: "#111", border: "1px solid #1e1e1e", borderRadius: 8 }}
                     formatter={(v) => [`${v}m`, "Altitude"]}
                     labelFormatter={(l) => `${l} km`}
                   />
-                  <Area type="monotone" dataKey="alt" stroke="#2f81f7" fill="#2f81f722" strokeWidth={1.5} dot={false} />
+                  <Area type="monotone" dataKey="alt" stroke="#00FF66" fill="#00FF6620" strokeWidth={1.5} dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -244,18 +244,18 @@ export default function ActivityPage() {
             <div className="rounded-lg border border-brand-border bg-brand-surface p-4">
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#30363d" />
-                  <XAxis dataKey="distKm" stroke="#8b949e" fontSize={12} tickFormatter={(v) => `${v}km`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
+                  <XAxis dataKey="distKm" stroke="#888" fontSize={12} tickFormatter={(v) => `${v}km`} />
                   <YAxis
                     yAxisId="left"
-                    stroke="#8b949e"
+                    stroke="#888"
                     fontSize={12}
                     reversed={hasPace}
                     tickFormatter={(v) => hasPace ? `${Math.floor(v)}:${String(Math.round((v % 1) * 60)).padStart(2, "0")}` : `${v}km/h`}
                   />
-                  <YAxis yAxisId="right" orientation="right" stroke="#8b949e" fontSize={12} tickFormatter={(v) => `${v}bpm`} />
+                  <YAxis yAxisId="right" orientation="right" stroke="#888" fontSize={12} tickFormatter={(v) => `${v}bpm`} />
                   <Tooltip
-                    contentStyle={{ background: "#161b22", border: "1px solid #30363d", borderRadius: 6 }}
+                    contentStyle={{ background: "#111", border: "1px solid #1e1e1e", borderRadius: 8 }}
                     labelFormatter={(l) => `${l} km`}
                   />
                   <Legend />
@@ -265,7 +265,7 @@ export default function ActivityPage() {
                       type="monotone"
                       dataKey="pace"
                       name="Pace (min/km)"
-                      stroke="#2f81f7"
+                      stroke="#00FF66"
                       dot={false}
                       strokeWidth={1.5}
                       connectNulls
@@ -296,11 +296,11 @@ export default function ActivityPage() {
             <div className="rounded-lg border border-brand-border bg-brand-surface p-4">
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={zones}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#30363d" />
-                  <XAxis dataKey="zone" stroke="#8b949e" fontSize={12} tickFormatter={(v) => `Z${v}`} />
-                  <YAxis stroke="#8b949e" fontSize={12} tickFormatter={(v) => `${v}%`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
+                  <XAxis dataKey="zone" stroke="#888" fontSize={12} tickFormatter={(v) => `Z${v}`} />
+                  <YAxis stroke="#888" fontSize={12} tickFormatter={(v) => `${v}%`} />
                   <Tooltip
-                    contentStyle={{ background: "#161b22", border: "1px solid #30363d", borderRadius: 6 }}
+                    contentStyle={{ background: "#111", border: "1px solid #1e1e1e", borderRadius: 8 }}
                     formatter={(v, _, props) => [
                       `${(props.payload as ZoneBucket).percent.toFixed(1)}% (${formatDuration((props.payload as ZoneBucket).seconds)})`,
                       `Zona ${(props.payload as ZoneBucket).zone}`,
@@ -308,7 +308,7 @@ export default function ActivityPage() {
                   />
                   <Bar dataKey="percent" radius={[4, 4, 0, 0]}>
                     {zones.map((z) => (
-                      <Cell key={z.zone} fill={ZONE_COLORS[z.zone] ?? "#8b949e"} />
+                      <Cell key={z.zone} fill={ZONE_COLORS[z.zone] ?? "#888"} />
                     ))}
                   </Bar>
                 </BarChart>

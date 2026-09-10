@@ -15,9 +15,7 @@ import {
   YAxis,
 } from "recharts";
 
-import { Logo } from "@/components/Logo";
 import {
-  clearToken,
   fetchMe,
   fetchPredictionsOverview,
   simulateTsb,
@@ -33,12 +31,6 @@ const RACE_LABELS: Record<string, string> = {
   "42k": "Maratona",
 };
 
-const CONFIDENCE_LABEL: Record<string, string> = {
-  "1": "Tempo real",
-  "0.75": "Alta",
-  "0.5": "Estimado",
-};
-
 function confidenceLabel(c: number): string {
   if (c >= 1.0) return "Tempo real";
   if (c >= 0.75) return "Alta confiança";
@@ -52,10 +44,10 @@ function confidenceColor(c: number): string {
 }
 
 const RISK_COLORS: Record<string, string> = {
-  low: "#3fb950",
-  moderate: "#e3b341",
+  low: "#00FF66",
+  moderate: "#C6FF00",
   high: "#f85149",
-  unknown: "#8b949e",
+  unknown: "#888888",
 };
 
 const RISK_LABELS: Record<string, string> = {
@@ -109,19 +101,7 @@ export default function PredictionsPage() {
 
   return (
     <main className="min-h-screen">
-      <header className="flex items-center justify-between border-b border-brand-border px-6 py-4">
-        <Logo />
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href="/dashboard" className="text-brand-muted hover:text-brand-accent">Dashboard</Link>
-          <Link href="/metrics" className="text-brand-muted hover:text-brand-accent">Carga</Link>
-          <Link href="/profile" className="text-brand-muted hover:text-brand-accent">Perfil</Link>
-          <button onClick={() => { clearToken(); router.push("/login"); }} className="text-brand-accent hover:underline">
-            Sair
-          </button>
-        </nav>
-      </header>
-
-      <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+      <div className="mx-auto max-w-5xl px-6 py-8 space-y-8">
         <h1 className="text-xl font-semibold">Previsões & Análise</h1>
 
         {error && (
@@ -160,7 +140,7 @@ export default function PredictionsPage() {
                   Risco de Lesão / Overtraining
                 </h2>
                 <span
-                  className="rounded-full px-3 py-0.5 text-xs font-bold text-white"
+                  className="rounded-full px-3 py-0.5 text-xs font-bold text-black"
                   style={{ backgroundColor: RISK_COLORS[data.risk.level] }}
                 >
                   {RISK_LABELS[data.risk.level]}
@@ -225,7 +205,7 @@ export default function PredictionsPage() {
                       onClick={() => setSimDays(d)}
                       className={`rounded-md border px-3 py-1 text-sm transition-colors ${
                         simDays === d
-                          ? "border-brand-accent bg-brand-accent text-white"
+                          ? "border-brand-accent bg-brand-accent text-black font-semibold"
                           : "border-brand-border text-brand-muted hover:border-brand-accent"
                       }`}
                     >
@@ -249,7 +229,7 @@ export default function PredictionsPage() {
               <button
                 onClick={handleSimulate}
                 disabled={simLoading}
-                className="rounded-md bg-brand-accent px-4 py-2 text-sm font-medium text-white hover:bg-brand-accentHover disabled:opacity-50"
+                className="rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-black hover:bg-brand-accentHover disabled:opacity-50 transition-colors"
               >
                 {simLoading ? "Calculando…" : "Simular"}
               </button>
@@ -258,10 +238,10 @@ export default function PredictionsPage() {
             {simData.length > 0 ? (
               <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={simData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#30363d" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
                   <XAxis
                     dataKey="date"
-                    stroke="#8b949e"
+                    stroke="#888"
                     fontSize={11}
                     tickFormatter={(v) => {
                       const d = new Date(v + "T12:00:00");
@@ -269,19 +249,19 @@ export default function PredictionsPage() {
                     }}
                     interval="preserveStartEnd"
                   />
-                  <YAxis stroke="#8b949e" fontSize={11} />
+                  <YAxis stroke="#888" fontSize={11} />
                   <Tooltip
-                    contentStyle={{ background: "#161b22", border: "1px solid #30363d", borderRadius: 6 }}
+                    contentStyle={{ background: "#111", border: "1px solid #1e1e1e", borderRadius: 8 }}
                     labelFormatter={(l) => {
                       const d = new Date(String(l) + "T12:00:00");
                       return d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
                     }}
                   />
                   <Legend />
-                  <ReferenceLine y={0} stroke="#30363d" strokeDasharray="4 2" />
-                  <Line type="monotone" dataKey="ctl" stroke="#2f81f7" strokeWidth={2} dot={false} name="CTL" />
+                  <ReferenceLine y={0} stroke="#2a2a2a" strokeDasharray="4 2" />
+                  <Line type="monotone" dataKey="ctl" stroke="#00FF66" strokeWidth={2} dot={false} name="CTL" />
                   <Line type="monotone" dataKey="atl" stroke="#f85149" strokeWidth={2} dot={false} name="ATL" />
-                  <Line type="monotone" dataKey="tsb" stroke="#3fb950" strokeWidth={1.5} dot={false} strokeDasharray="5 3" name="TSB" />
+                  <Line type="monotone" dataKey="tsb" stroke="#C6FF00" strokeWidth={1.5} dot={false} strokeDasharray="5 3" name="TSB" />
                 </LineChart>
               </ResponsiveContainer>
             ) : (

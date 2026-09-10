@@ -15,25 +15,24 @@ import {
   YAxis,
 } from "recharts";
 
-import { Logo } from "@/components/Logo";
-import { clearToken, fetchHeatmap, fetchLoadMetrics, fetchMe, type DailyMetric, type HeatmapDay } from "@/lib/api";
+import { fetchHeatmap, fetchLoadMetrics, fetchMe, type DailyMetric, type HeatmapDay } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
 const DAY_OPTIONS = [30, 60, 90, 180, 365];
 
 const SPORT_COLOR_MAP: Record<string, string> = {
-  run: "#2f81f7",
-  trail_run: "#388bfd",
-  bike: "#3fb950",
-  mtb: "#56d364",
-  swim: "#a371f7",
-  open_water_swim: "#bc8cff",
-  other: "#8b949e",
+  run: "#00FF66",
+  trail_run: "#00CC50",
+  bike: "#C6FF00",
+  mtb: "#99CC00",
+  swim: "#00CFFF",
+  open_water_swim: "#0099CC",
+  other: "#888888",
 };
 
 function heatmapColor(load: number, sport: string | null): string {
-  const base = SPORT_COLOR_MAP[sport ?? ""] ?? "#2f81f7";
-  if (load <= 0) return "#21262d";
+  const base = SPORT_COLOR_MAP[sport ?? ""] ?? "#00FF66";
+  if (load <= 0) return "#1a1a1a";
   if (load < 30) return base + "55";
   if (load < 60) return base + "99";
   if (load < 100) return base + "cc";
@@ -155,18 +154,7 @@ export default function MetricsPage() {
 
   return (
     <main className="min-h-screen">
-      <header className="flex items-center justify-between border-b border-brand-border px-6 py-4">
-        <Logo />
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href="/dashboard" className="text-brand-muted hover:text-brand-accent">Dashboard</Link>
-          <Link href="/profile" className="text-brand-muted hover:text-brand-accent">Perfil</Link>
-          <button onClick={() => { clearToken(); router.push("/login"); }} className="text-brand-accent hover:underline">
-            Sair
-          </button>
-        </nav>
-      </header>
-
-      <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+      <div className="mx-auto max-w-5xl px-6 py-8 space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Métricas de Carga</h1>
           <div className="flex gap-1">
@@ -176,7 +164,7 @@ export default function MetricsPage() {
                 onClick={() => setDays(d)}
                 className={`rounded-md border px-3 py-1 text-sm transition-colors ${
                   days === d
-                    ? "border-brand-accent bg-brand-accent text-white"
+                    ? "border-brand-accent bg-brand-accent text-black font-semibold"
                     : "border-brand-border text-brand-muted hover:border-brand-accent hover:text-brand-accent"
                 }`}
               >
@@ -193,7 +181,7 @@ export default function MetricsPage() {
               label="Forma Crônica (CTL)"
               value={latest.ctl?.toFixed(1) ?? "–"}
               sublabel="Fitness base (42d)"
-              color="#2f81f7"
+              color="#00FF66"
             />
             <SummaryCard
               label="Forma Aguda (ATL)"
@@ -209,7 +197,7 @@ export default function MetricsPage() {
                 : latest.tsb < -30 ? "⚠ Muito cansado"
                 : "Moderado"
                 : ""}
-              color={latest.tsb != null && latest.tsb > 0 ? "#3fb950" : latest.tsb != null && latest.tsb < -20 ? "#f85149" : "#e3b341"}
+              color={latest.tsb != null && latest.tsb > 0 ? "#00FF66" : latest.tsb != null && latest.tsb < -20 ? "#f85149" : "#C6FF00"}
             />
             <SummaryCard
               label="ACWR"
@@ -219,7 +207,7 @@ export default function MetricsPage() {
                 : latest.acwr < 0.8 ? "↓ Subutilizado"
                 : "✓ Zona segura"
                 : ""}
-              color={latest.acwr != null && latest.acwr > 1.5 ? "#f85149" : latest.acwr != null && latest.acwr < 0.8 ? "#e3b341" : "#3fb950"}
+              color={latest.acwr != null && latest.acwr > 1.5 ? "#f85149" : latest.acwr != null && latest.acwr < 0.8 ? "#C6FF00" : "#00FF66"}
             />
           </div>
         )}
@@ -241,10 +229,10 @@ export default function MetricsPage() {
             <div className="rounded-lg border border-brand-border bg-brand-surface p-4">
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#30363d" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
                   <XAxis
                     dataKey="date"
-                    stroke="#8b949e"
+                    stroke="#888"
                     fontSize={11}
                     tickFormatter={(v) => {
                       const d = new Date(v + "T12:00:00");
@@ -252,19 +240,19 @@ export default function MetricsPage() {
                     }}
                     interval="preserveStartEnd"
                   />
-                  <YAxis stroke="#8b949e" fontSize={11} />
+                  <YAxis stroke="#888" fontSize={11} />
                   <Tooltip
-                    contentStyle={{ background: "#161b22", border: "1px solid #30363d", borderRadius: 6 }}
+                    contentStyle={{ background: "#111", border: "1px solid #1e1e1e", borderRadius: 8 }}
                     labelFormatter={(l) => {
                       const d = new Date(String(l) + "T12:00:00");
                       return d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
                     }}
                   />
                   <Legend />
-                  <ReferenceLine y={0} stroke="#30363d" strokeDasharray="4 2" />
-                  <Line type="monotone" dataKey="CTL" stroke="#2f81f7" strokeWidth={2} dot={false} connectNulls />
+                  <ReferenceLine y={0} stroke="#2a2a2a" strokeDasharray="4 2" />
+                  <Line type="monotone" dataKey="CTL" stroke="#00FF66" strokeWidth={2} dot={false} connectNulls />
                   <Line type="monotone" dataKey="ATL" stroke="#f85149" strokeWidth={2} dot={false} connectNulls />
-                  <Line type="monotone" dataKey="TSB" stroke="#3fb950" strokeWidth={1.5} dot={false} strokeDasharray="5 3" connectNulls />
+                  <Line type="monotone" dataKey="TSB" stroke="#C6FF00" strokeWidth={1.5} dot={false} strokeDasharray="5 3" connectNulls />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -282,10 +270,10 @@ export default function MetricsPage() {
             <div className="rounded-lg border border-brand-border bg-brand-surface p-4">
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#30363d" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
                   <XAxis
                     dataKey="date"
-                    stroke="#8b949e"
+                    stroke="#888"
                     fontSize={11}
                     tickFormatter={(v) => {
                       const d = new Date(v + "T12:00:00");
@@ -293,9 +281,9 @@ export default function MetricsPage() {
                     }}
                     interval="preserveStartEnd"
                   />
-                  <YAxis stroke="#8b949e" fontSize={11} domain={[0, "auto"]} />
+                  <YAxis stroke="#888" fontSize={11} domain={[0, "auto"]} />
                   <Tooltip
-                    contentStyle={{ background: "#161b22", border: "1px solid #30363d", borderRadius: 6 }}
+                    contentStyle={{ background: "#111", border: "1px solid #1e1e1e", borderRadius: 8 }}
                     labelFormatter={(l) => {
                       const d = new Date(String(l) + "T12:00:00");
                       return d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
@@ -303,8 +291,8 @@ export default function MetricsPage() {
                     formatter={(v) => [Number(v).toFixed(2), "ACWR"]}
                   />
                   <ReferenceLine y={1.5} stroke="#f85149" strokeDasharray="4 2" label={{ value: "1.5 risco", fill: "#f85149", fontSize: 10 }} />
-                  <ReferenceLine y={0.8} stroke="#e3b341" strokeDasharray="4 2" label={{ value: "0.8 mín", fill: "#e3b341", fontSize: 10 }} />
-                  <Line type="monotone" dataKey="ACWR" stroke="#e3b341" strokeWidth={2} dot={false} connectNulls />
+                  <ReferenceLine y={0.8} stroke="#C6FF00" strokeDasharray="4 2" label={{ value: "0.8 mín", fill: "#C6FF00", fontSize: 10 }} />
+                  <Line type="monotone" dataKey="ACWR" stroke="#C6FF00" strokeWidth={2} dot={false} connectNulls />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -323,7 +311,7 @@ export default function MetricsPage() {
               <TrainingHeatmap data={heatmap} />
               <div className="mt-3 flex items-center gap-3 text-xs text-brand-muted">
                 <span>Menos</span>
-                {["#21262d", "#2f81f755", "#2f81f799", "#2f81f7cc", "#2f81f7"].map((c, i) => (
+                {["#1a1a1a", "#00FF6655", "#00FF6699", "#00FF66cc", "#00FF66"].map((c, i) => (
                   <div key={i} className="h-3 w-3 rounded-sm" style={{ backgroundColor: c }} />
                 ))}
                 <span>Mais</span>

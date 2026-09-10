@@ -31,13 +31,13 @@ export function ActivityMap({ points, height = "320px" }: ActivityMapProps) {
       maxZoom: 19,
     }).addTo(map);
 
-    const polyline = L.polyline(coords, { color: "#2f81f7", weight: 3, opacity: 0.85 }).addTo(map);
+    const polyline = L.polyline(coords, { color: "#00FF66", weight: 3, opacity: 0.9 }).addTo(map);
     map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
 
     // marcadores de início e fim
     const startIcon = L.divIcon({
       className: "",
-      html: '<div style="width:12px;height:12px;border-radius:50%;background:#3fb950;border:2px solid #fff;"></div>',
+      html: '<div style="width:12px;height:12px;border-radius:50%;background:#00FF66;border:2px solid #000;"></div>',
       iconSize: [12, 12],
       iconAnchor: [6, 6],
     });

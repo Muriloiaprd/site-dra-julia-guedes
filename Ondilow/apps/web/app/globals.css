@@ -7,13 +7,13 @@
 }
 
 body {
-  background-color: #0d1117;
-  color: #e6edf3;
+  background-color: #0A0A0A;
+  color: #ffffff;
 }
 
 @layer components {
   .input {
-    @apply w-full rounded-md border border-brand-border bg-brand-bg px-3 py-2 text-sm text-brand-text placeholder-brand-muted
-      focus:border-brand-accent focus:outline-none focus:ring-1 focus:ring-brand-accent;
+    @apply w-full rounded-xl border border-[#2a2a2a] bg-[#0A0A0A] px-4 py-3 text-sm text-white placeholder-[#888]
+      focus:border-[rgba(0,255,102,0.5)] focus:outline-none focus:ring-2 focus:ring-[rgba(0,255,102,0.08)] transition-all;
   }
 }

@@ -149,20 +149,16 @@ export default function EquipmentPage() {
 
   return (
     <main className="min-h-screen">
-      <header className="flex items-center justify-between border-b border-brand-border px-6 py-4">
-        <Link href="/dashboard" className="text-sm text-brand-muted hover:text-brand-accent">
-          ← Dashboard
-        </Link>
-        <h1 className="font-semibold">Equipamentos</h1>
-        <button
-          onClick={openNew}
-          className="rounded-md bg-brand-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-accentHover"
-        >
-          + Adicionar
-        </button>
-      </header>
-
-      <div className="mx-auto max-w-3xl px-4 py-8">
+      <div className="mx-auto max-w-3xl px-6 py-8">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-xl font-semibold">Equipamentos</h1>
+          <button
+            onClick={openNew}
+            className="rounded-xl bg-brand-accent px-3 py-1.5 text-sm font-bold text-black hover:bg-brand-accentHover transition-colors"
+          >
+            + Adicionar
+          </button>
+        </div>
         {error && (
           <div className="mb-4 rounded-lg border border-brand-danger/40 bg-brand-danger/10 p-3 text-sm text-brand-danger">
             {error}
@@ -250,7 +246,7 @@ export default function EquipmentPage() {
               <button
                 onClick={handleSave}
                 disabled={saving || !form.name.trim()}
-                className="rounded-md bg-brand-accent px-4 py-2 text-sm font-medium text-white hover:bg-brand-accentHover disabled:opacity-50"
+                className="rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-black hover:bg-brand-accentHover disabled:opacity-50 transition-colors"
               >
                 {saving ? "Salvando…" : "Salvar"}
               </button>
@@ -277,7 +273,7 @@ export default function EquipmentPage() {
             <p className="mt-1 text-sm">Adicione tenis, bikes e outros para rastrear quilometragem.</p>
             <button
               onClick={openNew}
-              className="mt-4 rounded-md bg-brand-accent px-4 py-2 text-sm font-medium text-white hover:bg-brand-accentHover"
+              className="mt-4 rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-black hover:bg-brand-accentHover transition-colors"
             >
               Adicionar primeiro equipamento
             </button>

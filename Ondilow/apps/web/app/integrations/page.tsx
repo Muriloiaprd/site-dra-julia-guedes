@@ -1,12 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { Logo } from "@/components/Logo";
 import {
-  clearToken,
   fetchGarminStatus,
   fetchMe,
   removeGarminCredentials,
@@ -18,7 +15,7 @@ import {
 import { formatDate } from "@/lib/utils";
 
 const STATUS_COLOR: Record<string, string> = {
-  success: "#3fb950",
+  success: "#00FF66",
   error: "#f85149",
 };
 const STATUS_LABEL: Record<string, string> = {
@@ -98,20 +95,7 @@ export default function IntegrationsPage() {
 
   return (
     <main className="min-h-screen">
-      <header className="flex items-center justify-between border-b border-brand-border px-6 py-4">
-        <Logo />
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href="/dashboard" className="text-brand-muted hover:text-brand-accent">Dashboard</Link>
-          <Link href="/metrics" className="text-brand-muted hover:text-brand-accent">Carga</Link>
-          <Link href="/predictions" className="text-brand-muted hover:text-brand-accent">Previsões</Link>
-          <Link href="/profile" className="text-brand-muted hover:text-brand-accent">Perfil</Link>
-          <button onClick={() => { clearToken(); router.push("/login"); }} className="text-brand-accent hover:underline">
-            Sair
-          </button>
-        </nav>
-      </header>
-
-      <div className="mx-auto max-w-2xl px-4 py-8 space-y-8">
+      <div className="mx-auto max-w-2xl px-6 py-8 space-y-8">
         <h1 className="text-xl font-semibold">Integrações</h1>
 
         {/* Garmin Connect */}
@@ -140,8 +124,8 @@ export default function IntegrationsPage() {
               </div>
               {status.last_sync_status && (
                 <span
-                  className="rounded-full px-3 py-1 text-xs font-bold text-white"
-                  style={{ backgroundColor: STATUS_COLOR[status.last_sync_status] || "#8b949e" }}
+                  className="rounded-full px-3 py-1 text-xs font-bold text-black"
+                  style={{ backgroundColor: STATUS_COLOR[status.last_sync_status] || "#888" }}
                 >
                   {STATUS_LABEL[status.last_sync_status] || status.last_sync_status}
                 </span>
@@ -183,7 +167,7 @@ export default function IntegrationsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-md bg-brand-accent px-4 py-2 text-sm font-medium text-white hover:bg-brand-accentHover disabled:opacity-50"
+                className="rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-black hover:bg-brand-accentHover disabled:opacity-50 transition-colors"
               >
                 {saving ? "Salvando…" : "Salvar credenciais"}
               </button>
@@ -227,7 +211,7 @@ export default function IntegrationsPage() {
                 <button
                   onClick={handleSync}
                   disabled={syncing}
-                  className="rounded-md bg-brand-accent px-4 py-2 text-sm font-medium text-white hover:bg-brand-accentHover disabled:opacity-50"
+                  className="rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-black hover:bg-brand-accentHover disabled:opacity-50 transition-colors"
                 >
                   {syncing ? "Sincronizando…" : "Sincronizar agora"}
                 </button>
