@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ondilow_api.config import settings
 from ondilow_api.logging_setup import configure_logging
-from ondilow_api.routers import activities, auth, equipment, exports, integrations, metrics, predictions, profile
+from ondilow_api.routers import activities, auth, equipment, exports, metrics, predictions, profile
 
 
 @asynccontextmanager
@@ -31,7 +31,6 @@ app.include_router(activities.router)
 app.include_router(profile.router)
 app.include_router(metrics.router)
 app.include_router(predictions.router)
-app.include_router(integrations.router)
 app.include_router(exports.router)
 app.include_router(equipment.router)
 
