@@ -615,10 +615,13 @@ export default function DashboardPage() {
         </div>
 
         {/* ─── VISÃO SEMANAL ───────────────────────────────────────────── */}
-        <div style={{ ...card, marginBottom: "1rem" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            {secLabel("Visão Semanal")}
-            <Link href="/activities" style={{ fontSize: "0.68rem", color: "#9d9d9d", textDecoration: "none", marginBottom: "0.8rem" }}>Ver calendário →</Link>
+        <div style={{ ...card, padding: "0.75rem 0.9rem", marginBottom: "1rem" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.55rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 14, height: 2, background: "#00FF66", borderRadius: 1 }} />
+              <span style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "#00FF66" }}>Visão Semanal</span>
+            </div>
+            <Link href="/activities" style={{ fontSize: "0.66rem", color: "#9d9d9d", textDecoration: "none" }}>Ver calendário →</Link>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
             {days.map((d, i) => {
@@ -626,31 +629,34 @@ export default function DashboardPage() {
               const isFuture = d > today;
               const dayActs = stats.curActs.filter(a => sameDay(new Date(a.start_time), d));
               const sport = dayActs[0]?.sport;
-              const color = sport ? sportColor(sport) : undefined;
+              const hasActivity = !!sport;
               return (
                 <div key={i} style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "0.7rem 0.4rem",
-                  borderRadius: 11,
-                  background: isToday ? "rgba(0,255,102,0.06)" : sport ? `${color}08` : "rgba(255,255,255,0.012)",
-                  border: isToday ? "1px solid rgba(0,255,102,0.28)" : sport ? `1px solid ${color}20` : "1px solid #161616",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "0.45rem 0.3rem",
+                  borderRadius: 9, position: "relative",
+                  background: isToday ? "rgba(0,255,102,0.09)" : hasActivity ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.015)",
+                  border: isToday ? "1px solid rgba(0,255,102,0.38)" : hasActivity ? "1px solid rgba(255,255,255,0.15)" : "1px solid #171717",
                   transition: "all .2s",
                 }}>
-                  <span style={{ fontSize: "0.64rem", fontWeight: 700, color: isToday ? "#00FF66" : "#aaaaaa" }}>{WEEK_LABELS[i]}</span>
+                  {hasActivity && !isToday && (
+                    <div style={{ position: "absolute", top: 4, right: 4, width: 5, height: 5, borderRadius: "50%", background: "#00FF66", boxShadow: "0 0 4px rgba(0,255,102,0.7)" }} />
+                  )}
+                  <span style={{ fontSize: "0.58rem", fontWeight: 700, color: isToday ? "#00FF66" : "#aaaaaa" }}>{WEEK_LABELS[i]}</span>
                   <div style={{
-                    width: 34, height: 34, borderRadius: 9,
-                    background: sport ? `${color}18` : "rgba(255,255,255,0.035)",
-                    border: `1px solid ${sport ? `${color}35` : "#242424"}`,
+                    width: 25, height: 25, borderRadius: 7,
+                    background: isToday ? "rgba(0,255,102,0.18)" : hasActivity ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.03)",
+                    border: `1px solid ${isToday ? "rgba(0,255,102,0.42)" : hasActivity ? "rgba(255,255,255,0.24)" : "#232323"}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "1rem",
-                    boxShadow: isToday ? "0 0 12px rgba(0,255,102,0.15)" : undefined,
+                    fontSize: "0.8rem",
+                    boxShadow: isToday ? "0 0 10px rgba(0,255,102,0.2)" : undefined,
                   }}>
-                    {sport ? (SPORT_EMOJI[sport] ?? "⚡") : isFuture ? <span style={{ fontSize: "0.74rem", color: "#8f8f8f" }}>{d.getDate()}</span> : <span style={{ fontSize: "0.7rem", color: "#8f8f8f" }}>—</span>}
+                    {sport ? (SPORT_EMOJI[sport] ?? "⚡") : isFuture ? <span style={{ fontSize: "0.6rem", color: "#8f8f8f" }}>{d.getDate()}</span> : <span style={{ fontSize: "0.58rem", color: "#767676" }}>—</span>}
                   </div>
                   <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "0.6rem", color: sport ? color : isToday ? "#00FF66" : isFuture ? "#6e6e6e" : "#8f8f8f", fontWeight: sport ? 600 : 500, lineHeight: 1.3 }}>
+                    <div style={{ fontSize: "0.52rem", color: isToday ? "#00FF66" : hasActivity ? "#f2f2f2" : isFuture ? "#9d9d9d" : "#767676", fontWeight: hasActivity || isToday ? 700 : 500, lineHeight: 1.25 }}>
                       {sport ? sportLabel(sport).split(" ")[0] : isFuture ? "Planejado" : "Descanso"}
                     </div>
-                    <div style={{ fontSize: "0.55rem", color: "#8f8f8f", marginTop: 1 }}>
+                    <div style={{ fontSize: "0.48rem", color: "#767676", marginTop: 1 }}>
                       {d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
                     </div>
                   </div>
