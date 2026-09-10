@@ -20,6 +20,17 @@ const SPORT_EMOJI: Record<string, string> = {
   run: "🏃", trail_run: "🏔️", treadmill: "🏃", bike: "🚴", mtb: "🚵",
   gravel: "🚴", indoor_bike: "🚴", swim: "🏊", open_water_swim: "🏊", other: "⚡",
 };
+const SPORT_ICON_SRC: Record<string, string> = {
+  run: "/icons/run.png", trail_run: "/icons/run.png", treadmill: "/icons/run.png",
+  bike: "/icons/bike.png", mtb: "/icons/bike.png", gravel: "/icons/bike.png", indoor_bike: "/icons/bike.png",
+  swim: "/icons/swim.png", open_water_swim: "/icons/swim.png",
+};
+
+function SportIcon({ sport, size = "70%" }: { sport: string; size?: string }) {
+  const src = SPORT_ICON_SRC[sport];
+  if (src) return <img src={src} alt="" style={{ width: size, height: size, objectFit: "contain" }} />;
+  return <>{SPORT_EMOJI[sport] ?? "⚡"}</>;
+}
 type EvolMetric = "distance" | "pace" | "hr";
 const EVOL_LABEL: Record<EvolMetric, string> = { distance: "Distância", pace: "Pace Médio", hr: "FC Média" };
 
@@ -381,7 +392,7 @@ function ActivityModal({ activity, activities, onClose }: {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1.2rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 46, height: 46, borderRadius: 12, background: `${color}18`, border: `1px solid ${color}35`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.4rem", flexShrink: 0 }}>
-              {SPORT_EMOJI[activity.sport] ?? "⚡"}
+              <SportIcon sport={activity.sport} size="72%" />
             </div>
             <div>
               <h3 style={{ fontFamily: "'Poppins',sans-serif", fontSize: "1.1rem", fontWeight: 800, margin: 0 }}>{activity.title ?? sportLabel(activity.sport)}</h3>
@@ -650,7 +661,7 @@ export default function DashboardPage() {
             {lastActivity ? (
               <>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                  <span style={{ fontSize: "0.85rem" }}>{SPORT_EMOJI[lastActivity.sport] ?? "⚡"}</span>
+                  <span style={{ width: 18, height: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "0.85rem" }}><SportIcon sport={lastActivity.sport} size="100%" /></span>
                   <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: "0.85rem", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {lastActivity.title ?? sportLabel(lastActivity.sport)}
                   </span>
@@ -709,14 +720,14 @@ export default function DashboardPage() {
                       <div style={{ position: "absolute", top: 6, right: 6, width: 6, height: 6, borderRadius: "50%", background: "#00FF66", boxShadow: "0 0 5px rgba(0,255,102,0.8)" }} />
                     )}
                     <div style={{
-                      width: "72%", aspectRatio: "1", borderRadius: 11,
+                      width: "84%", aspectRatio: "1", borderRadius: 12,
                       background: accent ? `radial-gradient(circle at 50% 35%, ${accent}48, ${accent}12 75%)` : "rgba(255,255,255,0.03)",
                       border: `1px solid ${accent ? `${accent}55` : "#232323"}`,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: "1.3rem",
-                      boxShadow: accent ? `0 0 12px ${accent}55, inset 0 0 9px ${accent}30` : undefined,
+                      fontSize: "1.5rem",
+                      boxShadow: accent ? `0 0 14px ${accent}55, inset 0 0 10px ${accent}30` : undefined,
                     }}>
-                      {sport ? (SPORT_EMOJI[sport] ?? "⚡") : isFuture ? <span style={{ fontSize: "0.75rem", color: "#8f8f8f" }}>{d.getDate()}</span> : <span style={{ fontSize: "0.68rem", color: "#767676" }}>—</span>}
+                      {sport ? <SportIcon sport={sport} size="82%" /> : isFuture ? <span style={{ fontSize: "0.75rem", color: "#8f8f8f" }}>{d.getDate()}</span> : <span style={{ fontSize: "0.68rem", color: "#767676" }}>—</span>}
                     </div>
                     <div style={{ fontSize: "0.64rem", fontWeight: 800, color: accent ?? (isFuture ? "#9d9d9d" : "#767676"), lineHeight: 1.15, textAlign: "center" }}>
                       {sport ? sportLabel(sport).split(" ")[0] : isFuture ? "Planejado" : "Descanso"}
@@ -861,7 +872,6 @@ export default function DashboardPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                 {activities.slice(0, 8).map(a => {
                   const color = sportColor(a.sport);
-                  const emoji = SPORT_EMOJI[a.sport] ?? "⚡";
                   return (
                     <div key={a.id} onClick={() => setModalActivity(a)} style={{
                         display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 10,
@@ -873,7 +883,7 @@ export default function DashboardPage() {
                         onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "#161616"; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.015)"; }}
                       >
                         <div style={{ width: 36, height: 36, borderRadius: 9, background: `${color}14`, border: `1px solid ${color}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>
-                          {emoji}
+                          <SportIcon sport={a.sport} size="72%" />
                         </div>
                         <div>
                           <div style={{ fontSize: "0.83rem", fontWeight: 600 }}>{a.title ?? sportLabel(a.sport)}</div>
