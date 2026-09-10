@@ -15,6 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800;900&display=swap"
         />
+        <link rel="stylesheet" href="/landing.css" />
       </head>
       <body className="min-h-screen bg-brand-bg text-brand-text antialiased">{children}</body>
     </html>
