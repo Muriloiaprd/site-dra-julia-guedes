@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  fetchActivities, fetchMe, fetchPredictionsOverview, fetchRecords, uploadActivity,
-  type ActivitySummary, type PersonalRecord, type TrainingRecommendation, type User,
+  fetchActivities, fetchActivity, fetchMe, fetchPredictionsOverview, fetchRecords, uploadActivity,
+  type ActivityDetail, type ActivitySummary, type PersonalRecord, type TrainingRecommendation, type User,
 } from "@/lib/api";
 import {
   formatDistance, formatDuration, formatPace, formatRecordValue,
@@ -147,11 +147,13 @@ function IconCheckCircle({ size = 15 }: { size?: number }) {
 
 // ── SparkLine ──────────────────────────────────────────────────────────────
 
-function SparkLine({ data, color = "#00FF66", h = 36 }: { data: number[]; color?: string; h?: number }) {
+function SparkLine({ data, color = "#00FF66", h = 36, w = 80, responsive = false }: {
+  data: number[]; color?: string; h?: number; w?: number; responsive?: boolean;
+}) {
   const nonZero = data.filter(v => v > 0);
-  if (nonZero.length < 2) return <div style={{ height: h, width: 80 }} />;
+  if (nonZero.length < 2) return <div style={{ height: h, width: responsive ? "100%" : w }} />;
   const max = Math.max(...data), min = Math.min(...data), range = max - min || 1;
-  const W = 80;
+  const W = w;
   const coords = data.map((v, i) => ({
     x: (i / (data.length - 1)) * W,
     y: h - ((v - min) / range) * (h - 6) - 3,
@@ -160,7 +162,7 @@ function SparkLine({ data, color = "#00FF66", h = 36 }: { data: number[]; color?
   const area = `M 0 ${h} ${coords.map(p => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ")} L ${W} ${h} Z`;
   const uid = `sl${color.replace(/[^a-z0-9]/gi, "")}`;
   return (
-    <svg width={W} height={h} viewBox={`0 0 ${W} ${h}`} style={{ flexShrink: 0 }}>
+    <svg width={responsive ? "100%" : W} height={h} viewBox={`0 0 ${W} ${h}`} style={{ flexShrink: 0, display: responsive ? "block" : undefined }}>
       <defs>
         <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.22" />
@@ -287,6 +289,61 @@ function EvolutionChart({ activities, metric, period }: {
       </svg>
     </div>
   );
+}
+
+// ── RouteSvg ───────────────────────────────────────────────────────────────
+
+function RouteSvg({ points, color, h = 92 }: {
+  points: { lat: number | null; lon: number | null }[]; color: string; h?: number;
+}) {
+  const valid = points.filter((p): p is { lat: number; lon: number } => p.lat != null && p.lon != null);
+  if (valid.length < 2) return null;
+
+  const lats = valid.map(p => p.lat), lons = valid.map(p => p.lon);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLon = Math.min(...lons), maxLon = Math.max(...lons);
+  const avgLatRad = ((minLat + maxLat) / 2) * (Math.PI / 180);
+  const lonScale = Math.cos(avgLatRad);
+
+  const W = 300, PAD = 14;
+  const spanLat = Math.max(maxLat - minLat, 1e-6);
+  const spanLon = Math.max((maxLon - minLon) * lonScale, 1e-6);
+  const scale = Math.min((W - PAD * 2) / spanLon, (h - PAD * 2) / spanLat);
+  const offX = (W - spanLon * scale) / 2;
+  const offY = (h - spanLat * scale) / 2;
+
+  const coords = valid.map(p => ({
+    x: offX + (((p.lon - minLon) * lonScale)) * scale,
+    y: h - (offY + (p.lat - minLat) * scale),
+  }));
+  const pathD = `M ${coords.map(c => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(" L ")}`;
+  const uid = `route${color.replace(/[^a-z0-9]/gi, "")}`;
+
+  return (
+    <svg width="100%" height={h} viewBox={`0 0 ${W} ${h}`} style={{ display: "block" }}>
+      <defs>
+        <radialGradient id={`${uid}bg`} cx="50%" cy="45%" r="75%">
+          <stop offset="0%" stopColor={color} stopOpacity="0.1" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect x="0" y="0" width={W} height={h} fill={`url(#${uid}bg)`} />
+      <path d={pathD} fill="none" stroke={color} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
+        style={{ filter: `drop-shadow(0 0 6px ${color}bb)` }} opacity="0.35" />
+      <path d={pathD} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={coords[0].x} cy={coords[0].y} r="3" fill={color} />
+      <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="3.5" fill="#fff" stroke={color} strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function distanceBadge(distanceM: number | null): string | null {
+  if (!distanceM) return null;
+  const km = distanceM / 1000;
+  if (km >= 20) return "LONGÃO";
+  if (km >= 10) return "10K+";
+  if (km >= 5) return "5K+";
+  return null;
 }
 
 // ── MonthCalendar ──────────────────────────────────────────────────────────
@@ -456,6 +513,7 @@ export default function DashboardPage() {
   const [evolMetric, setEvolMetric] = useState<EvolMetric>("distance");
   const [evolPeriod, setEvolPeriod] = useState("30D");
   const [modalActivity, setModalActivity] = useState<ActivitySummary | null>(null);
+  const [recentDetails, setRecentDetails] = useState<Record<string, ActivityDetail>>({});
 
   useEffect(() => {
     fetchMe().then(u => { if (!u) { router.push("/login"); return; } setUser(u); });
@@ -474,6 +532,18 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user) fetchPredictionsOverview().then(d => setRecommendation(d.recommendation)).catch(() => {});
   }, [user]);
+
+  useEffect(() => {
+    const ids = activities.slice(0, 3).map(a => a.id).filter(id => !recentDetails[id]);
+    if (ids.length === 0) return;
+    Promise.all(ids.map(id => fetchActivity(id).then(d => [id, d] as const).catch(() => null)))
+      .then(results => {
+        const next: Record<string, ActivityDetail> = {};
+        for (const r of results) if (r) next[r[0]] = r[1];
+        if (Object.keys(next).length) setRecentDetails(prev => ({ ...prev, ...next }));
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activities]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -824,13 +894,13 @@ export default function DashboardPage() {
 
         {/* Atividades Recentes */}
         <div style={{ ...card }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.85rem" }}>
               {secLabel("Atividades Recentes")}
-              <Link href="/activities" style={{ fontSize: "0.68rem", color: "#9d9d9d", textDecoration: "none", marginBottom: "0.8rem" }}>Ver todas →</Link>
+              <Link href="/activities" style={{ fontSize: "0.68rem", color: "#9d9d9d", textDecoration: "none" }}>Ver todas →</Link>
             </div>
             {loading ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                {[1,2,3].map(i => <div key={i} style={{ height: 58, borderRadius: 10, background: "rgba(255,255,255,0.018)" }} />)}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.9rem" }}>
+                {[1,2,3].map(i => <div key={i} style={{ height: 250, borderRadius: 16, background: "rgba(255,255,255,0.018)" }} />)}
               </div>
             ) : activities.length === 0 ? (
               <div style={{ textAlign: "center", padding: "2rem 0" }}>
@@ -839,41 +909,82 @@ export default function DashboardPage() {
                 <p style={{ fontSize: "0.75rem", color: "#9d9d9d", marginTop: 4 }}>Use <span style={{ color: "#00FF66" }}>Importar</span> para adicionar.</p>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                {activities.slice(0, 8).map(a => {
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.9rem" }}>
+                {activities.slice(0, 3).map(a => {
                   const color = sportColor(a.sport);
+                  const detail = recentDetails[a.id];
+                  const points = detail?.points ?? [];
+                  const hasRoute = points.filter(p => p.lat != null && p.lon != null).length >= 2;
+                  const elevSeries = points.length ? points.map(p => p.altitude_m ?? 0) : [];
+                  const isPR = records.some(r => r.activity_id === a.id);
+                  const badge = isPR ? "🏆 PR" : distanceBadge(a.distance_m);
                   return (
                     <div key={a.id} onClick={() => setModalActivity(a)} style={{
-                        display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 10,
-                        padding: "0.65rem 0.8rem", borderRadius: 10,
-                        border: "1px solid #161616", background: "rgba(255,255,255,0.015)",
-                        cursor: "pointer", transition: "border-color .18s, background .18s",
+                        borderRadius: 16, overflow: "hidden", cursor: "pointer",
+                        background: "rgba(255,255,255,0.02)", border: "1px solid #1a1a1a",
+                        transition: "border-color .2s",
                       }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${color}30`; (e.currentTarget as HTMLDivElement).style.background = `${color}06`; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "#161616"; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.015)"; }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${color}45`; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "#1a1a1a"; }}
                       >
-                        <div style={{ width: 36, height: 36, borderRadius: 9, background: `${color}14`, border: `1px solid ${color}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>
-                          <SportIcon sport={a.sport} size="72%" />
+                        {/* Hero: rota real (GPS) ou fallback com ícone */}
+                        <div style={{ position: "relative", background: `linear-gradient(160deg, ${color}16 0%, #0a0a0a 100%)`, borderBottom: `1px solid ${color}22` }}>
+                          {hasRoute ? (
+                            <RouteSvg points={points} color={color} h={96} />
+                          ) : (
+                            <div style={{ height: 96, display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.55 }}>
+                              <SportIcon sport={a.sport} size="36px" />
+                            </div>
+                          )}
+                          {badge && (
+                            <span style={{ position: "absolute", top: 8, right: 8, fontSize: "0.56rem", fontWeight: 700, color, background: "rgba(10,10,10,0.75)", border: `1px solid ${color}55`, borderRadius: 100, padding: "0.16rem 0.5rem", letterSpacing: "0.04em" }}>
+                              {badge}
+                            </span>
+                          )}
                         </div>
-                        <div>
-                          <div style={{ fontSize: "0.83rem", fontWeight: 600 }}>{a.title ?? sportLabel(a.sport)}</div>
-                          <div style={{ fontSize: "0.68rem", color: "#aaaaaa", marginTop: 1 }}>
-                            {new Date(a.start_time).toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" })}
+
+                        <div style={{ padding: "0.75rem 0.85rem" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 9 }}>
+                            <div style={{ width: 22, height: 22, borderRadius: 6, background: `${color}18`, border: `1px solid ${color}35`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <SportIcon sport={a.sport} size="70%" />
+                            </div>
+                            <div style={{ fontSize: "0.78rem", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {sportLabel(a.sport)} · {new Date(a.start_time).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                            </div>
                           </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 10, fontSize: "0.76rem", textAlign: "right" }}>
-                          {a.distance_m && (
-                            <div><div style={{ fontWeight: 700 }}>{formatDistance(a.distance_m)}</div><div style={{ fontSize: "0.6rem", color: "#9d9d9d" }}>dist.</div></div>
+
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
+                            {a.distance_m != null && (
+                              <div><div style={{ fontSize: "1rem", fontWeight: 800, fontFamily: "'Poppins',sans-serif" }}>{formatDistance(a.distance_m)}</div><div style={{ fontSize: "0.56rem", color: "#9d9d9d" }}>distância</div></div>
+                            )}
+                            {a.avg_pace_s_per_km != null ? (
+                              <div style={{ textAlign: "right" }}><div style={{ fontSize: "1rem", fontWeight: 800, fontFamily: "'Poppins',sans-serif" }}>{formatPace(a.avg_pace_s_per_km)}</div><div style={{ fontSize: "0.56rem", color: "#9d9d9d" }}>pace</div></div>
+                            ) : a.avg_speed_kmh != null ? (
+                              <div style={{ textAlign: "right" }}><div style={{ fontSize: "1rem", fontWeight: 800, fontFamily: "'Poppins',sans-serif" }}>{a.avg_speed_kmh.toFixed(1)} km/h</div><div style={{ fontSize: "0.56rem", color: "#9d9d9d" }}>vel. média</div></div>
+                            ) : null}
+                          </div>
+
+                          {a.avg_hr != null && (
+                            <div style={{ fontSize: "0.62rem", color: "#9d9d9d", marginBottom: 8 }}>
+                              <span style={{ color, fontWeight: 700 }}>{a.avg_hr}</span> bpm médio
+                              {elevSeries.length >= 2 && (
+                                <span> · {Math.round(Math.max(...elevSeries) - Math.min(...elevSeries))}m elev.</span>
+                              )}
+                            </div>
                           )}
-                          <div><div style={{ fontWeight: 700 }}>{formatDuration(a.duration_s)}</div><div style={{ fontSize: "0.6rem", color: "#9d9d9d" }}>tempo</div></div>
-                          {a.avg_pace_s_per_km && (
-                            <div><div style={{ fontWeight: 700 }}>{formatPace(a.avg_pace_s_per_km)}</div><div style={{ fontSize: "0.6rem", color: "#9d9d9d" }}>pace</div></div>
+
+                          {elevSeries.length >= 2 && (
+                            <div style={{ marginBottom: 8 }}>
+                              <SparkLine data={elevSeries} color={color} h={26} responsive />
+                            </div>
                           )}
-                          {a.avg_hr && (
-                            <div><div style={{ fontWeight: 700, color }}>{a.avg_hr}</div><div style={{ fontSize: "0.6rem", color: "#9d9d9d" }}>bpm</div></div>
-                          )}
-                          <div style={{ display: "flex", alignItems: "center" }}>
-                            <span style={{ fontSize: "0.58rem", color: "#00FF66", background: "rgba(0,255,102,0.07)", border: "1px solid rgba(0,255,102,0.18)", borderRadius: 100, padding: "0.08rem 0.4rem" }}>Concluído</span>
+
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: "0.68rem", color: "#9d9d9d" }}>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                              {formatDuration(a.duration_s)}
+                            </span>
+                            <span style={{ fontSize: "0.58rem", color: "#00FF66", background: "rgba(0,255,102,0.07)", border: "1px solid rgba(0,255,102,0.18)", borderRadius: 100, padding: "0.1rem 0.5rem", fontWeight: 600 }}>Concluído</span>
                           </div>
                         </div>
                       </div>
