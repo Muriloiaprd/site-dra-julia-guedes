@@ -556,12 +556,16 @@ export default function DashboardPage() {
 
       <div style={{ padding: "1.25rem 2rem" }}>
 
-        {/* ─── ROW 1: STATUS + ÚLTIMA ATIVIDADE + PRÓXIMO TREINO ───────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 300px", gap: "1rem", marginBottom: "1rem" }}>
+        {/* ─── LAYOUT PRINCIPAL: CONTEÚDO + QUADRANTE LATERAL ──────────── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "1rem", alignItems: "start" }}>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+
+        {/* Status + Última Atividade */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
 
           {/* Status do Atleta */}
           <div style={{
-            gridColumn: "1", gridRow: "1",
             display: "flex", flexDirection: "column", justifyContent: "center",
             background: "linear-gradient(135deg, #0c1a10 0%, #0a1208 100%)",
             border: "1px solid rgba(0,255,102,0.14)", borderRadius: 14, padding: "0.7rem 1rem",
@@ -644,7 +648,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Última Atividade */}
-          <div style={{ ...card, gridColumn: "2", gridRow: "1", padding: "0.7rem 1rem" }}>
+          <div style={{ ...card, padding: "0.7rem 1rem" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div style={{ width: 14, height: 2, background: "#00FF66", borderRadius: 1 }} />
@@ -688,8 +692,10 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Visão Semanal */}
-          <div style={{ ...card, gridColumn: "1 / 3", gridRow: "2", padding: "0.75rem 0.9rem" }}>
+        </div>
+
+        {/* Visão Semanal */}
+        <div style={{ ...card, padding: "0.75rem 0.9rem" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.55rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div style={{ width: 14, height: 2, background: "#00FF66", borderRadius: 1 }} />
@@ -740,45 +746,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Próximo Treino */}
-          <div style={{ ...card, gridColumn: "3", gridRow: "1 / 3" }}>
-            {secLabel("Próximo Treino")}
-            {recommendation ? (
-              <>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 11, background: `${recommendation.color}18`, border: `1px solid ${recommendation.color}35`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.3rem", flexShrink: 0 }}>
-                    🏃
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: "'Poppins',sans-serif", fontWeight: 700, fontSize: "0.95rem" }}>{recommendation.label}</div>
-                    <div style={{ fontSize: "0.7rem", color: "#aaaaaa", marginTop: 1 }}>Recomendado para hoje</div>
-                  </div>
-                </div>
-                {recommendation.detail && (
-                  <p style={{ fontSize: "0.78rem", color: "#b0b0b0", lineHeight: 1.65, padding: "0.55rem 0.7rem", background: "rgba(255,255,255,0.03)", borderRadius: 8, borderLeft: `2px solid ${recommendation.color}77`, marginBottom: 12 }}>
-                    {recommendation.detail}
-                  </p>
-                )}
-                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "0.7rem", color: "#aaaaaa", marginBottom: 12 }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  {today.toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" })}
-                </div>
-                <Link href="/predictions" style={{ display: "block", textAlign: "center", padding: "0.48rem", borderRadius: 10, background: "rgba(0,255,102,0.07)", border: "1px solid rgba(0,255,102,0.18)", fontSize: "0.75rem", color: "#00FF66", textDecoration: "none", fontWeight: 600 }}>
-                  Ver detalhes →
-                </Link>
-              </>
-            ) : (
-              <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
-                <div style={{ fontSize: "2rem", marginBottom: 8 }}>🎯</div>
-                <p style={{ fontSize: "0.8rem", color: "#aaaaaa" }}>Sem recomendação disponível</p>
-                <Link href="/predictions" style={{ display: "inline-block", marginTop: 10, fontSize: "0.74rem", color: "#00FF66", textDecoration: "none" }}>Ver previsões →</Link>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ─── EVOLUÇÃO + RECORDES + META + PRÓXIMOS TREINOS ──────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "2.4fr 1fr 1.1fr 1.15fr", gap: "1rem", marginBottom: "1rem" }}>
+        {/* Evolução + Recordes + Meta */}
+        <div style={{ display: "grid", gridTemplateColumns: "2.4fr 1fr 1.1fr", gap: "1rem" }}>
 
           {/* Gráfico de evolução */}
           <div style={{ ...card }}>
@@ -851,42 +820,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Próximos treinos (placeholder visual) */}
-          <div style={{ ...card }}>
-            {secLabel("Próximos Treinos")}
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              {days.filter(d => d > today).slice(0, 4).map((d, i) => {
-                const items = [
-                  { name: "Corrida leve", detail: "10 km · 5:40–6:00/km", color: "#00FF66" },
-                  { name: "Recuperação", detail: "8 km · 6:10/km", color: "#888" },
-                  { name: "Intervalado", detail: "8×1 km · 4:50/km", color: "#C6FF00" },
-                  { name: "Longão", detail: "28 km · 5:20/km", color: "#00BFFF" },
-                ];
-                const item = items[i % items.length];
-                return (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "0.55rem 0.7rem", borderRadius: 10, background: "rgba(255,255,255,0.015)", border: "1px solid #161616" }}>
-                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: item.color, boxShadow: `0 0 6px ${item.color}66`, flexShrink: 0 }} />
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: "0.74rem", fontWeight: 600 }}>{item.name}</div>
-                      <div style={{ fontSize: "0.64rem", color: "#9d9d9d", marginTop: 1 }}>
-                        {WEEK_LABELS[(d.getDay() + 6) % 7]} · {d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" })} · {item.detail}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {days.filter(d => d > today).length === 0 && (
-                <p style={{ fontSize: "0.77rem", color: "#9d9d9d", textAlign: "center", padding: "1rem 0" }}>Semana encerrada</p>
-              )}
-            </div>
-          </div>
         </div>
 
-        {/* ─── ATIVIDADES + CALENDÁRIO ──────────────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 260px", gap: "1rem" }}>
-
-          {/* Atividades Recentes */}
-          <div style={{ ...card }}>
+        {/* Atividades Recentes */}
+        <div style={{ ...card }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               {secLabel("Atividades Recentes")}
               <Link href="/activities" style={{ fontSize: "0.68rem", color: "#9d9d9d", textDecoration: "none", marginBottom: "0.8rem" }}>Ver todas →</Link>
@@ -946,6 +883,58 @@ export default function DashboardPage() {
             )}
           </div>
 
+        {/* fim da coluna principal */}
+        </div>
+
+        {/* ─── QUADRANTE LATERAL: PRÓXIMOS TREINOS + CALENDÁRIO ───────── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+
+          {/* Próximos Treinos (hoje + placeholder da semana) */}
+          <div style={{ ...card, padding: "0.9rem 1rem" }}>
+            {secLabel("Próximos Treinos")}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {recommendation && (
+                <Link href="/predictions" style={{ textDecoration: "none", color: "inherit" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "0.5rem 0.6rem", borderRadius: 10, background: `${recommendation.color}0f`, border: `1px solid ${recommendation.color}35` }}>
+                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: recommendation.color, boxShadow: `0 0 6px ${recommendation.color}77`, flexShrink: 0 }} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: "0.8rem", fontWeight: 700 }}>
+                        {recommendation.label} <span style={{ fontWeight: 400, color: "#9d9d9d", fontSize: "0.68rem" }}>· hoje</span>
+                      </div>
+                      <div style={{ fontSize: "0.7rem", color: "#aaaaaa", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {recommendation.detail ?? "Recomendado para hoje"}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: "0.72rem", color: recommendation.color, flexShrink: 0 }}>→</span>
+                  </div>
+                </Link>
+              )}
+              {days.filter(d => d > today).slice(0, 4).map((d, i) => {
+                const items = [
+                  { name: "Corrida leve", detail: "10 km · 5:40–6:00/km", color: "#00FF66" },
+                  { name: "Recuperação", detail: "8 km · 6:10/km", color: "#888" },
+                  { name: "Intervalado", detail: "8×1 km · 4:50/km", color: "#C6FF00" },
+                  { name: "Longão", detail: "28 km · 5:20/km", color: "#00BFFF" },
+                ];
+                const item = items[i % items.length];
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "0.5rem 0.6rem", borderRadius: 10, background: "rgba(255,255,255,0.015)", border: "1px solid #161616" }}>
+                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: item.color, boxShadow: `0 0 6px ${item.color}66`, flexShrink: 0 }} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: "0.8rem", fontWeight: 700 }}>{item.name}</div>
+                      <div style={{ fontSize: "0.7rem", color: "#aaaaaa", marginTop: 1 }}>
+                        {WEEK_LABELS[(d.getDay() + 6) % 7]} · {d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" })} · {item.detail}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {!recommendation && days.filter(d => d > today).length === 0 && (
+                <p style={{ fontSize: "0.77rem", color: "#9d9d9d", textAlign: "center", padding: "1rem 0" }}>Semana encerrada</p>
+              )}
+            </div>
+          </div>
+
           {/* Calendário */}
           <div style={{ ...card }}>
             {secLabel(`Calendário — ${MONTH_PT[today.getMonth()]}`)}
@@ -953,6 +942,8 @@ export default function DashboardPage() {
               ? <div style={{ height: 100, background: "rgba(255,255,255,0.018)", borderRadius: 8 }} />
               : <MonthCalendar activities={activities} />}
           </div>
+
+        </div>
         </div>
       </div>
 
