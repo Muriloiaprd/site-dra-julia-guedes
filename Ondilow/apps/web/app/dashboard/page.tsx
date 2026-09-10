@@ -102,11 +102,63 @@ function groupByWeeks(acts: ActivitySummary[], metric: SparkMetric, weeks = 8): 
 
 function readinessFromRec(r: TrainingRecommendation | null): number {
   if (!r) return 72;
-  const c = (r.color ?? "").toLowerCase();
-  if (c.includes("e74") || c.includes("ff4757") || c.includes("red")) return 35;
-  if (c.includes("f39") || c.includes("ff8") || c.includes("f5a") || c.includes("orange")) return 55;
-  if (c.includes("f1c") || c.includes("ffd") || c.includes("yellow")) return 68;
-  return 82;
+  switch (r.type) {
+    case "hard": return 85;
+    case "moderate": return 68;
+    case "easy": return 50;
+    case "rest": return 28;
+    default: return 72;
+  }
+}
+
+function statusHeadline(readiness: number): string {
+  if (readiness >= 80) return "Pronto para evoluir";
+  if (readiness >= 60) return "Bom momento para treinar";
+  if (readiness >= 40) return "Treine com moderação";
+  return "Priorize a recuperação";
+}
+
+function statusSubtitle(readiness: number, rec: TrainingRecommendation | null): string {
+  if (rec?.detail) return rec.detail;
+  if (readiness >= 80) return "Seu corpo responde bem aos estímulos. Mantenha o foco na consistência.";
+  if (readiness >= 60) return "Recuperação em dia — sustente o ritmo com consistência.";
+  if (readiness >= 40) return "Sinais de fadiga moderada. Ajuste a intensidade de hoje.";
+  return "Carga acumulada alta. Priorize sono e recuperação ativa.";
+}
+
+function readinessTag(readiness: number): string {
+  if (readiness >= 80) return "Alta";
+  if (readiness >= 60) return "Boa";
+  if (readiness >= 40) return "Moderada";
+  return "Baixa";
+}
+
+function readinessColor(readiness: number): string {
+  if (readiness >= 80) return "#00FF66";
+  if (readiness >= 60) return "#C6FF00";
+  if (readiness >= 40) return "#FF8C00";
+  return "#ff4757";
+}
+
+function recoveryTag(pct: number): string {
+  if (pct >= 70) return "Boa";
+  if (pct >= 45) return "Moderada";
+  return "Baixa";
+}
+
+// ── icons ──────────────────────────────────────────────────────────────────
+
+function IconZap({ size = 18 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>;
+}
+function IconBars({ size = 15 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="6"/></svg>;
+}
+function IconHeart({ size = 15 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>;
+}
+function IconCheckCircle({ size = 15 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 5-5"/></svg>;
 }
 
 // ── SparkLine ──────────────────────────────────────────────────────────────
@@ -139,9 +191,10 @@ function SparkLine({ data, color = "#00FF66", h = 36 }: { data: number[]; color?
 
 // ── ProgressRing ───────────────────────────────────────────────────────────
 
-function ProgressRing({ pct, size = 80, color = "#00FF66", sublabel }: {
-  pct: number; size?: number; color?: string; sublabel?: string;
+function ProgressRing({ pct, size = 80, color = "#00FF66", colorTo, sublabel }: {
+  pct: number; size?: number; color?: string; colorTo?: string; sublabel?: string;
 }) {
+  const to = colorTo ?? color;
   const r = size / 2 - 7;
   const circ = 2 * Math.PI * r;
   const offset = circ - (Math.min(pct, 100) / 100) * circ;
@@ -151,7 +204,7 @@ function ProgressRing({ pct, size = 80, color = "#00FF66", sublabel }: {
       <defs>
         <linearGradient id={uid} x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor={color} />
-          <stop offset="100%" stopColor="#C6FF00" />
+          <stop offset="100%" stopColor={to} />
         </linearGradient>
       </defs>
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1a1a1a" strokeWidth="6" />
@@ -195,7 +248,7 @@ function EvolutionChart({ activities, metric, period }: {
     .filter(p => p.v > 0);
 
   if (pts.length < 2) return (
-    <div style={{ height: 140, display: "flex", alignItems: "center", justifyContent: "center", color: "#666", fontSize: "0.8rem" }}>
+    <div style={{ height: 140, display: "flex", alignItems: "center", justifyContent: "center", color: "#8f8f8f", fontSize: "0.8rem" }}>
       Atividades insuficientes no período
     </div>
   );
@@ -275,7 +328,7 @@ function MonthCalendar({ activities }: { activities: ActivitySummary[] }) {
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 3 }}>
         {["Se", "Te", "Qu", "Qu", "Se", "Sá", "Do"].map((d, i) => (
-          <div key={i} style={{ textAlign: "center", fontSize: "0.55rem", color: "#666", padding: "1px 0" }}>{d}</div>
+          <div key={i} style={{ textAlign: "center", fontSize: "0.55rem", color: "#8f8f8f", padding: "1px 0" }}>{d}</div>
         ))}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
@@ -293,7 +346,7 @@ function MonthCalendar({ activities }: { activities: ActivitySummary[] }) {
               background: isToday ? "rgba(0,255,102,0.12)" : dayActs.length ? `${color}10` : "transparent",
               border: isToday ? "1px solid rgba(0,255,102,0.4)" : dayActs.length ? `1px solid ${color}25` : "1px solid transparent",
             }}>
-              <span style={{ fontSize: "0.58rem", color: isToday ? "#00FF66" : isFuture ? "#555" : dayActs.length ? "#bbb" : "#666", fontWeight: isToday ? 700 : 400 }}>
+              <span style={{ fontSize: "0.58rem", color: isToday ? "#00FF66" : isFuture ? "#767676" : dayActs.length ? "#bbb" : "#8f8f8f", fontWeight: isToday ? 700 : 400 }}>
                 {day}
               </span>
               {dayActs.length > 0 && (
@@ -369,10 +422,14 @@ export default function DashboardPage() {
   const weekLoadH = stats.cur.duration / 3600;
   const weekLoadPct = Math.min(100, Math.round((weekLoadH / 8) * 100));
   const recoveryPct = Math.max(15, 100 - weekLoadPct);
+  const prevWeekLoadH = stats.prev.duration / 3600;
+  const prevWeekLoadPct = Math.min(100, Math.round((prevWeekLoadH / 8) * 100));
+  const prevRecoveryPct = Math.max(15, 100 - prevWeekLoadPct);
+  const recoveryDelta = stats.prev.count > 0 ? recoveryPct - prevRecoveryPct : null;
   const todayLabel = today.toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
   if (!user) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: "#555" }}>Carregando...</div>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: "#767676" }}>Carregando...</div>
   );
 
   const name = nameFromEmail(user.email);
@@ -391,13 +448,13 @@ export default function DashboardPage() {
   }
 
   function trendChip(t: number | null, inv = false) {
-    if (t === null) return <span style={{ fontSize: "0.65rem", color: "#555" }}>–</span>;
+    if (t === null) return <span style={{ fontSize: "0.65rem", color: "#767676" }}>–</span>;
     const pos = inv ? t < 0 : t > 0;
     const neg = inv ? t > 0 : t < 0;
     return (
-      <span style={{ fontSize: "0.66rem", fontWeight: 600, color: pos ? "#00FF66" : neg ? "#ff4757" : "#888", display: "inline-flex", alignItems: "center", gap: 2 }}>
+      <span style={{ fontSize: "0.66rem", fontWeight: 600, color: pos ? "#00FF66" : neg ? "#ff4757" : "#b0b0b0", display: "inline-flex", alignItems: "center", gap: 2 }}>
         {t > 0 ? "↑" : t < 0 ? "↓" : "–"} {Math.abs(t)}%
-        <span style={{ color: "#666", fontWeight: 400 }}> vs sem. ant.</span>
+        <span style={{ color: "#8f8f8f", fontWeight: 400 }}> vs sem. ant.</span>
       </span>
     );
   }
@@ -434,92 +491,88 @@ export default function DashboardPage() {
       <div style={{ padding: "1.25rem 2rem" }}>
 
         {/* ─── ROW 1: STATUS + PRÓXIMO TREINO ─────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "1rem", marginBottom: "1rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "1rem", marginBottom: "1rem", alignItems: "start" }}>
 
           {/* Status do Atleta */}
           <div style={{
             background: "linear-gradient(135deg, #0c1a10 0%, #0a1208 100%)",
-            border: "1px solid rgba(0,255,102,0.12)", borderRadius: 16, padding: "1.2rem",
+            border: "1px solid rgba(0,255,102,0.14)", borderRadius: 14, padding: "0.7rem 1rem",
             position: "relative", overflow: "hidden",
           }}>
-            <div style={{ position: "absolute", right: -30, top: -30, width: 220, height: 220, background: "radial-gradient(ellipse, rgba(0,255,102,0.055) 0%, transparent 65%)", pointerEvents: "none" }} />
-            {secLabel("Status do Atleta")}
-            <div style={{ display: "grid", gridTemplateColumns: "auto auto minmax(0,1fr) minmax(0,1fr) minmax(140px,1.15fr)", gap: "1.15rem", alignItems: "center" }}>
+            <div style={{ position: "absolute", right: -30, top: -30, width: 160, height: 160, background: "radial-gradient(ellipse, rgba(0,255,102,0.06) 0%, transparent 65%)", pointerEvents: "none" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.6fr 1fr 1fr 1fr", alignItems: "center", gap: 0 }}>
 
-              {/* Prontidão */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-                <ProgressRing pct={readiness} size={88} color="#00FF66" sublabel="Prontidão" />
+              {/* Headline */}
+              <div style={{ paddingRight: "0.8rem" }}>
+                <div style={{ fontSize: "0.56rem", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#00FF66", marginBottom: 3 }}>Status do Atleta</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: "0.98rem", fontWeight: 800, lineHeight: 1.1, whiteSpace: "nowrap" }}>
+                    {statusHeadline(readiness)}
+                  </span>
+                  <span style={{ color: "#00FF66", display: "flex", flexShrink: 0 }}><IconZap size={13} /></span>
+                  <Link href="/predictions" style={{ fontSize: "0.64rem", color: "#00FF66", textDecoration: "none", fontWeight: 700, marginLeft: 2, whiteSpace: "nowrap" }}>
+                    análise →
+                  </Link>
+                </div>
               </div>
 
-              {/* Recuperação */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-                <ProgressRing pct={recoveryPct} size={62}
-                  color={recoveryPct > 60 ? "#00FF66" : recoveryPct > 35 ? "#FF8C00" : "#ff4757"}
-                  sublabel="Recup." />
+              {/* Prontidão */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 0.6rem", borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
+                <ProgressRing pct={readiness} size={38} color={readinessColor(readiness)} colorTo={readiness >= 80 ? "#C6FF00" : undefined} />
+                <div>
+                  <div style={{ fontSize: "0.55rem", color: "#b0b0b0", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Prontidão</div>
+                  <div style={{ fontSize: "0.66rem", fontWeight: 700, color: readinessColor(readiness) }}>{readinessTag(readiness)}</div>
+                </div>
               </div>
 
               {/* Carga semanal */}
-              <div>
-                <div style={{ fontSize: "0.62rem", color: "#9a9a9a", marginBottom: 5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Carga Semanal</div>
-                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: "1.4rem", fontWeight: 800, lineHeight: 1, marginBottom: 8 }}>
-                  {weekLoadH.toFixed(1)}<span style={{ fontSize: "0.9rem", fontWeight: 600 }}>h</span>
+              <div style={{ padding: "0 0.6rem", borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#00FF66", marginBottom: 3 }}>
+                  <IconBars size={11} />
+                  <span style={{ fontSize: "0.55rem", color: "#b0b0b0", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>Carga</span>
                 </div>
-                <div style={{ height: 5, background: "#232323", borderRadius: 100, overflow: "hidden", marginBottom: 5 }}>
+                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: "0.92rem", fontWeight: 800, lineHeight: 1, marginBottom: 4 }}>
+                  {weekLoadH.toFixed(1)}<span style={{ fontSize: "0.62rem", fontWeight: 600, color: "#9d9d9d" }}> /8h</span>
+                </div>
+                <div style={{ height: 3, background: "#242424", borderRadius: 100, overflow: "hidden" }}>
                   <div style={{ height: "100%", width: `${weekLoadPct}%`, background: "linear-gradient(90deg, #00FF66, #C6FF00)", borderRadius: 100, transition: "width 1s ease" }} />
                 </div>
-                <div style={{ fontSize: "0.63rem", color: "#7a7a7a" }}>meta 8h/semana</div>
+              </div>
+
+              {/* Recuperação */}
+              <div style={{ padding: "0 0.6rem", borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#00FF66", marginBottom: 3 }}>
+                  <IconHeart size={11} />
+                  <span style={{ fontSize: "0.55rem", color: "#b0b0b0", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>Recup.</span>
+                </div>
+                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: "0.92rem", fontWeight: 800, lineHeight: 1, marginBottom: 3 }}>
+                  {recoveryTag(recoveryPct)}
+                </div>
+                <span style={{ fontSize: "0.58rem", fontWeight: 600, color: recoveryDelta === null ? "#9d9d9d" : recoveryDelta > 0 ? "#00FF66" : recoveryDelta < 0 ? "#ff4757" : "#9d9d9d" }}>
+                  {recoveryDelta === null ? "—" : recoveryDelta > 0 ? "↑ melhorando" : recoveryDelta < 0 ? "↓ em queda" : "estável"}
+                </span>
               </div>
 
               {/* Treinos da semana */}
-              <div>
-                <div style={{ fontSize: "0.62rem", color: "#9a9a9a", marginBottom: 6, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Treinos</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginBottom: 9 }}>
-                  <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: "2.1rem", fontWeight: 900, lineHeight: 1, background: "linear-gradient(135deg, #00FF66, #C6FF00)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                    {stats.cur.count}
-                  </span>
-                  <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: "1.05rem", fontWeight: 700, color: "#666" }}>/ {weekGoal}</span>
+              <div style={{ padding: "0 0 0 0.6rem", borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#00FF66", marginBottom: 3 }}>
+                  <IconCheckCircle size={11} />
+                  <span style={{ fontSize: "0.55rem", color: "#b0b0b0", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>Treinos</span>
                 </div>
-                <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: "0.92rem", fontWeight: 800, lineHeight: 1, marginBottom: 4 }}>
+                  {stats.cur.count}<span style={{ fontSize: "0.62rem", fontWeight: 600, color: "#9d9d9d" }}> /{weekGoal}</span>
+                </div>
+                <div style={{ display: "flex", gap: 2 }}>
                   {Array.from({ length: weekGoal }, (_, i) => {
                     const done = i < stats.cur.count;
                     return (
                       <div key={i} style={{
-                        flex: 1, height: 7, borderRadius: 100,
+                        flex: 1, height: 3, borderRadius: 100,
                         background: done ? "linear-gradient(90deg, #00FF66, #C6FF00)" : "#242424",
-                        border: done ? "none" : "1px solid #2e2e2e",
-                        boxShadow: done ? "0 0 8px rgba(0,255,102,0.35)" : "none",
-                        transition: "background .4s ease, box-shadow .4s ease",
                       }} />
                     );
                   })}
                 </div>
-                <div style={{ fontSize: "0.63rem", color: "#7a7a7a" }}>
-                  {stats.cur.count >= weekGoal
-                    ? "meta semanal batida"
-                    : `faltam ${weekGoal - stats.cur.count} para a meta`}
-                </div>
-              </div>
-
-              {/* Tendências */}
-              <div>
-                <div style={{ fontSize: "0.62rem", color: "#9a9a9a", marginBottom: 8, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Tendência</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                  {[
-                    { label: "Distância", trend: stats.trends.distance },
-                    { label: "Tempo", trend: stats.trends.duration },
-                    { label: "FC Média", trend: stats.trends.avgHr, inv: true },
-                  ].map(({ label, trend, inv }) => (
-                    <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: "0.72rem", color: "#9a9a9a" }}>{label}</span>
-                      {trend !== null
-                        ? <span style={{ fontSize: "0.7rem", fontWeight: 700, color: (inv ? trend < 0 : trend > 0) ? "#00FF66" : trend === 0 ? "#888" : "#ff4757" }}>{trend > 0 ? "↑" : "↓"} {Math.abs(trend)}%</span>
-                        : <span style={{ fontSize: "0.68rem", color: "#5e5e5e" }}>–</span>}
-                    </div>
-                  ))}
-                </div>
-                <Link href="/predictions" style={{ display: "inline-block", marginTop: 10, fontSize: "0.68rem", color: "#00FF66", textDecoration: "none", border: "1px solid rgba(0,255,102,0.28)", borderRadius: 100, padding: "0.2rem 0.6rem", whiteSpace: "nowrap" }}>
-                  Ver análise completa →
-                </Link>
               </div>
             </div>
           </div>
@@ -535,7 +588,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <div style={{ fontFamily: "'Poppins',sans-serif", fontWeight: 700, fontSize: "0.95rem" }}>{recommendation.label}</div>
-                    <div style={{ fontSize: "0.7rem", color: "#8a8a8a", marginTop: 1 }}>Recomendado para hoje</div>
+                    <div style={{ fontSize: "0.7rem", color: "#aaaaaa", marginTop: 1 }}>Recomendado para hoje</div>
                   </div>
                 </div>
                 {recommendation.detail && (
@@ -543,7 +596,7 @@ export default function DashboardPage() {
                     {recommendation.detail}
                   </p>
                 )}
-                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "0.7rem", color: "#8a8a8a", marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "0.7rem", color: "#aaaaaa", marginBottom: 12 }}>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                   {today.toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" })}
                 </div>
@@ -554,7 +607,7 @@ export default function DashboardPage() {
             ) : (
               <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
                 <div style={{ fontSize: "2rem", marginBottom: 8 }}>🎯</div>
-                <p style={{ fontSize: "0.8rem", color: "#8a8a8a" }}>Sem recomendação disponível</p>
+                <p style={{ fontSize: "0.8rem", color: "#aaaaaa" }}>Sem recomendação disponível</p>
                 <Link href="/predictions" style={{ display: "inline-block", marginTop: 10, fontSize: "0.74rem", color: "#00FF66", textDecoration: "none" }}>Ver previsões →</Link>
               </div>
             )}
@@ -565,7 +618,7 @@ export default function DashboardPage() {
         <div style={{ ...card, marginBottom: "1rem" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             {secLabel("Visão Semanal")}
-            <Link href="/activities" style={{ fontSize: "0.68rem", color: "#7a7a7a", textDecoration: "none", marginBottom: "0.8rem" }}>Ver calendário →</Link>
+            <Link href="/activities" style={{ fontSize: "0.68rem", color: "#9d9d9d", textDecoration: "none", marginBottom: "0.8rem" }}>Ver calendário →</Link>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
             {days.map((d, i) => {
@@ -582,7 +635,7 @@ export default function DashboardPage() {
                   border: isToday ? "1px solid rgba(0,255,102,0.28)" : sport ? `1px solid ${color}20` : "1px solid #161616",
                   transition: "all .2s",
                 }}>
-                  <span style={{ fontSize: "0.64rem", fontWeight: 700, color: isToday ? "#00FF66" : "#8a8a8a" }}>{WEEK_LABELS[i]}</span>
+                  <span style={{ fontSize: "0.64rem", fontWeight: 700, color: isToday ? "#00FF66" : "#aaaaaa" }}>{WEEK_LABELS[i]}</span>
                   <div style={{
                     width: 34, height: 34, borderRadius: 9,
                     background: sport ? `${color}18` : "rgba(255,255,255,0.035)",
@@ -591,13 +644,13 @@ export default function DashboardPage() {
                     fontSize: "1rem",
                     boxShadow: isToday ? "0 0 12px rgba(0,255,102,0.15)" : undefined,
                   }}>
-                    {sport ? (SPORT_EMOJI[sport] ?? "⚡") : isFuture ? <span style={{ fontSize: "0.74rem", color: "#5e5e5e" }}>{d.getDate()}</span> : <span style={{ fontSize: "0.7rem", color: "#5e5e5e" }}>—</span>}
+                    {sport ? (SPORT_EMOJI[sport] ?? "⚡") : isFuture ? <span style={{ fontSize: "0.74rem", color: "#8f8f8f" }}>{d.getDate()}</span> : <span style={{ fontSize: "0.7rem", color: "#8f8f8f" }}>—</span>}
                   </div>
                   <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "0.6rem", color: sport ? color : isToday ? "#00FF66" : isFuture ? "#6e6e6e" : "#5e5e5e", fontWeight: sport ? 600 : 500, lineHeight: 1.3 }}>
+                    <div style={{ fontSize: "0.6rem", color: sport ? color : isToday ? "#00FF66" : isFuture ? "#6e6e6e" : "#8f8f8f", fontWeight: sport ? 600 : 500, lineHeight: 1.3 }}>
                       {sport ? sportLabel(sport).split(" ")[0] : isFuture ? "Planejado" : "Descanso"}
                     </div>
-                    <div style={{ fontSize: "0.55rem", color: "#565656", marginTop: 1 }}>
+                    <div style={{ fontSize: "0.55rem", color: "#8f8f8f", marginTop: 1 }}>
                       {d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
                     </div>
                   </div>
@@ -617,7 +670,7 @@ export default function DashboardPage() {
             { label: "Elevação", value: `${stats.cur.elevation.toLocaleString("pt-BR")} m`, trend: stats.trends.elevation, spark: sparkElev, color: "#A78BFA" },
           ].map(({ label, value, trend, spark, color, inv }) => (
             <div key={label} style={{ ...card }}>
-              <div style={{ fontSize: "0.63rem", color: "#9a9a9a", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 7 }}>{label}</div>
+              <div style={{ fontSize: "0.63rem", color: "#b0b0b0", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 7 }}>{label}</div>
               <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, marginBottom: 5 }}>{value}</div>
               <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 4 }}>
                 {trendChip(trend, inv)}
@@ -640,7 +693,7 @@ export default function DashboardPage() {
                     background: evolPeriod === p ? "rgba(0,255,102,0.1)" : "transparent",
                     border: evolPeriod === p ? "1px solid rgba(0,255,102,0.28)" : "1px solid #2a2a2a",
                     borderRadius: 100, padding: "0.14rem 0.45rem",
-                    fontSize: "0.65rem", color: evolPeriod === p ? "#00FF66" : "#8a8a8a",
+                    fontSize: "0.65rem", color: evolPeriod === p ? "#00FF66" : "#aaaaaa",
                     cursor: "pointer", fontWeight: evolPeriod === p ? 700 : 400,
                   }}>{p}</button>
                 ))}
@@ -652,7 +705,7 @@ export default function DashboardPage() {
                   background: "transparent", border: "none",
                   borderBottom: evolMetric === m ? "2px solid #00FF66" : "2px solid transparent",
                   padding: "0.18rem 0.6rem", fontSize: "0.74rem",
-                  color: evolMetric === m ? "#00FF66" : "#8a8a8a",
+                  color: evolMetric === m ? "#00FF66" : "#aaaaaa",
                   cursor: "pointer", fontWeight: evolMetric === m ? 600 : 400,
                   marginBottom: -1,
                 }}>{EVOL_LABEL[m]}</button>
@@ -680,7 +733,7 @@ export default function DashboardPage() {
                     <div style={{ width: 6, height: 6, borderRadius: "50%", background: item.color, boxShadow: `0 0 6px ${item.color}66`, flexShrink: 0 }} />
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: "0.74rem", fontWeight: 600 }}>{item.name}</div>
-                      <div style={{ fontSize: "0.64rem", color: "#7a7a7a", marginTop: 1 }}>
+                      <div style={{ fontSize: "0.64rem", color: "#9d9d9d", marginTop: 1 }}>
                         {WEEK_LABELS[(d.getDay() + 6) % 7]} · {d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" })} · {item.detail}
                       </div>
                     </div>
@@ -688,7 +741,7 @@ export default function DashboardPage() {
                 );
               })}
               {days.filter(d => d > today).length === 0 && (
-                <p style={{ fontSize: "0.77rem", color: "#7a7a7a", textAlign: "center", padding: "1rem 0" }}>Semana encerrada</p>
+                <p style={{ fontSize: "0.77rem", color: "#9d9d9d", textAlign: "center", padding: "1rem 0" }}>Semana encerrada</p>
               )}
             </div>
           </div>
@@ -701,7 +754,7 @@ export default function DashboardPage() {
           <div style={{ ...card }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               {secLabel("Atividades Recentes")}
-              <Link href="/activities" style={{ fontSize: "0.68rem", color: "#7a7a7a", textDecoration: "none", marginBottom: "0.8rem" }}>Ver todas →</Link>
+              <Link href="/activities" style={{ fontSize: "0.68rem", color: "#9d9d9d", textDecoration: "none", marginBottom: "0.8rem" }}>Ver todas →</Link>
             </div>
             {loading ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
@@ -710,8 +763,8 @@ export default function DashboardPage() {
             ) : activities.length === 0 ? (
               <div style={{ textAlign: "center", padding: "2rem 0" }}>
                 <div style={{ fontSize: "2rem", marginBottom: 8 }}>🏃</div>
-                <p style={{ fontSize: "0.86rem", color: "#9a9a9a" }}>Nenhuma atividade ainda.</p>
-                <p style={{ fontSize: "0.75rem", color: "#7a7a7a", marginTop: 4 }}>Use <span style={{ color: "#00FF66" }}>Importar</span> para adicionar.</p>
+                <p style={{ fontSize: "0.86rem", color: "#b0b0b0" }}>Nenhuma atividade ainda.</p>
+                <p style={{ fontSize: "0.75rem", color: "#9d9d9d", marginTop: 4 }}>Use <span style={{ color: "#00FF66" }}>Importar</span> para adicionar.</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -734,20 +787,20 @@ export default function DashboardPage() {
                         </div>
                         <div>
                           <div style={{ fontSize: "0.83rem", fontWeight: 600 }}>{a.title ?? sportLabel(a.sport)}</div>
-                          <div style={{ fontSize: "0.68rem", color: "#8a8a8a", marginTop: 1 }}>
+                          <div style={{ fontSize: "0.68rem", color: "#aaaaaa", marginTop: 1 }}>
                             {new Date(a.start_time).toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" })}
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 10, fontSize: "0.76rem", textAlign: "right" }}>
                           {a.distance_m && (
-                            <div><div style={{ fontWeight: 700 }}>{formatDistance(a.distance_m)}</div><div style={{ fontSize: "0.6rem", color: "#7a7a7a" }}>dist.</div></div>
+                            <div><div style={{ fontWeight: 700 }}>{formatDistance(a.distance_m)}</div><div style={{ fontSize: "0.6rem", color: "#9d9d9d" }}>dist.</div></div>
                           )}
-                          <div><div style={{ fontWeight: 700 }}>{formatDuration(a.duration_s)}</div><div style={{ fontSize: "0.6rem", color: "#7a7a7a" }}>tempo</div></div>
+                          <div><div style={{ fontWeight: 700 }}>{formatDuration(a.duration_s)}</div><div style={{ fontSize: "0.6rem", color: "#9d9d9d" }}>tempo</div></div>
                           {a.avg_pace_s_per_km && (
-                            <div><div style={{ fontWeight: 700 }}>{formatPace(a.avg_pace_s_per_km)}</div><div style={{ fontSize: "0.6rem", color: "#7a7a7a" }}>pace</div></div>
+                            <div><div style={{ fontWeight: 700 }}>{formatPace(a.avg_pace_s_per_km)}</div><div style={{ fontSize: "0.6rem", color: "#9d9d9d" }}>pace</div></div>
                           )}
                           {a.avg_hr && (
-                            <div><div style={{ fontWeight: 700, color }}>{a.avg_hr}</div><div style={{ fontSize: "0.6rem", color: "#7a7a7a" }}>bpm</div></div>
+                            <div><div style={{ fontWeight: 700, color }}>{a.avg_hr}</div><div style={{ fontSize: "0.6rem", color: "#9d9d9d" }}>bpm</div></div>
                           )}
                           <div style={{ display: "flex", alignItems: "center" }}>
                             <span style={{ fontSize: "0.58rem", color: "#00FF66", background: "rgba(0,255,102,0.07)", border: "1px solid rgba(0,255,102,0.18)", borderRadius: 100, padding: "0.08rem 0.4rem" }}>Concluído</span>
@@ -768,16 +821,16 @@ export default function DashboardPage() {
             <div style={{ ...card }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 {secLabel("Recordes Pessoais")}
-                <Link href="/metrics" style={{ fontSize: "0.65rem", color: "#7a7a7a", textDecoration: "none", marginBottom: "0.8rem" }}>Ver todos →</Link>
+                <Link href="/metrics" style={{ fontSize: "0.65rem", color: "#9d9d9d", textDecoration: "none", marginBottom: "0.8rem" }}>Ver todos →</Link>
               </div>
               {records.length === 0 ? (
-                <p style={{ fontSize: "0.75rem", color: "#7a7a7a", textAlign: "center", padding: "0.75rem 0" }}>Sem recordes ainda</p>
+                <p style={{ fontSize: "0.75rem", color: "#9d9d9d", textAlign: "center", padding: "0.75rem 0" }}>Sem recordes ainda</p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   {records.slice(0, 6).map((r, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.42rem 0", borderBottom: i < Math.min(records.length, 6) - 1 ? "1px solid #141414" : "none" }}>
                       <div>
-                        <div style={{ fontSize: "0.6rem", color: "#7a7a7a", fontWeight: 600 }}>{sportLabel(r.sport)}</div>
+                        <div style={{ fontSize: "0.6rem", color: "#9d9d9d", fontWeight: 600 }}>{sportLabel(r.sport)}</div>
                         <div style={{ fontSize: "0.79rem", fontWeight: 500, color: "#e6e6e6" }}>{recordLabel(r.record_type)}</div>
                       </div>
                       <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#00FF66" }}>{formatRecordValue(r.value, r.unit)}</span>
@@ -793,7 +846,7 @@ export default function DashboardPage() {
               <div style={{ textAlign: "center", paddingTop: "0.25rem" }}>
                 <div style={{ fontSize: "1.3rem", marginBottom: 6 }}>🏁</div>
                 <div style={{ fontSize: "0.82rem", fontWeight: 700, marginBottom: 4 }}>Configure sua meta</div>
-                <p style={{ fontSize: "0.73rem", color: "#9a9a9a", lineHeight: 1.55, marginBottom: 12 }}>
+                <p style={{ fontSize: "0.73rem", color: "#b0b0b0", lineHeight: 1.55, marginBottom: 12 }}>
                   Defina uma corrida alvo e acompanhe seu progresso em direção ao objetivo.
                 </p>
                 <Link href="/predictions" style={{ display: "inline-block", padding: "0.42rem 0.9rem", background: "rgba(0,255,102,0.08)", border: "1px solid rgba(0,255,102,0.28)", borderRadius: 100, fontSize: "0.72rem", color: "#00FF66", textDecoration: "none", fontWeight: 600 }}>
