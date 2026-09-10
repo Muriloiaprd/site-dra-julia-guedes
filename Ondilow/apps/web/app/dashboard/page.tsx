@@ -166,7 +166,7 @@ function ProgressRing({ pct, size = 80, color = "#00FF66", sublabel }: {
         {pct}%
       </text>
       {sublabel && (
-        <text x={size/2} y={size/2 + size * 0.18} textAnchor="middle" fill="#555"
+        <text x={size/2} y={size/2 + size * 0.18} textAnchor="middle" fill="#aaa"
           style={{ fontSize: size * 0.1 }}>
           {sublabel}
         </text>
@@ -195,7 +195,7 @@ function EvolutionChart({ activities, metric, period }: {
     .filter(p => p.v > 0);
 
   if (pts.length < 2) return (
-    <div style={{ height: 140, display: "flex", alignItems: "center", justifyContent: "center", color: "#333", fontSize: "0.8rem" }}>
+    <div style={{ height: 140, display: "flex", alignItems: "center", justifyContent: "center", color: "#666", fontSize: "0.8rem" }}>
       Atividades insuficientes no período
     </div>
   );
@@ -243,7 +243,7 @@ function EvolutionChart({ activities, metric, period }: {
         ))}
         {labelIdxs.map(i => (
           <text key={i} x={mapped[i].x} y={H - 2} textAnchor={i === 0 ? "start" : i === mapped.length - 1 ? "end" : "middle"}
-            fill="#444" style={{ fontSize: 8.5, fontFamily: "system-ui" }}>
+            fill="#777" style={{ fontSize: 8.5, fontFamily: "system-ui" }}>
             {mapped[i].date.toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}
           </text>
         ))}
@@ -275,7 +275,7 @@ function MonthCalendar({ activities }: { activities: ActivitySummary[] }) {
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 3 }}>
         {["Se", "Te", "Qu", "Qu", "Se", "Sá", "Do"].map((d, i) => (
-          <div key={i} style={{ textAlign: "center", fontSize: "0.55rem", color: "#333", padding: "1px 0" }}>{d}</div>
+          <div key={i} style={{ textAlign: "center", fontSize: "0.55rem", color: "#666", padding: "1px 0" }}>{d}</div>
         ))}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
@@ -293,7 +293,7 @@ function MonthCalendar({ activities }: { activities: ActivitySummary[] }) {
               background: isToday ? "rgba(0,255,102,0.12)" : dayActs.length ? `${color}10` : "transparent",
               border: isToday ? "1px solid rgba(0,255,102,0.4)" : dayActs.length ? `1px solid ${color}25` : "1px solid transparent",
             }}>
-              <span style={{ fontSize: "0.58rem", color: isToday ? "#00FF66" : isFuture ? "#2a2a2a" : dayActs.length ? "#999" : "#333", fontWeight: isToday ? 700 : 400 }}>
+              <span style={{ fontSize: "0.58rem", color: isToday ? "#00FF66" : isFuture ? "#555" : dayActs.length ? "#bbb" : "#666", fontWeight: isToday ? 700 : 400 }}>
                 {day}
               </span>
               {dayActs.length > 0 && (
@@ -391,13 +391,13 @@ export default function DashboardPage() {
   }
 
   function trendChip(t: number | null, inv = false) {
-    if (t === null) return <span style={{ fontSize: "0.65rem", color: "#333" }}>–</span>;
+    if (t === null) return <span style={{ fontSize: "0.65rem", color: "#555" }}>–</span>;
     const pos = inv ? t < 0 : t > 0;
     const neg = inv ? t > 0 : t < 0;
     return (
-      <span style={{ fontSize: "0.66rem", fontWeight: 600, color: pos ? "#00FF66" : neg ? "#ff4757" : "#666", display: "inline-flex", alignItems: "center", gap: 2 }}>
+      <span style={{ fontSize: "0.66rem", fontWeight: 600, color: pos ? "#00FF66" : neg ? "#ff4757" : "#888", display: "inline-flex", alignItems: "center", gap: 2 }}>
         {t > 0 ? "↑" : t < 0 ? "↓" : "–"} {Math.abs(t)}%
-        <span style={{ color: "#383838", fontWeight: 400 }}> vs sem. ant.</span>
+        <span style={{ color: "#666", fontWeight: 400 }}> vs sem. ant.</span>
       </span>
     );
   }
@@ -412,10 +412,10 @@ export default function DashboardPage() {
             <h1 style={{ fontFamily: "'Poppins',sans-serif", fontSize: "1.2rem", fontWeight: 800, letterSpacing: "-0.02em" }}>Olá, {name}</h1>
             <span style={{ fontSize: "0.95rem" }}>⚡</span>
           </div>
-          <p style={{ fontSize: "0.73rem", color: "#4a4a4a", marginTop: 1 }}>Disciplina hoje, resultados amanhã.</p>
+          <p style={{ fontSize: "0.73rem", color: "#777", marginTop: 1 }}>Disciplina hoje, resultados amanhã.</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#111", border: "1px solid #1e1e1e", borderRadius: 100, padding: "0.34rem 0.8rem", fontSize: "0.72rem", color: "#555" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#111", border: "1px solid #1e1e1e", borderRadius: 100, padding: "0.34rem 0.8rem", fontSize: "0.72rem", color: "#999" }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             {todayLabel}
           </div>
@@ -444,7 +444,7 @@ export default function DashboardPage() {
           }}>
             <div style={{ position: "absolute", right: -30, top: -30, width: 220, height: 220, background: "radial-gradient(ellipse, rgba(0,255,102,0.055) 0%, transparent 65%)", pointerEvents: "none" }} />
             {secLabel("Status do Atleta")}
-            <div style={{ display: "grid", gridTemplateColumns: "auto auto 1fr 1fr 1fr", gap: "1.5rem", alignItems: "center" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "auto auto minmax(0,1fr) minmax(0,1fr) minmax(140px,1.15fr)", gap: "1.15rem", alignItems: "center" }}>
 
               {/* Prontidão */}
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
@@ -460,28 +460,49 @@ export default function DashboardPage() {
 
               {/* Carga semanal */}
               <div>
-                <div style={{ fontSize: "0.6rem", color: "#555", marginBottom: 5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Carga Semanal</div>
+                <div style={{ fontSize: "0.62rem", color: "#9a9a9a", marginBottom: 5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Carga Semanal</div>
                 <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: "1.4rem", fontWeight: 800, lineHeight: 1, marginBottom: 8 }}>
                   {weekLoadH.toFixed(1)}<span style={{ fontSize: "0.9rem", fontWeight: 600 }}>h</span>
                 </div>
-                <div style={{ height: 4, background: "#1a1a1a", borderRadius: 100, overflow: "hidden", marginBottom: 4 }}>
+                <div style={{ height: 5, background: "#232323", borderRadius: 100, overflow: "hidden", marginBottom: 5 }}>
                   <div style={{ height: "100%", width: `${weekLoadPct}%`, background: "linear-gradient(90deg, #00FF66, #C6FF00)", borderRadius: 100, transition: "width 1s ease" }} />
                 </div>
-                <div style={{ fontSize: "0.6rem", color: "#444" }}>meta 8h/semana</div>
+                <div style={{ fontSize: "0.63rem", color: "#7a7a7a" }}>meta 8h/semana</div>
               </div>
 
-              {/* Treinos */}
+              {/* Treinos da semana */}
               <div>
-                <div style={{ fontSize: "0.6rem", color: "#555", marginBottom: 5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Semana</div>
-                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: "1.8rem", fontWeight: 900, lineHeight: 1, marginBottom: 3, background: "linear-gradient(135deg, #00FF66, #C6FF00)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                  {stats.cur.count}<span style={{ fontSize: "1rem" }}>/{weekGoal}</span>
+                <div style={{ fontSize: "0.62rem", color: "#9a9a9a", marginBottom: 6, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Treinos</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginBottom: 9 }}>
+                  <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: "2.1rem", fontWeight: 900, lineHeight: 1, background: "linear-gradient(135deg, #00FF66, #C6FF00)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                    {stats.cur.count}
+                  </span>
+                  <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: "1.05rem", fontWeight: 700, color: "#666" }}>/ {weekGoal}</span>
                 </div>
-                <div style={{ fontSize: "0.6rem", color: "#444" }}>treinos realizados</div>
+                <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+                  {Array.from({ length: weekGoal }, (_, i) => {
+                    const done = i < stats.cur.count;
+                    return (
+                      <div key={i} style={{
+                        flex: 1, height: 7, borderRadius: 100,
+                        background: done ? "linear-gradient(90deg, #00FF66, #C6FF00)" : "#242424",
+                        border: done ? "none" : "1px solid #2e2e2e",
+                        boxShadow: done ? "0 0 8px rgba(0,255,102,0.35)" : "none",
+                        transition: "background .4s ease, box-shadow .4s ease",
+                      }} />
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: "0.63rem", color: "#7a7a7a" }}>
+                  {stats.cur.count >= weekGoal
+                    ? "meta semanal batida"
+                    : `faltam ${weekGoal - stats.cur.count} para a meta`}
+                </div>
               </div>
 
               {/* Tendências */}
               <div>
-                <div style={{ fontSize: "0.6rem", color: "#555", marginBottom: 8, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Tendência</div>
+                <div style={{ fontSize: "0.62rem", color: "#9a9a9a", marginBottom: 8, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Tendência</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                   {[
                     { label: "Distância", trend: stats.trends.distance },
@@ -489,14 +510,14 @@ export default function DashboardPage() {
                     { label: "FC Média", trend: stats.trends.avgHr, inv: true },
                   ].map(({ label, trend, inv }) => (
                     <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: "0.7rem", color: "#666" }}>{label}</span>
+                      <span style={{ fontSize: "0.72rem", color: "#9a9a9a" }}>{label}</span>
                       {trend !== null
-                        ? <span style={{ fontSize: "0.68rem", fontWeight: 600, color: (inv ? trend < 0 : trend > 0) ? "#00FF66" : trend === 0 ? "#666" : "#ff4757" }}>{trend > 0 ? "↑" : "↓"} {Math.abs(trend)}%</span>
-                        : <span style={{ fontSize: "0.65rem", color: "#333" }}>–</span>}
+                        ? <span style={{ fontSize: "0.7rem", fontWeight: 700, color: (inv ? trend < 0 : trend > 0) ? "#00FF66" : trend === 0 ? "#888" : "#ff4757" }}>{trend > 0 ? "↑" : "↓"} {Math.abs(trend)}%</span>
+                        : <span style={{ fontSize: "0.68rem", color: "#5e5e5e" }}>–</span>}
                     </div>
                   ))}
                 </div>
-                <Link href="/predictions" style={{ display: "inline-block", marginTop: 10, fontSize: "0.65rem", color: "#00FF66", textDecoration: "none", border: "1px solid rgba(0,255,102,0.2)", borderRadius: 100, padding: "0.18rem 0.55rem" }}>
+                <Link href="/predictions" style={{ display: "inline-block", marginTop: 10, fontSize: "0.68rem", color: "#00FF66", textDecoration: "none", border: "1px solid rgba(0,255,102,0.28)", borderRadius: 100, padding: "0.2rem 0.6rem", whiteSpace: "nowrap" }}>
                   Ver análise completa →
                 </Link>
               </div>
@@ -514,15 +535,15 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <div style={{ fontFamily: "'Poppins',sans-serif", fontWeight: 700, fontSize: "0.95rem" }}>{recommendation.label}</div>
-                    <div style={{ fontSize: "0.68rem", color: "#555", marginTop: 1 }}>Recomendado para hoje</div>
+                    <div style={{ fontSize: "0.7rem", color: "#8a8a8a", marginTop: 1 }}>Recomendado para hoje</div>
                   </div>
                 </div>
                 {recommendation.detail && (
-                  <p style={{ fontSize: "0.76rem", color: "#777", lineHeight: 1.65, padding: "0.55rem 0.7rem", background: "rgba(255,255,255,0.02)", borderRadius: 8, borderLeft: `2px solid ${recommendation.color}55`, marginBottom: 12 }}>
+                  <p style={{ fontSize: "0.78rem", color: "#b0b0b0", lineHeight: 1.65, padding: "0.55rem 0.7rem", background: "rgba(255,255,255,0.03)", borderRadius: 8, borderLeft: `2px solid ${recommendation.color}77`, marginBottom: 12 }}>
                     {recommendation.detail}
                   </p>
                 )}
-                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "0.68rem", color: "#555", marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "0.7rem", color: "#8a8a8a", marginBottom: 12 }}>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                   {today.toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" })}
                 </div>
@@ -533,8 +554,8 @@ export default function DashboardPage() {
             ) : (
               <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
                 <div style={{ fontSize: "2rem", marginBottom: 8 }}>🎯</div>
-                <p style={{ fontSize: "0.78rem", color: "#555" }}>Sem recomendação disponível</p>
-                <Link href="/predictions" style={{ display: "inline-block", marginTop: 10, fontSize: "0.72rem", color: "#00FF66", textDecoration: "none" }}>Ver previsões →</Link>
+                <p style={{ fontSize: "0.8rem", color: "#8a8a8a" }}>Sem recomendação disponível</p>
+                <Link href="/predictions" style={{ display: "inline-block", marginTop: 10, fontSize: "0.74rem", color: "#00FF66", textDecoration: "none" }}>Ver previsões →</Link>
               </div>
             )}
           </div>
@@ -544,7 +565,7 @@ export default function DashboardPage() {
         <div style={{ ...card, marginBottom: "1rem" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             {secLabel("Visão Semanal")}
-            <Link href="/activities" style={{ fontSize: "0.65rem", color: "#444", textDecoration: "none", marginBottom: "0.8rem" }}>Ver calendário →</Link>
+            <Link href="/activities" style={{ fontSize: "0.68rem", color: "#7a7a7a", textDecoration: "none", marginBottom: "0.8rem" }}>Ver calendário →</Link>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
             {days.map((d, i) => {
@@ -561,22 +582,22 @@ export default function DashboardPage() {
                   border: isToday ? "1px solid rgba(0,255,102,0.28)" : sport ? `1px solid ${color}20` : "1px solid #161616",
                   transition: "all .2s",
                 }}>
-                  <span style={{ fontSize: "0.6rem", fontWeight: 700, color: isToday ? "#00FF66" : "#444" }}>{WEEK_LABELS[i]}</span>
+                  <span style={{ fontSize: "0.64rem", fontWeight: 700, color: isToday ? "#00FF66" : "#8a8a8a" }}>{WEEK_LABELS[i]}</span>
                   <div style={{
                     width: 34, height: 34, borderRadius: 9,
-                    background: sport ? `${color}18` : "rgba(255,255,255,0.025)",
-                    border: `1px solid ${sport ? `${color}35` : "#191919"}`,
+                    background: sport ? `${color}18` : "rgba(255,255,255,0.035)",
+                    border: `1px solid ${sport ? `${color}35` : "#242424"}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: "1rem",
                     boxShadow: isToday ? "0 0 12px rgba(0,255,102,0.15)" : undefined,
                   }}>
-                    {sport ? (SPORT_EMOJI[sport] ?? "⚡") : isFuture ? <span style={{ fontSize: "0.7rem", color: "#2a2a2a" }}>{d.getDate()}</span> : <span style={{ fontSize: "0.65rem", color: "#2a2a2a" }}>—</span>}
+                    {sport ? (SPORT_EMOJI[sport] ?? "⚡") : isFuture ? <span style={{ fontSize: "0.74rem", color: "#5e5e5e" }}>{d.getDate()}</span> : <span style={{ fontSize: "0.7rem", color: "#5e5e5e" }}>—</span>}
                   </div>
                   <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "0.57rem", color: sport ? color : isToday ? "#00FF66" : "#2d2d2d", fontWeight: sport ? 600 : 400, lineHeight: 1.3 }}>
+                    <div style={{ fontSize: "0.6rem", color: sport ? color : isToday ? "#00FF66" : isFuture ? "#6e6e6e" : "#5e5e5e", fontWeight: sport ? 600 : 500, lineHeight: 1.3 }}>
                       {sport ? sportLabel(sport).split(" ")[0] : isFuture ? "Planejado" : "Descanso"}
                     </div>
-                    <div style={{ fontSize: "0.52rem", color: "#2a2a2a", marginTop: 1 }}>
+                    <div style={{ fontSize: "0.55rem", color: "#565656", marginTop: 1 }}>
                       {d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
                     </div>
                   </div>
@@ -596,7 +617,7 @@ export default function DashboardPage() {
             { label: "Elevação", value: `${stats.cur.elevation.toLocaleString("pt-BR")} m`, trend: stats.trends.elevation, spark: sparkElev, color: "#A78BFA" },
           ].map(({ label, value, trend, spark, color, inv }) => (
             <div key={label} style={{ ...card }}>
-              <div style={{ fontSize: "0.6rem", color: "#555", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 7 }}>{label}</div>
+              <div style={{ fontSize: "0.63rem", color: "#9a9a9a", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 7 }}>{label}</div>
               <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, marginBottom: 5 }}>{value}</div>
               <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 4 }}>
                 {trendChip(trend, inv)}
@@ -617,9 +638,9 @@ export default function DashboardPage() {
                 {(["7D", "30D", "3M", "6M", "1A"] as const).map(p => (
                   <button key={p} onClick={() => setEvolPeriod(p)} style={{
                     background: evolPeriod === p ? "rgba(0,255,102,0.1)" : "transparent",
-                    border: evolPeriod === p ? "1px solid rgba(0,255,102,0.28)" : "1px solid #1a1a1a",
+                    border: evolPeriod === p ? "1px solid rgba(0,255,102,0.28)" : "1px solid #2a2a2a",
                     borderRadius: 100, padding: "0.14rem 0.45rem",
-                    fontSize: "0.62rem", color: evolPeriod === p ? "#00FF66" : "#444",
+                    fontSize: "0.65rem", color: evolPeriod === p ? "#00FF66" : "#8a8a8a",
                     cursor: "pointer", fontWeight: evolPeriod === p ? 700 : 400,
                   }}>{p}</button>
                 ))}
@@ -630,8 +651,8 @@ export default function DashboardPage() {
                 <button key={m} onClick={() => setEvolMetric(m)} style={{
                   background: "transparent", border: "none",
                   borderBottom: evolMetric === m ? "2px solid #00FF66" : "2px solid transparent",
-                  padding: "0.18rem 0.6rem", fontSize: "0.72rem",
-                  color: evolMetric === m ? "#00FF66" : "#555",
+                  padding: "0.18rem 0.6rem", fontSize: "0.74rem",
+                  color: evolMetric === m ? "#00FF66" : "#8a8a8a",
                   cursor: "pointer", fontWeight: evolMetric === m ? 600 : 400,
                   marginBottom: -1,
                 }}>{EVOL_LABEL[m]}</button>
@@ -658,8 +679,8 @@ export default function DashboardPage() {
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "0.55rem 0.7rem", borderRadius: 10, background: "rgba(255,255,255,0.015)", border: "1px solid #161616" }}>
                     <div style={{ width: 6, height: 6, borderRadius: "50%", background: item.color, boxShadow: `0 0 6px ${item.color}66`, flexShrink: 0 }} />
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: "0.72rem", fontWeight: 600 }}>{item.name}</div>
-                      <div style={{ fontSize: "0.6rem", color: "#444", marginTop: 1 }}>
+                      <div style={{ fontSize: "0.74rem", fontWeight: 600 }}>{item.name}</div>
+                      <div style={{ fontSize: "0.64rem", color: "#7a7a7a", marginTop: 1 }}>
                         {WEEK_LABELS[(d.getDay() + 6) % 7]} · {d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" })} · {item.detail}
                       </div>
                     </div>
@@ -667,7 +688,7 @@ export default function DashboardPage() {
                 );
               })}
               {days.filter(d => d > today).length === 0 && (
-                <p style={{ fontSize: "0.75rem", color: "#444", textAlign: "center", padding: "1rem 0" }}>Semana encerrada</p>
+                <p style={{ fontSize: "0.77rem", color: "#7a7a7a", textAlign: "center", padding: "1rem 0" }}>Semana encerrada</p>
               )}
             </div>
           </div>
@@ -680,7 +701,7 @@ export default function DashboardPage() {
           <div style={{ ...card }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               {secLabel("Atividades Recentes")}
-              <Link href="/activities" style={{ fontSize: "0.65rem", color: "#444", textDecoration: "none", marginBottom: "0.8rem" }}>Ver todas →</Link>
+              <Link href="/activities" style={{ fontSize: "0.68rem", color: "#7a7a7a", textDecoration: "none", marginBottom: "0.8rem" }}>Ver todas →</Link>
             </div>
             {loading ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
@@ -689,8 +710,8 @@ export default function DashboardPage() {
             ) : activities.length === 0 ? (
               <div style={{ textAlign: "center", padding: "2rem 0" }}>
                 <div style={{ fontSize: "2rem", marginBottom: 8 }}>🏃</div>
-                <p style={{ fontSize: "0.85rem", color: "#555" }}>Nenhuma atividade ainda.</p>
-                <p style={{ fontSize: "0.72rem", color: "#444", marginTop: 4 }}>Use <span style={{ color: "#00FF66" }}>Importar</span> para adicionar.</p>
+                <p style={{ fontSize: "0.86rem", color: "#9a9a9a" }}>Nenhuma atividade ainda.</p>
+                <p style={{ fontSize: "0.75rem", color: "#7a7a7a", marginTop: 4 }}>Use <span style={{ color: "#00FF66" }}>Importar</span> para adicionar.</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -713,20 +734,20 @@ export default function DashboardPage() {
                         </div>
                         <div>
                           <div style={{ fontSize: "0.83rem", fontWeight: 600 }}>{a.title ?? sportLabel(a.sport)}</div>
-                          <div style={{ fontSize: "0.65rem", color: "#555", marginTop: 1 }}>
+                          <div style={{ fontSize: "0.68rem", color: "#8a8a8a", marginTop: 1 }}>
                             {new Date(a.start_time).toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" })}
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 10, fontSize: "0.76rem", textAlign: "right" }}>
                           {a.distance_m && (
-                            <div><div style={{ fontWeight: 700 }}>{formatDistance(a.distance_m)}</div><div style={{ fontSize: "0.58rem", color: "#444" }}>dist.</div></div>
+                            <div><div style={{ fontWeight: 700 }}>{formatDistance(a.distance_m)}</div><div style={{ fontSize: "0.6rem", color: "#7a7a7a" }}>dist.</div></div>
                           )}
-                          <div><div style={{ fontWeight: 700 }}>{formatDuration(a.duration_s)}</div><div style={{ fontSize: "0.58rem", color: "#444" }}>tempo</div></div>
+                          <div><div style={{ fontWeight: 700 }}>{formatDuration(a.duration_s)}</div><div style={{ fontSize: "0.6rem", color: "#7a7a7a" }}>tempo</div></div>
                           {a.avg_pace_s_per_km && (
-                            <div><div style={{ fontWeight: 700 }}>{formatPace(a.avg_pace_s_per_km)}</div><div style={{ fontSize: "0.58rem", color: "#444" }}>pace</div></div>
+                            <div><div style={{ fontWeight: 700 }}>{formatPace(a.avg_pace_s_per_km)}</div><div style={{ fontSize: "0.6rem", color: "#7a7a7a" }}>pace</div></div>
                           )}
                           {a.avg_hr && (
-                            <div><div style={{ fontWeight: 700, color }}>{a.avg_hr}</div><div style={{ fontSize: "0.58rem", color: "#444" }}>bpm</div></div>
+                            <div><div style={{ fontWeight: 700, color }}>{a.avg_hr}</div><div style={{ fontSize: "0.6rem", color: "#7a7a7a" }}>bpm</div></div>
                           )}
                           <div style={{ display: "flex", alignItems: "center" }}>
                             <span style={{ fontSize: "0.58rem", color: "#00FF66", background: "rgba(0,255,102,0.07)", border: "1px solid rgba(0,255,102,0.18)", borderRadius: 100, padding: "0.08rem 0.4rem" }}>Concluído</span>
@@ -747,17 +768,17 @@ export default function DashboardPage() {
             <div style={{ ...card }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 {secLabel("Recordes Pessoais")}
-                <Link href="/metrics" style={{ fontSize: "0.62rem", color: "#444", textDecoration: "none", marginBottom: "0.8rem" }}>Ver todos →</Link>
+                <Link href="/metrics" style={{ fontSize: "0.65rem", color: "#7a7a7a", textDecoration: "none", marginBottom: "0.8rem" }}>Ver todos →</Link>
               </div>
               {records.length === 0 ? (
-                <p style={{ fontSize: "0.72rem", color: "#444", textAlign: "center", padding: "0.75rem 0" }}>Sem recordes ainda</p>
+                <p style={{ fontSize: "0.75rem", color: "#7a7a7a", textAlign: "center", padding: "0.75rem 0" }}>Sem recordes ainda</p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   {records.slice(0, 6).map((r, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.42rem 0", borderBottom: i < Math.min(records.length, 6) - 1 ? "1px solid #141414" : "none" }}>
                       <div>
-                        <div style={{ fontSize: "0.58rem", color: "#3a3a3a", fontWeight: 600 }}>{sportLabel(r.sport)}</div>
-                        <div style={{ fontSize: "0.78rem", fontWeight: 500 }}>{recordLabel(r.record_type)}</div>
+                        <div style={{ fontSize: "0.6rem", color: "#7a7a7a", fontWeight: 600 }}>{sportLabel(r.sport)}</div>
+                        <div style={{ fontSize: "0.79rem", fontWeight: 500, color: "#e6e6e6" }}>{recordLabel(r.record_type)}</div>
                       </div>
                       <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#00FF66" }}>{formatRecordValue(r.value, r.unit)}</span>
                     </div>
@@ -772,10 +793,10 @@ export default function DashboardPage() {
               <div style={{ textAlign: "center", paddingTop: "0.25rem" }}>
                 <div style={{ fontSize: "1.3rem", marginBottom: 6 }}>🏁</div>
                 <div style={{ fontSize: "0.82rem", fontWeight: 700, marginBottom: 4 }}>Configure sua meta</div>
-                <p style={{ fontSize: "0.7rem", color: "#555", lineHeight: 1.55, marginBottom: 12 }}>
+                <p style={{ fontSize: "0.73rem", color: "#9a9a9a", lineHeight: 1.55, marginBottom: 12 }}>
                   Defina uma corrida alvo e acompanhe seu progresso em direção ao objetivo.
                 </p>
-                <Link href="/predictions" style={{ display: "inline-block", padding: "0.42rem 0.9rem", background: "rgba(0,255,102,0.08)", border: "1px solid rgba(0,255,102,0.22)", borderRadius: 100, fontSize: "0.7rem", color: "#00FF66", textDecoration: "none", fontWeight: 600 }}>
+                <Link href="/predictions" style={{ display: "inline-block", padding: "0.42rem 0.9rem", background: "rgba(0,255,102,0.08)", border: "1px solid rgba(0,255,102,0.28)", borderRadius: 100, fontSize: "0.72rem", color: "#00FF66", textDecoration: "none", fontWeight: 600 }}>
                   Ver plano completo →
                 </Link>
               </div>
