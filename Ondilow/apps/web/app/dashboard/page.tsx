@@ -68,37 +68,10 @@ function calcWeekStats(acts: ActivitySummary[]) {
   }
 
   const c = agg(cur), p = agg(prev);
-  function trend(a: number, b: number) { if (!b || !a) return null; return Math.round(((a - b) / b) * 100); }
-
-  return {
-    cur: c, prev: p, curActs: cur,
-    trends: {
-      distance: trend(c.distance, p.distance),
-      duration: trend(c.duration, p.duration),
-      avgHr: trend(c.avgHr, p.avgHr),
-      avgPace: trend(c.avgPace, p.avgPace),
-      elevation: trend(c.elevation, p.elevation),
-    },
-  };
+  return { cur: c, prev: p, curActs: cur };
 }
 
 type SparkMetric = "distance" | "duration" | "hr" | "pace" | "elevation";
-
-function groupByWeeks(acts: ActivitySummary[], metric: SparkMetric, weeks = 8): number[] {
-  const now = new Date();
-  return Array.from({ length: weeks }, (_, i) => {
-    const ws = new Date(now); ws.setDate(now.getDate() - (weeks - i) * 7);
-    const we = new Date(now); we.setDate(now.getDate() - (weeks - i - 1) * 7);
-    const wActs = acts.filter(a => { const d = new Date(a.start_time); return d >= ws && d < we; });
-    if (metric === "distance") return wActs.reduce((s, a) => s + (a.distance_m ?? 0), 0) / 1000;
-    if (metric === "duration") return wActs.reduce((s, a) => s + a.duration_s, 0) / 3600;
-    if (metric === "elevation") return wActs.reduce((s, a) => s + (a.elevation_gain_m ?? 0), 0);
-    if (metric === "hr") {
-      const hl = wActs.filter(a => a.avg_hr); return hl.length ? hl.reduce((s, a) => s + a.avg_hr!, 0) / hl.length : 0;
-    }
-    const pl = wActs.filter(a => a.avg_pace_s_per_km); return pl.length ? pl.reduce((s, a) => s + a.avg_pace_s_per_km!, 0) / pl.length : 0;
-  });
-}
 
 function readinessFromRec(r: TrainingRecommendation | null): number {
   if (!r) return 72;
@@ -360,6 +333,104 @@ function MonthCalendar({ activities }: { activities: ActivitySummary[] }) {
   );
 }
 
+// ── ActivityModal ──────────────────────────────────────────────────────────
+
+function activityMetricValue(a: ActivitySummary, metric: SparkMetric): number {
+  if (metric === "distance") return (a.distance_m ?? 0) / 1000;
+  if (metric === "duration") return a.duration_s / 3600;
+  if (metric === "elevation") return a.elevation_gain_m ?? 0;
+  if (metric === "hr") return a.avg_hr ?? 0;
+  return a.avg_pace_s_per_km ?? 0;
+}
+
+function ActivityModal({ activity, activities, onClose }: {
+  activity: ActivitySummary; activities: ActivitySummary[]; onClose: () => void;
+}) {
+  const idx = activities.findIndex(a => a.id === activity.id);
+  const prev = idx >= 0 ? activities[idx + 1] : undefined;
+  const color = sportColor(activity.sport);
+
+  function series(metric: SparkMetric): number[] {
+    const start = idx >= 0 ? idx : 0;
+    return activities.slice(start, start + 8).reverse().map(a => activityMetricValue(a, metric));
+  }
+
+  function trend(cur: number | null | undefined, prevVal: number | null | undefined): number | null {
+    if (cur == null || prevVal == null || !prevVal) return null;
+    return Math.round(((cur - prevVal) / prevVal) * 100);
+  }
+
+  const metrics: { label: string; value: string; trend: number | null; spark: number[]; color: string; inv?: boolean }[] = [
+    { label: "Distância", value: activity.distance_m != null ? formatDistance(activity.distance_m) : "—", trend: trend(activity.distance_m, prev?.distance_m), spark: series("distance"), color: "#00FF66" },
+    { label: "Tempo", value: formatDuration(activity.duration_s), trend: trend(activity.duration_s, prev?.duration_s), spark: series("duration"), color: "#C6FF00" },
+    { label: "Pace Médio", value: activity.avg_pace_s_per_km != null ? formatPace(activity.avg_pace_s_per_km) : "—", trend: trend(activity.avg_pace_s_per_km, prev?.avg_pace_s_per_km), spark: series("pace"), color: "#00BFFF", inv: true },
+    { label: "FC Média", value: activity.avg_hr != null ? `${activity.avg_hr} bpm` : "—", trend: trend(activity.avg_hr, prev?.avg_hr), spark: series("hr"), color: "#FF6B35", inv: true },
+    { label: "Elevação", value: activity.elevation_gain_m != null ? `${Math.round(activity.elevation_gain_m)} m` : "—", trend: trend(activity.elevation_gain_m, prev?.elevation_gain_m), spark: series("elevation"), color: "#A78BFA" },
+  ];
+
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)", backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1.5rem",
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: "#0d0d0d", border: "1px solid #1e1e1e", borderRadius: 18, padding: "1.5rem",
+        maxWidth: 720, width: "100%", maxHeight: "85vh", overflowY: "auto",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+      }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1.2rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 46, height: 46, borderRadius: 12, background: `${color}18`, border: `1px solid ${color}35`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.4rem", flexShrink: 0 }}>
+              {SPORT_EMOJI[activity.sport] ?? "⚡"}
+            </div>
+            <div>
+              <h3 style={{ fontFamily: "'Poppins',sans-serif", fontSize: "1.1rem", fontWeight: 800, margin: 0 }}>{activity.title ?? sportLabel(activity.sport)}</h3>
+              <p style={{ fontSize: "0.75rem", color: "#9d9d9d", margin: "2px 0 0" }}>
+                {sportLabel(activity.sport)} · {new Date(activity.start_time).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid #232323", borderRadius: 100, width: 30, height: 30, color: "#b0b0b0", cursor: "pointer", fontSize: "0.9rem", flexShrink: 0 }}>✕</button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "0.7rem" }}>
+          {metrics.map(m => (
+            <div key={m.label} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #1e1e1e", borderRadius: 12, padding: "0.85rem 0.7rem" }}>
+              <div style={{ fontSize: "0.6rem", color: "#b0b0b0", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{m.label}</div>
+              <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: "1.1rem", fontWeight: 800, marginBottom: 6 }}>{m.value}</div>
+              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 4 }}>
+                {m.trend === null
+                  ? <span style={{ fontSize: "0.6rem", color: "#767676" }}>—</span>
+                  : <span style={{ fontSize: "0.6rem", fontWeight: 600, color: (m.inv ? m.trend < 0 : m.trend > 0) ? "#00FF66" : m.trend === 0 ? "#9d9d9d" : "#ff4757" }}>
+                      {m.trend > 0 ? "↑" : m.trend < 0 ? "↓" : "–"} {Math.abs(m.trend)}%
+                    </span>}
+                <SparkLine data={m.spark} color={m.color} h={24} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: "flex", gap: "0.7rem", marginTop: "1.1rem" }}>
+          <div style={{ flex: 1, background: "rgba(255,255,255,0.02)", border: "1px solid #1a1a1a", borderRadius: 10, padding: "0.6rem 0.8rem" }}>
+            <div style={{ fontSize: "0.58rem", color: "#9d9d9d", textTransform: "uppercase", letterSpacing: "0.06em" }}>Fonte</div>
+            <div style={{ fontSize: "0.78rem", fontWeight: 600, marginTop: 2 }}>{activity.source}</div>
+          </div>
+          {activity.avg_speed_kmh != null && (
+            <div style={{ flex: 1, background: "rgba(255,255,255,0.02)", border: "1px solid #1a1a1a", borderRadius: 10, padding: "0.6rem 0.8rem" }}>
+              <div style={{ fontSize: "0.58rem", color: "#9d9d9d", textTransform: "uppercase", letterSpacing: "0.06em" }}>Vel. Média</div>
+              <div style={{ fontSize: "0.78rem", fontWeight: 600, marginTop: 2 }}>{activity.avg_speed_kmh.toFixed(1)} km/h</div>
+            </div>
+          )}
+        </div>
+
+        <Link href={`/activities/${activity.id}`} style={{ display: "block", textAlign: "center", marginTop: "1.1rem", padding: "0.55rem", borderRadius: 10, background: "rgba(0,255,102,0.08)", border: "1px solid rgba(0,255,102,0.22)", fontSize: "0.78rem", color: "#00FF66", textDecoration: "none", fontWeight: 700 }}>
+          Ver página completa da atividade →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN PAGE ──────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -373,6 +444,7 @@ export default function DashboardPage() {
   const [recommendation, setRecommendation] = useState<TrainingRecommendation | null>(null);
   const [evolMetric, setEvolMetric] = useState<EvolMetric>("distance");
   const [evolPeriod, setEvolPeriod] = useState("30D");
+  const [modalActivity, setModalActivity] = useState<ActivitySummary | null>(null);
 
   useEffect(() => {
     fetchMe().then(u => { if (!u) { router.push("/login"); return; } setUser(u); });
@@ -410,14 +482,9 @@ export default function DashboardPage() {
   const mon = getMonday();
   const days = weekDates(mon);
   const stats = useMemo(() => calcWeekStats(activities), [activities]);
-  const sparkDist = useMemo(() => groupByWeeks(activities, "distance"), [activities]);
-  const sparkDur = useMemo(() => groupByWeeks(activities, "duration"), [activities]);
-  const sparkHr = useMemo(() => groupByWeeks(activities, "hr"), [activities]);
-  const sparkPace = useMemo(() => groupByWeeks(activities, "pace"), [activities]);
-  const sparkElev = useMemo(() => groupByWeeks(activities, "elevation"), [activities]);
+  const lastActivity = activities[0] ?? null;
 
   const weekGoal = 5;
-  const weekPct = Math.min(100, Math.round((stats.cur.count / weekGoal) * 100));
   const readiness = readinessFromRec(recommendation);
   const weekLoadH = stats.cur.duration / 3600;
   const weekLoadPct = Math.min(100, Math.round((weekLoadH / 8) * 100));
@@ -444,18 +511,6 @@ export default function DashboardPage() {
         <div style={{ width: 14, height: 2, background: "#00FF66", borderRadius: 1 }} />
         <span style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "#00FF66" }}>{text}</span>
       </div>
-    );
-  }
-
-  function trendChip(t: number | null, inv = false) {
-    if (t === null) return <span style={{ fontSize: "0.65rem", color: "#767676" }}>–</span>;
-    const pos = inv ? t < 0 : t > 0;
-    const neg = inv ? t > 0 : t < 0;
-    return (
-      <span style={{ fontSize: "0.66rem", fontWeight: 600, color: pos ? "#00FF66" : neg ? "#ff4757" : "#b0b0b0", display: "inline-flex", alignItems: "center", gap: 2 }}>
-        {t > 0 ? "↑" : t < 0 ? "↓" : "–"} {Math.abs(t)}%
-        <span style={{ color: "#8f8f8f", fontWeight: 400 }}> vs sem. ant.</span>
-      </span>
     );
   }
 
@@ -490,12 +545,12 @@ export default function DashboardPage() {
 
       <div style={{ padding: "1.25rem 2rem" }}>
 
-        {/* ─── ROW 1: STATUS + PRÓXIMO TREINO ─────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "1rem", marginBottom: "1rem", alignItems: "start" }}>
+        {/* ─── ROW 1: STATUS + ÚLTIMA ATIVIDADE + PRÓXIMO TREINO ───────── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 300px", gap: "1rem", marginBottom: "1rem", alignItems: "start" }}>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {/* Status do Atleta */}
           <div style={{
+            gridColumn: "1", gridRow: "1",
             background: "linear-gradient(135deg, #0c1a10 0%, #0a1208 100%)",
             border: "1px solid rgba(0,255,102,0.14)", borderRadius: 14, padding: "0.7rem 1rem",
             position: "relative", overflow: "hidden",
@@ -578,8 +633,53 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Última Atividade */}
+          <div style={{ ...card, gridColumn: "2", gridRow: "1", padding: "0.7rem 1rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 14, height: 2, background: "#00FF66", borderRadius: 1 }} />
+                <span style={{ fontSize: "0.56rem", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#00FF66" }}>Última Atividade</span>
+              </div>
+              {lastActivity && (
+                <button onClick={() => setModalActivity(lastActivity)} style={{ fontSize: "0.64rem", color: "#00FF66", background: "transparent", border: "1px solid rgba(0,255,102,0.3)", borderRadius: 100, padding: "0.16rem 0.6rem", cursor: "pointer", fontWeight: 700 }}>
+                  Veja →
+                </button>
+              )}
+            </div>
+            {lastActivity ? (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                  <span style={{ fontSize: "0.85rem" }}>{SPORT_EMOJI[lastActivity.sport] ?? "⚡"}</span>
+                  <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: "0.85rem", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {lastActivity.title ?? sportLabel(lastActivity.sport)}
+                  </span>
+                  <span style={{ fontSize: "0.6rem", color: "#9d9d9d", whiteSpace: "nowrap" }}>
+                    {new Date(lastActivity.start_time).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                  </span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 4 }}>
+                  {lastActivity.distance_m != null && (
+                    <div><div style={{ fontSize: "0.85rem", fontWeight: 800, fontFamily: "'Poppins',sans-serif" }}>{formatDistance(lastActivity.distance_m)}</div><div style={{ fontSize: "0.5rem", color: "#9d9d9d" }}>dist.</div></div>
+                  )}
+                  <div><div style={{ fontSize: "0.85rem", fontWeight: 800, fontFamily: "'Poppins',sans-serif" }}>{formatDuration(lastActivity.duration_s)}</div><div style={{ fontSize: "0.5rem", color: "#9d9d9d" }}>tempo</div></div>
+                  {lastActivity.avg_pace_s_per_km != null && (
+                    <div><div style={{ fontSize: "0.85rem", fontWeight: 800, fontFamily: "'Poppins',sans-serif" }}>{formatPace(lastActivity.avg_pace_s_per_km)}</div><div style={{ fontSize: "0.5rem", color: "#9d9d9d" }}>pace</div></div>
+                  )}
+                  {lastActivity.avg_hr != null && (
+                    <div><div style={{ fontSize: "0.85rem", fontWeight: 800, fontFamily: "'Poppins',sans-serif" }}>{lastActivity.avg_hr}</div><div style={{ fontSize: "0.5rem", color: "#9d9d9d" }}>bpm</div></div>
+                  )}
+                  {lastActivity.elevation_gain_m != null && (
+                    <div><div style={{ fontSize: "0.85rem", fontWeight: 800, fontFamily: "'Poppins',sans-serif" }}>{Math.round(lastActivity.elevation_gain_m)}m</div><div style={{ fontSize: "0.5rem", color: "#9d9d9d" }}>elev.</div></div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p style={{ fontSize: "0.75rem", color: "#9d9d9d" }}>Nenhuma atividade registrada.</p>
+            )}
+          </div>
+
           {/* Visão Semanal */}
-          <div style={{ ...card, padding: "0.75rem 0.9rem" }}>
+          <div style={{ ...card, gridColumn: "1 / 3", gridRow: "2", padding: "0.75rem 0.9rem" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.55rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div style={{ width: 14, height: 2, background: "#00FF66", borderRadius: 1 }} />
@@ -629,10 +729,9 @@ export default function DashboardPage() {
               })}
             </div>
           </div>
-          </div>
 
           {/* Próximo Treino */}
-          <div style={{ ...card }}>
+          <div style={{ ...card, gridColumn: "3", gridRow: "1 / 3" }}>
             {secLabel("Próximo Treino")}
             {recommendation ? (
               <>
@@ -666,26 +765,6 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-        </div>
-
-        {/* ─── MÉTRICAS DA SEMANA ─────────────────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "0.85rem", marginBottom: "1rem" }}>
-          {[
-            { label: "Distância", value: formatDistance(stats.cur.distance), trend: stats.trends.distance, spark: sparkDist, color: "#00FF66" },
-            { label: "Tempo", value: formatDuration(stats.cur.duration), trend: stats.trends.duration, spark: sparkDur, color: "#C6FF00" },
-            { label: "Pace Médio", value: stats.cur.avgPace ? formatPace(stats.cur.avgPace) : "—", trend: stats.trends.avgPace, spark: sparkPace, color: "#00BFFF", inv: true },
-            { label: "FC Média", value: stats.cur.avgHr ? `${stats.cur.avgHr} bpm` : "—", trend: stats.trends.avgHr, spark: sparkHr, color: "#FF6B35", inv: true },
-            { label: "Elevação", value: `${stats.cur.elevation.toLocaleString("pt-BR")} m`, trend: stats.trends.elevation, spark: sparkElev, color: "#A78BFA" },
-          ].map(({ label, value, trend, spark, color, inv }) => (
-            <div key={label} style={{ ...card }}>
-              <div style={{ fontSize: "0.63rem", color: "#b0b0b0", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 7 }}>{label}</div>
-              <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: "1.3rem", fontWeight: 800, lineHeight: 1, marginBottom: 5 }}>{value}</div>
-              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 4 }}>
-                {trendChip(trend, inv)}
-                <SparkLine data={spark} color={color} h={30} />
-              </div>
-            </div>
-          ))}
         </div>
 
         {/* ─── EVOLUÇÃO + PRÓXIMOS TREINOS ────────────────────────────── */}
@@ -780,8 +859,7 @@ export default function DashboardPage() {
                   const color = sportColor(a.sport);
                   const emoji = SPORT_EMOJI[a.sport] ?? "⚡";
                   return (
-                    <Link key={a.id} href={`/activities/${a.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-                      <div style={{
+                    <div key={a.id} onClick={() => setModalActivity(a)} style={{
                         display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 10,
                         padding: "0.65rem 0.8rem", borderRadius: 10,
                         border: "1px solid #161616", background: "rgba(255,255,255,0.015)",
@@ -815,7 +893,6 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       </div>
-                    </Link>
                   );
                 })}
               </div>
@@ -873,6 +950,10 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {modalActivity && (
+        <ActivityModal activity={modalActivity} activities={activities} onClose={() => setModalActivity(null)} />
+      )}
     </main>
   );
 }
