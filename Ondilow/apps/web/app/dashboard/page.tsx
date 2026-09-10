@@ -706,7 +706,7 @@ export default function DashboardPage() {
                 const dayActs = stats.curActs.filter(a => sameDay(new Date(a.start_time), d));
                 const sport = dayActs[0]?.sport;
                 const hasActivity = !!sport;
-                const accent = isToday ? "#00FF66" : hasActivity ? "#FFC145" : null;
+                const accent = isToday ? "#FFC145" : hasActivity ? "#00FF66" : null;
                 return (
                   <div key={i} style={{
                     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, padding: "0.6rem 0.35rem",
@@ -716,9 +716,6 @@ export default function DashboardPage() {
                     border: accent ? "none" : "1px solid #171717",
                     transition: "all .2s",
                   }}>
-                    {hasActivity && !isToday && (
-                      <div style={{ position: "absolute", top: 6, right: 6, width: 6, height: 6, borderRadius: "50%", background: "#00FF66", boxShadow: "0 0 5px rgba(0,255,102,0.8)" }} />
-                    )}
                     <div style={{
                       width: "84%", aspectRatio: "1", borderRadius: 12,
                       background: accent ? `radial-gradient(circle at 50% 35%, ${accent}48, ${accent}12 75%)` : "rgba(255,255,255,0.03)",
@@ -782,8 +779,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ─── EVOLUÇÃO + PRÓXIMOS TREINOS ────────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 270px", gap: "1rem", marginBottom: "1rem" }}>
+        {/* ─── EVOLUÇÃO + RECORDES + META + PRÓXIMOS TREINOS ──────────── */}
+        <div style={{ display: "grid", gridTemplateColumns: "2.4fr 1fr 1.1fr 1.15fr", gap: "1rem", marginBottom: "1rem" }}>
 
           {/* Gráfico de evolução */}
           <div style={{ ...card }}>
@@ -818,6 +815,44 @@ export default function DashboardPage() {
               : <EvolutionChart activities={activities} metric={evolMetric} period={evolPeriod} />}
           </div>
 
+          {/* Recordes */}
+          <div style={{ ...card }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              {secLabel("Recordes Pessoais")}
+              <Link href="/metrics" style={{ fontSize: "0.65rem", color: "#9d9d9d", textDecoration: "none", marginBottom: "0.8rem" }}>Ver todos →</Link>
+            </div>
+            {records.length === 0 ? (
+              <p style={{ fontSize: "0.75rem", color: "#9d9d9d", textAlign: "center", padding: "0.75rem 0" }}>Sem recordes ainda</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {records.slice(0, 6).map((r, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.42rem 0", borderBottom: i < Math.min(records.length, 6) - 1 ? "1px solid #141414" : "none" }}>
+                    <div>
+                      <div style={{ fontSize: "0.6rem", color: "#9d9d9d", fontWeight: 600 }}>{sportLabel(r.sport)}</div>
+                      <div style={{ fontSize: "0.79rem", fontWeight: 500, color: "#e6e6e6" }}>{recordLabel(r.record_type)}</div>
+                    </div>
+                    <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#00FF66" }}>{formatRecordValue(r.value, r.unit)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Meta principal */}
+          <div style={{ ...cardAccent }}>
+            {secLabel("Meta Principal")}
+            <div style={{ textAlign: "center", paddingTop: "0.25rem" }}>
+              <div style={{ fontSize: "1.3rem", marginBottom: 6 }}>🏁</div>
+              <div style={{ fontSize: "0.82rem", fontWeight: 700, marginBottom: 4 }}>Configure sua meta</div>
+              <p style={{ fontSize: "0.73rem", color: "#b0b0b0", lineHeight: 1.55, marginBottom: 12 }}>
+                Defina uma corrida alvo e acompanhe seu progresso em direção ao objetivo.
+              </p>
+              <Link href="/predictions" style={{ display: "inline-block", padding: "0.42rem 0.9rem", background: "rgba(0,255,102,0.08)", border: "1px solid rgba(0,255,102,0.28)", borderRadius: 100, fontSize: "0.72rem", color: "#00FF66", textDecoration: "none", fontWeight: 600 }}>
+                Ver plano completo →
+              </Link>
+            </div>
+          </div>
+
           {/* Próximos treinos (placeholder visual) */}
           <div style={{ ...card }}>
             {secLabel("Próximos Treinos")}
@@ -849,7 +884,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ─── ATIVIDADES + COLUNA DIREITA ────────────────────────────── */}
+        {/* ─── ATIVIDADES + CALENDÁRIO ──────────────────────────────────── */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 260px", gap: "1rem" }}>
 
           {/* Atividades Recentes */}
@@ -913,54 +948,12 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Coluna direita */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-
-            {/* Recordes */}
-            <div style={{ ...card }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                {secLabel("Recordes Pessoais")}
-                <Link href="/metrics" style={{ fontSize: "0.65rem", color: "#9d9d9d", textDecoration: "none", marginBottom: "0.8rem" }}>Ver todos →</Link>
-              </div>
-              {records.length === 0 ? (
-                <p style={{ fontSize: "0.75rem", color: "#9d9d9d", textAlign: "center", padding: "0.75rem 0" }}>Sem recordes ainda</p>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  {records.slice(0, 6).map((r, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.42rem 0", borderBottom: i < Math.min(records.length, 6) - 1 ? "1px solid #141414" : "none" }}>
-                      <div>
-                        <div style={{ fontSize: "0.6rem", color: "#9d9d9d", fontWeight: 600 }}>{sportLabel(r.sport)}</div>
-                        <div style={{ fontSize: "0.79rem", fontWeight: 500, color: "#e6e6e6" }}>{recordLabel(r.record_type)}</div>
-                      </div>
-                      <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#00FF66" }}>{formatRecordValue(r.value, r.unit)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Meta principal */}
-            <div style={{ ...cardAccent }}>
-              {secLabel("Meta Principal")}
-              <div style={{ textAlign: "center", paddingTop: "0.25rem" }}>
-                <div style={{ fontSize: "1.3rem", marginBottom: 6 }}>🏁</div>
-                <div style={{ fontSize: "0.82rem", fontWeight: 700, marginBottom: 4 }}>Configure sua meta</div>
-                <p style={{ fontSize: "0.73rem", color: "#b0b0b0", lineHeight: 1.55, marginBottom: 12 }}>
-                  Defina uma corrida alvo e acompanhe seu progresso em direção ao objetivo.
-                </p>
-                <Link href="/predictions" style={{ display: "inline-block", padding: "0.42rem 0.9rem", background: "rgba(0,255,102,0.08)", border: "1px solid rgba(0,255,102,0.28)", borderRadius: 100, fontSize: "0.72rem", color: "#00FF66", textDecoration: "none", fontWeight: 600 }}>
-                  Ver plano completo →
-                </Link>
-              </div>
-            </div>
-
-            {/* Calendário */}
-            <div style={{ ...card }}>
-              {secLabel(`Calendário — ${MONTH_PT[today.getMonth()]}`)}
-              {loading
-                ? <div style={{ height: 100, background: "rgba(255,255,255,0.018)", borderRadius: 8 }} />
-                : <MonthCalendar activities={activities} />}
-            </div>
+          {/* Calendário */}
+          <div style={{ ...card }}>
+            {secLabel(`Calendário — ${MONTH_PT[today.getMonth()]}`)}
+            {loading
+              ? <div style={{ height: 100, background: "rgba(255,255,255,0.018)", borderRadius: 8 }} />
+              : <MonthCalendar activities={activities} />}
           </div>
         </div>
       </div>
