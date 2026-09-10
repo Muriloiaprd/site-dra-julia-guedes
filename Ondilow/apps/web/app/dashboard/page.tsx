@@ -585,12 +585,10 @@ export default function DashboardPage() {
               </div>
 
               {/* Prontidão */}
-              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 0.6rem", borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
-                <ProgressRing pct={readiness} size={38} color={readinessColor(readiness)} colorTo={readiness >= 80 ? "#C6FF00" : undefined} />
-                <div>
-                  <div style={{ fontSize: "0.55rem", color: "#b0b0b0", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Prontidão</div>
-                  <div style={{ fontSize: "0.66rem", fontWeight: 700, color: readinessColor(readiness) }}>{readinessTag(readiness)}</div>
-                </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "0 0.6rem", borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
+                <span style={{ fontSize: "0.55rem", color: "#b0b0b0", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Prontidão</span>
+                <ProgressRing pct={readiness} size={34} color={readinessColor(readiness)} colorTo={readiness >= 80 ? "#C6FF00" : undefined} />
+                <span style={{ fontSize: "0.64rem", fontWeight: 700, color: readinessColor(readiness) }}>{readinessTag(readiness)}</span>
               </div>
 
               {/* Carga semanal */}
