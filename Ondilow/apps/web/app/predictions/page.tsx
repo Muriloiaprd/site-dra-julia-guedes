@@ -2,33 +2,30 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
+  Area, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 
+import { ChartTooltipBox, LegendDot } from "@/components/ui/charts";
+import { Alert, EmptyState, PageContainer, PageHeader, Panel, ProgressBar, Segmented, Skeleton, StatusDot, TrendBadge } from "@/components/ui/primitives";
 import {
+  fetchActivities,
   fetchMe,
   fetchPredictionsOverview,
   simulateTsb,
+  type ActivitySummary,
   type PredictionsOverview,
   type SimulatedDay,
 } from "@/lib/api";
-import { formatDuration } from "@/lib/utils";
+import { axisProps, C, gridProps } from "@/lib/theme";
+import { formatClock, formatPace, formatPaceShort, sportGroup } from "@/lib/utils";
 
-const RACE_LABELS: Record<string, string> = {
-  "5k": "5 km",
-  "10k": "10 km",
-  "21k": "Meia Maratona",
-  "42k": "Maratona",
+const RACE_LABELS: Record<string, { short: string; name: string }> = {
+  "5k": { short: "5K", name: "5 km" },
+  "10k": { short: "10K", name: "10 km" },
+  "21k": { short: "21K", name: "Meia maratona" },
+  "42k": { short: "42K", name: "Maratona" },
 };
 
 function confidenceLabel(c: number): string {
@@ -38,16 +35,16 @@ function confidenceLabel(c: number): string {
 }
 
 function confidenceColor(c: number): string {
-  if (c >= 1.0) return "text-brand-success";
-  if (c >= 0.75) return "text-brand-warning";
-  return "text-brand-muted";
+  if (c >= 1.0) return C.accent;
+  if (c >= 0.75) return C.lime;
+  return C.warning;
 }
 
 const RISK_COLORS: Record<string, string> = {
-  low: "#00FF66",
-  moderate: "#C6FF00",
-  high: "#f85149",
-  unknown: "#888888",
+  low: C.accent,
+  moderate: C.warning,
+  high: C.danger,
+  unknown: C.muted,
 };
 
 const RISK_LABELS: Record<string, string> = {
@@ -57,16 +54,54 @@ const RISK_LABELS: Record<string, string> = {
   unknown: "Sem dados",
 };
 
-const DAYS_OPTIONS = [7, 14, 21, 30];
+const DAYS_OPTIONS = [
+  { value: 7, label: "7d" },
+  { value: 14, label: "14d" },
+  { value: 21, label: "21d" },
+  { value: 30, label: "30d" },
+] as const;
+
+const MONTH_SHORT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+/** Pace mensal (ponderado por distancia) das corridas >= 3 km + regressao linear. */
+function monthlyPaceTrend(acts: ActivitySummary[]) {
+  const runs = acts.filter((a) => sportGroup(a.sport) === "run" && a.avg_pace_s_per_km && (a.distance_m ?? 0) >= 3000);
+  const buckets = new Map<string, { w: number; sum: number; n: number; km: number }>();
+  for (const a of runs) {
+    const d = new Date(a.start_time);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const b = buckets.get(key) ?? { w: 0, sum: 0, n: 0, km: 0 };
+    b.w += a.distance_m!; b.sum += a.avg_pace_s_per_km! * a.distance_m!; b.n += 1; b.km += a.distance_m! / 1000;
+    buckets.set(key, b);
+  }
+  const rows = Array.from(buckets.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, b]) => ({ key, label: `${MONTH_SHORT[+key.slice(5) - 1]}/${key.slice(2, 4)}`, pace: b.sum / b.w, runs: b.n, km: b.km }));
+  if (rows.length >= 2) {
+    const n = rows.length;
+    const mx = (n - 1) / 2;
+    const my = rows.reduce((s, r) => s + r.pace, 0) / n;
+    let num = 0, den = 0;
+    rows.forEach((r, i) => { num += (i - mx) * (r.pace - my); den += (i - mx) ** 2; });
+    const slope = den ? num / den : 0;
+    const intercept = my - slope * mx;
+    const withTrend = rows.map((r, i) => ({ ...r, trend: intercept + slope * i }));
+    const first = withTrend[0].trend, last = withTrend[n - 1].trend;
+    return { rows: withTrend, changePct: ((last - first) / first) * 100 };
+  }
+  return { rows: rows.map((r) => ({ ...r, trend: r.pace })), changePct: null };
+}
 
 export default function PredictionsPage() {
   const router = useRouter();
   const [data, setData] = useState<PredictionsOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activities, setActivities] = useState<ActivitySummary[]>([]);
+  const [actsLoading, setActsLoading] = useState(true);
 
   // Simulacao de TSB
-  const [simDays, setSimDays] = useState(14);
+  const [simDays, setSimDays] = useState<number>(14);
   const [simTss, setSimTss] = useState("60");
   const [simData, setSimData] = useState<SimulatedDay[]>([]);
   const [simLoading, setSimLoading] = useState(false);
@@ -83,7 +118,14 @@ export default function PredictionsPage() {
       .then(setData)
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "Erro"))
       .finally(() => setLoading(false));
+    // sem filtro de esporte na API: monthlyPaceTrend agrupa corrida + trail + esteira
+    fetchActivities(500, 0, undefined, "365")
+      .then(setActivities)
+      .catch(() => {})
+      .finally(() => setActsLoading(false));
   }, []);
+
+  const evolution = useMemo(() => monthlyPaceTrend(activities), [activities]);
 
   async function handleSimulate() {
     const tssValue = parseFloat(simTss) || 60;
@@ -99,193 +141,298 @@ export default function PredictionsPage() {
     }
   }
 
+  const simLast = simData[simData.length - 1];
+
   return (
-    <main className="min-h-screen">
-      <div className="mx-auto max-w-5xl px-6 py-8 space-y-8">
-        <h1 className="text-xl font-semibold">Previsões & Análise</h1>
+    <PageContainer>
+      <PageHeader
+        kicker="Laboratório de performance"
+        title="Previsões & análise"
+        description="Modelos de VDOT, Riegel e carga aplicados ao seu histórico real para estimar seu potencial e o risco do momento."
+        icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" /></svg>}
+      />
 
-        {error && (
-          <div className="rounded-lg border border-brand-danger/40 bg-brand-danger/10 p-3 text-sm text-brand-danger">
-            {error}
-          </div>
-        )}
+      {error && <div className="mb-4"><Alert tone="danger">{error}</Alert></div>}
 
+      <div className="od-stagger space-y-4">
         {loading ? (
-          <div className="space-y-4">
-            <div className="h-32 animate-pulse rounded-lg bg-brand-surface" />
-            <div className="h-48 animate-pulse rounded-lg bg-brand-surface" />
+          <div className="grid gap-4 lg:grid-cols-12">
+            <Skeleton className="h-52 lg:col-span-7" />
+            <Skeleton className="h-52 lg:col-span-5" />
           </div>
         ) : data ? (
-          <>
+          <div className="grid gap-4 lg:grid-cols-12">
             {/* Recomendação de hoje */}
-            <section
-              className="rounded-lg border p-5"
-              style={{ borderColor: data.recommendation.color + "40", backgroundColor: data.recommendation.color + "10" }}
-            >
-              <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted mb-1">
-                Recomendação para Hoje
-              </p>
-              <p className="text-xl font-bold" style={{ color: data.recommendation.color }}>
-                {data.recommendation.label}
-              </p>
-              {data.recommendation.detail && (
-                <p className="mt-1 text-sm text-brand-muted">{data.recommendation.detail}</p>
-              )}
-            </section>
+            <Panel variant="hero" className="lg:col-span-7">
+              <div className="od-scanline" />
+              <h2 className="od-label od-label-accent relative">Recomendação para hoje</h2>
+              <div className="relative mt-5 flex items-start gap-4">
+                <span className="mt-2 h-12 w-1.5 shrink-0 rounded-full" style={{ background: data.recommendation.color, boxShadow: `0 0 16px ${data.recommendation.color}` }} />
+                <div>
+                  <p className="font-display text-[2rem] font-extrabold uppercase leading-none tracking-tight sm:text-[2.4rem]" style={{ color: data.recommendation.color }}>
+                    {data.recommendation.label}
+                  </p>
+                  {data.recommendation.detail && (
+                    <p className="mt-3 max-w-lg text-sm leading-relaxed text-brand-textSecondary">{data.recommendation.detail}</p>
+                  )}
+                </div>
+              </div>
+              <div className="relative mt-6 flex flex-wrap items-center gap-2 text-[0.7rem] text-brand-muted">
+                <span className="font-mono tracking-wider text-brand-accent">MODEL</span>
+                <span className="od-badge od-badge-muted">TSB</span>
+                <span className="od-badge od-badge-muted">ACWR</span>
+                <span className="od-badge od-badge-muted">Histórico 28d</span>
+              </div>
+            </Panel>
 
             {/* Risco de lesão */}
-            <section className="rounded-lg border border-brand-border bg-brand-surface p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-brand-muted">
-                  Risco de Lesão / Overtraining
-                </h2>
-                <span
-                  className="rounded-full px-3 py-0.5 text-xs font-bold text-black"
-                  style={{ backgroundColor: RISK_COLORS[data.risk.level] }}
-                >
+            <Panel className="lg:col-span-5">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="od-label">Risco de lesão / overtraining</h2>
+                <span className="od-badge" style={{ color: RISK_COLORS[data.risk.level], background: `${RISK_COLORS[data.risk.level]}14`, boxShadow: `inset 0 0 0 1px ${RISK_COLORS[data.risk.level]}44` }}>
+                  <StatusDot color={RISK_COLORS[data.risk.level]} size={5} pulse={data.risk.level === "high"} />
                   {RISK_LABELS[data.risk.level]}
                 </span>
               </div>
-              <ul className="text-sm space-y-1 mb-3">
+              <div className="mt-5 grid grid-cols-3 gap-1.5" aria-hidden>
+                {(["low", "moderate", "high"] as const).map((lvl) => {
+                  const on = data.risk.level === lvl;
+                  return (
+                    <div key={lvl}>
+                      <div className="h-2 rounded-full transition-all" style={{ background: on ? RISK_COLORS[lvl] : "rgba(255,255,255,0.07)", boxShadow: on ? `0 0 12px ${RISK_COLORS[lvl]}` : undefined }} />
+                      <div className="mt-1.5 text-[0.62rem] font-semibold uppercase tracking-wider" style={{ color: on ? RISK_COLORS[lvl] : "#6E6E6E" }}>{RISK_LABELS[lvl]}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <ul className="mt-4 space-y-1.5 text-sm">
                 {data.risk.reasons.map((r, i) => (
-                  <li key={i} className="text-brand-muted">• {r}</li>
+                  <li key={i} className="flex gap-2 text-brand-textSecondary"><span className="text-brand-muted">▸</span>{r}</li>
                 ))}
               </ul>
-              <p className="text-sm font-medium" style={{ color: RISK_COLORS[data.risk.level] }}>
+              <p className="mt-4 border-t border-white/5 pt-3 text-sm font-medium" style={{ color: RISK_COLORS[data.risk.level] }}>
                 {data.risk.recommendation}
               </p>
-            </section>
+            </Panel>
+          </div>
+        ) : null}
 
-            {/* Previsões de prova */}
-            <section>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-muted">
-                Previsões de Prova (Fórmula de Riegel)
-              </h2>
-              {data.race_predictions.length === 0 ? (
-                <div className="rounded-lg border border-brand-border bg-brand-surface p-8 text-center text-brand-muted">
-                  <p>Nenhum recorde de corrida encontrado.</p>
-                  <p className="mt-1 text-sm">Importe atividades de corrida para gerar previsões.</p>
-                </div>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {data.race_predictions.map((p) => (
-                    <div key={p.distance} className="rounded-lg border border-brand-border bg-brand-surface p-4">
-                      <p className="text-xs text-brand-muted">{RACE_LABELS[p.distance] || p.distance}</p>
-                      <p className="mt-1 text-2xl font-bold text-brand-accent">
-                        {formatDuration(p.predicted_s)}
-                      </p>
-                      <p className={`mt-1 text-xs ${confidenceColor(p.confidence)}`}>
-                        {confidenceLabel(p.confidence)}
-                      </p>
-                      <p className="mt-1 text-xs text-brand-muted">VDOT {p.vdot}</p>
+        {/* Previsões de prova */}
+        <section>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1">
+            <h2 className="od-label">Previsões de prova</h2>
+            <span className="text-[0.7rem] text-brand-muted">Fórmula de Riegel + VDOT (Jack Daniels)</span>
+          </div>
+          {loading ? (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-52" />)}</div>
+          ) : !data || data.race_predictions.length === 0 ? (
+            <Panel>
+              <EmptyState
+                title="Nenhum recorde de corrida encontrado"
+                description="Importe atividades de corrida para gerar previsões."
+                action={<Link href="/import" className="od-btn od-btn-secondary">Importar atividades →</Link>}
+              />
+            </Panel>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {data.race_predictions.map((p) => {
+                const meta = RACE_LABELS[p.distance];
+                const cc = confidenceColor(p.confidence);
+                return (
+                  <Panel key={p.distance} interactive className="overflow-hidden">
+                    <div aria-hidden className="pointer-events-none absolute -right-3 -top-5 font-display text-[5.5rem] font-black leading-none text-white/[0.03]">{meta?.short ?? p.distance}</div>
+                    <div className="relative flex items-center justify-between">
+                      <div>
+                        <div className="od-num text-lg text-brand-accent">{meta?.short ?? p.distance}</div>
+                        <div className="text-[0.7rem] text-brand-muted">{meta?.name}</div>
+                      </div>
+                      <span className="od-badge od-badge-muted">VDOT {p.vdot}</span>
+                    </div>
+                    <div className="od-num relative mt-5 text-[2.2rem] leading-none">{formatClock(p.predicted_s)}</div>
+                    <div className="relative mt-1.5 text-xs text-brand-muted">{formatPace(p.predicted_s / (p.distance_m / 1000))} médio</div>
+                    <div className="relative mt-5">
+                      <div className="mb-1.5 flex items-center justify-between text-[0.68rem]">
+                        <span className="font-semibold" style={{ color: cc }}>{confidenceLabel(p.confidence)}</span>
+                        <span className="tabular-nums text-brand-muted">{Math.round(Math.min(1, p.confidence) * 100)}%</span>
+                      </div>
+                      <ProgressBar value={Math.min(1, p.confidence) * 100} height={4} color={cc} />
+                    </div>
+                  </Panel>
+                );
+              })}
+            </div>
+          )}
+          <p className="mt-2 px-1 text-xs text-brand-muted">
+            Baseado nos seus melhores esforços de corrida. Para mais precisão, configure seu perfil e acumule histórico.
+          </p>
+        </section>
+
+        {/* Evolução */}
+        <Panel>
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="od-label">Como sua performance está evoluindo</h2>
+            {evolution.changePct != null && (
+              <span className="inline-flex items-center gap-2 text-xs text-brand-muted">
+                Tendência do pace <TrendBadge pct={evolution.changePct} invert />
+              </span>
+            )}
+          </div>
+          <p className="mb-4 text-xs text-brand-muted">Pace médio mensal das corridas de 3 km ou mais (ponderado por distância), com linha de tendência.</p>
+          {actsLoading ? <Skeleton className="h-[240px]" /> : evolution.rows.length < 2 ? (
+            <EmptyState title="Histórico insuficiente" description="São necessários pelo menos 2 meses com corridas de 3 km ou mais." />
+          ) : (
+            <>
+              <div className="mb-2 flex gap-4">
+                <LegendDot color={C.accent} label="Pace mensal" />
+                <LegendDot color={C.lime} label="Tendência" dashed />
+              </div>
+              <ResponsiveContainer width="100%" height={240}>
+                <ComposedChart data={evolution.rows} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="pace-fill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={C.accent} stopOpacity={0.25} />
+                      <stop offset="100%" stopColor={C.accent} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid {...gridProps} />
+                  <XAxis {...axisProps} dataKey="label" />
+                  <YAxis {...axisProps} width={46} reversed domain={["auto", "auto"]} tickFormatter={(v: number) => formatPaceShort(v)} />
+                  <Tooltip
+                    cursor={{ stroke: "rgba(0,255,102,0.3)", strokeDasharray: "3 4" }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const r = payload[0].payload as (typeof evolution.rows)[number];
+                      return <ChartTooltipBox title={r.label} rows={[
+                        { label: "Pace médio", value: formatPace(r.pace), color: C.accent },
+                        { label: "Tendência", value: formatPace(r.trend), color: C.lime },
+                        { label: "Corridas", value: `${r.runs} · ${r.km.toFixed(0)} km` },
+                      ]} />;
+                    }}
+                  />
+                  <Area type="monotone" dataKey="pace" stroke={C.accent} strokeWidth={2.2} fill="url(#pace-fill)" baseValue="dataMax"
+                    dot={{ r: 3, fill: C.accent, strokeWidth: 0 }} activeDot={{ r: 6, fill: C.accent, stroke: C.bg, strokeWidth: 2 }} />
+                  <Line type="linear" dataKey="trend" stroke={C.lime} strokeWidth={1.5} strokeDasharray="6 5" dot={false} activeDot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </>
+          )}
+        </Panel>
+
+        {/* Simulador de TSB */}
+        <Panel>
+          <h2 className="od-label mb-1">Simulador de forma futura (TSB)</h2>
+          <p className="mb-5 text-xs text-brand-muted">Projete CTL, ATL e TSB mantendo um TSS diário constante.</p>
+          <div className="mb-5 flex flex-wrap items-end gap-4">
+            <div>
+              <span className="od-field-label">Período</span>
+              <Segmented options={DAYS_OPTIONS} value={simDays} onChange={setSimDays} size="md" ariaLabel="Período da simulação" />
+            </div>
+            <label>
+              <span className="od-field-label">TSS diário planejado</span>
+              <input
+                type="number"
+                value={simTss}
+                onChange={(e) => setSimTss(e.target.value)}
+                className="od-input !w-28 !py-2"
+                min="0"
+                max="300"
+                step="5"
+              />
+            </label>
+            <button
+              onClick={handleSimulate}
+              disabled={simLoading}
+              className="od-btn od-btn-primary"
+            >
+              {simLoading ? "Calculando…" : "Simular"}
+            </button>
+          </div>
+
+          {simData.length > 0 ? (
+            <>
+              {simLast && (
+                <div className="mb-4 grid grid-cols-3 gap-2">
+                  {[
+                    { k: "CTL final", v: simLast.ctl.toFixed(1), c: C.accent },
+                    { k: "ATL final", v: simLast.atl.toFixed(1), c: C.info },
+                    { k: "TSB final", v: `${simLast.tsb > 0 ? "+" : ""}${simLast.tsb.toFixed(1)}`, c: simLast.tsb >= -10 ? C.accent : simLast.tsb >= -30 ? C.warning : C.danger },
+                  ].map((t) => (
+                    <div key={t.k} className="od-tile p-3">
+                      <div className="od-metric-label">{t.k}</div>
+                      <div className="od-num mt-1 text-xl" style={{ color: t.c }}>{t.v}</div>
                     </div>
                   ))}
                 </div>
               )}
-              <p className="mt-2 text-xs text-brand-muted">
-                Baseado nos seus melhores esforços de corrida. Para mais precisão, configure seu perfil e acumule histórico.
-              </p>
-            </section>
-          </>
-        ) : null}
-
-        {/* Simulador de TSB */}
-        <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-muted">
-            Simulador de Forma Futura (TSB)
-          </h2>
-          <div className="rounded-lg border border-brand-border bg-brand-surface p-5">
-            <div className="flex flex-wrap items-end gap-4 mb-5">
-              <div>
-                <label className="block text-xs text-brand-muted mb-1">Período (dias)</label>
-                <div className="flex gap-1">
-                  {DAYS_OPTIONS.map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => setSimDays(d)}
-                      className={`rounded-md border px-3 py-1 text-sm transition-colors ${
-                        simDays === d
-                          ? "border-brand-accent bg-brand-accent text-black font-semibold"
-                          : "border-brand-border text-brand-muted hover:border-brand-accent"
-                      }`}
-                    >
-                      {d}d
-                    </button>
-                  ))}
-                </div>
+              <div className="mb-2 flex flex-wrap gap-4">
+                <LegendDot color={C.accent} label="CTL" />
+                <LegendDot color={C.info} label="ATL" />
+                <LegendDot color={C.lime} label="TSB" dashed />
               </div>
-              <div>
-                <label className="block text-xs text-brand-muted mb-1">TSS diário planejado</label>
-                <input
-                  type="number"
-                  value={simTss}
-                  onChange={(e) => setSimTss(e.target.value)}
-                  className="input w-24"
-                  min="0"
-                  max="300"
-                  step="5"
-                />
-              </div>
-              <button
-                onClick={handleSimulate}
-                disabled={simLoading}
-                className="rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-black hover:bg-brand-accentHover disabled:opacity-50 transition-colors"
-              >
-                {simLoading ? "Calculando…" : "Simular"}
-              </button>
-            </div>
-
-            {simData.length > 0 ? (
               <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={simData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
+                <ComposedChart data={simData} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="sim-fill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={C.accent} stopOpacity={0.22} />
+                      <stop offset="100%" stopColor={C.accent} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid {...gridProps} />
                   <XAxis
+                    {...axisProps}
                     dataKey="date"
-                    stroke="#888"
-                    fontSize={11}
-                    tickFormatter={(v) => {
-                      const d = new Date(v + "T12:00:00");
-                      return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-                    }}
-                    interval="preserveStartEnd"
+                    tickFormatter={(v: string) => new Date(v + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                    minTickGap={28}
                   />
-                  <YAxis stroke="#888" fontSize={11} />
+                  <YAxis {...axisProps} width={40} />
                   <Tooltip
-                    contentStyle={{ background: "#111", border: "1px solid #1e1e1e", borderRadius: 8 }}
-                    labelFormatter={(l) => {
-                      const d = new Date(String(l) + "T12:00:00");
-                      return d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
+                    cursor={{ stroke: "rgba(0,255,102,0.3)", strokeDasharray: "3 4" }}
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null;
+                      const r = payload[0].payload as SimulatedDay;
+                      return <ChartTooltipBox
+                        title={new Date(String(label) + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
+                        rows={[
+                          { label: "CTL", value: r.ctl.toFixed(1), color: C.accent },
+                          { label: "ATL", value: r.atl.toFixed(1), color: C.info },
+                          { label: "TSB", value: r.tsb.toFixed(1), color: C.lime },
+                        ]}
+                      />;
                     }}
                   />
-                  <Legend />
-                  <ReferenceLine y={0} stroke="#2a2a2a" strokeDasharray="4 2" />
-                  <Line type="monotone" dataKey="ctl" stroke="#00FF66" strokeWidth={2} dot={false} name="CTL" />
-                  <Line type="monotone" dataKey="atl" stroke="#f85149" strokeWidth={2} dot={false} name="ATL" />
-                  <Line type="monotone" dataKey="tsb" stroke="#C6FF00" strokeWidth={1.5} dot={false} strokeDasharray="5 3" name="TSB" />
-                </LineChart>
+                  <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
+                  <Area type="monotone" dataKey="ctl" stroke={C.accent} strokeWidth={2} fill="url(#sim-fill)" dot={false} name="CTL" />
+                  <Line type="monotone" dataKey="atl" stroke={C.info} strokeWidth={1.8} dot={false} name="ATL" />
+                  <Line type="monotone" dataKey="tsb" stroke={C.lime} strokeWidth={1.5} dot={false} strokeDasharray="5 3" name="TSB" />
+                </ComposedChart>
               </ResponsiveContainer>
-            ) : (
-              <p className="text-center text-sm text-brand-muted py-8">
-                Configure o TSS diário e clique em Simular para projetar sua forma.
-              </p>
-            )}
-          </div>
-        </section>
+            </>
+          ) : (
+            <div className="od-tile flex items-center justify-center py-10 text-center text-sm text-brand-muted">
+              Configure o TSS diário e clique em Simular para projetar sua forma.
+            </div>
+          )}
+        </Panel>
 
         {/* Legenda das fórmulas */}
-        <section className="rounded-lg border border-brand-border bg-brand-surface p-5 text-sm text-brand-muted">
-          <h2 className="mb-2 font-medium text-brand-text">Como as previsões são calculadas</h2>
-          <ul className="list-disc pl-5 space-y-1">
-            <li><strong>Fórmula de Riegel</strong>: T2 = T1 × (D2/D1)^1.06 — extrapolação científica entre distâncias</li>
-            <li><strong>VDOT</strong> (Jack Daniels): estimativa de VO2max com base no seu melhor tempo recente</li>
-            <li><strong>Risco de lesão</strong>: ACWR {">"} 1.5 ou TSB {"<"} −30 por 3+ dias = alerta</li>
-            <li><strong>Simulação de TSB</strong>: projeta CTL/ATL/TSB assumindo TSS constante por dia</li>
-          </ul>
-          <p className="mt-3">
-            Para previsões mais precisas, configure <Link href="/profile" className="text-brand-accent hover:underline">FC Máxima, FTP e CSS no perfil</Link>.
-          </p>
-        </section>
+        <details className="od-panel group !p-0">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 sm:px-6">
+            <span className="od-label od-label-plain">Como as previsões são calculadas</span>
+            <span className="text-brand-muted transition-transform duration-200 group-open:rotate-180" aria-hidden>▾</span>
+          </summary>
+          <div className="border-t border-white/5 px-5 pb-5 pt-4 text-sm text-brand-muted sm:px-6">
+            <ul className="space-y-2">
+              <li><strong className="text-brand-textSecondary">Fórmula de Riegel</strong>: T2 = T1 × (D2/D1)^1.06 — extrapolação científica entre distâncias</li>
+              <li><strong className="text-brand-textSecondary">VDOT</strong> (Jack Daniels): estimativa de VO2max com base no seu melhor tempo recente</li>
+              <li><strong className="text-brand-textSecondary">Risco de lesão</strong>: ACWR {">"} 1.5 ou TSB {"<"} −30 por 3+ dias = alerta</li>
+              <li><strong className="text-brand-textSecondary">Simulação de TSB</strong>: projeta CTL/ATL/TSB assumindo TSS constante por dia</li>
+            </ul>
+            <p className="mt-3">
+              Para previsões mais precisas, configure <Link href="/profile" className="text-brand-accent hover:underline">FC Máxima, FTP e CSS no perfil</Link>.
+            </p>
+          </div>
+        </details>
       </div>
-    </main>
+    </PageContainer>
   );
 }

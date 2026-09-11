@@ -6,6 +6,65 @@ export function formatDuration(seconds: number): string {
   return `${m}m${String(s).padStart(2, "0")}s`;
 }
 
+/** Tempo em formato de relogio: 23:33 ou 1:45:20 (recordes, previsoes). */
+export function formatClock(seconds: number): string {
+  const total = Math.round(seconds);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/** Pace sem sufixo: 5:28 */
+export function formatPaceShort(sPerKm: number): string {
+  const m = Math.floor(sPerKm / 60);
+  const s = Math.round(sPerKm % 60);
+  if (s === 60) return `${m + 1}:00`;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/** Distancia em km sem sufixo, para metricas grandes: 36.01 */
+export function formatKm(meters: number | null, decimals = 2): string {
+  if (meters == null) return "–";
+  return (meters / 1000).toFixed(decimals);
+}
+
+/** Distancia separada em valor/unidade para metricas de destaque: 700 m, 36.01 km */
+export function distanceParts(meters: number | null, decimals = 2): { value: string; unit: string } {
+  if (meters == null) return { value: "–", unit: "" };
+  if (meters < 1000) return { value: String(Math.round(meters)), unit: "m" };
+  return { value: (meters / 1000).toFixed(decimals), unit: "km" };
+}
+
+/** "hoje", "ontem", "há 3 dias", "há 2 sem." */
+export function relativeDay(iso: string | Date): string {
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  const a = new Date(d); a.setHours(0, 0, 0, 0);
+  const b = new Date(); b.setHours(0, 0, 0, 0);
+  const days = Math.round((b.getTime() - a.getTime()) / 86400000);
+  if (days <= 0) return "hoje";
+  if (days === 1) return "ontem";
+  if (days < 14) return `há ${days} dias`;
+  if (days < 60) return `há ${Math.floor(days / 7)} sem.`;
+  if (days >= 365) {
+    const years = Math.floor(days / 365);
+    return years === 1 ? "há 1 ano" : `há ${years} anos`;
+  }
+  return `há ${Math.floor(days / 30)} meses`;
+}
+
+export function isBikeSport(sport: string): boolean {
+  return ["bike", "mtb", "gravel", "indoor_bike"].includes(sport);
+}
+
+export function sportGroup(sport: string): "run" | "bike" | "swim" | "other" {
+  if (["run", "trail_run", "treadmill"].includes(sport)) return "run";
+  if (isBikeSport(sport)) return "bike";
+  if (["swim", "open_water_swim"].includes(sport)) return "swim";
+  return "other";
+}
+
 export function formatPace(sPerKm: number): string {
   const m = Math.floor(sPerKm / 60);
   const s = Math.round(sPerKm % 60);

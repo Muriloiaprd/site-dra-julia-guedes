@@ -39,6 +39,7 @@ def import_activity(
     *,
     file_hash: str | None = None,
     file_path: str | None = None,
+    recompute_metrics: bool = True,
 ) -> ImportResult:
     existing = _find_duplicate(db, user_id, norm, file_hash)
     if existing is not None:
@@ -112,7 +113,11 @@ def import_activity(
     db.refresh(activity)
 
     update_records(db, activity)
-    update_daily_metrics(db, user_id, from_date=activity.start_time.date())
+    if recompute_metrics:
+        # custa uma varredura de todo o historico ate hoje -- em import em lote,
+        # o chamador deve pular isso aqui e chamar update_daily_metrics() uma
+        # unica vez ao final, com a menor data afetada do lote inteiro.
+        update_daily_metrics(db, user_id, from_date=activity.start_time.date())
 
     return ImportResult(activity.id, False, activity.sport, _as_float(activity.distance_m), len(kept))
 

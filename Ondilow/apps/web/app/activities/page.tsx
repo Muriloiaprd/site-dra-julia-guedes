@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { SportBadge } from "@/components/SportBadge";
+import { SportTile } from "@/components/SportIcon";
+import { Alert, EmptyState, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
 import { fetchActivities, type ActivitySummary } from "@/lib/api";
-import { formatDistance, formatDuration, formatPace, sportColor, sportLabel } from "@/lib/utils";
+import { formatDistance, formatDuration, formatPace, formatPaceShort, isBikeSport, sportColor, sportLabel } from "@/lib/utils";
 
 const SPORTS = [
   "run", "trail_run", "treadmill", "bike", "mtb", "gravel",
@@ -52,6 +54,7 @@ function inRange(value: number | null | undefined, range: RangeState): boolean {
 }
 
 export default function ActivitiesPage() {
+  const router = useRouter();
   const [activities, setActivities] = useState<ActivitySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -68,6 +71,7 @@ export default function ActivitiesPage() {
   const [hr, setHr] = useState<RangeState>(EMPTY_RANGE);
   const [pace, setPace] = useState<RangeState>(EMPTY_RANGE);
   const [elevation, setElevation] = useState<RangeState>(EMPTY_RANGE);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const PAGE_SIZE = 100;
 
@@ -120,11 +124,12 @@ export default function ActivitiesPage() {
     setElevation(EMPTY_RANGE);
   }
 
+  const advancedCount = [distance, duration, hr, pace, elevation].filter((r) => r.min !== "" || r.max !== "").length;
   const hasActiveFilters =
     search.trim() !== "" ||
     selectedSports.size > 0 ||
     period !== "TUDO" ||
-    [distance, duration, hr, pace, elevation].some((r) => r.min !== "" || r.max !== "");
+    advancedCount > 0;
 
   const periodBounds = useMemo(() => {
     if (period === "CUSTOM") {
@@ -173,216 +178,239 @@ export default function ActivitiesPage() {
   const totals = useMemo(() => {
     const distance_m = filtered.reduce((s, a) => s + (a.distance_m ?? 0), 0);
     const duration_s = filtered.reduce((s, a) => s + a.duration_s, 0);
-    return { count: filtered.length, distance_m, duration_s };
+    const elevation_m = filtered.reduce((s, a) => s + (a.elevation_gain_m ?? 0), 0);
+    return { count: filtered.length, distance_m, duration_s, elevation_m };
   }, [filtered]);
 
   return (
-    <main className="min-h-screen">
-      <div className="mx-auto max-w-6xl px-6 py-8 space-y-6">
-        {/* header */}
-        <div>
-          <h1 className="text-xl font-semibold">Todas as Atividades</h1>
-          <p className="mt-1 text-sm text-brand-muted">
-            {loading
-              ? "Carregando…"
-              : `${totals.count} atividade${totals.count === 1 ? "" : "s"} · ${formatDistance(totals.distance_m)} · ${formatDuration(totals.duration_s)}`}
-          </p>
-        </div>
+    <PageContainer>
+      <PageHeader
+        kicker="Histórico"
+        title="Atividades"
+        description="Todos os seus treinos importados, com filtros por modalidade, período e esforço."
+        icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M3 12h4l3 8 4-16 3 8h4" /></svg>}
+        actions={<Link href="/import" className="od-btn od-btn-secondary">+ Importar</Link>}
+      />
 
-        {/* filtros */}
-        <section className="space-y-4 rounded-lg border border-brand-border bg-brand-surface p-4">
-          {/* busca */}
-          <div className="relative">
-            <span
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-brand-accent"
-              style={{ textShadow: "0 0 6px rgba(0,255,102,0.6)" }}
-            >
-              &gt;_
-            </span>
+      {/* totais do filtro */}
+      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          // "+" = ainda ha paginas nao carregadas; totais refletem so o que esta carregado
+          { k: "Atividades", v: loading ? null : `${totals.count}${hasMore ? "+" : ""}`, u: "" },
+          { k: "Distância", v: loading ? null : (totals.distance_m / 1000).toFixed(0), u: "km" },
+          { k: "Tempo total", v: loading ? null : formatDuration(totals.duration_s), u: "" },
+          { k: "Elevação", v: loading ? null : Math.round(totals.elevation_m).toLocaleString("pt-BR"), u: "m" },
+        ].map((t) => (
+          <Panel key={t.k} className="!p-4">
+            <div className="od-metric-label">{t.k}</div>
+            {t.v == null ? <Skeleton className="mt-2 h-7 w-20" /> : (
+              <div className="od-num mt-1.5 text-[1.6rem] leading-none">{t.v}{t.u && <span className="ml-1 font-sans text-xs font-semibold text-brand-muted">{t.u}</span>}</div>
+            )}
+          </Panel>
+        ))}
+      </div>
+
+      {/* filtros */}
+      <Panel className="mb-4 space-y-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <svg className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="buscar_atividade..."
+              placeholder="Buscar por nome ou modalidade…"
               spellCheck={false}
-              className="w-full rounded-md border border-brand-border bg-black/40 py-2.5 pl-10 pr-9 font-mono text-sm tracking-wide text-white placeholder:text-brand-muted transition-shadow duration-200 focus:border-brand-accent focus:outline-none focus:shadow-[0_0_0_1px_rgba(0,255,102,0.4),0_0_16px_rgba(0,255,102,0.25)]"
+              className="od-input !pl-10 !pr-9"
+              aria-label="Buscar atividade"
             />
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs text-brand-muted hover:text-brand-accent"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-brand-muted hover:text-brand-accent"
                 aria-label="Limpar busca"
               >
                 ✕
               </button>
             )}
           </div>
-
-          {/* tipo de atividade */}
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-muted">Tipo de atividade</p>
-            <div className="flex flex-wrap gap-2">
-              {SPORTS.map((s) => {
-                const active = selectedSports.has(s);
-                const color = sportColor(s);
-                return (
-                  <button
-                    key={s}
-                    onClick={() => toggleSport(s)}
-                    className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
-                    style={
-                      active
-                        ? { backgroundColor: `${color}22`, borderColor: color, color }
-                        : { backgroundColor: "transparent", borderColor: "#2a2a2a", color: "#888" }
-                    }
-                  >
-                    {sportLabel(s)}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowAdvanced((s) => !s)} className={`od-btn od-btn-ghost ${showAdvanced || advancedCount ? "!text-brand-accent" : ""}`} aria-expanded={showAdvanced}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M4 6h16M7 12h10M10 18h4" /></svg>
+              Filtros avançados{advancedCount ? ` (${advancedCount})` : ""}
+            </button>
+            {hasActiveFilters && (
+              <button onClick={clearFilters} className="od-btn od-btn-ghost">✕ Limpar</button>
+            )}
           </div>
+        </div>
 
-          {/* periodo */}
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-muted">Período</p>
-            <div className="flex flex-wrap items-center gap-2">
-              {PERIODS.map((p) => (
+        <div>
+          <p className="od-metric-label mb-2">Modalidade</p>
+          <div className="flex flex-wrap gap-2">
+            {SPORTS.map((s) => {
+              const active = selectedSports.has(s);
+              const color = sportColor(s);
+              return (
                 <button
-                  key={p.key}
-                  onClick={() => setPeriod(p.key)}
-                  className="rounded-full border px-3 py-1 text-xs font-medium"
-                  style={
-                    period === p.key
-                      ? { background: "rgba(0,255,102,0.1)", borderColor: "rgba(0,255,102,0.4)", color: "#00FF66" }
-                      : { background: "transparent", borderColor: "#2a2a2a", color: "#888" }
-                  }
+                  key={s}
+                  onClick={() => toggleSport(s)}
+                  aria-pressed={active}
+                  className="od-chip"
+                  style={active ? { color, background: `${color}18`, boxShadow: `inset 0 0 0 1px ${color}88, 0 0 14px -6px ${color}` } : undefined}
                 >
-                  {p.label}
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: color, opacity: active ? 1 : 0.5 }} />
+                  {sportLabel(s)}
                 </button>
-              ))}
-              {period === "CUSTOM" && (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="date"
-                    value={customFrom}
-                    onChange={(e) => setCustomFrom(e.target.value)}
-                    className="rounded border border-brand-border bg-transparent px-2 py-1 text-xs"
-                  />
-                  <span className="text-xs text-brand-muted">até</span>
-                  <input
-                    type="date"
-                    value={customTo}
-                    onChange={(e) => setCustomTo(e.target.value)}
-                    className="rounded border border-brand-border bg-transparent px-2 py-1 text-xs"
-                  />
-                </div>
-              )}
-            </div>
+              );
+            })}
           </div>
+        </div>
 
-          {/* distancia / duracao / esforco */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <div>
+          <p className="od-metric-label mb-2">Período</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {PERIODS.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setPeriod(p.key)}
+                aria-pressed={period === p.key}
+                className={`od-chip ${period === p.key ? "is-active" : ""}`}
+              >
+                {p.label}
+              </button>
+            ))}
+            {period === "CUSTOM" && (
+              <div className="flex items-center gap-2">
+                <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="od-input od-input-sm !w-auto" aria-label="De" />
+                <span className="text-xs text-brand-muted">até</span>
+                <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="od-input od-input-sm !w-auto" aria-label="Até" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {showAdvanced && (
+          <div className="grid animate-od-fade-up grid-cols-2 gap-4 border-t border-white/5 pt-5 sm:grid-cols-3 lg:grid-cols-5">
             <RangeFilter label="Distância (km)" range={distance} onChange={setDistance} step={0.5} />
             <RangeFilter label="Duração (min)" range={duration} onChange={setDuration} step={5} />
             <RangeFilter label="FC média (bpm)" range={hr} onChange={setHr} step={5} />
             <RangeFilter label="Pace (min/km)" range={pace} onChange={setPace} step={0.5} />
             <RangeFilter label="Elevação (m)" range={elevation} onChange={setElevation} step={50} />
           </div>
+        )}
+      </Panel>
 
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="text-xs text-brand-muted hover:text-brand-accent"
-            >
-              ✕ Limpar filtros
-            </button>
-          )}
-        </section>
+      {error && <div className="mb-4"><Alert tone="danger">{error}</Alert></div>}
 
-        {/* lista */}
-        {error && <p className="text-sm text-brand-danger">{error}</p>}
+      {loading ? (
+        <Panel className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
+        </Panel>
+      ) : filtered.length === 0 ? (
+        <Panel>
+          <EmptyState
+            title="Nenhuma atividade encontrada com esses filtros."
+            action={hasActiveFilters ? <button onClick={clearFilters} className="od-btn od-btn-secondary">Limpar filtros</button> : <Link href="/import" className="od-btn od-btn-primary">Importar atividades →</Link>}
+          />
+        </Panel>
+      ) : (
+        <>
+          {/* desktop: tabela */}
+          <Panel className="hidden overflow-hidden !p-0 md:block">
+            <div className="overflow-x-auto">
+              <table className="od-table">
+                <thead>
+                  <tr>
+                    <th className="text-left">Atividade</th>
+                    <th className="text-left">Data</th>
+                    <th className="text-right">Distância</th>
+                    <th className="text-right">Duração</th>
+                    <th className="text-right">Pace/Vel.</th>
+                    <th className="text-right">FC</th>
+                    <th className="text-right">Elevação</th>
+                    <th className="text-right">Fonte</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((a) => {
+                    const isBike = isBikeSport(a.sport);
+                    return (
+                      <tr key={a.id} className="group cursor-pointer" onClick={() => router.push(`/activities/${a.id}`)}>
+                        <td>
+                          <Link href={`/activities/${a.id}`} className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                            <SportTile sport={a.sport} size={32} radius={9} />
+                            <span className="min-w-0">
+                              <span className="block max-w-[260px] truncate font-medium text-white transition-colors group-hover:text-brand-accent">{a.title ?? sportLabel(a.sport)}</span>
+                              <span className="block text-[0.7rem]" style={{ color: sportColor(a.sport) }}>{sportLabel(a.sport)}</span>
+                            </span>
+                          </Link>
+                        </td>
+                        <td className="whitespace-nowrap text-brand-muted">
+                          {new Date(a.start_time).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
+                        </td>
+                        <td className="od-num text-right">{formatDistance(a.distance_m)}</td>
+                        <td className="text-right text-brand-textSecondary">{formatDuration(a.duration_s)}</td>
+                        <td className="text-right text-brand-textSecondary">
+                          {isBike
+                            ? a.avg_speed_kmh != null ? `${a.avg_speed_kmh.toFixed(1)} km/h` : "–"
+                            : a.avg_pace_s_per_km != null ? formatPace(a.avg_pace_s_per_km) : "–"}
+                        </td>
+                        <td className="text-right text-brand-textSecondary">{a.avg_hr != null ? `${a.avg_hr} bpm` : "–"}</td>
+                        <td className="text-right text-brand-textSecondary">
+                          {a.elevation_gain_m != null ? `+${Math.round(a.elevation_gain_m)}m` : "–"}
+                        </td>
+                        <td className="text-right"><span className="od-badge od-badge-muted">{SOURCE_LABEL[a.source] ?? a.source}</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
 
-        {loading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-14 animate-pulse rounded-lg bg-brand-surface" />
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-lg border border-brand-border bg-brand-surface py-16">
-            <p className="text-sm text-brand-muted">Nenhuma atividade encontrada com esses filtros.</p>
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="rounded-md border border-brand-border px-3 py-1.5 text-xs hover:border-brand-accent hover:text-brand-accent"
-              >
-                Limpar filtros
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-brand-border">
-            <table className="w-full text-sm">
-              <thead className="bg-brand-surface text-brand-muted">
-                <tr>
-                  <th className="px-4 py-3.5 text-left">Atividade</th>
-                  <th className="px-4 py-3.5 text-left">Data</th>
-                  <th className="px-4 py-3.5 text-right">Distância</th>
-                  <th className="px-4 py-3.5 text-right">Duração</th>
-                  <th className="px-4 py-3.5 text-right">Pace/Vel.</th>
-                  <th className="px-4 py-3.5 text-right">FC</th>
-                  <th className="px-4 py-3.5 text-right">Elevação</th>
-                  <th className="px-4 py-3.5 text-right">Fonte</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((a, i) => {
-                  const isBike = ["bike", "mtb", "gravel", "indoor_bike"].includes(a.sport);
-                  return (
-                    <tr key={a.id} className={`border-t border-brand-border ${i % 2 === 1 ? "bg-brand-surface/50" : ""} hover:bg-brand-surface`}>
-                      <td className="px-4 py-3.5">
-                        <Link href={`/activities/${a.id}`} className="flex items-center gap-2 hover:text-brand-accent">
-                          <SportBadge sport={a.sport} />
-                          <span className="max-w-[220px] truncate">{a.title ?? sportLabel(a.sport)}</span>
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3.5 text-brand-muted">
-                        {new Date(a.start_time).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })}
-                      </td>
-                      <td className="px-4 py-3.5 text-right">{formatDistance(a.distance_m)}</td>
-                      <td className="px-4 py-3.5 text-right">{formatDuration(a.duration_s)}</td>
-                      <td className="px-4 py-3.5 text-right">
+          {/* mobile: cards */}
+          <ul className="space-y-2 md:hidden">
+            {filtered.map((a) => {
+              const isBike = isBikeSport(a.sport);
+              return (
+                <li key={a.id}>
+                  <Link href={`/activities/${a.id}`} className="od-panel od-interactive flex items-center gap-3 !p-3.5">
+                    <SportTile sport={a.sport} size={40} radius={11} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold">{a.title ?? sportLabel(a.sport)}</div>
+                      <div className="text-[0.7rem] text-brand-muted">
+                        {new Date(a.start_time).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })} · {formatDuration(a.duration_s)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="od-num text-base">{formatDistance(a.distance_m)}</div>
+                      <div className="text-[0.68rem] text-brand-muted">
                         {isBike
-                          ? a.avg_speed_kmh != null ? `${a.avg_speed_kmh.toFixed(1)} km/h` : "–"
-                          : a.avg_pace_s_per_km != null ? formatPace(a.avg_pace_s_per_km) : "–"}
-                      </td>
-                      <td className="px-4 py-3.5 text-right">{a.avg_hr != null ? `${a.avg_hr} bpm` : "–"}</td>
-                      <td className="px-4 py-3.5 text-right">
-                        {a.elevation_gain_m != null ? `+${Math.round(a.elevation_gain_m)}m` : "–"}
-                      </td>
-                      <td className="px-4 py-3.5 text-right text-brand-muted">{SOURCE_LABEL[a.source] ?? a.source}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                          ? a.avg_speed_kmh != null ? `${a.avg_speed_kmh.toFixed(1)} km/h` : ""
+                          : a.avg_pace_s_per_km != null ? `${formatPaceShort(a.avg_pace_s_per_km)}/km` : ""}
+                      </div>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
 
-        {!loading && hasMore && (
-          <div className="flex justify-center">
-            <button
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              className="rounded-md border border-brand-border px-4 py-2 text-xs hover:border-brand-accent hover:text-brand-accent disabled:opacity-50"
-            >
-              {loadingMore ? "Carregando…" : "Carregar mais atividades"}
-            </button>
-          </div>
-        )}
-      </div>
-    </main>
+      {!loading && hasMore && (
+        <div className="mt-5 flex justify-center">
+          <button
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            className="od-btn od-btn-ghost"
+          >
+            {loadingMore ? "Carregando…" : "Carregar mais atividades"}
+          </button>
+        </div>
+      )}
+    </PageContainer>
   );
 }
 
@@ -393,24 +421,26 @@ function RangeFilter({
 }) {
   return (
     <div>
-      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-brand-muted">{label}</p>
-      <div className="flex items-center gap-1">
+      <p className="od-field-label">{label}</p>
+      <div className="flex items-center gap-1.5">
         <input
           type="number"
           step={step}
           placeholder="mín"
           value={range.min}
           onChange={(e) => onChange({ ...range, min: e.target.value })}
-          className="w-full min-w-0 rounded border border-brand-border bg-transparent px-2 py-1 text-xs"
+          className="od-input od-input-sm min-w-0"
+          aria-label={`${label} mínimo`}
         />
-        <span className="text-brand-muted">–</span>
+        <span className="text-brand-textTertiary">–</span>
         <input
           type="number"
           step={step}
           placeholder="máx"
           value={range.max}
           onChange={(e) => onChange({ ...range, max: e.target.value })}
-          className="w-full min-w-0 rounded border border-brand-border bg-transparent px-2 py-1 text-xs"
+          className="od-input od-input-sm min-w-0"
+          aria-label={`${label} máximo`}
         />
       </div>
     </div>

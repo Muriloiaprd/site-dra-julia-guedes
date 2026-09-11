@@ -242,6 +242,7 @@ export interface UploadResult {
     distance_m: number | null;
     points_stored: number;
   }[];
+  error?: string | null;
 }
 
 // ---------- previsoes ----------
@@ -456,6 +457,12 @@ export async function fetchCoachHistory(): Promise<CoachChatMessage[]> {
   return coachFetch<CoachChatMessage[]>("/coach/chat/history");
 }
 
+// ---------- limpar dados ----------
+
+export async function deleteAllActivities(): Promise<{ deleted: number }> {
+  return apiFetch<{ deleted: number }>("/activities", { method: "DELETE" });
+}
+
 // ---------- upload ----------
 
 export async function uploadActivity(file: File): Promise<UploadResult> {
@@ -472,4 +479,20 @@ export async function uploadActivity(file: File): Promise<UploadResult> {
     throw new Error((err as { detail?: string }).detail || `Erro ${res.status}`);
   }
   return res.json() as Promise<UploadResult>;
+}
+
+export async function uploadActivitiesBatch(files: File[]): Promise<UploadResult[]> {
+  const token = getToken();
+  const form = new FormData();
+  for (const file of files) form.append("files", file);
+  const res = await fetch("/api/activities/upload/batch", {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || `Erro ${res.status}`);
+  }
+  return res.json() as Promise<UploadResult[]>;
 }

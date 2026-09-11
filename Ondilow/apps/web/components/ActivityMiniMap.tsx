@@ -5,16 +5,17 @@ import L from "leaflet";
 import { useEffect, useRef } from "react";
 
 import type { ActivityPoint } from "@/lib/api";
+import { addGlowRoute, DARK_TILES_NO_LABELS, routeMarker, TILE_ATTRIBUTION } from "@/lib/mapTiles";
 
 interface ActivityMiniMapProps {
   points: ActivityPoint[];
-  height?: number;
+  height?: number | string;
   color?: string;
+  padding?: number;
 }
 
-/** Mapa estatico (sem zoom/drag) para preview em cards — usa os mesmos tiles
- * OSM do mapa interativo da pagina de detalhe, so que sem controles. */
-export function ActivityMiniMap({ points, height = 96, color = "#00FF66" }: ActivityMiniMapProps) {
+/** Mapa estatico (sem zoom/drag) para preview em cards — tiles escuros, rota com glow. */
+export function ActivityMiniMap({ points, height = 96, color = "#00FF66", padding = 14 }: ActivityMiniMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
 
@@ -27,7 +28,7 @@ export function ActivityMiniMap({ points, height = 96, color = "#00FF66" }: Acti
 
     const map = L.map(containerRef.current, {
       zoomControl: false,
-      attributionControl: false,
+      attributionControl: true,
       dragging: false,
       scrollWheelZoom: false,
       doubleClickZoom: false,
@@ -37,18 +38,28 @@ export function ActivityMiniMap({ points, height = 96, color = "#00FF66" }: Acti
       tap: false,
       fadeAnimation: false,
     });
+    map.attributionControl.setPrefix(false);
     mapRef.current = map;
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+    L.tileLayer(DARK_TILES_NO_LABELS, { maxZoom: 19, attribution: TILE_ATTRIBUTION }).addTo(map);
 
-    const polyline = L.polyline(coords, { color, weight: 3, opacity: 0.95 }).addTo(map);
-    map.fitBounds(polyline.getBounds(), { padding: [10, 10] });
+    const polyline = addGlowRoute(map, coords, color, 2.5);
+    L.marker(coords[0], { icon: routeMarker(color, 7), interactive: false }).addTo(map);
+    L.marker(coords[coords.length - 1], { icon: routeMarker("#C6FF00", 7), interactive: false }).addTo(map);
+    map.fitBounds(polyline.getBounds(), { padding: [padding, padding] });
+
+    const ro = new ResizeObserver(() => {
+      map.invalidateSize();
+      map.fitBounds(polyline.getBounds(), { padding: [padding, padding] });
+    });
+    ro.observe(containerRef.current);
 
     return () => {
+      ro.disconnect();
       map.remove();
       mapRef.current = null;
     };
-  }, [points, color]);
+  }, [points, color, padding]);
 
-  return <div ref={containerRef} style={{ height, width: "100%" }} />;
+  return <div ref={containerRef} className="od-map od-map-mini" style={{ height, width: "100%" }} />;
 }

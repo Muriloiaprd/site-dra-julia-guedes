@@ -1,5 +1,7 @@
 """Detecta o formato do arquivo e delega ao parser correto."""
 
+import gzip
+
 from ondilow_api.parsers.base import NormalizedActivity
 from ondilow_api.parsers.csv_parser import parse_csv
 from ondilow_api.parsers.fit import parse_fit
@@ -14,6 +16,14 @@ class UnsupportedFormatError(Exception):
 def parse_file(filename: str, content: bytes) -> list[NormalizedActivity]:
     """Retorna sempre uma lista (FIT/GPX/TCX = 1 item; CSV = N)."""
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+    if ext == "gz":
+        # Export em massa do Garmin Connect entrega .fit como .fit.gz.
+        try:
+            content = gzip.decompress(content)
+        except OSError as e:
+            raise UnsupportedFormatError(f"Arquivo .gz corrompido ou invalido: '{filename}'") from e
+        return parse_file(filename[: -len(".gz")], content)
 
     if ext == "fit":
         return [parse_fit(content)]

@@ -7,20 +7,18 @@ import { useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
-  Cell,
-  Legend,
+  ComposedChart,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
-import { SportBadge } from "@/components/SportBadge";
+import { SportTile } from "@/components/SportIcon";
+import { ChartTooltipBox, LegendDot } from "@/components/ui/charts";
+import { Alert, Metric, PageContainer, Panel, Skeleton } from "@/components/ui/primitives";
 import {
   fetchActivity,
   fetchSplits,
@@ -30,25 +28,37 @@ import {
   type Split,
   type ZoneBucket,
 } from "@/lib/api";
+import { axisProps, C, gridProps } from "@/lib/theme";
 import {
+  distanceParts,
   formatDate,
-  formatDistance,
   formatDuration,
   formatPace,
+  formatPaceShort,
   formatTime,
+  sportColor,
+  sportLabel,
 } from "@/lib/utils";
 
 const ActivityMap = dynamic(
   () => import("@/components/ActivityMap").then((m) => m.ActivityMap),
-  { ssr: false, loading: () => <div className="h-80 animate-pulse rounded-lg bg-brand-surface" /> }
+  { ssr: false, loading: () => <div className="od-skeleton h-[420px]" /> }
 );
 
 const ZONE_COLORS: Record<number, string> = {
-  1: "#00FF66",
-  2: "#C6FF00",
-  3: "#FFD700",
-  4: "#FF8C00",
+  1: "#00BFFF",
+  2: "#00FF66",
+  3: "#C6FF00",
+  4: "#FFC145",
   5: "#f85149",
+};
+
+const ZONE_NAMES: Record<number, string> = {
+  1: "Recuperação",
+  2: "Aeróbico",
+  3: "Tempo",
+  4: "Limiar",
+  5: "VO2 máx",
 };
 
 export default function ActivityPage() {
@@ -61,6 +71,7 @@ export default function ActivityPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState<"card" | "story" | "sticker" | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -83,21 +94,21 @@ export default function ActivityPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen">
-        <div className="mx-auto max-w-5xl px-4 py-8 space-y-4">
-          <div className="h-8 w-48 animate-pulse rounded bg-brand-surface" />
-          <div className="h-80 animate-pulse rounded-lg bg-brand-surface" />
-          <div className="h-64 animate-pulse rounded-lg bg-brand-surface" />
+      <PageContainer>
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-72" />
+          <Skeleton className="h-40" />
+          <Skeleton className="h-[420px]" />
         </div>
-      </main>
+      </PageContainer>
     );
   }
 
   if (error || !activity) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4">
+      <main className="flex min-h-[70vh] flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-brand-danger">{error ?? "Atividade não encontrada"}</p>
-        <button onClick={() => router.push("/dashboard")} className="text-brand-accent hover:underline text-sm">
+        <button onClick={() => router.push("/dashboard")} className="od-btn od-btn-secondary">
           ← Voltar ao dashboard
         </button>
       </main>
@@ -121,9 +132,12 @@ export default function ActivityPage() {
   const hasPace = activity.avg_pace_s_per_km != null;
   const hasHr = activity.avg_hr != null;
   const hasAlt = activity.elevation_gain_m != null;
+  const color = sportColor(activity.sport);
+  const dist = distanceParts(activity.distance_m);
 
   async function handleExport(template: "card" | "story" | "sticker", layout: "route" | "stats" | "full" = "full") {
     setExporting(template);
+    setExportError(null);
     try {
       const token = getToken();
       const qs = template === "sticker" ? `template=sticker&layout=${layout}` : `template=${template}`;
@@ -138,241 +152,261 @@ export default function ActivityPage() {
       a.download = `ondilow_${template}_${id}.png`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      // silencia — o botão volta ao estado normal
+    } catch (e) {
+      // antes o erro era silenciado e o botao simplesmente "nao fazia nada"
+      setExportError(e instanceof Error ? e.message : "Não foi possível gerar a imagem");
     } finally {
       setExporting(null);
     }
   }
 
+  const paceFmt = (v: number) => `${Math.floor(v)}:${String(Math.round((v % 1) * 60)).padStart(2, "0")}`;
+  const splitPaces = splits.map((s) => s.pace_s_per_km).filter((p): p is number => p != null);
+  const fastest = splitPaces.length ? Math.min(...splitPaces) : null;
+  const slowest = splitPaces.length ? Math.max(...splitPaces) : null;
+
+  const secondary: { label: string; value: string | number; unit?: string }[] = [];
+  if (activity.moving_time_s != null) secondary.push({ label: "Em movimento", value: formatDuration(activity.moving_time_s) });
+  if (activity.max_hr != null) secondary.push({ label: "FC máx", value: activity.max_hr, unit: "bpm" });
+  if (activity.elevation_gain_m != null) secondary.push({ label: "Elevação", value: `+${Math.round(activity.elevation_gain_m)}`, unit: "m" });
+  if (activity.avg_speed_kmh != null && hasPace) secondary.push({ label: "Vel. média", value: activity.avg_speed_kmh.toFixed(1), unit: "km/h" });
+  if (activity.avg_cadence != null) secondary.push({ label: "Cadência", value: activity.avg_cadence, unit: "spm" });
+  if (activity.avg_power_w != null) secondary.push({ label: "Potência", value: activity.avg_power_w, unit: "W" });
+  if (activity.calories != null) secondary.push({ label: "Calorias", value: activity.calories, unit: "kcal" });
+
   return (
-    <main className="min-h-screen">
-      <div className="mx-auto max-w-5xl px-6 py-8 space-y-8">
-        {/* breadcrumb e ações */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="text-sm text-brand-muted hover:text-brand-accent">
-              ← Dashboard
-            </Link>
-            <span className="text-brand-border">·</span>
-            <SportBadge sport={activity.sport} />
-            <span className="text-sm text-brand-muted">
-              {formatDate(activity.start_time)} · {formatTime(activity.start_time)}
-            </span>
+    <PageContainer>
+      {/* breadcrumb */}
+      <nav className="mb-5 flex items-center gap-2 text-xs text-brand-muted" aria-label="Navegação">
+        <Link href="/dashboard" className="hover:text-brand-accent">Dashboard</Link>
+        <span className="text-brand-textTertiary">/</span>
+        <Link href="/activities" className="hover:text-brand-accent">Atividades</Link>
+        <span className="text-brand-textTertiary">/</span>
+        <span className="truncate text-brand-textSecondary">{activity.title ?? sportLabel(activity.sport)}</span>
+      </nav>
+
+      {/* hero */}
+      <Panel variant="hero" className="mb-4">
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-center gap-4">
+            <SportTile sport={activity.sport} size={56} radius={16} />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="od-badge" style={{ color, background: `${color}14`, boxShadow: `inset 0 0 0 1px ${color}44` }}>{sportLabel(activity.sport)}</span>
+                <span className="text-xs capitalize text-brand-muted">{formatDate(activity.start_time)} · {formatTime(activity.start_time)}</span>
+              </div>
+              <h1 className="mt-2 font-display text-[1.6rem] font-extrabold leading-tight tracking-tight sm:text-[2rem]">
+                {activity.title ?? `${dist.value} ${dist.unit} — ${formatDuration(activity.duration_s)}`}
+              </h1>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleExport("card")}
-              disabled={exporting !== null}
-              className="rounded-md border border-brand-border px-3 py-1.5 text-xs hover:border-brand-accent hover:text-brand-accent disabled:opacity-50"
-              title="Card 1080x1080"
-            >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mr-1 hidden text-[0.66rem] font-semibold uppercase tracking-[0.14em] text-brand-muted sm:inline">Compartilhar</span>
+            <button onClick={() => handleExport("card")} disabled={exporting !== null} className="od-btn od-btn-ghost od-btn-sm" title="Card 1080x1080">
               {exporting === "card" ? "Gerando…" : "📷 Card"}
             </button>
-            <button
-              onClick={() => handleExport("story")}
-              disabled={exporting !== null}
-              className="rounded-md border border-brand-border px-3 py-1.5 text-xs hover:border-brand-accent hover:text-brand-accent disabled:opacity-50"
-              title="Story 1080x1920"
-            >
+            <button onClick={() => handleExport("story")} disabled={exporting !== null} className="od-btn od-btn-ghost od-btn-sm" title="Story 1080x1920">
               {exporting === "story" ? "Gerando…" : "📱 Story"}
             </button>
-            <button
-              onClick={() => handleExport("sticker", "full")}
-              disabled={exporting !== null}
-              className="rounded-md border border-brand-border px-3 py-1.5 text-xs hover:border-brand-accent hover:text-brand-accent disabled:opacity-50"
-              title="Sticker transparente — sobreponha em qualquer foto"
-            >
+            <button onClick={() => handleExport("sticker", "full")} disabled={exporting !== null} className="od-btn od-btn-secondary od-btn-sm" title="Sticker transparente — sobreponha em qualquer foto">
               {exporting === "sticker" ? "Gerando…" : "🏷️ Sticker"}
             </button>
           </div>
         </div>
-        {/* título e métricas */}
-        <section>
-          <h1 className="text-xl font-semibold mb-4">
-            {activity.title ?? `${formatDistance(activity.distance_m)} — ${formatDuration(activity.duration_s)}`}
-          </h1>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-            <Stat label="Distância" value={formatDistance(activity.distance_m)} />
-            <Stat label="Duração" value={formatDuration(activity.duration_s)} />
-            {activity.avg_pace_s_per_km != null && (
-              <Stat label="Pace Médio" value={formatPace(activity.avg_pace_s_per_km)} />
-            )}
-            {activity.avg_speed_kmh != null && (
-              <Stat label="Vel. Média" value={`${activity.avg_speed_kmh.toFixed(1)} km/h`} />
-            )}
-            {activity.avg_hr != null && (
-              <Stat label="FC Média" value={`${activity.avg_hr} bpm`} />
-            )}
-            {activity.max_hr != null && (
-              <Stat label="FC Máx" value={`${activity.max_hr} bpm`} />
-            )}
-            {activity.elevation_gain_m != null && (
-              <Stat label="Elevação" value={`+${Math.round(activity.elevation_gain_m)}m`} />
-            )}
-            {activity.calories != null && (
-              <Stat label="Calorias" value={`${activity.calories} kcal`} />
-            )}
-          </div>
-        </section>
 
+        {exportError && <div className="relative mt-4"><Alert tone="danger" title="Falha ao exportar">{exportError}</Alert></div>}
+
+        <div className="relative mt-6 grid grid-cols-2 gap-5 border-t border-white/5 pt-5 sm:grid-cols-4">
+          <Metric size="xl" value={dist.value} unit={dist.unit} label="Distância" />
+          <Metric size="lg" value={formatDuration(activity.duration_s)} label="Duração" />
+          {hasPace
+            ? <Metric size="lg" value={formatPaceShort(activity.avg_pace_s_per_km!)} unit="/km" label="Pace médio" />
+            : activity.avg_speed_kmh != null
+              ? <Metric size="lg" value={activity.avg_speed_kmh.toFixed(1)} unit="km/h" label="Vel. média" />
+              : <Metric size="lg" value="—" label="Pace médio" />}
+          <Metric size="lg" value={activity.avg_hr ?? "—"} unit={activity.avg_hr ? "bpm" : undefined} label="FC média" color={activity.avg_hr ? "#fff" : undefined} />
+        </div>
+
+        {secondary.length > 0 && (
+          <div className="relative mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+            {secondary.map((s) => (
+              <div key={s.label} className="od-tile px-3 py-2.5">
+                <Metric size="sm" value={s.value} unit={s.unit} label={s.label} />
+              </div>
+            ))}
+          </div>
+        )}
+      </Panel>
+
+      <div className="od-stagger grid gap-4 xl:grid-cols-12">
         {/* mapa */}
-        <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-muted">Mapa</h2>
-          <ActivityMap points={activity.points} height="360px" />
-        </section>
+        <Panel className={zones.some((z) => z.seconds > 0) ? "xl:col-span-8" : "xl:col-span-12"}>
+          <h2 className="od-label mb-4">Rota</h2>
+          <ActivityMap points={activity.points} height="420px" />
+        </Panel>
+
+        {/* zonas FC */}
+        {zones.some((z) => z.seconds > 0) && (
+          <Panel className="xl:col-span-4">
+            <h2 className="od-label mb-5">Zonas de frequência cardíaca</h2>
+            <ul className="space-y-3.5">
+              {[...zones].sort((a, b) => b.zone - a.zone).map((z) => (
+                <li key={z.zone}>
+                  <div className="mb-1.5 flex items-baseline justify-between gap-2">
+                    <span className="flex items-baseline gap-2">
+                      <span className="od-num text-sm" style={{ color: ZONE_COLORS[z.zone] }}>Z{z.zone}</span>
+                      <span className="text-xs text-brand-muted">{ZONE_NAMES[z.zone]}</span>
+                    </span>
+                    <span className="text-xs tabular-nums text-brand-textSecondary">
+                      <strong className="od-num text-white">{z.percent.toFixed(0)}%</strong> · {formatDuration(z.seconds)}
+                    </span>
+                  </div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-white/[0.05]">
+                    <div
+                      className="h-full rounded-full transition-[width] duration-700"
+                      style={{ width: `${Math.max(1, z.percent)}%`, background: ZONE_COLORS[z.zone] ?? "#888", boxShadow: `0 0 10px ${ZONE_COLORS[z.zone]}88` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-5 text-[0.7rem] text-brand-textTertiary">Calculado a partir da sua FC máxima configurada no perfil.</p>
+          </Panel>
+        )}
 
         {/* gráfico elevação */}
         {hasAlt && chartData.some((d) => d.alt != null) && (
-          <section>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-muted">Elevação</h2>
-            <div className="rounded-lg border border-brand-border bg-brand-surface p-4">
-              <ResponsiveContainer width="100%" height={180}>
-                <AreaChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
-                  <XAxis dataKey="distKm" stroke="#888" fontSize={12} tickFormatter={(v) => `${v}km`} />
-                  <YAxis stroke="#888" fontSize={12} tickFormatter={(v) => `${v}m`} />
-                  <Tooltip
-                    contentStyle={{ background: "#111", border: "1px solid #1e1e1e", borderRadius: 8 }}
-                    formatter={(v) => [`${v}m`, "Altitude"]}
-                    labelFormatter={(l) => `${l} km`}
-                  />
-                  <Area type="monotone" dataKey="alt" stroke="#00FF66" fill="#00FF6620" strokeWidth={1.5} dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
+          <Panel className="xl:col-span-12">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="od-label">Perfil de elevação</h2>
+              <span className="text-xs text-brand-muted">+{Math.round(activity.elevation_gain_m ?? 0)} m{activity.elevation_loss_m != null ? ` · −${Math.round(activity.elevation_loss_m)} m` : ""}</span>
             </div>
-          </section>
+            <ResponsiveContainer width="100%" height={190}>
+              <AreaChart data={chartData} margin={{ top: 8, right: 4, left: -8, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="alt-fill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={C.accent} stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={C.accent} stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid {...gridProps} />
+                <XAxis {...axisProps} dataKey="distKm" tickFormatter={(v) => `${v}km`} minTickGap={40} />
+                <YAxis {...axisProps} width={46} tickFormatter={(v) => `${v}m`} domain={["auto", "auto"]} />
+                <Tooltip
+                  cursor={{ stroke: "rgba(0,255,102,0.3)", strokeDasharray: "3 4" }}
+                  content={({ active, payload, label }) => active && payload?.length
+                    ? <ChartTooltipBox title={`${label} km`} rows={[{ label: "Altitude", value: `${payload[0].value} m`, color: C.accent }]} />
+                    : null}
+                />
+                <Area type="monotone" dataKey="alt" stroke={C.accent} fill="url(#alt-fill)" strokeWidth={1.8} dot={false} activeDot={{ r: 4, fill: C.accent }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </Panel>
         )}
 
         {/* gráfico pace/HR */}
         {(hasPace || hasHr) && chartData.length > 0 && (
-          <section>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-muted">
-              {hasPace ? "Pace" : "Velocidade"} &amp; FC
-            </h2>
-            <div className="rounded-lg border border-brand-border bg-brand-surface p-4">
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
-                  <XAxis dataKey="distKm" stroke="#888" fontSize={12} tickFormatter={(v) => `${v}km`} />
-                  <YAxis
-                    yAxisId="left"
-                    stroke="#888"
-                    fontSize={12}
-                    reversed={hasPace}
-                    tickFormatter={(v) => hasPace ? `${Math.floor(v)}:${String(Math.round((v % 1) * 60)).padStart(2, "0")}` : `${v}km/h`}
-                  />
-                  <YAxis yAxisId="right" orientation="right" stroke="#888" fontSize={12} tickFormatter={(v) => `${v}bpm`} />
-                  <Tooltip
-                    contentStyle={{ background: "#111", border: "1px solid #1e1e1e", borderRadius: 8 }}
-                    labelFormatter={(l) => `${l} km`}
-                  />
-                  <Legend />
-                  {hasPace && (
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="pace"
-                      name="Pace (min/km)"
-                      stroke="#00FF66"
-                      dot={false}
-                      strokeWidth={1.5}
-                      connectNulls
-                    />
-                  )}
-                  {hasHr && (
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="hr"
-                      name="FC (bpm)"
-                      stroke="#f85149"
-                      dot={false}
-                      strokeWidth={1.5}
-                      connectNulls
-                    />
-                  )}
-                </LineChart>
-              </ResponsiveContainer>
+          <Panel className="xl:col-span-12">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="od-label">{hasPace ? "Pace" : "Velocidade"} &amp; frequência cardíaca</h2>
+              <div className="flex gap-4">
+                {hasPace && <LegendDot color={C.accent} label="Pace (min/km)" />}
+                {hasHr && <LegendDot color={C.danger} label="FC (bpm)" />}
+              </div>
             </div>
-          </section>
-        )}
-
-        {/* zonas FC */}
-        {zones.length > 0 && (
-          <section>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-muted">Zonas de FC</h2>
-            <div className="rounded-lg border border-brand-border bg-brand-surface p-4">
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={zones}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
-                  <XAxis dataKey="zone" stroke="#888" fontSize={12} tickFormatter={(v) => `Z${v}`} />
-                  <YAxis stroke="#888" fontSize={12} tickFormatter={(v) => `${v}%`} />
-                  <Tooltip
-                    contentStyle={{ background: "#111", border: "1px solid #1e1e1e", borderRadius: 8 }}
-                    formatter={(v, _, props) => [
-                      `${(props.payload as ZoneBucket).percent.toFixed(1)}% (${formatDuration((props.payload as ZoneBucket).seconds)})`,
-                      `Zona ${(props.payload as ZoneBucket).zone}`,
-                    ]}
-                  />
-                  <Bar dataKey="percent" radius={[4, 4, 0, 0]}>
-                    {zones.map((z) => (
-                      <Cell key={z.zone} fill={ZONE_COLORS[z.zone] ?? "#888"} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
+            <ResponsiveContainer width="100%" height={240}>
+              <ComposedChart data={chartData} margin={{ top: 8, right: 0, left: -8, bottom: 0 }}>
+                <CartesianGrid {...gridProps} />
+                <XAxis {...axisProps} dataKey="distKm" tickFormatter={(v) => `${v}km`} minTickGap={40} />
+                <YAxis
+                  {...axisProps}
+                  yAxisId="left"
+                  width={46}
+                  reversed={hasPace}
+                  domain={["auto", "auto"]}
+                  tickFormatter={(v) => hasPace ? paceFmt(v) : `${v}km/h`}
+                />
+                <YAxis {...axisProps} yAxisId="right" orientation="right" width={40} domain={["auto", "auto"]} tickFormatter={(v) => `${v}`} />
+                <Tooltip
+                  cursor={{ stroke: "rgba(255,255,255,0.2)", strokeDasharray: "3 4" }}
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    const row = payload[0].payload as (typeof chartData)[number];
+                    const rows: { label: string; value: string; color: string }[] = [];
+                    if (hasPace && row.pace != null) rows.push({ label: "Pace", value: `${paceFmt(row.pace)}/km`, color: C.accent });
+                    if (hasHr && row.hr != null) rows.push({ label: "FC", value: `${row.hr} bpm`, color: C.danger });
+                    return <ChartTooltipBox title={`${label} km · ${formatDuration(row.t)}`} rows={rows} />;
+                  }}
+                />
+                {hasPace && (
+                  <Line yAxisId="left" type="monotone" dataKey="pace" name="Pace (min/km)" stroke={C.accent} dot={false} strokeWidth={1.6} connectNulls activeDot={{ r: 4, fill: C.accent }} />
+                )}
+                {hasHr && (
+                  <Line yAxisId="right" type="monotone" dataKey="hr" name="FC (bpm)" stroke={C.danger} strokeOpacity={0.85} dot={false} strokeWidth={1.4} connectNulls activeDot={{ r: 4, fill: C.danger }} />
+                )}
+              </ComposedChart>
+            </ResponsiveContainer>
+          </Panel>
         )}
 
         {/* tabela de splits */}
         {splits.length > 0 && (
-          <section>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-muted">Splits por km</h2>
-            <div className="rounded-lg border border-brand-border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-brand-surface text-brand-muted">
+          <Panel className="overflow-hidden !p-0 xl:col-span-12">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-5 pb-2 pt-5 sm:px-6">
+              <h2 className="od-label">Splits por km</h2>
+              {fastest != null && slowest != null && (
+                <span className="text-xs text-brand-muted">
+                  Mais rápido <strong className="od-num text-brand-accent">{formatPaceShort(fastest)}</strong> · mais lento <strong className="od-num text-brand-textSecondary">{formatPaceShort(slowest)}</strong>
+                </span>
+              )}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="od-table">
+                <thead>
                   <tr>
-                    <th className="px-4 py-2 text-left">km</th>
-                    <th className="px-4 py-2 text-right">Pace</th>
-                    <th className="px-4 py-2 text-right">Tempo</th>
-                    <th className="px-4 py-2 text-right">FC</th>
-                    <th className="px-4 py-2 text-right">Elevação</th>
+                    <th className="text-left">km</th>
+                    <th className="text-left">Pace</th>
+                    <th className="text-right">Tempo</th>
+                    <th className="text-right">FC</th>
+                    <th className="text-right">Elevação</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {splits.map((s, i) => (
-                    <tr
-                      key={s.index}
-                      className={`border-t border-brand-border ${i % 2 === 1 ? "bg-brand-surface/50" : ""}`}
-                    >
-                      <td className="px-4 py-2">{s.index}</td>
-                      <td className="px-4 py-2 text-right font-medium text-brand-accent">
-                        {s.pace_s_per_km != null ? formatPace(s.pace_s_per_km) : "–"}
-                      </td>
-                      <td className="px-4 py-2 text-right">{formatDuration(s.duration_s)}</td>
-                      <td className="px-4 py-2 text-right">{s.avg_hr != null ? `${s.avg_hr} bpm` : "–"}</td>
-                      <td className="px-4 py-2 text-right">
-                        {s.elevation_gain_m != null ? `+${Math.round(s.elevation_gain_m)}m` : "–"}
-                      </td>
-                    </tr>
-                  ))}
+                  {splits.map((s) => {
+                    const isFast = s.pace_s_per_km != null && s.pace_s_per_km === fastest;
+                    // barra: mais rapido = mais longa
+                    const width = s.pace_s_per_km != null && fastest != null && slowest != null
+                      ? slowest === fastest ? 100 : 35 + (65 * (slowest - s.pace_s_per_km)) / (slowest - fastest)
+                      : 0;
+                    return (
+                      <tr key={s.index}>
+                        <td className="od-num w-14 text-brand-muted">{s.index}</td>
+                        <td className="min-w-[200px]">
+                          <div className="flex items-center gap-3">
+                            <span className="od-num w-12 shrink-0" style={{ color: isFast ? C.accent : "#fff" }}>
+                              {s.pace_s_per_km != null ? formatPaceShort(s.pace_s_per_km) : "–"}
+                            </span>
+                            <div className="h-1.5 max-w-[240px] flex-1 overflow-hidden rounded-full bg-white/[0.05]">
+                              <div className="h-full rounded-full" style={{ width: `${width}%`, background: isFast ? "linear-gradient(90deg,#00FF66,#C6FF00)" : "rgba(0,255,102,0.4)", boxShadow: isFast ? "0 0 8px rgba(0,255,102,0.6)" : undefined }} />
+                            </div>
+                            {isFast && <span className="od-badge !px-1.5 !py-0 !text-[0.55rem]">Melhor</span>}
+                          </div>
+                        </td>
+                        <td className="text-right text-brand-textSecondary">{formatDuration(s.duration_s)}</td>
+                        <td className="text-right text-brand-textSecondary">{s.avg_hr != null ? `${s.avg_hr} bpm` : "–"}</td>
+                        <td className="text-right text-brand-textSecondary">
+                          {s.elevation_gain_m != null ? `+${Math.round(s.elevation_gain_m)}m` : "–"}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-          </section>
+            <p className="px-5 pb-4 pt-2 text-[0.7rem] text-brand-textTertiary sm:px-6">Pace médio geral: {hasPace ? formatPace(activity.avg_pace_s_per_km!) : "—"}</p>
+          </Panel>
         )}
       </div>
-    </main>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-brand-border bg-brand-surface p-3">
-      <p className="text-xs text-brand-muted">{label}</p>
-      <p className="mt-0.5 font-semibold">{value}</p>
-    </div>
+    </PageContainer>
   );
 }

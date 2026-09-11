@@ -5,6 +5,7 @@ import L from "leaflet";
 import { useEffect, useRef } from "react";
 
 import type { ActivityPoint } from "@/lib/api";
+import { addGlowRoute, DARK_TILES, routeMarker, TILE_ATTRIBUTION } from "@/lib/mapTiles";
 
 interface ActivityMapProps {
   points: ActivityPoint[];
@@ -14,8 +15,8 @@ interface ActivityMapProps {
 function NoGpsPlaceholder({ height }: { height: string }) {
   return (
     <div
-      className="relative flex items-center justify-center overflow-hidden rounded-lg border border-brand-border"
-      style={{ height, background: "linear-gradient(160deg, #0f1a12 0%, #0a0a0a 100%)" }}
+      className="relative flex items-center justify-center overflow-hidden rounded-tile"
+      style={{ height, background: "radial-gradient(ellipse at 50% 40%, #0f1a12 0%, #0a0a0a 75%)" }}
     >
       <svg
         className="absolute inset-0 h-full w-full opacity-40"
@@ -56,33 +57,22 @@ export function ActivityMap({ points, height = "320px" }: ActivityMapProps) {
     if (coords.length === 0 || !containerRef.current) return;
     if (mapRef.current) return; // já inicializado
 
-    const map = L.map(containerRef.current, { zoomControl: true, attributionControl: true });
+    const map = L.map(containerRef.current, { zoomControl: true, attributionControl: true, scrollWheelZoom: false });
+    map.attributionControl.setPrefix(false);
     mapRef.current = map;
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(map);
+    L.tileLayer(DARK_TILES, { attribution: TILE_ATTRIBUTION, maxZoom: 19 }).addTo(map);
 
-    const polyline = L.polyline(coords, { color: "#00FF66", weight: 3, opacity: 0.9 }).addTo(map);
-    map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
+    const polyline = addGlowRoute(map, coords, "#00FF66", 3.5);
+    map.fitBounds(polyline.getBounds(), { padding: [28, 28] });
 
-    // marcadores de início e fim
-    const startIcon = L.divIcon({
-      className: "",
-      html: '<div style="width:12px;height:12px;border-radius:50%;background:#00FF66;border:2px solid #000;"></div>',
-      iconSize: [12, 12],
-      iconAnchor: [6, 6],
-    });
-    const endIcon = L.divIcon({
-      className: "",
-      html: '<div style="width:12px;height:12px;border-radius:50%;background:#f85149;border:2px solid #fff;"></div>',
-      iconSize: [12, 12],
-      iconAnchor: [6, 6],
-    });
+    // marcadores de início (verde) e fim (lima)
+    L.marker(coords[0], { icon: routeMarker("#00FF66", 14), title: "Início" }).addTo(map);
+    L.marker(coords[coords.length - 1], { icon: routeMarker("#C6FF00", 14), title: "Fim" }).addTo(map);
 
-    L.marker(coords[0], { icon: startIcon }).addTo(map);
-    L.marker(coords[coords.length - 1], { icon: endIcon }).addTo(map);
+    // scroll do mouse só com o mapa focado — evita "prender" a rolagem da página
+    map.on("focus", () => map.scrollWheelZoom.enable());
+    map.on("blur", () => map.scrollWheelZoom.disable());
 
     return () => {
       map.remove();
@@ -97,10 +87,9 @@ export function ActivityMap({ points, height = "320px" }: ActivityMapProps) {
   }
 
   return (
-    <div
-      ref={containerRef}
-      style={{ height }}
-      className="rounded-lg overflow-hidden border border-brand-border"
-    />
+    <div className="relative overflow-hidden rounded-tile">
+      <div ref={containerRef} style={{ height }} className="od-map" />
+      <div className="pointer-events-none absolute inset-0 rounded-tile" style={{ boxShadow: "inset 0 0 60px 10px rgba(10,10,10,0.55), inset 0 0 0 1px rgba(255,255,255,0.06)" }} />
+    </div>
   );
 }

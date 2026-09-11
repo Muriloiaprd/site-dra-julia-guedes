@@ -1,10 +1,5 @@
-import { Sidebar } from "@/components/Sidebar";
+import { AppShell } from "@/components/AppShell";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <div className="flex-1 ml-56 min-w-0">{children}</div>
-    </div>
-  );
+export default function ProfileLayout({ children }: { children: React.ReactNode }) {
+  return <AppShell>{children}</AppShell>;
 }

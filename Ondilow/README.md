@@ -1,21 +1,22 @@
 # Ondilow
 
-Plataforma pessoal de analise de treino (corrida + ciclismo + natacao) com metricas de carga (CTL/ATL/TSB/ACWR), previsoes e gerador visual proprio.
+Plataforma pessoal de analise de treino (corrida + ciclismo + natacao) com metricas de carga (CTL/ATL/TSB/ACWR), previsoes, Treinador de IA e gerador visual proprio.
 
-Custo mensal: R$ 0. Uso pessoal. Sem cartao de credito.
+Custo mensal: R$ 0 (exceto a API da Anthropic do Treinador de IA, opcional). Uso pessoal. Sem cartao de credito.
+
+Estado detalhado: [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md) · Pendencias: [`BACKLOG.md`](./BACKLOG.md)
 
 ## Stack
 
 - Backend: FastAPI (Python 3.12) + SQLAlchemy 2.0 + Alembic
-- Frontend: Next.js 14 (App Router) + Tailwind + shadcn/ui
-- Banco: Postgres 16 (Docker em dev, Neon em prod pessoal)
+- Frontend: Next.js 14 (App Router) + Tailwind com design system proprio (`tailwind.config.ts`, `app/globals.css`, `lib/theme.ts`) + Recharts + Leaflet (tiles escuros CARTO)
+- Banco: Neon Postgres (free tier). O `docker-compose.yml` com Postgres local ainda existe, mas nao e o fluxo usado.
 - Auth: Argon2id + JWT
 
 ## Pre-requisitos
 
 - Python 3.12+
 - Node 20+
-- Docker Desktop (para Postgres local)
 - `uv` (Python) e `pnpm` (JS) instalados globalmente
 
 ## Bootstrap (primeira vez)
@@ -31,13 +32,7 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-Cole os valores no `.env`.
-
-Subir Postgres local:
-
-```bash
-docker compose up -d
-```
+Cole os valores no `.env`, junto com a connection string do Neon. Para o Treinador de IA, adicione tambem `ANTHROPIC_API_KEY` e/ou `GEMINI_API_KEY`.
 
 Instalar dependencias e rodar migrations:
 
@@ -48,10 +43,10 @@ uv run alembic upgrade head
 uv run python -m ondilow_api.scripts.seed_user
 ```
 
-Subir a API:
+Subir a API (porta 8000, sem `--reload`):
 
 ```bash
-uv run uvicorn ondilow_api.main:app --reload
+uv run uvicorn ondilow_api.main:app --port 8000
 ```
 
 Em outro terminal, subir o frontend:
@@ -59,11 +54,16 @@ Em outro terminal, subir o frontend:
 ```bash
 cd apps/web
 pnpm install
-pnpm dev
+pnpm dev -p 3003
 ```
 
-Abrir http://localhost:3000
+Abrir http://localhost:3003
+
+> Se ja houver outro `next dev` rodando em `apps/web`, suba o segundo com `NEXT_DIST_DIR=.next-preview` para nao corromper o cache compartilhado (ver `ESTADO_DO_PROJETO.md`).
 
 ## Estrutura
 
-Ver plano detalhado em `../../.claude/plans/quero-que-analise-minha-unified-wolf.md`.
+- `apps/api/ondilow_api/` — `routers/`, `parsers/`, `metrics/` (carga, recordes, previsoes), `ai/` (Treinador de IA), `rendering/` (cards/stories/sticker)
+- `apps/web/app/` — paginas (dashboard, activities, metrics, predictions, coach, equipment, import, profile)
+- `apps/web/components/ui/` — primitivos do design system; `components/dashboard/` — blocos do dashboard
+- `apps/web/lib/` — cliente da API (`api.ts`), formatacao (`utils.ts`), interpretacao de dados do atleta (`athlete.ts`), tokens JS (`theme.ts`)

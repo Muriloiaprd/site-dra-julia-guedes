@@ -85,6 +85,7 @@ class UploadItemResult(BaseModel):
 class UploadResponse(BaseModel):
     filename: str
     imported: list[UploadItemResult]
+    error: str | None = None
 
 
 class NormalizedPointIn(BaseModel):

@@ -1,6 +1,6 @@
 # Ondilow — Estado do Projeto
 
-**Última atualização deste doc**: 2026-09-11 (sessão de auditoria + Treinador de IA + export sticker — ver seção abaixo)
+**Última atualização deste doc**: 2026-09-11 (import em lote + limpar atividades + redesign visual completo — ver seções abaixo)
 **Branch**: master
 **Backlog priorizado do que falta melhorar**: ver [`BACKLOG.md`](./BACKLOG.md)
 
@@ -22,7 +22,7 @@
 
 ### ✅ Sprint 2 — Métricas básicas + Dashboard v1
 - Métricas: splits por km, zonas FC, best efforts, recordes pessoais
-- Página de detalhe da atividade: mapa Leaflet (OSM), gráficos Recharts (elevação, pace/FC, zonas), splits table
+- Página de detalhe da atividade: mapa Leaflet, gráficos Recharts (elevação, pace/FC, zonas), splits table
 - Página de perfil (max_hr, FTP, CSS, peso)
 
 ### ✅ Sprint 3 — Métricas de Carga
@@ -67,14 +67,34 @@ Trabalho concentrado num único dia, sem sprint numerada formal: identidade visu
 - **Treinador de IA** (`/coach`): novo pacote `ondilow_api/ai/coach_service.py` monta contexto real do atleta (perfil, métricas de carga, recordes, atividades recentes — nada recalculado, tudo reaproveitado de `metrics/predictions.py`) e chama a API da Anthropic (SDK oficial, cache de prompt no system prompt, structured outputs via `messages.parse()` pra gerar plano de treino), com fallback automático pro Gemini em caso de cota/erro. Três funcionalidades: chat livre, relatório de análise, geração de plano de treino (padrão 7 dias). Novas tabelas `planned_workouts` e `coach_interactions` (migration 008). O card "Próximos Treinos" do dashboard agora consome `GET /coach/plan` em vez do mock antigo. Reconciliação automática de aderência: `GET /coach/plan` casa treinos planejados com atividades importadas na mesma data/esporte (marca `done` + linka `activity_id`), ou marca `skipped` se o dia já passou sem atividade correspondente; `PATCH /coach/plan/{id}` permite override manual.
   - **Pendente de você**: colar `ANTHROPIC_API_KEY` (console.anthropic.com) e `GEMINI_API_KEY` (aistudio.google.com/apikey) no `.env` — sem isso, `/coach/*` responde `{"error": "not_configured"}`. Essa é a única feature do projeto que quebra a regra de custo zero (ver seção "Custo" abaixo).
 - **Testes novos**: `tests/test_sticker.py` (renderização RGBA/alpha) e `tests/test_coach_service.py` (validação de plano, agrupamento de esporte) — pure functions, sem fixture de banco (suite continua sem testes de rota HTTP, ver `BACKLOG.md` item 8).
-- **Redesign visual do layout** (Sports Performance + SaaS Premium + Dark Futuristic + Bento Grid, mantendo a paleta atual): planejado como fase final, deliberadamente não iniciado — só depois que tudo acima estiver estável.
+
+### ✅ Sessão 2026-09-11 (parte 2) — Import em lote + limpar atividades
+- **`POST /activities/upload/batch`**: vários arquivos numa requisição; o recálculo de CTL/ATL/TSB (varredura de todo o histórico) roda **uma única vez** ao final, a partir da menor data afetada — `import_activity()` ganhou `recompute_metrics=False` pra isso. Erro num arquivo fica no campo `error` do próprio item e não interrompe os demais.
+- **Suporte a `.gz`** em `parsers/dispatch.py` (export em massa do Garmin entrega `.fit.gz`).
+- **Frontend `/import`**: envia em lotes de 15 arquivos; se um lote falha (ex.: timeout ~30s do proxy Next → API), divide pela metade e tenta de novo até o mínimo de 2. Botão "Tentar novamente" para os que falharam e aviso `beforeunload` durante a importação.
+- **`DELETE /activities`**: apaga todas as atividades do usuário + recordes + métricas diárias e devolve treinos planejados `done` sem atividade para `planned`. UI na "Zona de perigo" do `/profile`, com confirmação digitando `EXCLUIR`.
+
+### ✅ Sessão 2026-09-11 (parte 3) — Redesign visual completo ("centro de comando do atleta")
+Evolução visual de todas as telas internas mantendo identidade (preto + verde neon), rotas e funcionalidades. Nada de dado fictício: tudo que aparece deriva da API.
+- **Design system centralizado**: tokens em `apps/web/tailwind.config.ts` (`brand.*`: `surfaceElevated`, `surfaceGlass`, `accentSoft`, `accentGlow`, `textSecondary`, `textTertiary`, `warning`, `info`…), variáveis `--od-*` e classes `od-*` (panel, label, btn, chip, badge, input, table, skeleton, tooltip, nav) em `app/globals.css`, espelho JS em `lib/theme.ts` (para SVG/Recharts). Fontes Inter (texto) + Poppins (métricas). Suporte a `prefers-reduced-motion`.
+- **Componentes**: `components/ui/primitives.tsx` (Panel, Metric, TrendBadge, Segmented, PageHeader, ProgressBar, EmptyState, Alert…), `components/ui/charts.tsx` (RadialGauge, Sparkline, PulseLine, ChartTooltipBox), `CountUp`, `Markdown` (renderizador seguro para respostas do coach), `SportIcon`.
+- **Shell responsivo** (`components/AppShell.tsx`, usado por todos os layouts): sidebar agrupada (Performance / Inteligência / Gestão) em `lg`, rail de ícones em `md`, top bar + navegação inferior com menu "Mais" no mobile.
+- **Dashboard** (`components/dashboard/*`, grid Bento 12 colunas): status do atleta com gauge de prontidão, card do Treinador IA (próximo treino real do plano, "AI ANALYSIS ● ACTIVE" só quando a API responde), visão semanal (realizado/planejado/descanso/hoje), evolução do desempenho (KPIs do período como abas, % vs período anterior, linha de tendência, comparação sobreposta, clique no ponto abre a atividade), última atividade (mini-rota + ritmo + comparação com a média recente), recordes (destaque do maior longão), meta principal, calendário navegável, atividades recentes. Header com status de sincronização e sino de alertas derivados de dados reais (risco, treino de hoje, dias sem treinar, recorde novo).
+- **Regra alterada conscientemente — prontidão**: `computeReadiness()` em `lib/athlete.ts` usa o TSB real (`/metrics/load`) com penalidade por ACWR > 1.3; os baldes fixos por tipo de recomendação ficaram só como fallback (BACKLOG item 2).
+- **Meta Principal**: continua sem feature de metas no backend; virou CTA honesto que mostra o potencial atual real (previsões 5K–42K), sem simular progresso.
+- **Mapas escuros**: tiles CARTO Dark Matter (`lib/mapTiles.ts`, grátis, só atribuição) com rota verde com glow e marcadores verde/lima, no mapa de detalhe e nas mini-rotas.
+- **Páginas**: `/metrics` (status Forma/Risco/Tendência, KPIs com sparkline, régua de ACWR, gráficos com zonas, estado vazio), `/predictions` (laboratório: recomendação, risco, cards de prova com confiança, tendência mensal de pace, simulador), `/coach` (hero, insights reais, painel de processamento, relatório formatado, chat com sugestões, plano ativo), `/import` (dropzone técnica, progresso, km analisados), `/activities` (totais, filtros avançados colapsáveis, tabela no desktop / cards no mobile), `/activities/[id]` (hero, métricas secundárias, zonas em barras, splits com barra de pace, erro de export visível), `/equipment`, `/profile` (zonas de FC com as mesmas faixas do backend).
+- **Verificação**: `tsc` + `next build` (13 rotas) + todas as páginas abertas no navegador com dados reais, sem erros de console, desktop e mobile.
 
 ---
 
 ## Para iniciar uma sessão de trabalho
 
 ### Pré-requisitos
-Servidores já configurados em `.claude/launch.json` (raiz `C:\Cloude Code`): `ondilow-api` (porta 8000, uvicorn a partir do `.venv` — **não usar `--reload`**, foi fonte de bug antes por rodar com Python do sistema) e `ondilow-web` (porta 3003, `pnpm dev`, com `autoPort` habilitado).
+Servidores configurados em `.claude/launch.json` (raiz `C:\Cloude Code`, **fora do git** — `.claude/` está no `.gitignore` da raiz):
+- `ondilow-api` (porta 8000, uvicorn a partir do `.venv` — **não usar `--reload`**, foi fonte de bug antes por rodar com Python do sistema)
+- `ondilow-web` (porta 3003, `pnpm dev`, com `autoPort` habilitado)
+- `ondilow-web-isolated` (porta 3004, `NEXT_DIST_DIR=.next-preview`) — usar **quando outra sessão já tem `next dev` rodando em `apps/web`**: dois servidores no mesmo `.next` corrompem o cache (erros "reading 'run'" / SyntaxError em `page.js`). O `next.config.mjs` lê `NEXT_DIST_DIR` (padrão `.next`). Efeito colateral: o Next injeta `.next-preview/types/**/*.ts` no `include` do `tsconfig.json` — reverter com `git checkout -- apps/web/tsconfig.json` antes de commitar e apagar a pasta ao terminar.
 
 ### Credenciais (NÃO commitar)
 - `.env` em `C:\Cloude Code\Ondilow\.env`
@@ -86,7 +106,7 @@ Servidores já configurados em `.claude/launch.json` (raiz `C:\Cloude Code`): `o
 
 ## O que fazer a seguir
 
-Todo o levantamento de melhorias pendentes (bugs de tratamento de erro, dados mockados no dashboard, testes faltando, responsividade mobile, etc.) está consolidado e priorizado em **[`BACKLOG.md`](./BACKLOG.md)** — comece por ali em vez de definir novas sprints do zero.
+Todo o levantamento de melhorias pendentes (tratamento de erro no perfil, feature de metas, testes faltando, equipamento sem soma real, etc.) está consolidado e priorizado em **[`BACKLOG.md`](./BACKLOG.md)** — comece por ali em vez de definir novas sprints do zero.
 
 ---
 
@@ -104,7 +124,7 @@ Todo o levantamento de melhorias pendentes (bugs de tratamento de erro, dados mo
 ### Arquivos NÃO commitados:
 - `.env` (credenciais reais)
 - `apps/api/data/` (uploads, exports, logs)
-- `.venv/`, `node_modules/`, `.next/`
+- `.venv/`, `node_modules/`, `.next/`, `.next-*/`
 
 ### Modelos SQLAlchemy existentes:
 - `User`, `AthleteProfile`, `UserIntegration` → `models/user.py`
@@ -113,6 +133,13 @@ Todo o levantamento de melhorias pendentes (bugs de tratamento de erro, dados mo
 - `DailyMetric` → `models/daily_metric.py`
 - `Equipment` → `models/equipment.py`
 - `PlannedWorkout`, `CoachInteraction` → `models/coach.py`
+
+### Frontend — onde fica cada coisa:
+- Tokens/estilos: `tailwind.config.ts`, `app/globals.css`, `lib/theme.ts` — **não usar cores inline novas; usar tokens e classes `od-*`**
+- Primitivos de UI: `components/ui/`
+- Dashboard: `components/dashboard/` (a página `app/dashboard/page.tsx` só orquestra dados)
+- Interpretação de dados do atleta (prontidão, forma, risco, tendência, séries de pace): `lib/athlete.ts`
+- Mapas: `components/ActivityMap.tsx`, `components/ActivityMiniMap.tsx`, `lib/mapTiles.ts`
 
 ### Dependências Python instaladas:
 ```toml
@@ -136,8 +163,9 @@ recharts@2.13.0, react-leaflet@4.2.1, leaflet@1.9.4
 ## Custo: R$ 0 (regra absoluta, com uma exceção explícita)
 Nenhuma decisão pode exigir cartão de crédito. Tudo no free tier:
 - Neon (500MB, 191h compute/mês)
-- OSM tiles (uso pessoal, sem API key)
+- Tiles de mapa: CARTO Dark Matter no frontend (sem API key, só atribuição) e OSM no `staticmap` do backend (uso pessoal)
 - Pillow + staticmap (100% local, sem serviço pago)
+- Fontes Inter/Poppins via Google Fonts (grátis)
 - MCP servers (Garmin/Strava) rodam localmente, sem custo — ver `BACKLOG.md` item 17
 
 **Exceção combinada com o usuário**: o Treinador de IA usa a API da Anthropic (Claude) como provedor principal — isso tem custo real e o usuário decidiu pagar por essa feature especificamente. Fallback pro Gemini free tier se a chamada à Anthropic falhar por cota. Nenhuma outra parte do projeto deve seguir esse precedente sem confirmação explícita.

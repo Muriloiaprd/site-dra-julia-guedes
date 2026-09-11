@@ -5,13 +5,14 @@ from datetime import date, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 
 from ondilow_api.config import settings
 from ondilow_api.deps import CurrentUser, DbSession
 from ondilow_api.metrics import compute_splits, default_hr_zones, hr_zone_distribution
 from ondilow_api.metrics.basic import PointLike
-from ondilow_api.models import Activity
+from ondilow_api.metrics.load import update_daily_metrics
+from ondilow_api.models import Activity, DailyMetric, PersonalRecord, PlannedWorkout
 from ondilow_api.parsers import ParserError, UnsupportedFormatError, parse_file
 from ondilow_api.parsers.base import NormalizedActivity, NormalizedLap, NormalizedPoint
 from ondilow_api.parsers.sports import normalize_sport
@@ -74,6 +75,80 @@ def upload_activity(
         )
 
     return UploadResponse(filename=filename, imported=results)
+
+
+@router.post("/upload/batch", response_model=list[UploadResponse], status_code=status.HTTP_201_CREATED)
+def upload_activities_batch(
+    current_user: CurrentUser,
+    db: DbSession,
+    files: Annotated[list[UploadFile], File()],
+) -> list[UploadResponse]:
+    """Importa varios arquivos numa unica requisicao.
+
+    Diferenca-chave em relacao a /upload chamado em loop: o recalculo de
+    CTL/ATL/TSB (varre todo o historico do usuario, custoso com muitos anos
+    de dados) roda UMA UNICA VEZ ao final, a partir da menor data afetada no
+    lote inteiro -- em vez de uma vez por arquivo. Um arquivo com erro (vazio,
+    grande demais, formato invalido, falha de parsing) fica registrado no
+    campo `error` do proprio item da resposta e NAO interrompe os demais.
+    """
+    responses: list[UploadResponse] = []
+    min_date: date | None = None
+
+    for file in files:
+        filename = file.filename or "upload"
+        content = file.file.read()
+        if not content:
+            responses.append(UploadResponse(filename=filename, imported=[], error="Arquivo vazio"))
+            continue
+        if len(content) > _MAX_BYTES:
+            responses.append(UploadResponse(filename=filename, imported=[], error="Arquivo maior que 50MB"))
+            continue
+
+        try:
+            normalized = parse_file(filename, content)
+        except (UnsupportedFormatError, ParserError) as e:
+            responses.append(UploadResponse(filename=filename, imported=[], error=str(e)))
+            continue
+
+        file_hash = file_sha256(content)
+        saved_path = _persist_raw(current_user.id, filename, content)
+
+        results: list[UploadItemResult] = []
+        multi = len(normalized) > 1
+        file_error: str | None = None
+        for i, norm in enumerate(normalized):
+            hash_for_item = _derived_hash(file_hash, i) if multi else file_hash
+            try:
+                r = import_activity(
+                    db, current_user.id, norm,
+                    file_hash=hash_for_item, file_path=saved_path,
+                    recompute_metrics=False,
+                )
+            except Exception as e:
+                db.rollback()
+                file_error = f"Falha ao importar: {e}"
+                break
+            results.append(
+                UploadItemResult(
+                    activity_id=r.activity_id,
+                    duplicate=r.duplicate,
+                    sport=r.sport,
+                    distance_m=r.distance_m,
+                    points_stored=r.points_stored,
+                )
+            )
+            if not r.duplicate:
+                d = norm.start_time.date()
+                if min_date is None or d < min_date:
+                    min_date = d
+
+        responses.append(UploadResponse(filename=filename, imported=results, error=file_error))
+
+    if min_date is not None:
+        update_daily_metrics(db, current_user.id, from_date=min_date)
+
+    return responses
 
 
 @router.post(
@@ -143,6 +218,35 @@ def list_activities(
         since = date.today() - timedelta(days=days)
         stmt = stmt.where(Activity.start_time >= since)
     return list(db.execute(stmt).scalars())
+
+
+@router.delete("")
+def delete_all_activities(current_user: CurrentUser, db: DbSession) -> dict:
+    """Apaga permanentemente TODAS as atividades do usuario (e dados derivados:
+    pontos/laps via cascade no banco, recordes pessoais, metricas diarias, e
+    o vinculo de aderencia em treinos planejados). Sem confirmacao adicional
+    no backend -- a UI e responsavel pela confirmacao antes de chamar isso."""
+    activity_ids = db.execute(
+        select(Activity.id).where(Activity.user_id == current_user.id)
+    ).scalars().all()
+    if not activity_ids:
+        return {"deleted": 0}
+
+    db.execute(delete(Activity).where(Activity.user_id == current_user.id))
+    db.execute(delete(PersonalRecord).where(PersonalRecord.user_id == current_user.id))
+    db.execute(delete(DailyMetric).where(DailyMetric.user_id == current_user.id))
+    # ondelete=SET NULL ja zerou activity_id nos planned_workouts; normaliza o status.
+    db.execute(
+        update(PlannedWorkout)
+        .where(
+            PlannedWorkout.user_id == current_user.id,
+            PlannedWorkout.status == "done",
+            PlannedWorkout.activity_id.is_(None),
+        )
+        .values(status="planned")
+    )
+    db.commit()
+    return {"deleted": len(activity_ids)}
 
 
 @router.get("/{activity_id}", response_model=ActivityDetail)

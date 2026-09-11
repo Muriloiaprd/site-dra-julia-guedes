@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { Alert, EmptyState, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
 import {
   createEquipment,
   deleteEquipment,
@@ -13,7 +13,6 @@ import {
   type EquipmentCreate,
   type EquipmentItem,
 } from "@/lib/api";
-import { formatDistance } from "@/lib/utils";
 
 const EQUIPMENT_TYPES = [
   { value: "shoe", label: "Tenis" },
@@ -92,6 +91,7 @@ export default function EquipmentPage() {
       notes: item.notes ?? "",
     });
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function handleSave() {
@@ -146,188 +146,191 @@ export default function EquipmentPage() {
 
   const active = items.filter((i) => !i.retired_at);
   const retired = items.filter((i) => i.retired_at);
+  const activeKm = active.reduce((s, i) => s + i.total_distance_m, 0) / 1000;
 
   return (
-    <main className="min-h-screen">
-      <div className="mx-auto max-w-3xl px-6 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Equipamentos</h1>
-          <button
-            onClick={openNew}
-            className="rounded-xl bg-brand-accent px-3 py-1.5 text-sm font-bold text-black hover:bg-brand-accentHover transition-colors"
-          >
-            + Adicionar
-          </button>
-        </div>
-        {error && (
-          <div className="mb-4 rounded-lg border border-brand-danger/40 bg-brand-danger/10 p-3 text-sm text-brand-danger">
-            {error}
-          </div>
-        )}
+    <PageContainer width="medium">
+      <PageHeader
+        kicker="Gestão"
+        title="Equipamentos"
+        description="Tênis, bikes e acessórios — acompanhe a quilometragem de cada item."
+        icon={<span className="text-xl" aria-hidden>👟</span>}
+        actions={<button onClick={openNew} className="od-btn od-btn-primary">+ Adicionar</button>}
+      />
 
-        {/* formulario */}
-        {showForm && (
-          <div className="mb-8 rounded-lg border border-brand-border bg-brand-surface p-6">
-            <h2 className="mb-4 font-semibold">{editId ? "Editar equipamento" : "Novo equipamento"}</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-xs text-brand-muted">Nome *</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ex: Nike Vaporfly 3"
-                  className="w-full rounded-md border border-brand-border bg-brand-bg px-3 py-2 text-sm outline-none focus:border-brand-accent"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-brand-muted">Tipo *</label>
-                <select
-                  value={form.type}
-                  onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="w-full rounded-md border border-brand-border bg-brand-bg px-3 py-2 text-sm outline-none focus:border-brand-accent"
-                >
-                  {EQUIPMENT_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-brand-muted">Marca</label>
-                <input
-                  type="text"
-                  value={form.brand ?? ""}
-                  onChange={(e) => setForm({ ...form, brand: e.target.value })}
-                  placeholder="Nike"
-                  className="w-full rounded-md border border-brand-border bg-brand-bg px-3 py-2 text-sm outline-none focus:border-brand-accent"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-brand-muted">Modelo</label>
-                <input
-                  type="text"
-                  value={form.model ?? ""}
-                  onChange={(e) => setForm({ ...form, model: e.target.value })}
-                  placeholder="Vaporfly 3"
-                  className="w-full rounded-md border border-brand-border bg-brand-bg px-3 py-2 text-sm outline-none focus:border-brand-accent"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-brand-muted">Data de compra</label>
-                <input
-                  type="date"
-                  value={form.purchase_date ?? ""}
-                  onChange={(e) => setForm({ ...form, purchase_date: e.target.value || null })}
-                  className="w-full rounded-md border border-brand-border bg-brand-bg px-3 py-2 text-sm outline-none focus:border-brand-accent"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-brand-muted">Distancia inicial (km)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={Number(form.initial_distance_m)}
-                  onChange={(e) => setForm({ ...form, initial_distance_m: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded-md border border-brand-border bg-brand-bg px-3 py-2 text-sm outline-none focus:border-brand-accent"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="mb-1 block text-xs text-brand-muted">Notas</label>
-                <textarea
-                  value={form.notes ?? ""}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  rows={2}
-                  className="w-full rounded-md border border-brand-border bg-brand-bg px-3 py-2 text-sm outline-none focus:border-brand-accent"
-                />
-              </div>
-            </div>
-            <div className="mt-4 flex gap-3">
-              <button
-                onClick={handleSave}
-                disabled={saving || !form.name.trim()}
-                className="rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-black hover:bg-brand-accentHover disabled:opacity-50 transition-colors"
-              >
-                {saving ? "Salvando…" : "Salvar"}
-              </button>
-              <button
-                onClick={() => setShowForm(false)}
-                className="rounded-md border border-brand-border px-4 py-2 text-sm hover:border-brand-accent hover:text-brand-accent"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
+      {error && <div className="mb-4"><Alert tone="danger">{error}</Alert></div>}
 
-        {loading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-20 animate-pulse rounded-lg bg-brand-surface" />
-            ))}
+      <div className="mb-4 grid grid-cols-3 gap-3">
+        {[
+          { k: "Em uso", v: active.length, u: "" },
+          { k: "Distância acumulada", v: activeKm.toFixed(0), u: "km" },
+          { k: "Aposentados", v: retired.length, u: "" },
+        ].map((t) => (
+          <Panel key={t.k} className="!p-4">
+            <div className="od-metric-label truncate">{t.k}</div>
+            {loading ? <Skeleton className="mt-2 h-7 w-14" /> : (
+              <div className="od-num mt-1.5 text-[1.6rem] leading-none">{t.v}{t.u && <span className="ml-1 font-sans text-xs text-brand-muted">{t.u}</span>}</div>
+            )}
+          </Panel>
+        ))}
+      </div>
+
+      {/* formulario */}
+      {showForm && (
+        <Panel variant="accent" className="mb-6 animate-od-fade-up">
+          <h2 className="od-label od-label-accent mb-5">{editId ? "Editar equipamento" : "Novo equipamento"}</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label>
+              <span className="od-field-label">Nome *</span>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Ex: Nike Vaporfly 3"
+                className="od-input"
+              />
+            </label>
+            <label>
+              <span className="od-field-label">Tipo *</span>
+              <select
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
+                className="od-input"
+              >
+                {EQUIPMENT_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span className="od-field-label">Marca</span>
+              <input
+                type="text"
+                value={form.brand ?? ""}
+                onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                placeholder="Nike"
+                className="od-input"
+              />
+            </label>
+            <label>
+              <span className="od-field-label">Modelo</span>
+              <input
+                type="text"
+                value={form.model ?? ""}
+                onChange={(e) => setForm({ ...form, model: e.target.value })}
+                placeholder="Vaporfly 3"
+                className="od-input"
+              />
+            </label>
+            <label>
+              <span className="od-field-label">Data de compra</span>
+              <input
+                type="date"
+                value={form.purchase_date ?? ""}
+                onChange={(e) => setForm({ ...form, purchase_date: e.target.value || null })}
+                className="od-input"
+              />
+            </label>
+            <label>
+              <span className="od-field-label">Distancia inicial (km)</span>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={Number(form.initial_distance_m)}
+                onChange={(e) => setForm({ ...form, initial_distance_m: parseFloat(e.target.value) || 0 })}
+                className="od-input"
+              />
+            </label>
+            <label className="sm:col-span-2">
+              <span className="od-field-label">Notas</span>
+              <textarea
+                value={form.notes ?? ""}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                rows={2}
+                className="od-input resize-none"
+              />
+            </label>
           </div>
-        ) : active.length === 0 && !showForm ? (
-          <div className="rounded-lg border border-brand-border bg-brand-surface p-12 text-center text-brand-muted">
-            <p className="text-4xl mb-3">👟</p>
-            <p className="font-medium">Nenhum equipamento cadastrado</p>
-            <p className="mt-1 text-sm">Adicione tenis, bikes e outros para rastrear quilometragem.</p>
+          <div className="mt-5 flex gap-2">
             <button
-              onClick={openNew}
-              className="mt-4 rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-black hover:bg-brand-accentHover transition-colors"
+              onClick={handleSave}
+              disabled={saving || !form.name.trim()}
+              className="od-btn od-btn-primary"
             >
-              Adicionar primeiro equipamento
+              {saving ? "Salvando…" : "Salvar"}
+            </button>
+            <button
+              onClick={() => setShowForm(false)}
+              className="od-btn od-btn-ghost"
+            >
+              Cancelar
             </button>
           </div>
-        ) : (
-          <>
-            {active.length > 0 && (
-              <section className="mb-8">
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-muted">
-                  Em uso ({active.length})
-                </h2>
-                <div className="space-y-3">
-                  {active.map((item) => (
+        </Panel>
+      )}
+
+      {loading ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40" />)}
+        </div>
+      ) : active.length === 0 && !showForm ? (
+        <Panel>
+          <EmptyState
+            icon={<span className="text-2xl">👟</span>}
+            title="Nenhum equipamento cadastrado"
+            description="Adicione tenis, bikes e outros para rastrear quilometragem."
+            action={<button onClick={openNew} className="od-btn od-btn-primary">Adicionar primeiro equipamento</button>}
+          />
+        </Panel>
+      ) : (
+        <>
+          {active.length > 0 && (
+            <section className="mb-8">
+              <h2 className="od-label mb-3 px-1">Em uso ({active.length})</h2>
+              <div className="od-stagger grid gap-3 sm:grid-cols-2">
+                {active.map((item) => (
+                  <EquipmentCard
+                    key={item.id}
+                    item={item}
+                    onEdit={() => openEdit(item)}
+                    onRetire={() => handleRetire(item)}
+                    onDelete={() => handleDelete(item.id)}
+                    deleting={deletingId === item.id}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {retired.length > 0 && (
+            <section>
+              <button
+                onClick={() => setShowRetired(!showRetired)}
+                className="od-label od-label-plain mb-3 px-1 transition-colors hover:text-brand-accent"
+                aria-expanded={showRetired}
+              >
+                {showRetired ? "▾" : "▸"} Aposentados ({retired.length})
+              </button>
+              {showRetired && (
+                <div className="grid gap-3 opacity-60 sm:grid-cols-2">
+                  {retired.map((item) => (
                     <EquipmentCard
                       key={item.id}
                       item={item}
                       onEdit={() => openEdit(item)}
-                      onRetire={() => handleRetire(item)}
                       onDelete={() => handleDelete(item.id)}
                       deleting={deletingId === item.id}
+                      retired
                     />
                   ))}
                 </div>
-              </section>
-            )}
-
-            {retired.length > 0 && (
-              <section>
-                <button
-                  onClick={() => setShowRetired(!showRetired)}
-                  className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-brand-muted hover:text-brand-accent"
-                >
-                  {showRetired ? "▾" : "▸"} Aposentados ({retired.length})
-                </button>
-                {showRetired && (
-                  <div className="space-y-3 opacity-60">
-                    {retired.map((item) => (
-                      <EquipmentCard
-                        key={item.id}
-                        item={item}
-                        onEdit={() => openEdit(item)}
-                        onDelete={() => handleDelete(item.id)}
-                        deleting={deletingId === item.id}
-                        retired
-                      />
-                    ))}
-                  </div>
-                )}
-              </section>
-            )}
-          </>
-        )}
-      </div>
-    </main>
+              )}
+            </section>
+          )}
+        </>
+      )}
+    </PageContainer>
   );
 }
 
@@ -351,51 +354,47 @@ function EquipmentCard({
   const total = item.total_distance_m;
 
   return (
-    <div className="flex items-center justify-between rounded-lg border border-brand-border bg-brand-surface px-4 py-4">
-      <div className="flex items-center gap-4">
-        <span className="text-3xl">{icon}</span>
-        <div>
+    <Panel className="flex flex-col !p-5">
+      <div className="flex items-start gap-3.5">
+        <div className="od-icon-tile !h-12 !w-12 text-2xl" aria-hidden>{icon}</div>
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-medium">{item.name}</span>
-            {retired && (
-              <span className="rounded-full border border-brand-muted px-2 py-0.5 text-xs text-brand-muted">
-                Aposentado
-              </span>
-            )}
+            <span className="truncate font-semibold">{item.name}</span>
+            {retired && <span className="od-badge od-badge-muted">Aposentado</span>}
           </div>
-          <p className="text-xs text-brand-muted">
+          <p className="truncate text-xs text-brand-muted">
             {typeLabel}
             {item.brand && ` · ${item.brand}`}
             {item.model && ` ${item.model}`}
           </p>
-          <p className="text-sm font-semibold text-brand-accent mt-0.5">
-            {formatDistance(total)} totais
-          </p>
         </div>
       </div>
-      <div className="flex gap-2 shrink-0">
-        <button
-          onClick={onEdit}
-          className="rounded-md border border-brand-border px-2 py-1 text-xs hover:border-brand-accent hover:text-brand-accent"
-        >
-          Editar
-        </button>
-        {!retired && onRetire && (
-          <button
-            onClick={onRetire}
-            className="rounded-md border border-brand-border px-2 py-1 text-xs hover:border-brand-muted hover:text-brand-muted"
-          >
-            Aposentar
-          </button>
+
+      <div className="mt-5 flex items-end justify-between gap-3">
+        <div>
+          <div className="od-metric-label">Distância total</div>
+          <div className="od-num mt-1 text-[2rem] leading-none text-white">
+            {(total / 1000).toFixed(total >= 100000 ? 0 : 1)}<span className="ml-1 font-sans text-sm font-semibold text-brand-accent">km</span>
+          </div>
+        </div>
+        {item.purchase_date && (
+          <div className="text-right text-[0.7rem] text-brand-muted">
+            desde<br /><span className="text-brand-textSecondary">{new Date(item.purchase_date + "T12:00:00").toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</span>
+          </div>
         )}
-        <button
-          onClick={onDelete}
-          disabled={deleting}
-          className="rounded-md border border-brand-danger/40 px-2 py-1 text-xs text-brand-danger hover:bg-brand-danger/10 disabled:opacity-50"
-        >
+      </div>
+
+      {item.notes && <p className="mt-3 line-clamp-2 text-xs text-brand-muted">{item.notes}</p>}
+
+      <div className="mt-5 flex flex-wrap gap-2 border-t border-white/5 pt-4">
+        <button onClick={onEdit} className="od-btn od-btn-ghost od-btn-sm">Editar</button>
+        {!retired && onRetire && (
+          <button onClick={onRetire} className="od-btn od-btn-ghost od-btn-sm">Aposentar</button>
+        )}
+        <button onClick={onDelete} disabled={deleting} className="od-btn od-btn-danger od-btn-sm ml-auto">
           {deleting ? "…" : "Excluir"}
         </button>
       </div>
-    </div>
+    </Panel>
   );
 }
