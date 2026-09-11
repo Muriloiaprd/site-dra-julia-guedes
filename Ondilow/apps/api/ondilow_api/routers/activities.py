@@ -13,9 +13,12 @@ from ondilow_api.metrics import compute_splits, default_hr_zones, hr_zone_distri
 from ondilow_api.metrics.basic import PointLike
 from ondilow_api.models import Activity
 from ondilow_api.parsers import ParserError, UnsupportedFormatError, parse_file
+from ondilow_api.parsers.base import NormalizedActivity, NormalizedLap, NormalizedPoint
+from ondilow_api.parsers.sports import normalize_sport
 from ondilow_api.schemas.activity import (
     ActivityDetail,
     ActivitySummary,
+    NormalizedActivityIn,
     SplitOut,
     UploadItemResult,
     UploadResponse,
@@ -73,11 +76,56 @@ def upload_activity(
     return UploadResponse(filename=filename, imported=results)
 
 
+@router.post(
+    "/import-normalized", response_model=UploadItemResult, status_code=status.HTTP_201_CREATED
+)
+def import_normalized_activity(
+    current_user: CurrentUser,
+    db: DbSession,
+    payload: NormalizedActivityIn,
+) -> UploadItemResult:
+    """Import direto de atividade ja estruturada (sem arquivo bruto).
+
+    Usado para trazer atividades buscadas via MCP (Garmin/Strava) quando a
+    fonte so devolve JSON (resumo + streams), nao um .fit/.gpx pronto para
+    reupload em /activities/upload.
+    """
+    norm = NormalizedActivity(
+        sport=normalize_sport(payload.sport),
+        start_time=payload.start_time,
+        duration_s=payload.duration_s,
+        source=payload.source,
+        source_activity_id=payload.source_activity_id,
+        points=[NormalizedPoint(**p.model_dump()) for p in payload.points],
+        laps=[NormalizedLap(**lap.model_dump()) for lap in payload.laps],
+        moving_time_s=payload.moving_time_s,
+        distance_m=payload.distance_m,
+        elevation_gain_m=payload.elevation_gain_m,
+        elevation_loss_m=payload.elevation_loss_m,
+        avg_hr=payload.avg_hr,
+        max_hr=payload.max_hr,
+        avg_power_w=payload.avg_power_w,
+        max_power_w=payload.max_power_w,
+        avg_cadence=payload.avg_cadence,
+        calories=payload.calories,
+        avg_temperature_c=payload.avg_temperature_c,
+        title=payload.title,
+    )
+    r = import_activity(db, current_user.id, norm)
+    return UploadItemResult(
+        activity_id=r.activity_id,
+        duplicate=r.duplicate,
+        sport=r.sport,
+        distance_m=r.distance_m,
+        points_stored=r.points_stored,
+    )
+
+
 @router.get("", response_model=list[ActivitySummary])
 def list_activities(
     current_user: CurrentUser,
     db: DbSession,
-    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    limit: Annotated[int, Query(ge=1, le=500)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
     sport: str | None = None,
     days: Annotated[int | None, Query(ge=1, le=365)] = None,

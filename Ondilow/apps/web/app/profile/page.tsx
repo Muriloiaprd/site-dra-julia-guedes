@@ -10,6 +10,28 @@ import {
   type Profile,
 } from "@/lib/api";
 
+function resizeImageToDataUrl(file: File, size: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("canvas indisponível")); return; }
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("falha ao carregar imagem")); };
+    img.src = objectUrl;
+  });
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -19,12 +41,14 @@ export default function ProfilePage() {
 
   const [form, setForm] = useState<Profile>({
     full_name: null,
+    avatar_data_url: null,
     max_hr: null,
     ftp_watts: null,
     css_pace_s_per_100m: null,
     weight_kg: null,
     resting_hr: null,
   });
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([fetchMe(), fetchProfile()]).then(([user, profile]) => {
@@ -40,6 +64,23 @@ export default function ProfilePage() {
       setForm((f) => ({ ...f, full_name: raw || null }));
     } else {
       setForm((f) => ({ ...f, [field]: num }));
+    }
+  }
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setAvatarError(null);
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Selecione um arquivo de imagem");
+      return;
+    }
+    try {
+      const dataUrl = await resizeImageToDataUrl(file, 256);
+      setForm((f) => ({ ...f, avatar_data_url: dataUrl }));
+    } catch {
+      setAvatarError("Não foi possível processar essa imagem");
     }
   }
 
@@ -69,6 +110,29 @@ export default function ProfilePage() {
         <h1 className="text-xl font-semibold mb-6">Perfil do Atleta</h1>
 
         <form onSubmit={handleSave} className="space-y-6">
+          <section className="rounded-lg border border-brand-border bg-brand-surface p-5">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-brand-muted">Foto de Perfil</h2>
+            <div className="flex items-center gap-4">
+              <label className="group relative block h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-full border border-brand-border bg-black/30">
+                {form.avatar_data_url ? (
+                  <img src={form.avatar_data_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-2xl font-bold text-brand-accent">
+                    {(form.full_name ?? "?").trim().charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span className="absolute inset-0 flex items-center justify-center bg-black/60 text-[0.65rem] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
+                  Trocar
+                </span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+              </label>
+              <div className="text-sm text-brand-muted">
+                <p>Clique na foto para escolher uma imagem.</p>
+                {avatarError && <p className="mt-1 text-brand-danger">{avatarError}</p>}
+              </div>
+            </div>
+          </section>
+
           <section className="rounded-lg border border-brand-border bg-brand-surface p-5">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-brand-muted">Dados Pessoais</h2>
             <div className="grid gap-4 sm:grid-cols-2">

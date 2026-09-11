@@ -1,4 +1,5 @@
 from ondilow_api.models.activity import Activity, ActivityLap, ActivityPoint
+from ondilow_api.models.coach import CoachInteraction, PlannedWorkout
 from ondilow_api.models.daily_metric import DailyMetric
 from ondilow_api.models.equipment import Equipment
 from ondilow_api.models.record import PersonalRecord
@@ -14,4 +15,6 @@ __all__ = [
     "PersonalRecord",
     "DailyMetric",
     "Equipment",
+    "PlannedWorkout",
+    "CoachInteraction",
 ]

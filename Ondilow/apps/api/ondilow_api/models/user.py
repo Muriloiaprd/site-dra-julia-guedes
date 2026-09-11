@@ -58,6 +58,7 @@ class AthleteProfile(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     full_name: Mapped[str | None] = mapped_column(String(255))
+    avatar_data_url: Mapped[str | None] = mapped_column(Text)
     dob: Mapped[date | None] = mapped_column(Date)
     sex: Mapped[str | None] = mapped_column(String(1))
     weight_kg: Mapped[float | None] = mapped_column(Numeric(5, 2))

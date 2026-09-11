@@ -109,6 +109,7 @@ export interface PersonalRecord {
 
 export interface Profile {
   full_name: string | null;
+  avatar_data_url: string | null;
   max_hr: number | null;
   ftp_watts: number | null;
   css_pace_s_per_100m: number | null;
@@ -160,11 +161,15 @@ export async function login(email: string, password: string): Promise<string> {
 export async function fetchMe(): Promise<User | null> {
   const token = getToken();
   if (!token) return null;
-  const res = await fetch("/api/auth/me", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) return null;
-  return res.json() as Promise<User>;
+  try {
+    const res = await fetch("/api/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    return res.json() as Promise<User>;
+  } catch {
+    return null;
+  }
 }
 
 // ---------- atividades ----------
@@ -373,6 +378,82 @@ export interface HeatmapDay {
 
 export async function fetchHeatmap(days = 90): Promise<HeatmapDay[]> {
   return apiFetch<HeatmapDay[]>(`/metrics/heatmap?days=${days}`);
+}
+
+// ---------- treinador de IA ----------
+
+export interface PlannedWorkout {
+  id: string;
+  date: string;
+  sport: string;
+  title: string;
+  description: string | null;
+  target_duration_s: number | null;
+  target_distance_m: number | null;
+  target_tss: number | null;
+  target_intensity: string | null;
+  status: string;
+  activity_id: string | null;
+}
+
+export interface CoachChatMessage {
+  role: string | null;
+  content: string;
+  created_at: string;
+}
+
+export interface CoachErrorDetail {
+  error: "not_configured" | "llm_unavailable" | "insufficient_data" | "invalid_plan_response";
+  weeks_available?: number;
+  message?: string;
+}
+
+export class CoachApiError extends Error {
+  detail: CoachErrorDetail;
+  constructor(detail: CoachErrorDetail) {
+    super(detail.error);
+    this.detail = detail;
+  }
+}
+
+async function coachFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.headers as Record<string, string>),
+  };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`/api${path}`, { ...options, headers });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const detail = (body as { detail?: CoachErrorDetail }).detail;
+    if (detail?.error) throw new CoachApiError(detail);
+    throw new Error(`Erro ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export async function fetchCoachPlan(daysAhead = 14): Promise<PlannedWorkout[]> {
+  return coachFetch<PlannedWorkout[]>(`/coach/plan?days_ahead=${daysAhead}`);
+}
+
+export async function postCoachGeneratePlan(days = 7): Promise<PlannedWorkout[]> {
+  return coachFetch<PlannedWorkout[]>("/coach/plan/generate", {
+    method: "POST",
+    body: JSON.stringify({ days }),
+  });
+}
+
+export async function postCoachAnalyze(): Promise<{ report: string; model_used: string; generated_at: string }> {
+  return coachFetch("/coach/analyze", { method: "POST" });
+}
+
+export async function postCoachChat(message: string): Promise<{ reply: string; model_used: string }> {
+  return coachFetch("/coach/chat", { method: "POST", body: JSON.stringify({ message }) });
+}
+
+export async function fetchCoachHistory(): Promise<CoachChatMessage[]> {
+  return coachFetch<CoachChatMessage[]>("/coach/chat/history");
 }
 
 // ---------- upload ----------

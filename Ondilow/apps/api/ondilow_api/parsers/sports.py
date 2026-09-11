@@ -47,6 +47,17 @@ _ALIASES = {
     "openwaterswimming": "open_water_swim",
     "multisport": "multisport",
     "triathlon": "multisport",
+    # nomenclatura da API do Strava (sport_type)
+    "run": "run",
+    "trailrun": "trail_run",
+    "treadmillrun": "treadmill",
+    "ride": "bike",
+    "mountainbikeride": "mtb",
+    "gravelride": "gravel",
+    "ebikeride": "bike",
+    "virtualride": "indoor_bike",
+    "swim": "swim",
+    "openwaterswim": "open_water_swim",
 }
 
 

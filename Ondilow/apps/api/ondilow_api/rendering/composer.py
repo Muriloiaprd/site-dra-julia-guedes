@@ -10,10 +10,11 @@ from __future__ import annotations
 import io
 from datetime import datetime
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
 from ondilow_api.rendering.fonts import get_font
 from ondilow_api.rendering.static_map import render_route_map
+from ondilow_api.rendering.sticker import render_route_polyline
 
 # Paleta Ondilow (dark)
 BG       = (13, 17, 23)      # #0d1117
@@ -261,6 +262,79 @@ def render_photo_overlay(photo_bytes: bytes, activity: dict) -> bytes:
     draw.text((1080 - 220, 28), "Ondilow", font=get_font(40, bold=True), fill=(*BG, 220))
 
     return _to_bytes(composite)
+
+
+def _sticker_stats(activity: dict) -> list[tuple[str, str]]:
+    stats = [("Distância", _fmt_dist(activity.get("distance_m"))), ("Duração", _fmt_duration(activity.get("duration_s") or 0))]
+    if activity.get("avg_pace_s_per_km"):
+        stats.append(("Pace", _fmt_pace(activity.get("avg_pace_s_per_km"))))
+    elif activity.get("avg_speed_kmh"):
+        stats.append(("Velocidade", _fmt_speed(activity.get("avg_speed_kmh"))))
+    if activity.get("avg_hr"):
+        stats.append(("FC Média", _fmt_hr(activity.get("avg_hr"))))
+    return stats
+
+
+def _sticker_watermark(draw: ImageDraw.ImageDraw, W: int, H: int, sc: tuple) -> None:
+    draw.text((W - 170, H - 44), "Ondilow", font=get_font(24, bold=True), fill=(*sc, 200))
+
+
+def render_sticker(activity: dict, points: list[tuple[float, float]], layout: str = "full") -> bytes:
+    """Sticker com fundo transparente (PNG RGBA) para sobrepor em qualquer foto.
+
+    Layouts:
+    - route : so a linha da rota, sem stats, sem fundo.
+    - stats : so um badge compacto de estatisticas, sem rota.
+    - full  : rota (topo) + grade de stats (painéis semi-transparentes) abaixo.
+    """
+    W, H = 1080, 1080
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    sport = activity.get("sport", "other")
+    sc = _sport_color(sport)
+    stats = _sticker_stats(activity)
+
+    if layout == "route":
+        route = render_route_polyline(points, W - 80, H - 80, sc)
+        if route:
+            img.alpha_composite(route, (40, 40))
+        _sticker_watermark(draw, W, H, sc)
+        return _to_bytes(img)
+
+    if layout == "stats":
+        panel_h = 90 * len(stats) + 40
+        panel_y = (H - panel_h) // 2
+        draw.rounded_rectangle([60, panel_y, W - 60, panel_y + panel_h], radius=24, fill=(*SURFACE, 210), outline=(*sc, 160), width=2)
+        draw.rectangle([60, panel_y, 72, panel_y + panel_h], fill=(*sc, 255))
+        y = panel_y + 20
+        for label, value in stats:
+            draw.text((100, y), label.upper(), font=get_font(22), fill=(*MUTED, 255))
+            draw.text((100, y + 28), value, font=get_font(46, bold=True), fill=(*TEXT, 255))
+            y += 90
+        _sticker_watermark(draw, W, H, sc)
+        return _to_bytes(img)
+
+    # layout == "full"
+    route_h = 620
+    route = render_route_polyline(points, W - 80, route_h, sc)
+    if route:
+        img.alpha_composite(route, (40, 20))
+    else:
+        draw.text((W // 2 - 70, route_h // 2), "Sem GPS", font=get_font(32), fill=(*MUTED, 255))
+
+    stats_y = route_h + 60
+    col_w = W // 2 - 30
+    for i, (label, value) in enumerate(stats):
+        col = i % 2
+        row = i // 2
+        x = 40 + col * col_w
+        y = stats_y + row * 130
+        draw.rounded_rectangle([x - 10, y - 10, x + col_w - 20, y + 110], radius=16, fill=(*SURFACE, 150))
+        _stat_block(draw, x, y, col_w, label, value)
+
+    _sticker_watermark(draw, W, H, sc)
+    return _to_bytes(img)
 
 
 def _to_bytes(img: Image.Image) -> bytes:

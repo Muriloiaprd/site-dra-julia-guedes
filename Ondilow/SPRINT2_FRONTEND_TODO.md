@@ -1,6 +1,8 @@
-# Sprint 2 Frontend — Dashboard v1
+> ⚠️ **Doc obsoleto.** Este checklist já foi totalmente implementado (Sprint 2 está ✅ em `ESTADO_DO_PROJETO.md`) e nunca foi marcado. Mantido só como histórico de decisões técnicas (ex. "importar `leaflet/dist/leaflet.css`"). Para o que falta hoje, veja [`BACKLOG.md`](./BACKLOG.md).
 
-**Status**: Em progresso  
+# Sprint 2 Frontend — Dashboard v1 (histórico)
+
+**Status**: Concluído (não refletido nos checkboxes abaixo)  
 **Libs instaladas**: recharts@2.13.0, react-leaflet@4.2.1, leaflet@1.9.4, Next.js 14.2.33
 
 ---

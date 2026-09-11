@@ -2,18 +2,25 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
-  fetchActivities, fetchActivity, fetchMe, fetchPredictionsOverview, fetchRecords, uploadActivity,
-  type ActivityDetail, type ActivitySummary, type PersonalRecord, type TrainingRecommendation, type User,
+  fetchActivities, fetchActivity, fetchCoachPlan, fetchMe, fetchPredictionsOverview, fetchProfile, fetchRecords, getToken,
+  type ActivityDetail, type ActivitySummary, type PersonalRecord, type PlannedWorkout, type TrainingRecommendation, type User,
 } from "@/lib/api";
 import {
   formatDistance, formatDuration, formatPace, formatRecordValue,
   recordLabel, sportColor, sportLabel,
 } from "@/lib/utils";
 
+const ActivityMiniMap = dynamic(
+  () => import("@/components/ActivityMiniMap").then((m) => m.ActivityMiniMap),
+  { ssr: false, loading: () => <div style={{ height: 96, background: "rgba(255,255,255,0.03)" }} className="animate-pulse" /> }
+);
+
 // ── constants ──────────────────────────────────────────────────────────────
 
+const RECENT_COUNT = 5;
 const WEEK_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 const MONTH_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const SPORT_EMOJI: Record<string, string> = {
@@ -110,20 +117,6 @@ function statusSubtitle(readiness: number, rec: TrainingRecommendation | null): 
   return "Carga acumulada alta. Priorize sono e recuperação ativa.";
 }
 
-function readinessTag(readiness: number): string {
-  if (readiness >= 80) return "Alta";
-  if (readiness >= 60) return "Boa";
-  if (readiness >= 40) return "Moderada";
-  return "Baixa";
-}
-
-function readinessColor(readiness: number): string {
-  if (readiness >= 80) return "#00FF66";
-  if (readiness >= 60) return "#C6FF00";
-  if (readiness >= 40) return "#FF8C00";
-  return "#ff4757";
-}
-
 function recoveryTag(pct: number): string {
   if (pct >= 70) return "Boa";
   if (pct >= 45) return "Moderada";
@@ -171,45 +164,6 @@ function SparkLine({ data, color = "#00FF66", h = 36, w = 80, responsive = false
       </defs>
       <path d={area} fill={`url(#${uid})`} />
       <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-// ── ProgressRing ───────────────────────────────────────────────────────────
-
-function ProgressRing({ pct, size = 80, color = "#00FF66", colorTo, sublabel }: {
-  pct: number; size?: number; color?: string; colorTo?: string; sublabel?: string;
-}) {
-  const to = colorTo ?? color;
-  const r = size / 2 - 7;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (Math.min(pct, 100) / 100) * circ;
-  const uid = `pr${color.replace(/[^a-z0-9]/gi, "")}${size}`;
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <defs>
-        <linearGradient id={uid} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor={color} />
-          <stop offset="100%" stopColor={to} />
-        </linearGradient>
-      </defs>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1a1a1a" strokeWidth="6" />
-      <circle cx={size/2} cy={size/2} r={r} fill="none"
-        stroke={`url(#${uid})`} strokeWidth="6"
-        strokeDasharray={circ} strokeDashoffset={offset}
-        strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`}
-        style={{ filter: `drop-shadow(0 0 5px ${color}55)`, transition: "stroke-dashoffset 1s ease" }}
-      />
-      <text x={size/2} y={size/2 + (sublabel ? -3 : 5)} textAnchor="middle" fill="#fff"
-        style={{ fontFamily: "'Poppins',sans-serif", fontSize: size * 0.22, fontWeight: 800 }}>
-        {pct}%
-      </text>
-      {sublabel && (
-        <text x={size/2} y={size/2 + size * 0.18} textAnchor="middle" fill="#aaa"
-          style={{ fontSize: size * 0.1 }}>
-          {sublabel}
-        </text>
-      )}
     </svg>
   );
 }
@@ -288,52 +242,6 @@ function EvolutionChart({ activities, metric, period }: {
         ))}
       </svg>
     </div>
-  );
-}
-
-// ── RouteSvg ───────────────────────────────────────────────────────────────
-
-function RouteSvg({ points, color, h = 92 }: {
-  points: { lat: number | null; lon: number | null }[]; color: string; h?: number;
-}) {
-  const valid = points.filter((p): p is { lat: number; lon: number } => p.lat != null && p.lon != null);
-  if (valid.length < 2) return null;
-
-  const lats = valid.map(p => p.lat), lons = valid.map(p => p.lon);
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-  const minLon = Math.min(...lons), maxLon = Math.max(...lons);
-  const avgLatRad = ((minLat + maxLat) / 2) * (Math.PI / 180);
-  const lonScale = Math.cos(avgLatRad);
-
-  const W = 300, PAD = 14;
-  const spanLat = Math.max(maxLat - minLat, 1e-6);
-  const spanLon = Math.max((maxLon - minLon) * lonScale, 1e-6);
-  const scale = Math.min((W - PAD * 2) / spanLon, (h - PAD * 2) / spanLat);
-  const offX = (W - spanLon * scale) / 2;
-  const offY = (h - spanLat * scale) / 2;
-
-  const coords = valid.map(p => ({
-    x: offX + (((p.lon - minLon) * lonScale)) * scale,
-    y: h - (offY + (p.lat - minLat) * scale),
-  }));
-  const pathD = `M ${coords.map(c => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(" L ")}`;
-  const uid = `route${color.replace(/[^a-z0-9]/gi, "")}`;
-
-  return (
-    <svg width="100%" height={h} viewBox={`0 0 ${W} ${h}`} style={{ display: "block" }}>
-      <defs>
-        <radialGradient id={`${uid}bg`} cx="50%" cy="45%" r="75%">
-          <stop offset="0%" stopColor={color} stopOpacity="0.1" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <rect x="0" y="0" width={W} height={h} fill={`url(#${uid}bg)`} />
-      <path d={pathD} fill="none" stroke={color} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
-        style={{ filter: `drop-shadow(0 0 6px ${color}bb)` }} opacity="0.35" />
-      <path d={pathD} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={coords[0].x} cy={coords[0].y} r="3" fill={color} />
-      <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="3.5" fill="#fff" stroke={color} strokeWidth="1.5" />
-    </svg>
   );
 }
 
@@ -504,19 +412,28 @@ function ActivityModal({ activity, activities, onClose }: {
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [activities, setActivities] = useState<ActivitySummary[]>([]);
   const [records, setRecords] = useState<PersonalRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [recommendation, setRecommendation] = useState<TrainingRecommendation | null>(null);
   const [evolMetric, setEvolMetric] = useState<EvolMetric>("distance");
   const [evolPeriod, setEvolPeriod] = useState("30D");
   const [modalActivity, setModalActivity] = useState<ActivitySummary | null>(null);
   const [recentDetails, setRecentDetails] = useState<Record<string, ActivityDetail>>({});
+  const [authError, setAuthError] = useState(false);
+  const [plannedWorkouts, setPlannedWorkouts] = useState<PlannedWorkout[]>([]);
 
   useEffect(() => {
-    fetchMe().then(u => { if (!u) { router.push("/login"); return; } setUser(u); });
+    fetchMe().then(u => {
+      if (!u) {
+        if (getToken()) { setAuthError(true); return; }
+        router.push("/login");
+        return;
+      }
+      setUser(u);
+    });
+    fetchProfile().then(p => setAvatarUrl(p.avatar_data_url)).catch(() => {});
   }, [router]);
 
   const load = useCallback(async () => {
@@ -532,9 +449,12 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user) fetchPredictionsOverview().then(d => setRecommendation(d.recommendation)).catch(() => {});
   }, [user]);
+  useEffect(() => {
+    if (user) fetchCoachPlan(14).then(setPlannedWorkouts).catch(() => {});
+  }, [user]);
 
   useEffect(() => {
-    const ids = activities.slice(0, 3).map(a => a.id).filter(id => !recentDetails[id]);
+    const ids = activities.slice(0, RECENT_COUNT).map(a => a.id).filter(id => !recentDetails[id]);
     if (ids.length === 0) return;
     Promise.all(ids.map(id => fetchActivity(id).then(d => [id, d] as const).catch(() => null)))
       .then(results => {
@@ -544,20 +464,6 @@ export default function DashboardPage() {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activities]);
-
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true); setUploadMsg(null);
-    try {
-      const r = await uploadActivity(file);
-      const imp = r.imported.filter(x => !x.duplicate).length;
-      const dup = r.imported.filter(x => x.duplicate).length;
-      setUploadMsg(imp > 0 ? `${imp} importada(s)${dup ? `, ${dup} ignorada(s)` : ""}.` : "Processado.");
-      load();
-    } catch (err) { setUploadMsg(err instanceof Error ? err.message : "Erro"); }
-    finally { setUploading(false); e.target.value = ""; }
-  }
 
   const today = new Date();
   const mon = getMonday();
@@ -574,7 +480,18 @@ export default function DashboardPage() {
   const prevWeekLoadPct = Math.min(100, Math.round((prevWeekLoadH / 8) * 100));
   const prevRecoveryPct = Math.max(15, 100 - prevWeekLoadPct);
   const recoveryDelta = stats.prev.count > 0 ? recoveryPct - prevRecoveryPct : null;
-  const todayLabel = today.toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+
+  if (authError) return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", gap: 12, color: "#767676", textAlign: "center", padding: "0 1.5rem" }}>
+      <span style={{ fontSize: "0.9rem", color: "#f85149" }}>Não foi possível verificar sua sessão — verifique sua conexão.</span>
+      <button
+        onClick={() => window.location.reload()}
+        style={{ padding: "0.5rem 1.1rem", borderRadius: 10, background: "rgba(0,255,102,0.08)", border: "1px solid rgba(0,255,102,0.28)", color: "#00FF66", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer" }}
+      >
+        Tentar de novo
+      </button>
+    </div>
+  );
 
   if (!user) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: "#767676" }}>Carregando...</div>
@@ -607,21 +524,20 @@ export default function DashboardPage() {
           </div>
           <p style={{ fontSize: "0.73rem", color: "#777", marginTop: 1 }}>Disciplina hoje, resultados amanhã.</p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#111", border: "1px solid #1e1e1e", borderRadius: 100, padding: "0.34rem 0.8rem", fontSize: "0.72rem", color: "#999" }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            {todayLabel}
+        <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }} title="Ver perfil">
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            width: 36, height: 36, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
+            background: avatarUrl ? undefined : "linear-gradient(135deg, #00FF66, #C6FF00)",
+            border: "1px solid rgba(0,255,102,0.3)",
+          }}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              <span style={{ fontSize: "0.85rem", fontWeight: 800, color: "#000" }}>{name.charAt(0).toUpperCase()}</span>
+            )}
           </div>
-          <label style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", background: "rgba(0,255,102,0.07)", border: "1px solid rgba(0,255,102,0.25)", borderRadius: 100, padding: "0.34rem 0.8rem", fontSize: "0.72rem", color: "#00FF66", fontWeight: 600, transition: "box-shadow .2s" }}
-            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.boxShadow = "0 0 14px rgba(0,255,102,0.2)")}
-            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.boxShadow = "none")}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
-            {uploading ? "Enviando…" : "Importar"}
-            <input type="file" className="hidden" accept=".fit,.gpx,.tcx,.csv" onChange={handleUpload} disabled={uploading} />
-          </label>
-          {uploadMsg && <span style={{ fontSize: "0.68rem", color: "#00FF66" }}>✓ {uploadMsg}</span>}
-        </div>
+        </Link>
       </div>
 
       <div style={{ padding: "1.25rem 2rem" }}>
@@ -642,7 +558,7 @@ export default function DashboardPage() {
             position: "relative", overflow: "hidden",
           }}>
             <div style={{ position: "absolute", right: -30, top: -30, width: 160, height: 160, background: "radial-gradient(ellipse, rgba(0,255,102,0.06) 0%, transparent 65%)", pointerEvents: "none" }} />
-            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.6fr 1fr 1fr 1fr", alignItems: "center", gap: 0 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1fr 1fr 1fr", alignItems: "center", gap: 0 }}>
 
               {/* Headline */}
               <div style={{ paddingRight: "0.8rem" }}>
@@ -656,13 +572,6 @@ export default function DashboardPage() {
                     análise →
                   </Link>
                 </div>
-              </div>
-
-              {/* Prontidão */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "0 0.6rem", borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
-                <span style={{ fontSize: "0.55rem", color: "#b0b0b0", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Prontidão</span>
-                <ProgressRing pct={readiness} size={34} color={readinessColor(readiness)} colorTo={readiness >= 80 ? "#C6FF00" : undefined} />
-                <span style={{ fontSize: "0.64rem", fontWeight: 700, color: readinessColor(readiness) }}>{readinessTag(readiness)}</span>
               </div>
 
               {/* Carga semanal */}
@@ -899,8 +808,8 @@ export default function DashboardPage() {
               <Link href="/activities" style={{ fontSize: "0.68rem", color: "#9d9d9d", textDecoration: "none" }}>Ver todas →</Link>
             </div>
             {loading ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.9rem" }}>
-                {[1,2,3].map(i => <div key={i} style={{ height: 250, borderRadius: 16, background: "rgba(255,255,255,0.018)" }} />)}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: "0.9rem" }}>
+                {[1,2,3,4,5].map(i => <div key={i} style={{ height: 250, borderRadius: 16, background: "rgba(255,255,255,0.018)" }} />)}
               </div>
             ) : activities.length === 0 ? (
               <div style={{ textAlign: "center", padding: "2rem 0" }}>
@@ -909,8 +818,8 @@ export default function DashboardPage() {
                 <p style={{ fontSize: "0.75rem", color: "#9d9d9d", marginTop: 4 }}>Use <span style={{ color: "#00FF66" }}>Importar</span> para adicionar.</p>
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.9rem" }}>
-                {activities.slice(0, 3).map(a => {
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: "0.9rem" }}>
+                {activities.slice(0, RECENT_COUNT).map(a => {
                   const color = sportColor(a.sport);
                   const detail = recentDetails[a.id];
                   const points = detail?.points ?? [];
@@ -928,9 +837,9 @@ export default function DashboardPage() {
                         onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "#1a1a1a"; }}
                       >
                         {/* Hero: rota real (GPS) ou fallback com ícone */}
-                        <div style={{ position: "relative", background: `linear-gradient(160deg, ${color}16 0%, #0a0a0a 100%)`, borderBottom: `1px solid ${color}22` }}>
+                        <div style={{ position: "relative", background: `linear-gradient(160deg, ${color}16 0%, #0a0a0a 100%)`, borderBottom: `1px solid ${color}22`, overflow: "hidden" }}>
                           {hasRoute ? (
-                            <RouteSvg points={points} color={color} h={96} />
+                            <ActivityMiniMap points={points} height={96} color={color} />
                           ) : (
                             <div style={{ height: 96, display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.55 }}>
                               <SportIcon sport={a.sport} size="36px" />
@@ -1020,29 +929,37 @@ export default function DashboardPage() {
                   </div>
                 </Link>
               )}
-              {days.filter(d => d > today).slice(0, 4).map((d, i) => {
-                const items = [
-                  { name: "Corrida leve", detail: "10 km · 5:40–6:00/km", color: "#00FF66" },
-                  { name: "Recuperação", detail: "8 km · 6:10/km", color: "#888" },
-                  { name: "Intervalado", detail: "8×1 km · 4:50/km", color: "#C6FF00" },
-                  { name: "Longão", detail: "28 km · 5:20/km", color: "#00BFFF" },
-                ];
-                const item = items[i % items.length];
-                return (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "0.5rem 0.6rem", borderRadius: 10, background: "rgba(255,255,255,0.015)", border: "1px solid #161616" }}>
-                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: item.color, boxShadow: `0 0 6px ${item.color}66`, flexShrink: 0 }} />
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: "0.8rem", fontWeight: 700 }}>{item.name}</div>
-                      <div style={{ fontSize: "0.7rem", color: "#aaaaaa", marginTop: 1 }}>
-                        {WEEK_LABELS[(d.getDay() + 6) % 7]} · {d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" })} · {item.detail}
+              {(() => {
+                const upcoming = plannedWorkouts
+                  .filter(w => new Date(`${w.date}T00:00:00`) > today)
+                  .slice(0, 4);
+                if (upcoming.length === 0) {
+                  return (
+                    <Link href="/coach" style={{ display: "block", textAlign: "center", padding: "1rem 0.6rem", borderRadius: 10, background: "rgba(255,255,255,0.015)", border: "1px dashed #262626", color: "#00FF66", fontSize: "0.78rem", fontWeight: 600, textDecoration: "none" }}>
+                      Gerar plano no Treinador IA →
+                    </Link>
+                  );
+                }
+                return upcoming.map((w) => {
+                  const wd = new Date(`${w.date}T00:00:00`);
+                  const color = sportColor(w.sport);
+                  const parts: string[] = [];
+                  if (w.target_distance_m) parts.push(formatDistance(w.target_distance_m));
+                  if (w.target_duration_s) parts.push(formatDuration(w.target_duration_s));
+                  const detail = parts.join(" · ") || w.target_intensity || "";
+                  return (
+                    <div key={w.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "0.5rem 0.6rem", borderRadius: 10, background: "rgba(255,255,255,0.015)", border: "1px solid #161616" }}>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, boxShadow: `0 0 6px ${color}66`, flexShrink: 0 }} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: "0.8rem", fontWeight: 700 }}>{w.title}</div>
+                        <div style={{ fontSize: "0.7rem", color: "#aaaaaa", marginTop: 1 }}>
+                          {WEEK_LABELS[(wd.getDay() + 6) % 7]} · {wd.toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}{detail ? ` · ${detail}` : ""}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-              {!recommendation && days.filter(d => d > today).length === 0 && (
-                <p style={{ fontSize: "0.77rem", color: "#9d9d9d", textAlign: "center", padding: "1rem 0" }}>Semana encerrada</p>
-              )}
+                  );
+                });
+              })()}
             </div>
           </div>
 

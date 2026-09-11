@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
-import { clearToken, fetchMe, type User } from "@/lib/api";
+import { clearToken, fetchMe, fetchProfile, type User } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 const NAV = [
@@ -16,6 +16,15 @@ const NAV = [
         <rect x="14" y="3" width="7" height="7" rx="1" />
         <rect x="3" y="14" width="7" height="7" rx="1" />
         <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    href: "/activities",
+    label: "Atividades",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 12h4l3 8 4-16 3 8h4" />
       </svg>
     ),
   },
@@ -36,6 +45,17 @@ const NAV = [
         <circle cx="12" cy="12" r="10" />
         <circle cx="12" cy="12" r="6" />
         <circle cx="12" cy="12" r="2" />
+      </svg>
+    ),
+  },
+  {
+    href: "/coach",
+    label: "Treinador IA",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a4 4 0 0 1 4 4v1a5 5 0 0 1 3 4.58V15a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5v-3.42A5 5 0 0 1 8 7V6a4 4 0 0 1 4-4z" />
+        <path d="M9 10h.01M15 10h.01" />
+        <path d="M9 20v1M15 20v1" />
       </svg>
     ),
   },
@@ -75,9 +95,11 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMe().then((u) => { if (u) setUser(u); });
+    fetchProfile().then((p) => setAvatarUrl(p.avatar_data_url)).catch(() => {});
   }, []);
 
   function handleLogout() {
@@ -142,13 +164,13 @@ export function Sidebar() {
       {/* rodapé — usuário + sair */}
       <div className="px-3 pb-4 space-y-1" style={{ borderTop: "1px solid #1e1e1e", paddingTop: "12px" }}>
         {user && (
-          <div className="flex items-center gap-2 px-3 py-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-black"
-              style={{ background: "linear-gradient(135deg, #00FF66, #C6FF00)" }}>
-              {user.email[0].toUpperCase()}
+          <Link href="/profile" className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-white/5">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-bold text-black"
+              style={{ background: avatarUrl ? undefined : "linear-gradient(135deg, #00FF66, #C6FF00)" }}>
+              {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : user.email[0].toUpperCase()}
             </div>
             <span className="truncate text-xs" style={{ color: "#888" }}>{user.email}</span>
-          </div>
+          </Link>
         )}
         <button
           onClick={handleLogout}

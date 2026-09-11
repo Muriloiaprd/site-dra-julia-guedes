@@ -60,7 +60,7 @@ export default function ActivityPage() {
   const [zones, setZones] = useState<ZoneBucket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [exporting, setExporting] = useState<"card" | "story" | null>(null);
+  const [exporting, setExporting] = useState<"card" | "story" | "sticker" | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -122,11 +122,12 @@ export default function ActivityPage() {
   const hasHr = activity.avg_hr != null;
   const hasAlt = activity.elevation_gain_m != null;
 
-  async function handleExport(template: "card" | "story") {
+  async function handleExport(template: "card" | "story" | "sticker", layout: "route" | "stats" | "full" = "full") {
     setExporting(template);
     try {
       const token = getToken();
-      const res = await fetch(`/api/activities/${id}/export?template=${template}`, {
+      const qs = template === "sticker" ? `template=sticker&layout=${layout}` : `template=${template}`;
+      const res = await fetch(`/api/activities/${id}/export?${qs}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error("Erro ao gerar imagem");
@@ -175,6 +176,14 @@ export default function ActivityPage() {
               title="Story 1080x1920"
             >
               {exporting === "story" ? "Gerando…" : "📱 Story"}
+            </button>
+            <button
+              onClick={() => handleExport("sticker", "full")}
+              disabled={exporting !== null}
+              className="rounded-md border border-brand-border px-3 py-1.5 text-xs hover:border-brand-accent hover:text-brand-accent disabled:opacity-50"
+              title="Sticker transparente — sobreponha em qualquer foto"
+            >
+              {exporting === "sticker" ? "Gerando…" : "🏷️ Sticker"}
             </button>
           </div>
         </div>

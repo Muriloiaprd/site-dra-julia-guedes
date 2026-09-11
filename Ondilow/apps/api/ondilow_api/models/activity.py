@@ -31,7 +31,7 @@ SPORT_VALUES = (
     "multisport",
     "other",
 )
-SOURCE_VALUES = ("fit", "gpx", "tcx", "csv", "garmin_api", "manual")
+SOURCE_VALUES = ("fit", "gpx", "tcx", "csv", "garmin_api", "strava_api", "manual")
 
 sport_enum = ENUM(*SPORT_VALUES, name="sport", create_type=False)
 source_enum = ENUM(*SOURCE_VALUES, name="activity_source", create_type=False)

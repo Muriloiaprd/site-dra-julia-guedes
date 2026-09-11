@@ -21,6 +21,8 @@ dependencies = [
     "gpxpy>=1.6.0",
     "pillow>=12.3.0",
     "staticmap>=0.5.7",
+    "anthropic>=0.40.0",
+    "google-genai>=1.0.0",
 ]
 
 [dependency-groups]

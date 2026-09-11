@@ -8,6 +8,7 @@ class ProfileOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     full_name: str | None = None
+    avatar_data_url: str | None = None
     dob: date | None = None
     sex: str | None = None
     weight_kg: float | None = None
@@ -22,6 +23,7 @@ class ProfileOut(BaseModel):
 
 class ProfileUpdate(BaseModel):
     full_name: str | None = None
+    avatar_data_url: str | None = None
     dob: date | None = None
     sex: str | None = None
     weight_kg: float | None = None

@@ -11,11 +11,16 @@ from ondilow_api.config import settings
 from ondilow_api.deps import CurrentUser, DbSession
 from ondilow_api.models import Activity
 from ondilow_api.models.activity import ActivityPoint
-from ondilow_api.rendering.composer import render_card, render_photo_overlay, render_story
+from ondilow_api.rendering.composer import (
+    render_card,
+    render_photo_overlay,
+    render_sticker,
+    render_story,
+)
 
 router = APIRouter(prefix="/activities", tags=["exports"])
 
-_TEMPLATES = {"card", "story"}
+_TEMPLATES = {"card", "story", "sticker"}
 _MAX_PHOTO_MB = 15
 
 
@@ -59,7 +64,9 @@ def _get_gps_points(db, act: Activity) -> list[tuple[float, float]]:
     return [(float(r.lat), float(r.lon)) for r in pts]
 
 
-def _cache_path(activity_id: uuid.UUID, template: str) -> Path:
+def _cache_path(activity_id: uuid.UUID, template: str, layout: str | None = None) -> Path:
+    if template == "sticker":
+        return settings.data_path / "exports" / f"{activity_id}_sticker_{layout}.png"
     return settings.data_path / "exports" / f"{activity_id}_{template}.png"
 
 
@@ -68,10 +75,11 @@ def export_activity(
     activity_id: uuid.UUID,
     current_user: CurrentUser,
     db: DbSession,
-    template: str = Query(default="card", pattern="^(card|story)$"),
+    template: str = Query(default="card", pattern="^(card|story|sticker)$"),
+    layout: str = Query(default="full", pattern="^(route|stats|full)$"),
 ) -> Response:
     act = _get_activity(db, activity_id, current_user.id)
-    cache = _cache_path(activity_id, template)
+    cache = _cache_path(activity_id, template, layout)
 
     # Usa cache se existir e atividade nao foi modificada
     if cache.exists() and cache.stat().st_mtime >= act.updated_at.timestamp():
@@ -82,6 +90,8 @@ def export_activity(
 
     if template == "story":
         png = render_story(act_dict, points)
+    elif template == "sticker":
+        png = render_sticker(act_dict, points, layout=layout)
     else:
         png = render_card(act_dict, points)
 

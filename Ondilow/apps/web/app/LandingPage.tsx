@@ -71,7 +71,7 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <>
+    <div className="landing-page">
       {/* NAV */}
       <nav id="nav">
         <div className="nav-in">
@@ -414,7 +414,7 @@ export default function LandingPage() {
                 <li><span className="ck">✓</span> CTL / ATL / TSB / ACWR</li>
                 <li><span className="ck">✓</span> Previsões de prova (Riegel)</li>
                 <li><span className="ck">✓</span> Simulador de forma futura</li>
-                <li><span className="ck">✓</span> Sync Garmin Connect</li>
+                <li><span className="ck">✓</span> Importação de FIT, GPX, TCX e CSV</li>
                 <li><span className="ck">✓</span> Cards e Stories para redes</li>
               </ul>
               <Link href="/login" className="pl-btn solid">Começar Agora</Link>
@@ -483,7 +483,7 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-    </>
+    </div>
   )
 }
 
