@@ -2,6 +2,8 @@
 
 Consolidado em 2026-09-10 a partir de uma auditoria completa (histórico de commits, backend, frontend). Veja o estado geral do projeto em [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md). Uso do app é só local por enquanto — isso pesa na priorização (P2 concentra o que só importa se/quando isso mudar).
 
+> **Plano de execução dos itens P0+P1 e APIs anotadas para avaliar:** ver [`PLANEJAMENTO.md`](./PLANEJAMENTO.md) (2026-09-15).
+
 ---
 
 ## P0 — corrige coisas erradas/enganosas (baixo esforço, alto valor de confiança)
@@ -34,6 +36,7 @@ Consolidado em 2026-09-10 a partir de uma auditoria completa (histórico de comm
 
 ## ✅ Concluído
 
+- **2026-09-15** — `Sidebar.tsx` e cada página (dashboard, coach, equipment, import, metrics, predictions, profile) buscavam `fetchMe()`/`fetchProfile()` de forma independente, dobrando essas duas chamadas em todo carregamento. Corrigido com um cache de TTL curto em `apps/web/lib/api.ts` (ver `PLANEJAMENTO.md`, Fase 3).
 - **2026-09-11** — Redesign visual completo (design system em `tailwind.config.ts` + `app/globals.css` + `lib/theme.ts`, componentes em `components/ui/`, dashboard "centro de comando" em `components/dashboard/`, mapas com tiles escuros CARTO, todas as páginas internas). Resolveu os itens 2, 4, 9, 11 e partes do 1, 3 e 16 acima.
 - **2026-09-11** — Bug de `.env`/`data_dir` resolvidos por CWD (login travava para sempre quando a API era iniciada de outro diretório; uploads/exports/logs se espalhavam em duas pastas diferentes). Ver `ESTADO_DO_PROJETO.md`.
 - **2026-09-11** — Item 1 (parcial): "Próximos Treinos" do dashboard agora usa dados reais do Treinador de IA em vez do array fictício.

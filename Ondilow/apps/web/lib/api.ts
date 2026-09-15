@@ -27,6 +27,22 @@ export function clearToken(): void {
   }
 }
 
+// Varias paginas e o Sidebar buscam o usuario/perfil atual de forma independente no
+// mesmo carregamento. Como layout e page hidratam em chunks JS separados, os efeitos nem
+// sempre disparam no mesmo tick — por isso cacheia por um TTL curto (nao so o "em voo"),
+// o suficiente pra colapsar as chamadas de um unico carregamento de pagina numa so.
+const DEDUPE_TTL_MS = 3000;
+const _cache = new Map<string, { promise: Promise<unknown>; expiresAt: number }>();
+
+function dedupe<T>(key: string, factory: () => Promise<T>): Promise<T> {
+  const cached = _cache.get(key) as { promise: Promise<T>; expiresAt: number } | undefined;
+  if (cached && cached.expiresAt > Date.now()) return cached.promise;
+  const promise = factory();
+  _cache.set(key, { promise, expiresAt: Date.now() + DEDUPE_TTL_MS });
+  promise.catch(() => _cache.delete(key)); // nao cacheia falha
+  return promise;
+}
+
 // ---------- tipos ----------
 
 export interface User {
@@ -161,15 +177,17 @@ export async function login(email: string, password: string): Promise<string> {
 export async function fetchMe(): Promise<User | null> {
   const token = getToken();
   if (!token) return null;
-  try {
-    const res = await fetch("/api/auth/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return null;
-    return res.json() as Promise<User>;
-  } catch {
-    return null;
-  }
+  return dedupe("me", async () => {
+    try {
+      const res = await fetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return null;
+      return res.json() as Promise<User>;
+    } catch {
+      return null;
+    }
+  });
 }
 
 // ---------- atividades ----------
@@ -201,7 +219,7 @@ export async function fetchZones(id: string): Promise<ZoneBucket[]> {
 // ---------- perfil & recordes ----------
 
 export async function fetchProfile(): Promise<Profile> {
-  return apiFetch<Profile>("/profile");
+  return dedupe("profile", () => apiFetch<Profile>("/profile"));
 }
 
 export async function updateProfile(data: Partial<Profile>): Promise<Profile> {
