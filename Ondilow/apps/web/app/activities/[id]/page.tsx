@@ -22,11 +22,13 @@ import { Alert, Metric, PageContainer, Panel, Skeleton } from "@/components/ui/p
 import {
   deleteActivity,
   fetchActivity,
+  fetchEquipment,
   fetchSplits,
   fetchZones,
   getToken,
   updateActivity,
   type ActivityDetail,
+  type EquipmentItem,
   type Split,
   type ZoneBucket,
 } from "@/lib/api";
@@ -80,7 +82,8 @@ export default function ActivityPage() {
   const [exporting, setExporting] = useState<"card" | "story" | "sticker" | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ title: "", description: "", sport: "run" });
+  const [editForm, setEditForm] = useState({ title: "", description: "", sport: "run", equipment_id: "" });
+  const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -178,9 +181,13 @@ export default function ActivityPage() {
       title: activity!.title ?? "",
       description: "",
       sport: activity!.sport,
+      equipment_id: activity!.equipment_id ?? "",
     });
     setSaveError(null);
     setEditing(true);
+    if (equipment.length === 0) {
+      fetchEquipment().then(setEquipment).catch(() => {});
+    }
   }
 
   async function handleSaveEdit() {
@@ -191,6 +198,7 @@ export default function ActivityPage() {
         title: editForm.title.trim() || null,
         description: editForm.description.trim() || null,
         sport: editForm.sport,
+        equipment_id: editForm.equipment_id || null,
       });
       setActivity(updated);
       setEditing(false);
@@ -300,6 +308,19 @@ export default function ActivityPage() {
                 >
                   {SPORTS.map((s) => (
                     <option key={s} value={s}>{sportLabel(s)}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span className="od-field-label">Equipamento</span>
+                <select
+                  value={editForm.equipment_id}
+                  onChange={(e) => setEditForm((f) => ({ ...f, equipment_id: e.target.value }))}
+                  className="od-input"
+                >
+                  <option value="">Nenhum</option>
+                  {equipment.map((eq) => (
+                    <option key={eq.id} value={eq.id}>{eq.name}</option>
                   ))}
                 </select>
               </label>

@@ -13,7 +13,7 @@ from ondilow_api.metrics import compute_splits, default_hr_zones, hr_zone_distri
 from ondilow_api.metrics.basic import PointLike
 from ondilow_api.metrics.load import update_daily_metrics
 from ondilow_api.metrics.records import recompute_all_records
-from ondilow_api.models import Activity, DailyMetric, PersonalRecord, PlannedWorkout
+from ondilow_api.models import Activity, DailyMetric, Equipment, PersonalRecord, PlannedWorkout
 from ondilow_api.models.activity import SPORT_VALUES
 from ondilow_api.parsers import ParserError, UnsupportedFormatError, parse_file
 from ondilow_api.parsers.base import NormalizedActivity, NormalizedLap, NormalizedPoint
@@ -277,6 +277,15 @@ def update_activity(
     data = body.model_dump(exclude_unset=True)
     if "sport" in data and data["sport"] not in SPORT_VALUES:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Modalidade invalida")
+    if data.get("equipment_id") is not None:
+        owned = db.execute(
+            select(Equipment.id).where(
+                Equipment.id == data["equipment_id"],
+                Equipment.user_id == current_user.id,
+            )
+        ).scalar_one_or_none()
+        if owned is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Equipamento nao encontrado")
     sport_changed = "sport" in data and data["sport"] != activity.sport
 
     for field, val in data.items():

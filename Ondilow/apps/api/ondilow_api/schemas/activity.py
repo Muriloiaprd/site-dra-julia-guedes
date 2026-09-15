@@ -24,6 +24,7 @@ class ActivityUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
     sport: str | None = None
+    equipment_id: uuid.UUID | None = None
 
 
 class ActivityPointOut(BaseModel):
@@ -52,6 +53,7 @@ class ActivityLapOut(BaseModel):
 
 
 class ActivityDetail(ActivitySummary):
+    equipment_id: uuid.UUID | None = None
     moving_time_s: int | None = None
     elevation_loss_m: float | None = None
     max_hr: int | None = None

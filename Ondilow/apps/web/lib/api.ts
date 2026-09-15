@@ -86,6 +86,7 @@ export interface ActivityLap {
 }
 
 export interface ActivityDetail extends ActivitySummary {
+  equipment_id: string | null;
   moving_time_s: number | null;
   elevation_loss_m: number | null;
   max_hr: number | null;
@@ -103,6 +104,7 @@ export interface ActivityUpdate {
   title?: string | null;
   description?: string | null;
   sport?: string;
+  equipment_id?: string | null;
 }
 
 export interface Split {

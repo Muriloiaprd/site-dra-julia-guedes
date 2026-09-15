@@ -14,10 +14,14 @@ router = APIRouter(prefix="/equipment", tags=["equipment"])
 
 
 def _total_distance(db: Any, eq: Equipment) -> float:
-    """Soma distancia de todas as atividades com este equipamento."""
-    # Por ora sem tabela activity_equipment: retorna initial_distance_m
-    # Quando a tabela existir, somar aqui.
-    return float(eq.initial_distance_m or 0)
+    """Soma initial_distance_m com a distancia de todas as atividades vinculadas."""
+    activities_sum = db.execute(
+        select(func.coalesce(func.sum(Activity.distance_m), 0)).where(
+            Activity.equipment_id == eq.id,
+            Activity.deleted_at.is_(None),
+        )
+    ).scalar_one()
+    return float(eq.initial_distance_m or 0) + float(activities_sum)
 
 
 def _to_out(db: Any, eq: Equipment) -> EquipmentOut:

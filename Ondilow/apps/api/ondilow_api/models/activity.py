@@ -52,6 +52,9 @@ class Activity(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
+    equipment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("equipment.id", ondelete="SET NULL")
+    )
     sport: Mapped[str] = mapped_column(sport_enum, nullable=False)
     start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     timezone: Mapped[str] = mapped_column(String(50), server_default="America/Sao_Paulo")
