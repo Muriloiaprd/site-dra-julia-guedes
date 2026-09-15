@@ -4,7 +4,7 @@ Plataforma pessoal de analise de treino (corrida + ciclismo + natacao) com metri
 
 Custo mensal: R$ 0 (exceto a API da Anthropic do Treinador de IA, opcional). Uso pessoal. Sem cartao de credito.
 
-Estado detalhado: [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md) · Pendencias: [`BACKLOG.md`](./BACKLOG.md)
+Documentacao completa (estado, backlog, planejamento): [`docs/`](./docs/). Estado detalhado: [`docs/ESTADO_DO_PROJETO.md`](./docs/ESTADO_DO_PROJETO.md) · Pendencias: [`docs/BACKLOG.md`](./docs/BACKLOG.md)
 
 ## Stack
 
@@ -60,7 +60,7 @@ Isso sobe a API (porta 8000, so em `127.0.0.1`, sem `--reload`) e o frontend (po
 
 Para rodar cada lado separado (ex.: debugar so a API), use `pnpm dev:api` ou `pnpm dev:web`.
 
-> Se ja houver outro `next dev` rodando em `apps/web`, suba um extra com `NEXT_DIST_DIR=.next-preview` para nao corromper o cache compartilhado (ver `ESTADO_DO_PROJETO.md`).
+> Se ja houver outro `next dev` rodando em `apps/web`, suba um extra com `NEXT_DIST_DIR=.next-preview` para nao corromper o cache compartilhado (ver `docs/ESTADO_DO_PROJETO.md`).
 
 ## Estrutura
 
