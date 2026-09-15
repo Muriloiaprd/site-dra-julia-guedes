@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Alert, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
 import {
   deleteAllActivities,
   fetchMe,
   fetchProfile,
+  getToken,
   updateProfile,
   type Profile,
 } from "@/lib/api";
@@ -39,6 +40,7 @@ function resizeImageToDataUrl(file: File, size: number): Promise<string> {
 export default function ProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,14 +63,24 @@ export default function ProfilePage() {
   const [clearError, setClearError] = useState<string | null>(null);
   const [clearResult, setClearResult] = useState<number | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setAuthError(false);
     Promise.all([fetchMe(), fetchProfile()]).then(([user, profile]) => {
-      if (!user) { router.push("/login"); return; }
+      if (!user) {
+        if (getToken()) { setAuthError(true); return; }
+        router.push("/login");
+        return;
+      }
       setEmail(user.email);
       setForm(profile);
       setLoading(false);
-    }).catch(() => router.push("/login"));
+    }).catch(() => {
+      if (getToken()) { setAuthError(true); return; }
+      router.push("/login");
+    });
   }, [router]);
+
+  useEffect(() => { load(); }, [load]);
 
   function set(field: keyof Profile, raw: string) {
     const num = raw === "" ? null : Number(raw);
@@ -126,6 +138,19 @@ export default function ProfilePage() {
     } finally {
       setClearing(false);
     }
+  }
+
+  if (authError) {
+    return (
+      <PageContainer width="medium">
+        <Alert tone="danger">
+          Não foi possível carregar seu perfil agora.
+          <button type="button" onClick={load} className="od-btn od-btn-ghost ml-3 !py-1 !px-3">
+            Tentar de novo
+          </button>
+        </Alert>
+      </PageContainer>
+    );
   }
 
   if (loading) {

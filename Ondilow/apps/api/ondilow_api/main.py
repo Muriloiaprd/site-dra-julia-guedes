@@ -1,11 +1,15 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from ondilow_api.config import settings
+from ondilow_api.logger import get_logger
 from ondilow_api.logging_setup import configure_logging
 from ondilow_api.routers import activities, auth, coach, equipment, exports, metrics, predictions, profile
+
+log = get_logger(__name__)
 
 
 @asynccontextmanager
@@ -34,6 +38,15 @@ app.include_router(predictions.router)
 app.include_router(exports.router)
 app.include_router(equipment.router)
 app.include_router(coach.router)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    log.exception("unhandled_exception", path=request.url.path, method=request.method)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": {"error": "internal_error", "message": "Erro interno. Tente novamente."}},
+    )
 
 
 @app.get("/health", tags=["health"])

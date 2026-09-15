@@ -12,7 +12,10 @@ from datetime import datetime
 
 from PIL import Image, ImageDraw
 
+from ondilow_api.logger import get_logger
 from ondilow_api.rendering.fonts import get_font
+
+log = get_logger(__name__)
 from ondilow_api.rendering.static_map import render_route_map
 from ondilow_api.rendering.sticker import render_route_polyline
 
@@ -114,6 +117,7 @@ def render_card(activity: dict, points: list[tuple[float, float]]) -> bytes:
     try:
         date_str = datetime.fromisoformat(start).strftime("%d/%m/%Y")
     except Exception:
+        log.warning("activity_date_parse_failed", start_time=start)
         date_str = ""
 
     # Header
@@ -170,6 +174,7 @@ def render_story(activity: dict, points: list[tuple[float, float]]) -> bytes:
     try:
         date_str = datetime.fromisoformat(start).strftime("%d/%m/%Y")
     except Exception:
+        log.warning("activity_date_parse_failed", start_time=start)
         date_str = ""
 
     # Header grande

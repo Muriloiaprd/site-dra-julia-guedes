@@ -7,9 +7,13 @@ from pathlib import Path
 
 from PIL import ImageFont
 
+from ondilow_api.logger import get_logger
+
 _WIN_FONTS = Path("C:/Windows/Fonts")
 
 _FONT_CACHE: dict[tuple[str, int], "ImageFont.ImageFont"] = {}
+
+log = get_logger(__name__)
 
 
 def _try_font(name: str, size: int) -> "ImageFont.ImageFont | None":
@@ -18,7 +22,7 @@ def _try_font(name: str, size: int) -> "ImageFont.ImageFont | None":
         try:
             return ImageFont.truetype(str(path), size)
         except Exception:
-            pass
+            log.debug("font_load_failed", font_name=name, size=size)
     return None
 
 

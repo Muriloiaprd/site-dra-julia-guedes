@@ -5,11 +5,15 @@ from __future__ import annotations
 import io
 from typing import TYPE_CHECKING
 
+from ondilow_api.logger import get_logger
+
 if TYPE_CHECKING:
     from PIL.Image import Image as PILImage
 
 # Downsample para mapa: max 500 pontos (staticmap e lento com muitos)
 _MAX_MAP_POINTS = 500
+
+log = get_logger(__name__)
 
 
 def render_route_map(
@@ -44,7 +48,14 @@ def render_route_map(
 
         return m.render()
 
-    except Exception:
+    except Exception as exc:
+        log.warning(
+            "route_map_render_failed",
+            n_points=len(points),
+            width=width,
+            height=height,
+            error=str(exc),
+        )
         return None
 
 
