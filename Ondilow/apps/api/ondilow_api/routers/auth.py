@@ -1,13 +1,14 @@
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 
 from ondilow_api.config import settings
 from ondilow_api.deps import CurrentUser, DbSession
 from ondilow_api.models import User
+from ondilow_api.rate_limit import limiter
 from ondilow_api.schemas.auth import RegisterIn, Token, UserOut
 from ondilow_api.security import create_access_token, hash_password, verify_password
 
@@ -15,7 +16,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
 def login(
+    request: Request,
     form: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: DbSession,
 ) -> Token:
