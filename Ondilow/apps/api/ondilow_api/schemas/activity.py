@@ -20,6 +20,12 @@ class ActivitySummary(BaseModel):
     source: str
 
 
+class ActivityUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    sport: str | None = None
+
+
 class ActivityPointOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

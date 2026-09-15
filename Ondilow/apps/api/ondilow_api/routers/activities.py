@@ -1,7 +1,7 @@
 import hashlib
 import uuid
 from dataclasses import asdict
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
@@ -12,13 +12,16 @@ from ondilow_api.deps import CurrentUser, DbSession
 from ondilow_api.metrics import compute_splits, default_hr_zones, hr_zone_distribution
 from ondilow_api.metrics.basic import PointLike
 from ondilow_api.metrics.load import update_daily_metrics
+from ondilow_api.metrics.records import recompute_all_records
 from ondilow_api.models import Activity, DailyMetric, PersonalRecord, PlannedWorkout
+from ondilow_api.models.activity import SPORT_VALUES
 from ondilow_api.parsers import ParserError, UnsupportedFormatError, parse_file
 from ondilow_api.parsers.base import NormalizedActivity, NormalizedLap, NormalizedPoint
 from ondilow_api.parsers.sports import normalize_sport
 from ondilow_api.schemas.activity import (
     ActivityDetail,
     ActivitySummary,
+    ActivityUpdate,
     NormalizedActivityIn,
     SplitOut,
     UploadItemResult,
@@ -261,6 +264,47 @@ def get_activity(activity_id: uuid.UUID, current_user: CurrentUser, db: DbSessio
     if activity is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Atividade nao encontrada")
     return activity
+
+
+@router.patch("/{activity_id}", response_model=ActivityDetail)
+def update_activity(
+    activity_id: uuid.UUID,
+    body: ActivityUpdate,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> Activity:
+    activity = _load_activity(db, activity_id, current_user.id)
+    data = body.model_dump(exclude_unset=True)
+    if "sport" in data and data["sport"] not in SPORT_VALUES:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Modalidade invalida")
+    sport_changed = "sport" in data and data["sport"] != activity.sport
+
+    for field, val in data.items():
+        setattr(activity, field, val)
+    db.commit()
+
+    # PRs sao agrupados por (sport, record_type); se a modalidade mudou, os PRs
+    # antigos e novos podem estar errados (ex.: essa atividade deixa de contar
+    # pra "corrida" e passa a contar pra "ciclismo").
+    if sport_changed:
+        recompute_all_records(db, current_user.id)
+
+    db.refresh(activity)
+    return activity
+
+
+@router.delete("/{activity_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_activity(activity_id: uuid.UUID, current_user: CurrentUser, db: DbSession) -> None:
+    """Soft delete: preenche deleted_at (ja respeitado em todas as queries de
+    leitura). Recalcula metricas de carga e recordes, pois a atividade pode
+    ter sustentado um PR ou contribuido pro CTL/ATL/TSB de dias posteriores."""
+    activity = _load_activity(db, activity_id, current_user.id)
+    activity.deleted_at = datetime.now(UTC)
+    activity_date = activity.start_time.date()
+    db.commit()
+
+    update_daily_metrics(db, current_user.id, from_date=activity_date)
+    recompute_all_records(db, current_user.id)
 
 
 @router.get("/{activity_id}/splits", response_model=list[SplitOut])

@@ -5,8 +5,8 @@ para aquela combinacao (sport, record_type). O PR "vigente" e sempre a linha
 mais recente por combinacao.
 """
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import delete, select
+from sqlalchemy.orm import Session, selectinload
 
 from ondilow_api.metrics.basic import PointLike, best_efforts
 from ondilow_api.models import Activity, PersonalRecord
@@ -57,6 +57,24 @@ def update_records(db: Session, activity: Activity) -> list[str]:
 
     db.commit()
     return broken
+
+
+def recompute_all_records(db: Session, user_id) -> None:
+    """Apaga todos os PRs do usuario e reprocessa as atividades em ordem
+    cronologica, usando update_records(). Necessario quando uma atividade e
+    editada (modalidade muda de grupo) ou excluida, pois um PR pode ter sido
+    sustentado por ela."""
+    db.execute(delete(PersonalRecord).where(PersonalRecord.user_id == user_id))
+    db.commit()
+
+    activities = db.execute(
+        select(Activity)
+        .where(Activity.user_id == user_id, Activity.deleted_at.is_(None))
+        .options(selectinload(Activity.points))
+        .order_by(Activity.start_time.asc())
+    ).scalars().all()
+    for activity in activities:
+        update_records(db, activity)
 
 
 def _efforts_for_sport(sport: str) -> dict[int, str]:
