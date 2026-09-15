@@ -85,7 +85,15 @@ A hipótese do StrictMode estava errada: rodando `next build && next start` (pro
 
 **Verificação:** confirmado no browser com API e `next start` reais — login, navegação client-side entre páginas (`/dashboard` → `/coach`) e reload direto de URL — sempre 1 chamada de cada por carregamento, nunca 2. `pytest` (33) e `tsc --noEmit` continuam passando.
 
-## FASE 4 — Editar e excluir atividade individual (item 4)
+## FASE 4 — Editar e excluir atividade individual (item 4) — EM ANDAMENTO, parado a pedido do usuário
+
+**Feito (commit `d1aaa8b`):** backend completo — `ActivityUpdate`, `PATCH /activities/{id}` (recalcula PRs se `sport` mudar de grupo), `DELETE /activities/{id}` (soft delete + `update_daily_metrics` + `recompute_all_records`), `recompute_all_records()` em `metrics/records.py`. `pytest` (33) e `ruff` passam.
+
+**Falta para fechar a Fase 4:**
+- Frontend: `lib/api.ts` (`updateActivity`/`deleteActivity`), botão de excluir em `app/activities/page.tsx` (padrão `window.confirm` de `equipment/page.tsx:135`), botões "Editar"/"Excluir" em `app/activities/[id]/page.tsx`.
+- Verificação manual end-to-end (ainda não testado ao vivo): editar título persiste, excluir some da lista/dashboard, `/metrics/load` reflete a exclusão, um PR sustentado só por ela desaparece.
+
+**Ao retomar:** completar o frontend acima, verificar ao vivo, e só então seguir para a Fase 5.
 
 **Backend:**
 - `schemas/activity.py`: novo schema `ActivityUpdate` com `title`, `description` e `sport`, todos opcionais.
