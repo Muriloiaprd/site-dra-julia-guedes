@@ -85,15 +85,15 @@ A hipótese do StrictMode estava errada: rodando `next build && next start` (pro
 
 **Verificação:** confirmado no browser com API e `next start` reais — login, navegação client-side entre páginas (`/dashboard` → `/coach`) e reload direto de URL — sempre 1 chamada de cada por carregamento, nunca 2. `pytest` (33) e `tsc --noEmit` continuam passando.
 
-## FASE 4 — Editar e excluir atividade individual (item 4) — EM ANDAMENTO, parado a pedido do usuário
+## FASE 4 — Editar e excluir atividade individual (item 4) — CONCLUÍDA
 
-**Feito (commit `d1aaa8b`):** backend completo — `ActivityUpdate`, `PATCH /activities/{id}` (recalcula PRs se `sport` mudar de grupo), `DELETE /activities/{id}` (soft delete + `update_daily_metrics` + `recompute_all_records`), `recompute_all_records()` em `metrics/records.py`. `pytest` (33) e `ruff` passam.
+**Backend** (commit `d1aaa8b`): `ActivityUpdate`, `PATCH /activities/{id}` (recalcula PRs se `sport` mudar de grupo), `DELETE /activities/{id}` (soft delete + `update_daily_metrics` + `recompute_all_records`).
 
-**Falta para fechar a Fase 4:**
-- Frontend: `lib/api.ts` (`updateActivity`/`deleteActivity`), botão de excluir em `app/activities/page.tsx` (padrão `window.confirm` de `equipment/page.tsx:135`), botões "Editar"/"Excluir" em `app/activities/[id]/page.tsx`.
-- Verificação manual end-to-end (ainda não testado ao vivo): editar título persiste, excluir some da lista/dashboard, `/metrics/load` reflete a exclusão, um PR sustentado só por ela desaparece.
+**Frontend + fix de performance real** (commit `0459cac`): `updateActivity`/`deleteActivity` em `lib/api.ts`, botão de excluir em `app/activities/page.tsx` (desktop e mobile), botões "Editar"/"Excluir" em `app/activities/[id]/page.tsx`. Na verificação ao vivo (não só no papel) apareceu um bug real: com ~100 atividades no histórico, trocar a modalidade de uma atividade levava 57s e às vezes estourava em 500 — `recompute_all_records()` fazia até 7 `SELECT`s ao Neon por atividade. Corrigido mantendo o "melhor atual" em memória em vez de consultar o banco a cada atividade: 57s → 8.6s.
 
-**Ao retomar:** completar o frontend acima, verificar ao vivo, e só então seguir para a Fase 5.
+**Verificado ao vivo** com API e `next start` reais, numa atividade descartável criada só pro teste (sem tocar atividades reais do usuário): editar título/modalidade persiste, excluir soma-se e some da listagem. `pytest` (33), `ruff` e `tsc --noEmit` passam.
+
+**Ao retomar:** seguir para a Fase 5 (equipamento com km real).
 
 **Backend:**
 - `schemas/activity.py`: novo schema `ActivityUpdate` com `title`, `description` e `sport`, todos opcionais.

@@ -16,7 +16,7 @@ Consolidado em 2026-09-10 a partir de uma auditoria completa (histórico de comm
 
 ## P1 — completude e robustez
 
-6. **Atividade não pode ser editada nem excluída.** Falta `PATCH`/`DELETE /activities/{id}` em `routers/activities.py`. A coluna `deleted_at` já existe e já é respeitada em todas as queries de leitura — só falta o endpoint que a preenche.
+6. ~~**Atividade não pode ser editada nem excluída.**~~ **Resolvido em 2026-09-15**: `PATCH`/`DELETE /activities/{id}` em `routers/activities.py`, com botões em `activities/page.tsx` e `activities/[id]/page.tsx`. Ver `PLANEJAMENTO.md`, Fase 4.
 7. **Sem rate limiting no login.** `/auth/login` aceita tentativas ilimitadas. Barato de adicionar (ex. `slowapi`), vale fazer mesmo em uso local, antes de qualquer exposição futura.
 8. **Buracos de teste em lógica de negócio sensível.** Zero teste para `metrics/load.py` (CTL/ATL/TSB/ACWR), `metrics/records.py` (PRs), `metrics/predictions.py` (Riegel/VDOT/risco), e para `import_activity()`/dedup real (`import_service.py`) — hoje só helpers puros são testados. Falta fixture e teste de `.fit` (formato mais comum, nunca testado). Sem teste de rota HTTP nenhuma, apesar de `httpx`/`pytest-asyncio` já instalados.
 9. ~~**`/metrics` fica em branco sem atividades.**~~ **Resolvido em 2026-09-11 (redesign)**: estado vazio explicativo com CTA para importar, e estado vazio próprio no heatmap.
@@ -36,6 +36,7 @@ Consolidado em 2026-09-10 a partir de uma auditoria completa (histórico de comm
 
 ## ✅ Concluído
 
+- **2026-09-15** — Editar e excluir atividade individual (`PATCH`/`DELETE /activities/{id}`), incluindo um fix de performance real em `recompute_all_records()` (ver `PLANEJAMENTO.md`, Fase 4).
 - **2026-09-15** — `Sidebar.tsx` e cada página (dashboard, coach, equipment, import, metrics, predictions, profile) buscavam `fetchMe()`/`fetchProfile()` de forma independente, dobrando essas duas chamadas em todo carregamento. Corrigido com um cache de TTL curto em `apps/web/lib/api.ts` (ver `PLANEJAMENTO.md`, Fase 3).
 - **2026-09-11** — Redesign visual completo (design system em `tailwind.config.ts` + `app/globals.css` + `lib/theme.ts`, componentes em `components/ui/`, dashboard "centro de comando" em `components/dashboard/`, mapas com tiles escuros CARTO, todas as páginas internas). Resolveu os itens 2, 4, 9, 11 e partes do 1, 3 e 16 acima.
 - **2026-09-11** — Bug de `.env`/`data_dir` resolvidos por CWD (login travava para sempre quando a API era iniciada de outro diretório; uploads/exports/logs se espalhavam em duas pastas diferentes). Ver `ESTADO_DO_PROJETO.md`.
