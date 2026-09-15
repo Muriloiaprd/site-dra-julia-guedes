@@ -112,9 +112,11 @@ Todo o levantamento de melhorias pendentes (tratamento de erro no perfil, featur
 
 ## Notas Técnicas Importantes
 
-### API sempre em:
-- `http://localhost:8000`
-- Frontend proxy: `next.config.mjs` rewrite `/api/*` → `http://localhost:8000/*`
+### Como rodar:
+- `pnpm dev` na raiz `Ondilow/` sobe API + frontend juntos (via `concurrently`) — único comando, único endereço `http://localhost:3003`.
+- API escuta só em `127.0.0.1:8000` (uso interno); frontend proxya `/api/*` → `http://localhost:8000/*` (`next.config.mjs`).
+- Rodar cada lado separado: `pnpm dev:api` / `pnpm dev:web` (também na raiz `Ondilow/`).
+- Preview no launch.json: config `ondilow` (porta 3003) substituiu `ondilow-api` + `ondilow-web`.
 
 ### Banco de dados:
 - Neon Postgres (`wispy-mountain-04630520`)

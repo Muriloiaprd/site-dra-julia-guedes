@@ -43,23 +43,24 @@ uv run alembic upgrade head
 uv run python -m ondilow_api.scripts.seed_user
 ```
 
-Subir a API (porta 8000, sem `--reload`):
+Instalar dependencias do frontend e do orquestrador:
 
 ```bash
-uv run uvicorn ondilow_api.main:app --port 8000
-```
-
-Em outro terminal, subir o frontend:
-
-```bash
-cd apps/web
+cd ..
 pnpm install
-pnpm dev -p 3003
 ```
 
-Abrir http://localhost:3003
+Subir tudo com um comando so, a partir da raiz `Ondilow/`:
 
-> Se ja houver outro `next dev` rodando em `apps/web`, suba o segundo com `NEXT_DIST_DIR=.next-preview` para nao corromper o cache compartilhado (ver `ESTADO_DO_PROJETO.md`).
+```bash
+pnpm dev
+```
+
+Isso sobe a API (porta 8000, so em `127.0.0.1`, sem `--reload`) e o frontend (porta 3003) juntos, com `concurrently`. Abrir http://localhost:3003 — o proprio Next repassa `/api/*` para a API por baixo (`next.config.mjs`), entao so existe um endereco pra acessar.
+
+Para rodar cada lado separado (ex.: debugar so a API), use `pnpm dev:api` ou `pnpm dev:web`.
+
+> Se ja houver outro `next dev` rodando em `apps/web`, suba um extra com `NEXT_DIST_DIR=.next-preview` para nao corromper o cache compartilhado (ver `ESTADO_DO_PROJETO.md`).
 
 ## Estrutura
 

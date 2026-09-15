@@ -1,0 +1,13 @@
+{
+  "name": "ondilow",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,green \"pnpm dev:api\" \"pnpm dev:web\"",
+    "dev:api": "uv run --directory apps/api uvicorn ondilow_api.main:app --host 127.0.0.1 --port 8000",
+    "dev:web": "pnpm -C apps/web dev -p 3003"
+  },
+  "devDependencies": {
+    "concurrently": "10.0.5"
+  }
+}
