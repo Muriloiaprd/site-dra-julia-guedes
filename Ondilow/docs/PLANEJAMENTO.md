@@ -1,7 +1,7 @@
 # Ondilow — Planejamento de Execução
 
 **Criado em**: 2026-09-15
-**Status**: aguardando revisão do usuário. Nada deste documento foi executado ainda.
+**Status**: Fases 1 a 5 executadas e verificadas. Em 2026-09-15 o usuário decidiu não fazer mais as Fases 6-9 (infra de testes, CI, meta/prova-alvo, Strava OAuth) — foram removidas deste plano. Não havia dependência técnica pendente, foi só decisão de escopo.
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) (backlog priorizado) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md) (estado atual)
 
 ## Como retomar
@@ -12,7 +12,7 @@ Quando o usuário pedir para retomar o planejamento:
 4. Só executar depois da confirmação do usuário, fase por fase.
 
 O documento tem duas partes:
-- **Parte A**: plano aprovado para executar (itens 1 a 11 do backlog, em 9 fases).
+- **Parte A**: plano executado (itens 1, 2, 3, 4, 5, 8 e 9 do backlog, em 5 fases). Os itens 6, 7, 10 e 11 (infra de testes, CI, meta/prova-alvo, Strava OAuth) foram descartados em 2026-09-15.
 - **Parte B**: APIs anotadas **só para avaliar depois** se vale a pena. Não são compromisso.
 
 ---
@@ -20,14 +20,7 @@ O documento tem duas partes:
 # PARTE A — Plano de execução (backlog P0 + P1)
 
 ## Contexto
-Numa revisão do site rodando (dashboard, atividades, carga, previsões, coach, equipamentos, perfil e import), cruzada com o `BACKLOG.md`, saíram 20 melhorias possíveis. O usuário escolheu fechar primeiro o escopo **P0 + P1 (itens 1 a 11)**:
-- correções de confiança: erros engolidos, tratamento de erro, rate limit;
-- completude: editar/excluir atividade, equipamento com km real, testes, CI;
-- duas features de produto: meta/prova-alvo e sync com Strava.
-
-**Decisões de arquitetura já confirmadas com o usuário:**
-- **Strava por OAuth direto no próprio backend** (não MCP). O usuário conecta uma vez no `/profile` e depois usa o botão "Sincronizar agora". Não depende de sessão do Claude aberta.
-- **Testes com banco usam uma branch `test` no projeto Neon** (`wispy-mountain-04630520`). O schema usa ENUM e `gen_random_uuid()` do Postgres, que o SQLite não suporta. O custo continua R$ 0.
+Numa revisão do site rodando (dashboard, atividades, carga, previsões, coach, equipamentos, perfil e import), cruzada com o `BACKLOG.md`, saíram 20 melhorias possíveis. O usuário escolheu fechar primeiro o escopo **P0 + P1**, e em 2026-09-15 decidiu não fazer mais os itens 6, 7, 10 e 11 (infra de testes, CI, meta/prova-alvo, Strava OAuth).
 
 ## Ordem das fases
 
@@ -38,10 +31,6 @@ Numa revisão do site rodando (dashboard, atividades, carga, previsões, coach, 
 | 3 | 8 (confirmar chamadas duplicadas) | Verificação rápida, sem dependências |
 | 4 | 4 (editar/excluir atividade) | — |
 | 5 | 5 (equipamento com km real) | Reaproveita o `PATCH /activities/{id}` da Fase 4 |
-| 6 | 6 (infra de testes) | Testa primeiro os endpoints novos das Fases 4 e 5 |
-| 7 | 7 (CI) | Depende do `pytest` da Fase 6 rodando |
-| 8 | 10 (meta/prova-alvo) | Independente, mas aproveita a infra de testes |
-| 9 | 11 (Strava OAuth) | É o item maior e mais arriscado, então fica por último |
 
 Cada fase pode ser entregue sozinha: dá para parar depois de qualquer uma sem deixar o app quebrado.
 
@@ -73,7 +62,6 @@ Nenhum desses pontos muda o fallback, só passa a registrar o erro.
 - Criar `ondilow_api/rate_limit.py` com `limiter = Limiter(key_func=get_remote_address)`.
 - Em `main.py`: `app.state.limiter`, handler de `RateLimitExceeded` e `SlowAPIMiddleware`.
 - Em `routers/auth.py`, aplicar `@limiter.limit("5/minute")` só no `POST /auth/login` (a função passa a receber `request: Request`).
-- Cuidado para a Fase 6: os testes precisam de `limiter.reset()` entre casos, e a fixture de login deve gerar o JWT direto.
 
 **Verificação:** a 6ª tentativa rápida de login devolve 429.
 
@@ -113,102 +101,15 @@ A hipótese do StrictMode estava errada: rodando `next build && next start` (pro
 - O `/metrics/load` passa a refletir a exclusão.
 - Um PR que só ela sustentava desaparece.
 
-## FASE 5 — Equipamento com km real (item 5)
+## FASE 5 — Equipamento com km real (item 5) — CONCLUÍDA
 
-- Nova migration `009_activity_equipment.py` (`down_revision="008_coach"`): coluna `equipment_id` nullable em `activities`, com FK `ondelete=SET NULL` e índice.
-- Adicionar `equipment_id` em `models/activity.py`, `ActivityUpdate` e `ActivityDetail`.
-- No `PATCH`, validar que o equipamento pertence ao usuário (404 se não pertencer).
-- `routers/equipment.py:16-20`: o `_total_distance` passa a somar `distance_m` das atividades não excluídas mais o `initial_distance_m`.
-- Front: um `<select>` de equipamento no painel de edição da atividade.
+Migration `009_activity_equipment.py`: coluna `equipment_id` nullable em `activities`, FK `ondelete=SET NULL` + índice. `equipment_id` adicionado em `models/activity.py`, `ActivityUpdate` e `ActivityDetail`. No `PATCH /activities/{id}`, valida que o equipamento pertence ao usuário (404 se não). `routers/equipment.py`: `_total_distance` soma `initial_distance_m` + `SUM(distance_m)` das atividades vinculadas não excluídas. Front: `<select>` de equipamento no painel de edição de `activities/[id]/page.tsx`.
 
-**Verificação:**
-- A soma exibida bate com um `SELECT SUM(distance_m)` manual.
-- Apagar o equipamento deixa `equipment_id = NULL` nas atividades, sem quebrar nada.
+**Verificado ao vivo** (conta `teste@teste.com`, API e `next dev` reais): criado equipamento descartável "Tenis de teste", vinculado a uma atividade real de 5.02km via edição — a página de Equipamentos passou a mostrar 5.0km de distância acumulada, sem erros no console. `pytest` (33), `ruff` (nos arquivos tocados) e `tsc --noEmit` passam.
 
-## FASE 6 — Infra de testes (item 6)
+**Decisão do usuário em 2026-09-15:** não fazer mais as Fases 6-9 (infra de testes, CI, meta/prova-alvo, Strava OAuth). Removidas deste plano — não havia dependência técnica pendente.
 
-**Branch Neon:** criar a branch `test` com `create_branch` no MCP do Neon. Guardar a URL em `TEST_DATABASE_URL`, num `.env.test` fora do git.
-
-**Novo `apps/api/tests/conftest.py`:**
-- `test_engine`: pula os testes de banco se `TEST_DATABASE_URL` não existir.
-- Rodar `alembic upgrade head` uma vez por sessão.
-- `db_session`: uma transação por teste, com rollback no final.
-- `client`: `TestClient` com override de `get_db` e `DATA_DIR` temporário.
-- `auth_headers`: cria o usuário via ORM e gera o JWT com `create_access_token()`.
-- Fixture `autouse` com `limiter.reset()`.
-
-**Casos prioritários:**
-- Sem banco: Riegel, VDOT, `assess_injury_risk`, `training_recommendation` e `simulate_tsb`.
-- Com banco:
-  - `update_daily_metrics` (CTL/ATL/TSB/ACWR);
-  - `update_records` e `recompute_all_records`;
-  - `import_activity()` completo, incluindo dedup por hash e por proximidade;
-  - rotas das Fases 4 e 5, com isolamento entre usuários (retornando 404);
-  - `/auth/login`, incluindo o 429.
-
-**Verificação:**
-- `pytest -m "not db"` roda sem banco configurado.
-- A suíte completa passa duas vezes seguidas.
-- A branch `test` fica limpa depois.
-
-## FASE 7 — CI (item 7)
-
-Novo `.github/workflows/ci.yml`, disparado em `push` e `pull_request`, com dois jobs:
-- **backend**: `uv sync --group dev`, `ruff check` e `pytest`. A suíte com banco só roda se o secret `TEST_DATABASE_URL` existir.
-- **frontend**: `npm ci`, `npm run lint` e `npm run build`.
-
-**Ação manual do usuário:** cadastrar os secrets no GitHub.
-
-## FASE 8 — Meta/prova-alvo (item 10)
-
-- **Migration e modelo `goals`:**
-  - PK no padrão de `models/coach.py`, `user_id` com cascade e `sport` importando o `sport_enum` de `models/activity.py`.
-  - Campos `race_name`, `target_distance_m`, `target_date`, `target_time_s`, `status` e `achieved_at`.
-  - **Uma meta ativa por vez**, checada na aplicação (409 se já existir outra ativa).
-- `schemas/goal.py`: aceitar os presets de `RACE_DISTANCES` (`metrics/predictions.py:13-18`).
-- `routers/goals.py`: `GET /goals/active`, `POST /goals`, `PATCH /goals/{id}` e `POST /goals/{id}/abandon`.
-- **`GoalCard.tsx`:**
-  - sem meta: CTA para criar;
-  - com meta: contagem regressiva e comparação com a previsão VDOT/Riegel.
-
-**Verificação:**
-- A meta criada aparece no dashboard.
-- Tentar criar uma segunda meta ativa devolve 409.
-- Ao abandonar, o card volta ao CTA.
-
-## FASE 9 — Strava por OAuth direto (item 11)
-
-**O que já existe:**
-- modelo `UserIntegration`;
-- `encrypt_bytes` e `decrypt_bytes` em `security.py`;
-- `import_activity()`, com dedup por `(source, source_activity_id)`;
-- `normalize_sport()` com os aliases do Strava;
-- valor `strava_api` no enum.
-
-**Passos:**
-1. Adicionar `strava_client_id` e `strava_client_secret` no `config.py` e no `.env.example`. **Ação manual:** criar o app em strava.com/settings/api.
-2. Migration para tornar `credentials_encrypted` nullable em `user_integrations`.
-3. Criar `routers/integrations.py`:
-   - `GET /integrations/strava/authorize-url`: monta a URL com um `state` assinado que carrega o `user_id`.
-   - `GET /integrations/strava/callback`: não exige auth. Troca o `code` por tokens, grava criptografado e redireciona com 302 para `/profile?strava=connected` (ou `error`).
-   - `POST /integrations/strava/sync`, `DELETE /integrations/strava` e `GET /integrations`.
-   - `redirect_uri` = `http://localhost:3003/api/integrations/strava/callback`.
-4. **Sync:**
-   - fazer refresh do token se estiver vencido;
-   - buscar `GET /athlete/activities?after=<last_sync_at>`, com paginação;
-   - mapear para `NormalizedActivity`;
-   - chamar `import_activity()` direto, com `recompute_metrics=False`, e rodar `update_daily_metrics()` uma vez no final;
-   - atualizar o status da sincronização.
-   - **Limite do MVP:** não busca os streams de GPS, para não estourar o rate limit do Strava. As atividades entram sem mapa.
-5. No `/profile`, uma seção "Integrações" com Conectar, Sincronizar agora e Desconectar, e um toast lendo `?strava=`.
-
-**Verificação:**
-- O fluxo real funciona de ponta a ponta.
-- Uma segunda sincronização não duplica atividades.
-- Com `expires_at` forçado para o passado, o refresh acontece.
-- Testes com `httpx` mockado.
-
-## Estimativas
+## Estimativas (itens executados)
 
 | # | Item | Tamanho | Dificuldade |
 |---|---|---|---|
@@ -219,10 +120,6 @@ Novo `.github/workflows/ci.yml`, disparado em `push` e `pull_request`, com dois 
 | 8 | Verificar duplicidade | P | Fácil |
 | 4 | Editar/excluir atividade | M–G | Médio |
 | 5 | Equipamento com km real | M | Médio |
-| 6 | Infra de testes | G | Difícil |
-| 7 | CI | P–M | Fácil |
-| 10 | Meta/prova-alvo | M–G | Médio |
-| 11 | Strava OAuth | G | Difícil |
 
 P = horas · M = 1 a 3 dias · G = mais de 1 semana
 
