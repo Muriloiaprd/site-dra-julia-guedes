@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { SportTile } from "@/components/SportIcon";
 import { Alert, EmptyState, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
-import { fetchActivities, type ActivitySummary } from "@/lib/api";
+import { deleteActivity, fetchActivities, type ActivitySummary } from "@/lib/api";
 import { formatDistance, formatDuration, formatPace, formatPaceShort, isBikeSport, sportColor, sportLabel } from "@/lib/utils";
 
 const SPORTS = [
@@ -60,6 +60,7 @@ export default function ActivitiesPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [selectedSports, setSelectedSports] = useState<Set<string>>(new Set());
@@ -99,6 +100,19 @@ export default function ActivitiesPage() {
       setError(e instanceof Error ? e.message : "Erro ao carregar mais atividades");
     } finally {
       setLoadingMore(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Excluir atividade? Esta ação não pode ser desfeita.")) return;
+    setDeletingId(id);
+    try {
+      await deleteActivity(id);
+      setActivities((prev) => prev.filter((a) => a.id !== id));
+    } catch {
+      setError("Erro ao excluir atividade");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -330,6 +344,7 @@ export default function ActivitiesPage() {
                     <th className="text-right">FC</th>
                     <th className="text-right">Elevação</th>
                     <th className="text-right">Fonte</th>
+                    <th className="text-right" aria-label="Ações" />
                   </tr>
                 </thead>
                 <tbody>
@@ -361,6 +376,16 @@ export default function ActivitiesPage() {
                           {a.elevation_gain_m != null ? `+${Math.round(a.elevation_gain_m)}m` : "–"}
                         </td>
                         <td className="text-right"><span className="od-badge od-badge-muted">{SOURCE_LABEL[a.source] ?? a.source}</span></td>
+                        <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleDelete(a.id)}
+                            disabled={deletingId === a.id}
+                            className="od-btn od-btn-danger od-btn-sm"
+                            aria-label="Excluir atividade"
+                          >
+                            {deletingId === a.id ? "…" : "Excluir"}
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -374,8 +399,8 @@ export default function ActivitiesPage() {
             {filtered.map((a) => {
               const isBike = isBikeSport(a.sport);
               return (
-                <li key={a.id}>
-                  <Link href={`/activities/${a.id}`} className="od-panel od-interactive flex items-center gap-3 !p-3.5">
+                <li key={a.id} className="flex items-center gap-2">
+                  <Link href={`/activities/${a.id}`} className="od-panel od-interactive flex min-w-0 flex-1 items-center gap-3 !p-3.5">
                     <SportTile sport={a.sport} size={40} radius={11} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold">{a.title ?? sportLabel(a.sport)}</div>
@@ -392,6 +417,14 @@ export default function ActivitiesPage() {
                       </div>
                     </div>
                   </Link>
+                  <button
+                    onClick={() => handleDelete(a.id)}
+                    disabled={deletingId === a.id}
+                    aria-label="Excluir atividade"
+                    className="od-btn od-btn-danger od-btn-sm shrink-0 !px-2.5"
+                  >
+                    {deletingId === a.id ? "…" : "🗑"}
+                  </button>
                 </li>
               );
             })}

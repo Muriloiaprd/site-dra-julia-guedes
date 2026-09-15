@@ -20,10 +20,12 @@ import { SportTile } from "@/components/SportIcon";
 import { ChartTooltipBox, LegendDot } from "@/components/ui/charts";
 import { Alert, Metric, PageContainer, Panel, Skeleton } from "@/components/ui/primitives";
 import {
+  deleteActivity,
   fetchActivity,
   fetchSplits,
   fetchZones,
   getToken,
+  updateActivity,
   type ActivityDetail,
   type Split,
   type ZoneBucket,
@@ -61,6 +63,11 @@ const ZONE_NAMES: Record<number, string> = {
   5: "VO2 máx",
 };
 
+const SPORTS = [
+  "run", "trail_run", "treadmill", "bike", "mtb", "gravel",
+  "indoor_bike", "swim", "open_water_swim", "multisport", "other",
+];
+
 export default function ActivityPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -72,6 +79,12 @@ export default function ActivityPage() {
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState<"card" | "story" | "sticker" | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ title: "", description: "", sport: "run" });
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -160,6 +173,47 @@ export default function ActivityPage() {
     }
   }
 
+  function openEdit() {
+    setEditForm({
+      title: activity!.title ?? "",
+      description: "",
+      sport: activity!.sport,
+    });
+    setSaveError(null);
+    setEditing(true);
+  }
+
+  async function handleSaveEdit() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const updated = await updateActivity(id, {
+        title: editForm.title.trim() || null,
+        description: editForm.description.trim() || null,
+        sport: editForm.sport,
+      });
+      setActivity(updated);
+      setEditing(false);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm("Excluir esta atividade? Esta ação não pode ser desfeita.")) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteActivity(id);
+      router.push("/activities");
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : "Erro ao excluir atividade");
+      setDeleting(false);
+    }
+  }
+
   const paceFmt = (v: number) => `${Math.floor(v)}:${String(Math.round((v % 1) * 60)).padStart(2, "0")}`;
   const splitPaces = splits.map((s) => s.pace_s_per_km).filter((p): p is number => p != null);
   const fastest = splitPaces.length ? Math.min(...splitPaces) : null;
@@ -211,10 +265,65 @@ export default function ActivityPage() {
             <button onClick={() => handleExport("sticker", "full")} disabled={exporting !== null} className="od-btn od-btn-secondary od-btn-sm" title="Sticker transparente — sobreponha em qualquer foto">
               {exporting === "sticker" ? "Gerando…" : "🏷️ Sticker"}
             </button>
+            <span className="mx-1 hidden h-4 w-px bg-white/10 sm:block" />
+            <button onClick={openEdit} disabled={editing} className="od-btn od-btn-ghost od-btn-sm">
+              ✏️ Editar
+            </button>
+            <button onClick={handleDelete} disabled={deleting} className="od-btn od-btn-danger od-btn-sm">
+              {deleting ? "Excluindo…" : "🗑️ Excluir"}
+            </button>
           </div>
         </div>
 
         {exportError && <div className="relative mt-4"><Alert tone="danger" title="Falha ao exportar">{exportError}</Alert></div>}
+        {deleteError && <div className="relative mt-4"><Alert tone="danger" title="Falha ao excluir">{deleteError}</Alert></div>}
+
+        {editing && (
+          <div className="relative mt-5 space-y-3 border-t border-white/5 pt-5">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label>
+                <span className="od-field-label">Título</span>
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                  placeholder={sportLabel(activity.sport)}
+                  className="od-input"
+                />
+              </label>
+              <label>
+                <span className="od-field-label">Modalidade</span>
+                <select
+                  value={editForm.sport}
+                  onChange={(e) => setEditForm((f) => ({ ...f, sport: e.target.value }))}
+                  className="od-input"
+                >
+                  {SPORTS.map((s) => (
+                    <option key={s} value={s}>{sportLabel(s)}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <label className="block">
+              <span className="od-field-label">Descrição</span>
+              <textarea
+                value={editForm.description}
+                onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                rows={2}
+                className="od-input resize-none"
+              />
+            </label>
+            {saveError && <Alert tone="danger">{saveError}</Alert>}
+            <div className="flex gap-2">
+              <button onClick={handleSaveEdit} disabled={saving} className="od-btn od-btn-primary od-btn-sm">
+                {saving ? "Salvando…" : "Salvar"}
+              </button>
+              <button onClick={() => setEditing(false)} disabled={saving} className="od-btn od-btn-ghost od-btn-sm">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="relative mt-6 grid grid-cols-2 gap-5 border-t border-white/5 pt-5 sm:grid-cols-4">
           <Metric size="xl" value={dist.value} unit={dist.unit} label="Distância" />

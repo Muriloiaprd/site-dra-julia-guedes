@@ -99,6 +99,12 @@ export interface ActivityDetail extends ActivitySummary {
   points: ActivityPoint[];
 }
 
+export interface ActivityUpdate {
+  title?: string | null;
+  description?: string | null;
+  sport?: string;
+}
+
 export interface Split {
   index: number;
   distance_m: number;
@@ -206,6 +212,22 @@ export async function fetchActivities(
 
 export async function fetchActivity(id: string): Promise<ActivityDetail> {
   return apiFetch<ActivityDetail>(`/activities/${id}`);
+}
+
+export async function updateActivity(id: string, data: ActivityUpdate): Promise<ActivityDetail> {
+  return apiFetch<ActivityDetail>(`/activities/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteActivity(id: string): Promise<void> {
+  const token = getToken();
+  await fetch(`/api/activities/${id}`, {
+    method: "DELETE",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
 }
 
 export async function fetchSplits(id: string, splitM = 1000): Promise<Split[]> {

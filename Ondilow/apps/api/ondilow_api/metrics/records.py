@@ -5,11 +5,16 @@ para aquela combinacao (sport, record_type). O PR "vigente" e sempre a linha
 mais recente por combinacao.
 """
 
+import uuid
+
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
 from ondilow_api.metrics.basic import PointLike, best_efforts
 from ondilow_api.models import Activity, PersonalRecord
+
+# (record_type, valor, unidade, "menor e melhor?")
+_RecordCandidate = tuple[str, float, str, bool]
 
 # distancia alvo (m) -> record_type, por grupo de esporte
 _RUN_EFFORTS = {
@@ -35,25 +40,9 @@ def update_records(db: Session, activity: Activity) -> list[str]:
         for p in activity.points
     ]
     broken: list[str] = []
-
-    efforts = _efforts_for_sport(activity.sport)
-    if efforts and points:
-        best = best_efforts(points, list(efforts.keys()))
-        for dist, be in best.items():
-            rtype = efforts[dist]
-            if _maybe_record(db, activity, rtype, be.duration_s, "seconds", lower_is_better=True):
-                broken.append(rtype)
-
-    longest = _longest_type(activity.sport)
-    if longest and activity.distance_m and _maybe_record(
-        db, activity, longest, float(activity.distance_m), "meters", lower_is_better=False
-    ):
-        broken.append(longest)
-
-    if activity.max_hr and _maybe_record(
-        db, activity, "max_hr_recorded", float(activity.max_hr), "bpm", lower_is_better=False
-    ):
-        broken.append("max_hr_recorded")
+    for record_type, value, unit, lower_is_better in _record_candidates(activity, points):
+        if _maybe_record(db, activity, record_type, value, unit, lower_is_better=lower_is_better):
+            broken.append(record_type)
 
     db.commit()
     return broken
@@ -61,9 +50,14 @@ def update_records(db: Session, activity: Activity) -> list[str]:
 
 def recompute_all_records(db: Session, user_id) -> None:
     """Apaga todos os PRs do usuario e reprocessa as atividades em ordem
-    cronologica, usando update_records(). Necessario quando uma atividade e
-    editada (modalidade muda de grupo) ou excluida, pois um PR pode ter sido
-    sustentado por ela."""
+    cronologica. Necessario quando uma atividade e editada (modalidade muda
+    de grupo) ou excluida, pois um PR pode ter sido sustentado por ela.
+
+    Ao contrario de update_records() (que consulta o banco pra achar o
+    "melhor atual"), aqui o melhor de cada combinacao (sport, record_type) e
+    mantido em memoria enquanto percorre as atividades em ordem cronologica
+    -- com muito historico (100+ atividades), um SELECT por combinacao a
+    cada atividade levava dezenas de segundos contra o Neon."""
     db.execute(delete(PersonalRecord).where(PersonalRecord.user_id == user_id))
     db.commit()
 
@@ -73,8 +67,55 @@ def recompute_all_records(db: Session, user_id) -> None:
         .options(selectinload(Activity.points))
         .order_by(Activity.start_time.asc())
     ).scalars().all()
+
+    best: dict[tuple[str, str], tuple[float, uuid.UUID]] = {}
     for activity in activities:
-        update_records(db, activity)
+        points = [
+            PointLike(elapsed_time_s=p.elapsed_time_s, distance_m=_f(p.distance_m))
+            for p in activity.points
+        ]
+        for record_type, value, unit, lower_is_better in _record_candidates(activity, points):
+            key = (activity.sport, record_type)
+            prev = best.get(key)
+            better = prev is None or (value < prev[0] if lower_is_better else value > prev[0])
+            if not better:
+                continue
+            db.add(
+                PersonalRecord(
+                    user_id=user_id,
+                    sport=activity.sport,
+                    record_type=record_type,
+                    value=value,
+                    unit=unit,
+                    activity_id=activity.id,
+                    achieved_at=activity.start_time,
+                    previous_value=prev[0] if prev else None,
+                    previous_activity_id=prev[1] if prev else None,
+                )
+            )
+            best[key] = (value, activity.id)
+
+    db.commit()
+
+
+def _record_candidates(activity: Activity, points: list[PointLike]) -> list[_RecordCandidate]:
+    """Candidatos a recorde desta atividade, sem tocar o banco."""
+    candidates: list[_RecordCandidate] = []
+
+    efforts = _efforts_for_sport(activity.sport)
+    if efforts and points:
+        best = best_efforts(points, list(efforts.keys()))
+        for dist, be in best.items():
+            candidates.append((efforts[dist], be.duration_s, "seconds", True))
+
+    longest = _longest_type(activity.sport)
+    if longest and activity.distance_m:
+        candidates.append((longest, float(activity.distance_m), "meters", False))
+
+    if activity.max_hr:
+        candidates.append(("max_hr_recorded", float(activity.max_hr), "bpm", False))
+
+    return candidates
 
 
 def _efforts_for_sport(sport: str) -> dict[int, str]:
