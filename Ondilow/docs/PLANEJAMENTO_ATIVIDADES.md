@@ -15,10 +15,10 @@ O usuário relatou três problemas no mapa das atividades e pediu uma funcionali
 - Logo própria em PNG, salva no perfil.
 - Os botões antigos Card/Story/Sticker são substituídos pelo gerador, e o código antigo de exportação é removido.
 
-**Estado da execução (2026-09-15):**
+**Estado da execução:** Fases 1 a 4 concluídas e verificadas. Em 2026-09-17 o usuário decidiu não fazer a Fase 5 (ajuste fino) — ver nota no fim da seção da Fase 4. Plano fechado.
 - **FASE 1 — CONCLUÍDA e verificada.** Tiles trocados para Stadia Maps (sem chave em localhost, com fallback automático para OSM escurecido), isolamento de z-index dos mapas, percurso no modal do dashboard.
 - **FASE 2 — CONCLUÍDA e verificada.** Logo pessoal em PNG no perfil (migration `010_athlete_profile_logo`), com validação de formato e tamanho.
-- **FASE 3 — replanejada aqui.** Os 4 layouts que eu havia desenhado foram descartados: o usuário não gostou e desenhou os próprios no Canva.
+- **FASE 3 — replanejada.** Os 4 layouts que eu havia desenhado foram descartados: o usuário não gostou e desenhou os próprios no Canva.
 
 **A nova base de design:** o usuário colocou **18 PNGs 1080x1920 transparentes** em `Ondilow/Imagens/Story/`, desenhados por ele no Canva. Todos usam verde/lima da marca sobre fundo transparente (89-98% do pixel é transparente), o que é exatamente o formato de overlay sobre foto.
 
@@ -312,21 +312,9 @@ badge preto (o arquivo colorido não serve), e no `rota-icones` a logo está fun
 e tem um brilho branco em volta do texto — não dá pra apagá-la sem cortar o risco, e as medições de escala
 discordam entre si (0,32 pelo disco do "O" contra 0,26 pelo texto). Esses dois seguem com a logo da arte.
 
-**Ainda pendente (vira a Fase 5, ajuste fino):**
-- Levar a logo de alta resolução também pro `rota-icones`: exigiria separar o risco diagonal da logo na arte
-  (recortar o risco como asset próprio, ou pedir ao usuário um export do Canva só com a logo nessa posição).
-- Testar em mais atividades com formato de rota bem diferente (retas, voltas fechadas) pra garantir que o
-  traçado dinâmico nunca ultrapassa a caixa reservada. Até agora só foi testado numa corrida quase reta.
-- Não testado em celular real (`navigator.share`) nem com foto HEIC.
-
----
-
-## FASE 5 — Ajuste fino com o usuário (depois do gerador rodando)
-
-Os 5 modelos saem de uma medição do PNG, então a primeira versão vai ficar próxima mas não idêntica ao Canva. Esta fase existe para fechar a diferença:
-- Comparar lado a lado cada modelo gerado com o PNG original e corrigir as constantes de posição/tamanho.
-- Calibrar o scrim de cada modelo sobre fotos claras e escuras.
-- Só então avaliar se vale adicionar os modelos das outras famílias (11 com bandeiras, 12 com ícones sólidos), agora que o registro de layouts está pronto e cada novo modelo é só um arquivo a mais.
+**Decisão do usuário em 2026-09-17:** não fazer a Fase 5 (ajuste fino, comparação lado a lado com o Canva,
+logo de alta resolução no `rota-icones`, modelos das famílias 11/12). Não há dependência técnica pendente,
+foi só decisão de escopo — o gerador atual (Fase 4) fica como versão final por ora.
 
 ---
 

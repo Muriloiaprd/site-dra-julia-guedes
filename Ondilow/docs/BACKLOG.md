@@ -12,7 +12,7 @@ Consolidado em 2026-09-10 a partir de uma auditoria completa (histórico de comm
 2. ~~**Prontidão do atleta é arbitrária.**~~ **Resolvido em 2026-09-11 (redesign)**: `computeReadiness()` em `apps/web/lib/athlete.ts` deriva do TSB real (`/metrics/load`) com penalidade por ACWR > 1.3. Os baldes fixos por tipo de recomendação ficaram só como fallback quando não há métricas de carga; sem nenhum dado, não mostra número.
 3. **Erro de API confundido com "sem dados".** ~~Dashboard~~ **resolvido no redesign**: `load()` agora tem estado de sincronização (`loading/ok/error`), banner com "Tentar de novo" e indicador "Falha na sincronização" no header. **Pendente:** `profile/page.tsx` — qualquer erro (não só 401) ainda redireciona pra `/login`, mascarando falha de rede como sessão expirada.
 4. ~~**Export de card/story falha em silêncio.**~~ **Resolvido em 2026-09-11 (redesign)**: `activities/[id]/page.tsx` mostra um alerta "Falha ao exportar" com a mensagem de erro.
-5. **Erros de backend engolidos sem log.** `rendering/composer.py:115,171`, `rendering/fonts.py:20`, `rendering/static_map.py:47` têm `except Exception` que descartam o erro. O `structlog` já está configurado (`logging_setup.py`) mas nunca é chamado em nenhum código de negócio — plugar `logger.warning(...)` nesses pontos e nos parsers.
+5. ~~**Erros de backend engolidos sem log.**~~ **Obsoleto em 2026-09-17**: o `rendering/` inteiro (onde ficavam esses `except Exception` silenciosos) foi removido junto com a troca do export por Pillow para o gerador de Stories em Canvas (ver `PLANEJAMENTO_ATIVIDADES.md`, Fase 3).
 
 ## P1 — completude e robustez
 
