@@ -6,6 +6,24 @@ Custo mensal: R$ 0 (exceto a API da Anthropic do Treinador de IA, opcional). Uso
 
 Documentacao completa (estado, backlog, planejamento): [`docs/`](./docs/). Estado detalhado: [`docs/ESTADO_DO_PROJETO.md`](./docs/ESTADO_DO_PROJETO.md) · Pendencias: [`docs/BACKLOG.md`](./docs/BACKLOG.md)
 
+## Screenshots
+
+| Dashboard | Atividades |
+|---|---|
+| ![Dashboard](docs/screenshots/01-dashboard.png) | ![Atividades](docs/screenshots/02-atividades.png) |
+
+| Detalhe da atividade | Gerador de Stories |
+|---|---|
+| ![Detalhe da atividade](docs/screenshots/03-detalhe-atividade.png) | ![Gerador de Stories](docs/screenshots/04-gerador-stories.png) |
+
+| Carga de treino | Previsoes |
+|---|---|
+| ![Carga de treino](docs/screenshots/05-carga.png) | ![Previsoes](docs/screenshots/06-previsoes.png) |
+
+| Treinador de IA |
+|---|
+| ![Treinador de IA](docs/screenshots/07-coach.png) |
+
 ## Stack
 
 - Backend: FastAPI (Python 3.12) + SQLAlchemy 2.0 + Alembic
@@ -64,7 +82,7 @@ Para rodar cada lado separado (ex.: debugar so a API), use `pnpm dev:api` ou `pn
 
 ## Estrutura
 
-- `apps/api/ondilow_api/` — `routers/`, `parsers/`, `metrics/` (carga, recordes, previsoes), `ai/` (Treinador de IA), `rendering/` (cards/stories/sticker)
+- `apps/api/ondilow_api/` — `routers/`, `parsers/`, `metrics/` (carga, recordes, previsoes), `ai/` (Treinador de IA)
 - `apps/web/app/` — paginas (dashboard, activities, metrics, predictions, coach, equipment, import, profile)
-- `apps/web/components/ui/` — primitivos do design system; `components/dashboard/` — blocos do dashboard
-- `apps/web/lib/` — cliente da API (`api.ts`), formatacao (`utils.ts`), interpretacao de dados do atleta (`athlete.ts`), tokens JS (`theme.ts`)
+- `apps/web/components/ui/` — primitivos do design system; `components/dashboard/` — blocos do dashboard; `components/share/` — gerador de Stories
+- `apps/web/lib/` — cliente da API (`api.ts`), formatacao (`utils.ts`), interpretacao de dados do atleta (`athlete.ts`), tokens JS (`theme.ts`), motor do gerador de Stories (`story/`)
