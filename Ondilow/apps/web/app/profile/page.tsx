@@ -37,6 +37,30 @@ function resizeImageToDataUrl(file: File, size: number): Promise<string> {
   });
 }
 
+/** Igual ao avatar, mas sem recorte quadrado (mantém proporção) e em PNG,
+ * pra preservar transparência — usada nos cards/stories compartilháveis. */
+function resizeLogoToPngDataUrl(file: File, max: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("canvas indisponível")); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("falha ao carregar imagem")); };
+    img.src = objectUrl;
+  });
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -49,6 +73,7 @@ export default function ProfilePage() {
   const [form, setForm] = useState<Profile>({
     full_name: null,
     avatar_data_url: null,
+    logo_data_url: null,
     max_hr: null,
     ftp_watts: null,
     css_pace_s_per_100m: null,
@@ -56,6 +81,7 @@ export default function ProfilePage() {
     resting_hr: null,
   });
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
 
   const [showDanger, setShowDanger] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -105,6 +131,27 @@ export default function ProfilePage() {
       setForm((f) => ({ ...f, avatar_data_url: dataUrl }));
     } catch {
       setAvatarError("Não foi possível processar essa imagem");
+    }
+  }
+
+  async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setLogoError(null);
+    if (file.type !== "image/png") {
+      setLogoError("Selecione um arquivo PNG (com fundo transparente, se quiser)");
+      return;
+    }
+    try {
+      const dataUrl = await resizeLogoToPngDataUrl(file, 512);
+      if (dataUrl.length > 700 * 1024) {
+        setLogoError("Imagem muito grande mesmo após redimensionar — tente um PNG mais simples");
+        return;
+      }
+      setForm((f) => ({ ...f, logo_data_url: dataUrl }));
+    } catch {
+      setLogoError("Não foi possível processar essa imagem");
     }
   }
 
@@ -261,6 +308,47 @@ export default function ProfilePage() {
                 />
               </Field>
             </div>
+          </Panel>
+
+          <Panel>
+            <h2 className="od-label mb-2">Logo para compartilhamento</h2>
+            <p className="mb-5 text-sm text-brand-muted">
+              Aparece nos cards e stories que você exporta das suas atividades. Envie um PNG — de
+              preferência com fundo transparente.
+            </p>
+            <div className="flex items-center gap-4">
+              <div
+                className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-tile"
+                style={{
+                  backgroundImage:
+                    "repeating-conic-gradient(#2a2a2a 0% 25%, #1a1a1a 0% 50%)",
+                  backgroundSize: "12px 12px",
+                  boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)",
+                }}
+              >
+                {form.logo_data_url ? (
+                  <img src={form.logo_data_url} alt="Sua logo" className="max-h-full max-w-full object-contain" />
+                ) : (
+                  <span className="px-2 text-center text-[0.6rem] text-brand-textTertiary">Sem logo</span>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="od-btn od-btn-secondary od-btn-sm w-fit cursor-pointer">
+                  {form.logo_data_url ? "Trocar logo" : "Enviar logo"}
+                  <input type="file" accept="image/png" className="hidden" onChange={handleLogoChange} />
+                </label>
+                {form.logo_data_url && (
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, logo_data_url: null }))}
+                    className="od-btn od-btn-ghost od-btn-sm w-fit"
+                  >
+                    Remover
+                  </button>
+                )}
+              </div>
+            </div>
+            {logoError && <p className="mt-2 text-xs text-brand-danger">{logoError}</p>}
           </Panel>
 
           <Panel>

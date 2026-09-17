@@ -5,7 +5,7 @@ import L from "leaflet";
 import { useEffect, useRef } from "react";
 
 import type { ActivityPoint } from "@/lib/api";
-import { addGlowRoute, DARK_TILES, routeMarker, TILE_ATTRIBUTION } from "@/lib/mapTiles";
+import { addBaseLayer, addGlowRoute, routeMarker } from "@/lib/mapTiles";
 
 interface ActivityMapProps {
   points: ActivityPoint[];
@@ -54,14 +54,14 @@ export function ActivityMap({ points, height = "320px" }: ActivityMapProps) {
       .filter((p) => p.lat != null && p.lon != null)
       .map((p) => [p.lat!, p.lon!] as [number, number]);
 
-    if (coords.length === 0 || !containerRef.current) return;
+    if (coords.length < 2 || !containerRef.current) return;
     if (mapRef.current) return; // já inicializado
 
     const map = L.map(containerRef.current, { zoomControl: true, attributionControl: true, scrollWheelZoom: false });
     map.attributionControl.setPrefix(false);
     mapRef.current = map;
 
-    L.tileLayer(DARK_TILES, { attribution: TILE_ATTRIBUTION, maxZoom: 19 }).addTo(map);
+    addBaseLayer(map, containerRef.current);
 
     const polyline = addGlowRoute(map, coords, "#00FF66", 3.5);
     map.fitBounds(polyline.getBounds(), { padding: [28, 28] });
@@ -80,7 +80,7 @@ export function ActivityMap({ points, height = "320px" }: ActivityMapProps) {
     };
   }, [points]);
 
-  const hasGps = points.some((p) => p.lat != null && p.lon != null);
+  const hasGps = points.filter((p) => p.lat != null && p.lon != null).length >= 2;
 
   if (!hasGps) {
     return <NoGpsPlaceholder height={height} />;

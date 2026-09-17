@@ -5,7 +5,7 @@ import L from "leaflet";
 import { useEffect, useRef } from "react";
 
 import type { ActivityPoint } from "@/lib/api";
-import { addGlowRoute, DARK_TILES_NO_LABELS, routeMarker, TILE_ATTRIBUTION } from "@/lib/mapTiles";
+import { addBaseLayer, addGlowRoute, routeMarker } from "@/lib/mapTiles";
 
 interface ActivityMiniMapProps {
   points: ActivityPoint[];
@@ -41,7 +41,7 @@ export function ActivityMiniMap({ points, height = 96, color = "#00FF66", paddin
     map.attributionControl.setPrefix(false);
     mapRef.current = map;
 
-    L.tileLayer(DARK_TILES_NO_LABELS, { maxZoom: 19, attribution: TILE_ATTRIBUTION }).addTo(map);
+    addBaseLayer(map, containerRef.current, true);
 
     const polyline = addGlowRoute(map, coords, color, 2.5);
     L.marker(coords[0], { icon: routeMarker(color, 7), interactive: false }).addTo(map);

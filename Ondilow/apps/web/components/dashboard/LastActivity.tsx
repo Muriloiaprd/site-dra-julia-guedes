@@ -65,7 +65,7 @@ export function LastActivity({
         </div>
       </div>
 
-      <div className="relative -mt-6 flex flex-1 flex-col px-5 pb-5">
+      <div className="relative z-10 -mt-6 flex flex-1 flex-col px-5 pb-5">
         <div className="flex items-center gap-3">
           <SportTile sport={activity.sport} size={40} radius={12} />
           <div className="min-w-0">

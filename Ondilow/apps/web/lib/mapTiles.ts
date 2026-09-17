@@ -1,14 +1,43 @@
 import L from "leaflet";
 
 /**
- * Tiles escuros (CARTO Dark Matter, sobre dados OpenStreetMap) — gratuitos,
- * sem chave de API, exigem apenas atribuicao. Mantem a identidade escura do
- * Ondilow em vez do OSM claro padrao.
+ * Tiles escuros (Stadia Maps "Alidade Smooth Dark", sobre dados OpenStreetMap).
+ * Gratuitos em localhost sem chave; fora do localhost (ex. IP na rede local),
+ * defina NEXT_PUBLIC_STADIA_API_KEY para nao levar 401/403 do provedor.
+ * O antigo CARTO passou a exigir chave e parou de funcionar sem uma.
  */
-export const DARK_TILES = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-export const DARK_TILES_NO_LABELS = "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png";
+const STADIA_KEY = process.env.NEXT_PUBLIC_STADIA_API_KEY;
+const STADIA_QS = STADIA_KEY ? `?api_key=${STADIA_KEY}` : "";
+
+export const DARK_TILES = `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png${STADIA_QS}`;
+export const DARK_TILES_NO_LABELS = `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png${STADIA_QS}`;
 export const TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> ' +
+  '&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> ' +
+  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OSM</a>';
+
+/** Fallback sem chave nenhuma: OSM padrao (claro), escurecido via filtro CSS (.od-map-osm-dark). */
+export const FALLBACK_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+export const FALLBACK_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>';
+
+/**
+ * Adiciona a camada de tiles com fallback automatico: se o Stadia falhar
+ * (chave invalida, offline, bloqueio), troca para OSM padrao escurecido via
+ * CSS, sem deixar o mapa sem base nenhuma.
+ */
+export function addBaseLayer(map: L.Map, containerEl: HTMLElement, noLabels = false): L.TileLayer {
+  const url = noLabels ? DARK_TILES_NO_LABELS : DARK_TILES;
+  const layer = L.tileLayer(url, { attribution: TILE_ATTRIBUTION, maxZoom: 19 }).addTo(map);
+  layer.once("tileerror", () => {
+    containerEl.classList.add("od-map-osm-dark");
+    layer.setUrl(FALLBACK_TILES);
+    layer.options.attribution = FALLBACK_ATTRIBUTION;
+    map.attributionControl.setPrefix(false);
+    map.attributionControl.addAttribution(FALLBACK_ATTRIBUTION);
+  });
+  return layer;
+}
 
 /** Desenha a rota com um "glow" (polyline larga e translucida por baixo). */
 export function addGlowRoute(map: L.Map, coords: [number, number][], color = "#00FF66", weight = 3): L.Polyline {

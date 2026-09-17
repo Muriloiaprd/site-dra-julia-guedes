@@ -1,14 +1,20 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Sparkline } from "@/components/ui/charts";
-import { TrendBadge } from "@/components/ui/primitives";
+import { Skeleton, TrendBadge } from "@/components/ui/primitives";
 import { SportTile } from "@/components/SportIcon";
 import { pctChange } from "@/lib/athlete";
-import type { ActivitySummary } from "@/lib/api";
+import { fetchActivity, type ActivityDetail, type ActivitySummary } from "@/lib/api";
 import { C } from "@/lib/theme";
 import { formatDistance, formatDuration, formatPace, sportLabel } from "@/lib/utils";
+
+const ActivityMap = dynamic(
+  () => import("@/components/ActivityMap").then((m) => m.ActivityMap),
+  { ssr: false, loading: () => <div className="od-skeleton h-[220px]" /> },
+);
 
 type SparkMetric = "distance" | "duration" | "hr" | "pace" | "elevation";
 
@@ -20,11 +26,15 @@ function metricValue(a: ActivitySummary, metric: SparkMetric): number {
   return a.avg_pace_s_per_km ?? 0;
 }
 
-export function ActivityModal({ activity, activities, onClose }: {
-  activity: ActivitySummary; activities: ActivitySummary[]; onClose: () => void;
+export function ActivityModal({ activity, activities, detail, onClose }: {
+  activity: ActivitySummary; activities: ActivitySummary[]; detail?: ActivityDetail; onClose: () => void;
 }) {
   const idx = activities.findIndex((a) => a.id === activity.id);
   const prev = idx >= 0 ? activities[idx + 1] : undefined;
+
+  const [fetched, setFetched] = useState<ActivityDetail | null>(null);
+  const [loadingMap, setLoadingMap] = useState(!detail);
+  const points = detail?.points ?? fetched?.points;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -33,6 +43,17 @@ export function ActivityModal({ activity, activities, onClose }: {
     document.body.style.overflow = "hidden";
     return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = overflow; };
   }, [onClose]);
+
+  useEffect(() => {
+    if (detail) { setLoadingMap(false); return; }
+    let cancelled = false;
+    setLoadingMap(true);
+    fetchActivity(activity.id)
+      .then((d) => { if (!cancelled) setFetched(d); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoadingMap(false); });
+    return () => { cancelled = true; };
+  }, [activity.id, detail]);
 
   function series(metric: SparkMetric): number[] {
     const start = idx >= 0 ? idx : 0;
@@ -72,6 +93,10 @@ export function ActivityModal({ activity, activities, onClose }: {
             </div>
           </div>
           <button onClick={onClose} className="od-icon-btn !h-8 !w-8 !rounded-full" aria-label="Fechar">✕</button>
+        </div>
+
+        <div className="mb-5">
+          {loadingMap ? <Skeleton className="h-[220px]" /> : <ActivityMap points={points ?? []} height="220px" />}
         </div>
 
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">

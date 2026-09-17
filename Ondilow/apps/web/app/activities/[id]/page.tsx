@@ -17,6 +17,7 @@ import {
 } from "recharts";
 
 import { SportTile } from "@/components/SportIcon";
+import { StoryGenerator } from "@/components/share/StoryGenerator";
 import { ChartTooltipBox, LegendDot } from "@/components/ui/charts";
 import { Alert, Metric, PageContainer, Panel, Skeleton } from "@/components/ui/primitives";
 import {
@@ -25,7 +26,6 @@ import {
   fetchEquipment,
   fetchSplits,
   fetchZones,
-  getToken,
   updateActivity,
   type ActivityDetail,
   type EquipmentItem,
@@ -79,8 +79,7 @@ export default function ActivityPage() {
   const [zones, setZones] = useState<ZoneBucket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [exporting, setExporting] = useState<"card" | "story" | "sticker" | null>(null);
-  const [exportError, setExportError] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ title: "", description: "", sport: "run", equipment_id: "" });
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
@@ -150,31 +149,6 @@ export default function ActivityPage() {
   const hasAlt = activity.elevation_gain_m != null;
   const color = sportColor(activity.sport);
   const dist = distanceParts(activity.distance_m);
-
-  async function handleExport(template: "card" | "story" | "sticker", layout: "route" | "stats" | "full" = "full") {
-    setExporting(template);
-    setExportError(null);
-    try {
-      const token = getToken();
-      const qs = template === "sticker" ? `template=sticker&layout=${layout}` : `template=${template}`;
-      const res = await fetch(`/api/activities/${id}/export?${qs}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) throw new Error("Erro ao gerar imagem");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `ondilow_${template}_${id}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      // antes o erro era silenciado e o botao simplesmente "nao fazia nada"
-      setExportError(e instanceof Error ? e.message : "Não foi possível gerar a imagem");
-    } finally {
-      setExporting(null);
-    }
-  }
 
   function openEdit() {
     setEditForm({
@@ -263,15 +237,8 @@ export default function ActivityPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="mr-1 hidden text-[0.66rem] font-semibold uppercase tracking-[0.14em] text-brand-muted sm:inline">Compartilhar</span>
-            <button onClick={() => handleExport("card")} disabled={exporting !== null} className="od-btn od-btn-ghost od-btn-sm" title="Card 1080x1080">
-              {exporting === "card" ? "Gerando…" : "📷 Card"}
-            </button>
-            <button onClick={() => handleExport("story")} disabled={exporting !== null} className="od-btn od-btn-ghost od-btn-sm" title="Story 1080x1920">
-              {exporting === "story" ? "Gerando…" : "📱 Story"}
-            </button>
-            <button onClick={() => handleExport("sticker", "full")} disabled={exporting !== null} className="od-btn od-btn-secondary od-btn-sm" title="Sticker transparente — sobreponha em qualquer foto">
-              {exporting === "sticker" ? "Gerando…" : "🏷️ Sticker"}
+            <button onClick={() => setSharing(true)} className="od-btn od-btn-secondary od-btn-sm">
+              📤 Compartilhar
             </button>
             <span className="mx-1 hidden h-4 w-px bg-white/10 sm:block" />
             <button onClick={openEdit} disabled={editing} className="od-btn od-btn-ghost od-btn-sm">
@@ -283,7 +250,6 @@ export default function ActivityPage() {
           </div>
         </div>
 
-        {exportError && <div className="relative mt-4"><Alert tone="danger" title="Falha ao exportar">{exportError}</Alert></div>}
         {deleteError && <div className="relative mt-4"><Alert tone="danger" title="Falha ao excluir">{deleteError}</Alert></div>}
 
         {editing && (
@@ -537,6 +503,8 @@ export default function ActivityPage() {
           </Panel>
         )}
       </div>
+
+      {sharing && <StoryGenerator activity={activity} onClose={() => setSharing(false)} />}
     </PageContainer>
   );
 }

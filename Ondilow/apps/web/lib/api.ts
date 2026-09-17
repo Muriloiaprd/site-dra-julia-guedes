@@ -134,6 +134,7 @@ export interface PersonalRecord {
 export interface Profile {
   full_name: string | null;
   avatar_data_url: string | null;
+  logo_data_url: string | null;
   max_hr: number | null;
   ftp_watts: number | null;
   css_pace_s_per_100m: number | null;

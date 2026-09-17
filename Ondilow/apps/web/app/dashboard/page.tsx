@@ -223,7 +223,12 @@ export default function DashboardPage() {
       </div>
 
       {modalActivity && (
-        <ActivityModal activity={modalActivity} activities={activities} onClose={() => setModalActivity(null)} />
+        <ActivityModal
+          activity={modalActivity}
+          activities={activities}
+          detail={recentDetails[modalActivity.id]}
+          onClose={() => setModalActivity(null)}
+        />
       )}
     </PageContainer>
   );

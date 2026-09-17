@@ -16,7 +16,6 @@ from ondilow_api.routers import (
     auth,
     coach,
     equipment,
-    exports,
     metrics,
     predictions,
     profile,
@@ -28,7 +27,7 @@ log = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging()
-    for sub in ("uploads", "exports", "logs"):
+    for sub in ("uploads", "logs"):
         (settings.data_path / sub).mkdir(parents=True, exist_ok=True)
     yield
 
@@ -52,7 +51,6 @@ app.include_router(activities.router)
 app.include_router(profile.router)
 app.include_router(metrics.router)
 app.include_router(predictions.router)
-app.include_router(exports.router)
 app.include_router(equipment.router)
 app.include_router(coach.router)
 
