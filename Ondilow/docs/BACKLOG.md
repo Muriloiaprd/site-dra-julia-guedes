@@ -8,17 +8,16 @@ Consolidado em 2026-09-10 a partir de uma auditoria completa (histórico de comm
 
 ## P0 — corrige coisas erradas/enganosas (baixo esforço, alto valor de confiança)
 
-1. ~~**Dashboard mostra dado falso como se fosse real — "Próximos Treinos".**~~ **Resolvido em 2026-09-11**: o array hardcoded (`i % length`) foi substituído por dados reais do Treinador de IA (`GET /coach/plan`, ver `ESTADO_DO_PROJETO.md`). **"Meta Principal"**: no redesign de 2026-09-11 virou um CTA honesto ("Defina seu próximo desafio") que mostra o potencial real atual (previsões VDOT/Riegel de 5K–42K), sem simular progresso. **A feature de meta/prova-alvo em si continua pendente** (sem modelo/endpoint no backend).
+1. ~~**Dashboard mostra dado falso como se fosse real — "Próximos Treinos".**~~ **Resolvido em 2026-09-11**: o array hardcoded (`i % length`) foi substituído por dados reais do Treinador de IA (`GET /coach/plan`, ver `ESTADO_DO_PROJETO.md`). **"Meta Principal"**: no redesign de 2026-09-11 virou um CTA honesto ("Defina seu próximo desafio") que mostra o potencial real atual (previsões VDOT/Riegel de 5K–42K), sem simular progresso. A feature de meta/prova-alvo em si (modelo/endpoint no backend) foi descartada por decisão do usuário em 2026-09-15, ver `PLANEJAMENTO.md`.
 2. ~~**Prontidão do atleta é arbitrária.**~~ **Resolvido em 2026-09-11 (redesign)**: `computeReadiness()` em `apps/web/lib/athlete.ts` deriva do TSB real (`/metrics/load`) com penalidade por ACWR > 1.3. Os baldes fixos por tipo de recomendação ficaram só como fallback quando não há métricas de carga; sem nenhum dado, não mostra número.
-3. **Erro de API confundido com "sem dados".** ~~Dashboard~~ **resolvido no redesign**: `load()` agora tem estado de sincronização (`loading/ok/error`), banner com "Tentar de novo" e indicador "Falha na sincronização" no header. **Pendente:** `profile/page.tsx` — qualquer erro (não só 401) ainda redireciona pra `/login`, mascarando falha de rede como sessão expirada.
+3. ~~**Erro de API confundido com "sem dados".**~~ **Resolvido**: `load()` do dashboard tem estado de sincronização (`loading/ok/error`), banner com "Tentar de novo" e indicador "Falha na sincronização" no header. `profile/page.tsx` também corrigido (`PLANEJAMENTO.md`, Fase 1): sem token vai pro login, com token mas falha de rede mostra banner "Tentar de novo" sem deslogar.
 4. ~~**Export de card/story falha em silêncio.**~~ **Resolvido em 2026-09-11 (redesign)**: `activities/[id]/page.tsx` mostra um alerta "Falha ao exportar" com a mensagem de erro.
 5. ~~**Erros de backend engolidos sem log.**~~ **Obsoleto em 2026-09-17**: o `rendering/` inteiro (onde ficavam esses `except Exception` silenciosos) foi removido junto com a troca do export por Pillow para o gerador de Stories em Canvas (ver `PLANEJAMENTO_ATIVIDADES.md`, Fase 3).
 
 ## P1 — completude e robustez
 
 6. ~~**Atividade não pode ser editada nem excluída.**~~ **Resolvido em 2026-09-15**: `PATCH`/`DELETE /activities/{id}` em `routers/activities.py`, com botões em `activities/page.tsx` e `activities/[id]/page.tsx`. Ver `PLANEJAMENTO.md`, Fase 4.
-7. **Sem rate limiting no login.** `/auth/login` aceita tentativas ilimitadas. Barato de adicionar (ex. `slowapi`), vale fazer mesmo em uso local, antes de qualquer exposição futura.
-8. **Buracos de teste em lógica de negócio sensível.** Zero teste para `metrics/load.py` (CTL/ATL/TSB/ACWR), `metrics/records.py` (PRs), `metrics/predictions.py` (Riegel/VDOT/risco), e para `import_activity()`/dedup real (`import_service.py`) — hoje só helpers puros são testados. Falta fixture e teste de `.fit` (formato mais comum, nunca testado). Sem teste de rota HTTP nenhuma, apesar de `httpx`/`pytest-asyncio` já instalados.
+7. ~~**Sem rate limiting no login.**~~ **Resolvido**: `ondilow_api/rate_limit.py` (`slowapi.Limiter`), integrado em `main.py` e `routers/auth.py`. Ver `PLANEJAMENTO.md`, Fase 2.
 9. ~~**`/metrics` fica em branco sem atividades.**~~ **Resolvido em 2026-09-11 (redesign)**: estado vazio explicativo com CTA para importar, e estado vazio próprio no heatmap.
 10. ~~**Equipamento não soma distância real.**~~ **Resolvido em 2026-09-15**: coluna `equipment_id` em `activities` (migration `009_activity_equipment`), `total_distance_m` agora soma `initial_distance_m` + `SUM(distance_m)` das atividades vinculadas não excluídas, com seletor de equipamento no formulário de edição da atividade. Ver `PLANEJAMENTO.md`, Fase 5.
 
@@ -28,9 +27,10 @@ Consolidado em 2026-09-10 a partir de uma auditoria completa (histórico de comm
 12. **Sem PWA** (manifest, ícone, add-to-homescreen) — mesma condição do item 11.
 13. **Sem deploy público.** Hoje 100% local, só o Postgres é remoto (Neon). Só relevante se decidir acessar fora de casa.
 14. **Perfil incompleto.** Sem unidades (km/mi), fuso horário, zonas de FC customizáveis manualmente, exportar todos os dados, trocar senha, deletar conta.
-15. **Sem CI.** Nenhum GitHub Actions rodando lint/teste/build a cada commit. (Também não há config de ESLint em `apps/web` — `next lint` abriria o assistente interativo.)
 16. **Acessibilidade.** *Parcial no redesign:* botões só-ícone ganharam `aria-label`, textos auxiliares subiram de 8–9px para ≥ 9.6px (a maioria 11–13px), tons de cinza passaram a tokens (`textTertiary` #6E6E6E, `muted` #888) e há suporte a `prefers-reduced-motion`. Falta uma passada de contraste AA nos rótulos de 9.6px e navegação por teclado nos gráficos.
 17. **Integração Garmin/Strava via MCP** (retomar a Parte 1 do plano de sync). O endpoint `import-normalized` e o enum `strava_api` já foram preparados especificamente pra isso, mas a instalação dos MCP servers (`garmin_mcp`, MCP do Strava) ainda não foi feita.
+
+**Descartados por decisão do usuário em 2026-09-15** (ver `PLANEJAMENTO.md`): infra de testes (buracos de teste em `metrics/load.py`, `metrics/records.py`, `metrics/predictions.py`, `import_service.py`), CI (GitHub Actions), feature de meta/prova-alvo, Strava OAuth direto. Não são pendências — foi escolha de escopo, não voltar a sugerir.
 
 ---
 
