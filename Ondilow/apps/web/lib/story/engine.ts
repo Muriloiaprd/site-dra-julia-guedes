@@ -18,20 +18,23 @@ let fontsPromise: Promise<void> | null = null;
 /**
  * Carrega as fontes usadas no gerador de Stories, auto-hospedadas via
  * FontFace API. Montserrat (700/800/900) é a fonte dos títulos e valores,
- * igual ao que o usuário usou no Canva. Caladea substitui a Cambria (fonte
- * da Microsoft, sem licença de redistribuição web) — métrica compatível,
- * então o texto ocupa exatamente o mesmo espaço. Poppins fica só pra outras
- * partes do app (dashboard, etc.), não é usada aqui. Idempotente.
+ * igual ao que o usuário usou no Canva. O modelo "Stats à direita" usa Inter
+ * (fonte variável, único arquivo cobrindo os pesos 700–900) — o usuário
+ * confirmou que o Canva usou "Canva Sans" nesse modelo, que é proprietária da
+ * Canva e não pode ser redistribuída; Inter é a aproximação livre mais
+ * próxima (grotesque geométrica, mesma família de peso usada por várias
+ * ferramentas de design). Poppins fica só pra outras partes do app
+ * (dashboard, etc.), não é usada aqui. Idempotente.
  */
 export function loadStoryFonts(): Promise<void> {
   if (fontsPromise) return fontsPromise;
   fontsPromise = (async () => {
     if (typeof document === "undefined" || typeof FontFace === "undefined") return;
-    const specs: [string, string, string][] = [
+    const specs: [string, string, string, string?][] = [
       ["Montserrat", "700", "/fonts/Montserrat-700.woff2"],
       ["Montserrat", "800", "/fonts/Montserrat-800.woff2"],
       ["Montserrat", "900", "/fonts/Montserrat-900.woff2"],
-      ["Caladea", "700", "/fonts/Caladea-700.woff2"],
+      ["Inter", "700 900", "/fonts/Inter-Variable.woff2"],
     ];
     await Promise.all(
       specs.map(async ([family, weight, url]) => {

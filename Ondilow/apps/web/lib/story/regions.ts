@@ -5,7 +5,9 @@
  *
  * Os tamanhos de fonte não são chute: cada `size` foi derivado da altura real
  * do glifo na arte dividida pela razão altura/em da fonte carregada
- * (Montserrat ~0.70 para dígitos e ~0.72 para caixa alta; Caladea ~0.67/0.69).
+ * (Montserrat ~0.70 para dígitos e ~0.72 para caixa alta). O bloco
+ * `STATS_DIREITA` usa Inter (ver `layouts/statsDireita.ts`) — a fonte real do
+ * Canva ali é "Canva Sans", proprietária e não redistribuível.
  *
  * `logoHiRes` é onde a logo de alta resolução (`/story-art/logo.png`, 1366x768,
  * o arquivo original do usuário) é desenhada por cima da logo embutida na arte,

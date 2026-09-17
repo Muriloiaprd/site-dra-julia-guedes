@@ -14,8 +14,9 @@ const HARD_SHADOW = {
 
 /**
  * Modelo "17" do usuário: blocos rótulo+valor alinhados à direita no topo, rota
- * na base, logo centralizada. Cambria no Canva — usamos Caladea (substituta
- * métrica livre) auto-hospedada.
+ * na base, logo centralizada. "Canva Sans" no Canva (fonte proprietária, sem
+ * licença de redistribuição web) — usamos Inter, a aproximação livre mais
+ * próxima, auto-hospedada.
  */
 export const statsDireita: StoryLayout = {
   id: "stats-direita",
@@ -50,15 +51,16 @@ export const statsDireita: StoryLayout = {
     R.blocks.forEach((block, i) => {
       const metric = metricByKey(data.metrics, KEYS[i]);
       if (!metric) return;
-      const serif = (s: number) => `700 ${s}px 'Caladea', 'Cambria', serif`;
+      const labelFont = (s: number) => `700 ${s}px 'Inter', sans-serif`;
+      const valueFont = (s: number) => `800 ${s}px 'Inter', sans-serif`;
       const value = metric.value + (metric.unit ? ` ${metric.unit}` : "");
       textWithShadow(ctx, metric.label, R.right, block.label.y, {
-        font: serif(fitFontSize(ctx, metric.label, serif, R.maxW, block.label.size, 48)),
+        font: labelFont(fitFontSize(ctx, metric.label, labelFont, R.maxW, block.label.size, 48)),
         align: "right",
         ...HARD_SHADOW,
       });
       textWithShadow(ctx, value, R.right, block.value.y, {
-        font: serif(fitFontSize(ctx, value, serif, R.maxW, block.value.size, 70)),
+        font: valueFont(fitFontSize(ctx, value, valueFont, R.maxW, block.value.size, 70)),
         align: "right",
         ...HARD_SHADOW,
       });
