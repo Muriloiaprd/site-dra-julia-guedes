@@ -113,7 +113,9 @@ Boa notícia: **provavelmente não precisa de migration nenhuma.** `hr_zones` j�
 
 ---
 
-## Fase 4 — Perfil, frontend
+## Fase 4 — Perfil, frontend — CONCLUÍDA
+
+**Verificado ao vivo** (conta `teste@teste.com`): editor de zonas de FC testado de ponta a ponta — ativa preenchido com os valores calculados de `default_hr_zones` (max_hr=192 → Z1 até 115, Z2 134, Z3 154, Z4 173, Z5 194, batendo com o backend), editei Z2 para 130, salvei, recarreguei a página e confirmei que persistiu no servidor (não só no estado local); desativado, o editor some e volta ao cálculo automático. Troca de senha: senha atual errada mostra "Senha atual incorreta" (401 tratado); senha nova com menos de 8 caracteres bloqueada no cliente antes de bater na API; fluxo completo funcionou e a senha da conta de teste foi trocada de `teste` para `teste1234` (documentado na memória). Exportar dados: gerou e baixou o arquivo sem erro (o `GET /profile/export` já tinha sido validado na Fase 3). Excluir conta: testado o gate de confirmação (botão desabilitado com e-mail errado digitado), cancelado antes de completar — não apaguei a conta de teste de propósito. Sem erros novos no console; `npx tsc --noEmit` limpo.
 
 UI para os quatro endpoints da Fase 3, em `app/profile/page.tsx`.
 

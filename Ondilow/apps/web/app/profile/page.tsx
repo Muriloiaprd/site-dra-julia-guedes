@@ -5,15 +5,46 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Alert, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
 import {
+  changePassword,
+  clearToken,
+  deleteAccount,
   deleteAllActivities,
+  exportData,
   fetchMe,
   fetchProfile,
   getToken,
   updateProfile,
+  type HrZones,
   type Profile,
 } from "@/lib/api";
 
 const DELETE_CONFIRM_WORD = "EXCLUIR";
+
+/** Faixas padrao por %FCmax (Z1<60, Z2 60-70, Z3 70-80, Z4 80-90, Z5>90) —
+ * mesmas de metrics/basic.py::default_hr_zones, usadas como ponto de partida
+ * ao personalizar zonas manualmente. */
+function defaultHrZones(maxHr: number): HrZones {
+  const edges = [0, 0.6, 0.7, 0.8, 0.9, 1.01];
+  const bounds = edges.map((e) => Math.round(maxHr * e));
+  return {
+    z1: [bounds[0], bounds[1]],
+    z2: [bounds[1], bounds[2]],
+    z3: [bounds[2], bounds[3]],
+    z4: [bounds[3], bounds[4]],
+    z5: [bounds[4], bounds[5]],
+  };
+}
+
+function zonesFromUpperBounds(upper: number[]): HrZones {
+  const b = [0, ...upper];
+  return {
+    z1: [b[0], b[1]],
+    z2: [b[1], b[2]],
+    z3: [b[2], b[3]],
+    z4: [b[3], b[4]],
+    z5: [b[4], b[5]],
+  };
+}
 
 function resizeImageToDataUrl(file: File, size: number): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -74,11 +105,16 @@ export default function ProfilePage() {
     full_name: null,
     avatar_data_url: null,
     logo_data_url: null,
+    dob: null,
+    sex: null,
+    height_cm: null,
     max_hr: null,
+    hr_zones: null,
     ftp_watts: null,
     css_pace_s_per_100m: null,
     weight_kg: null,
     resting_hr: null,
+    vo2max_estimated: null,
   });
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
@@ -88,6 +124,21 @@ export default function ProfilePage() {
   const [clearing, setClearing] = useState(false);
   const [clearError, setClearError] = useState<string | null>(null);
   const [clearResult, setClearResult] = useState<number | null>(null);
+
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwSaved, setPwSaved] = useState(false);
+
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deleteAccountConfirm, setDeleteAccountConfirm] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setAuthError(false);
@@ -171,6 +222,76 @@ export default function ProfilePage() {
     }
   }
 
+  function handleToggleCustomZones(enabled: boolean) {
+    setForm((f) => ({
+      ...f,
+      hr_zones: enabled ? f.hr_zones ?? defaultHrZones(f.max_hr ?? 190) : null,
+    }));
+  }
+
+  function handleZoneBoundChange(index: number, raw: string) {
+    const val = Number(raw);
+    setForm((f) => {
+      if (!f.hr_zones || raw === "" || Number.isNaN(val)) return f;
+      const upper = [f.hr_zones.z1[1], f.hr_zones.z2[1], f.hr_zones.z3[1], f.hr_zones.z4[1], f.hr_zones.z5[1]];
+      upper[index] = val;
+      return { ...f, hr_zones: zonesFromUpperBounds(upper) };
+    });
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPwError(null);
+    setPwSaved(false);
+    if (pwNew !== pwConfirm) {
+      setPwError("A confirmação não bate com a nova senha");
+      return;
+    }
+    if (pwNew.length < 8) {
+      setPwError("A nova senha precisa ter pelo menos 8 caracteres");
+      return;
+    }
+    setPwSaving(true);
+    try {
+      await changePassword(pwCurrent, pwNew);
+      setPwSaved(true);
+      setPwCurrent("");
+      setPwNew("");
+      setPwConfirm("");
+      setTimeout(() => setPwSaved(false), 4000);
+    } catch (err: unknown) {
+      setPwError(err instanceof Error ? err.message : "Erro ao trocar a senha");
+    } finally {
+      setPwSaving(false);
+    }
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    setExportError(null);
+    try {
+      await exportData();
+    } catch (err: unknown) {
+      setExportError(err instanceof Error ? err.message : "Erro ao exportar os dados");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteAccountConfirm !== email) return;
+    setDeletingAccount(true);
+    setDeleteAccountError(null);
+    try {
+      await deleteAccount();
+      clearToken();
+      router.push("/login");
+    } catch (err: unknown) {
+      setDeleteAccountError(err instanceof Error ? err.message : "Erro ao excluir a conta");
+      setDeletingAccount(false);
+    }
+  }
+
   async function handleClearActivities() {
     if (confirmText !== DELETE_CONFIRM_WORD) return;
     setClearing(true);
@@ -212,8 +333,14 @@ export default function ProfilePage() {
     );
   }
 
-  // mesmas faixas de metrics/basic.py::default_hr_zones (Z1 <60%, ..., Z5 >90% da FC max)
-  const zones = form.max_hr
+  // Zonas customizadas (form.hr_zones) tem prioridade; sem isso, mesmas faixas
+  // de metrics/basic.py::default_hr_zones (Z1 <60%, ..., Z5 >90% da FC max).
+  const zones = form.hr_zones
+    ? (["z1", "z2", "z3", "z4", "z5"] as const).map((k, i) => {
+        const [from, to] = form.hr_zones![k];
+        return { z: i + 1, range: i === 0 ? `<${to}` : i === 4 ? `>${from}` : `${from}–${to}` };
+      })
+    : form.max_hr
     ? [0, 0.6, 0.7, 0.8, 0.9].map((lo, i, arr) => {
         const from = Math.round(form.max_hr! * lo);
         const to = Math.round(form.max_hr! * (arr[i + 1] ?? 1));
@@ -396,6 +523,35 @@ export default function ProfilePage() {
                 />
               </Field>
             </div>
+
+            <div className="mt-5 border-t border-white/5 pt-5">
+              <button
+                type="button"
+                onClick={() => handleToggleCustomZones(form.hr_zones == null)}
+                className={`od-btn od-btn-sm ${form.hr_zones ? "od-btn-secondary" : "od-btn-ghost"}`}
+              >
+                {form.hr_zones ? "✓ " : ""}Personalizar zonas de FC manualmente
+              </button>
+              <p className="mt-2 text-xs text-brand-muted">
+                Sem isso, as zonas são calculadas automaticamente a partir da FC máxima
+                (Z1 &lt;60%, Z2 60–70%, Z3 70–80%, Z4 80–90%, Z5 &gt;90%).
+              </p>
+
+              {form.hr_zones && (
+                <div className="mt-4 grid grid-cols-5 gap-2">
+                  {(["z1", "z2", "z3", "z4", "z5"] as const).map((k, i) => (
+                    <Field key={k} label={`Z${i + 1} até`}>
+                      <input
+                        type="number"
+                        value={form.hr_zones![k][1]}
+                        onChange={(e) => handleZoneBoundChange(i, e.target.value)}
+                        className="od-input"
+                      />
+                    </Field>
+                  ))}
+                </div>
+              )}
+            </div>
           </Panel>
 
           {error && <Alert tone="danger">{error}</Alert>}
@@ -408,6 +564,69 @@ export default function ProfilePage() {
           </div>
         </div>
       </form>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Panel>
+          <h2 className="od-label mb-5">Trocar senha</h2>
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <Field label="Senha atual">
+              <input
+                type="password"
+                value={pwCurrent}
+                onChange={(e) => setPwCurrent(e.target.value)}
+                className="od-input"
+                autoComplete="current-password"
+                required
+              />
+            </Field>
+            <Field label="Nova senha">
+              <input
+                type="password"
+                value={pwNew}
+                onChange={(e) => setPwNew(e.target.value)}
+                className="od-input"
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+            </Field>
+            <Field label="Confirmar nova senha">
+              <input
+                type="password"
+                value={pwConfirm}
+                onChange={(e) => setPwConfirm(e.target.value)}
+                className="od-input"
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+            </Field>
+            {pwError && <p className="text-xs text-brand-danger">{pwError}</p>}
+            <p className="text-xs text-brand-textTertiary">
+              Isso não desconecta outros aparelhos já logados — a sessão antiga continua
+              valendo até expirar (até 7 dias).
+            </p>
+            <div className="flex items-center gap-4">
+              <button type="submit" disabled={pwSaving} className="od-btn od-btn-secondary">
+                {pwSaving ? "Trocando…" : "Trocar senha"}
+              </button>
+              {pwSaved && <span className="animate-od-fade-up text-sm font-medium text-brand-success">✓ Senha alterada!</span>}
+            </div>
+          </form>
+        </Panel>
+
+        <Panel>
+          <h2 className="od-label mb-2">Dados e privacidade</h2>
+          <p className="mb-5 text-sm text-brand-muted">
+            Baixe uma cópia de todos os seus dados — perfil, equipamentos, recordes e atividades
+            (com rotas GPS e voltas) — em um único arquivo JSON.
+          </p>
+          {exportError && <p className="mb-3 text-xs text-brand-danger">{exportError}</p>}
+          <button type="button" onClick={handleExport} disabled={exporting} className="od-btn od-btn-secondary">
+            {exporting ? "Gerando arquivo…" : "Exportar meus dados"}
+          </button>
+        </Panel>
+      </div>
 
       <section className="mt-8 rounded-card p-5 sm:p-6" style={{ background: "rgba(248,81,73,0.035)", boxShadow: "inset 0 0 0 1px rgba(248,81,73,0.25)" }}>
         <h2 className="mb-2 text-[0.6875rem] font-bold uppercase tracking-[0.16em] text-brand-danger">Zona de perigo</h2>
@@ -466,6 +685,59 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        <div className="mt-6 border-t border-white/5 pt-6">
+          <h3 className="mb-2 text-sm font-bold text-brand-danger">Excluir conta</h3>
+          <p className="mb-4 max-w-2xl text-sm text-brand-muted">
+            Apaga permanentemente sua conta e todos os seus dados — perfil, atividades, recordes,
+            métricas, equipamentos e histórico com o treinador. <strong className="text-brand-danger">Não pode ser desfeito.</strong>
+          </p>
+
+          {deleteAccountError && (
+            <p className="mb-4 text-sm text-brand-danger">{deleteAccountError}</p>
+          )}
+
+          {!showDeleteAccount ? (
+            <button
+              type="button"
+              onClick={() => { setShowDeleteAccount(true); setDeleteAccountError(null); }}
+              className="od-btn od-btn-danger"
+            >
+              Excluir minha conta
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-brand-text">
+                Pra confirmar, digite seu e-mail (<strong>{email}</strong>) abaixo:
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="text"
+                  value={deleteAccountConfirm}
+                  onChange={(e) => setDeleteAccountConfirm(e.target.value)}
+                  placeholder={email ?? ""}
+                  className="od-input max-w-[280px]"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={deleteAccountConfirm !== email || deletingAccount}
+                  className="od-btn od-btn-danger-solid"
+                >
+                  {deletingAccount ? "Excluindo…" : "Excluir conta, sem volta"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowDeleteAccount(false); setDeleteAccountConfirm(""); }}
+                  className="od-btn od-btn-ghost"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </section>
     </PageContainer>
   );

@@ -131,15 +131,28 @@ export interface PersonalRecord {
   activity_id: string | null;
 }
 
+export interface HrZones {
+  z1: [number, number];
+  z2: [number, number];
+  z3: [number, number];
+  z4: [number, number];
+  z5: [number, number];
+}
+
 export interface Profile {
   full_name: string | null;
   avatar_data_url: string | null;
   logo_data_url: string | null;
+  dob: string | null;
+  sex: string | null;
+  height_cm: number | null;
   max_hr: number | null;
+  hr_zones: HrZones | null;
   ftp_watts: number | null;
   css_pace_s_per_100m: number | null;
   weight_kg: number | null;
   resting_hr: number | null;
+  vo2max_estimated: number | null;
 }
 
 // ---------- helper de fetch ----------
@@ -504,6 +517,55 @@ export async function fetchCoachHistory(): Promise<CoachChatMessage[]> {
 
 export async function deleteAllActivities(): Promise<{ deleted: number }> {
   return apiFetch<{ deleted: number }>("/activities", { method: "DELETE" });
+}
+
+// ---------- conta ----------
+
+async function voidFetch(path: string, options: RequestInit): Promise<void> {
+  const token = getToken();
+  const headers: Record<string, string> = { ...(options.headers as Record<string, string>) };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`/api${path}`, { ...options, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || `Erro ${res.status}`);
+  }
+  // 204 No Content — sem corpo pra ler.
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  return voidFetch("/auth/change-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
+}
+
+export async function deleteAccount(): Promise<void> {
+  return voidFetch("/auth/account", { method: "DELETE" });
+}
+
+/** Baixa todos os dados do usuario em JSON e dispara o download no navegador. */
+export async function exportData(): Promise<void> {
+  const token = getToken();
+  const res = await fetch("/api/profile/export", {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || `Erro ${res.status}`);
+  }
+  const blob = await res.blob();
+  const filename = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1]
+    ?? "ondilow_export.json";
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // ---------- upload ----------
