@@ -1,4 +1,4 @@
-import { buildArtLayer } from "../art";
+import { buildArtLayer, clearedBox } from "../art";
 import { drawCoverImage, drawRoute, drawScrim, fitFontSize, projectRoute, STORY_H, STORY_W, textWithShadow } from "../engine";
 import { metricByKey } from "../metrics";
 import { STATS_DIREITA as R } from "../regions";
@@ -41,8 +41,8 @@ export const statsDireita: StoryLayout = {
     );
     ctx.drawImage(base, 0, 0);
 
-    const coords = projectRoute(data.routePoints, R.route);
-    if (coords) drawRoute(ctx, coords, { color: data.color, lineWidth: 7 });
+    const coords = projectRoute(data.routePoints, R.routePlot);
+    if (coords) drawRoute(ctx, coords, { color: data.color, lineWidth: 7, clip: clearedBox(R.route) });
 
     if (data.logo) {
       ctx.drawImage(data.logo, R.logoHiRes.x, R.logoHiRes.y, R.logoHiRes.w, R.logoHiRes.h);

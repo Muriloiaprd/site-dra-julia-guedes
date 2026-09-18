@@ -74,10 +74,12 @@ export function drawCoverImage(
 }
 
 /**
- * Projeta pontos lat/lon numa caixa de pixels. Porta de
- * `apps/api/ondilow_api/rendering/sticker.py::render_route_polyline` —
- * projeção equirretangular com correção de cosseno da latitude, mesma margem
- * de 8%. Mantém sincronizado se o Python mudar.
+ * Projeta pontos lat/lon numa caixa de pixels: projeção equirretangular com
+ * correção de cosseno da latitude, escala uniforme (preserva o aspecto) e
+ * margem de 8% garantida em cada eixo. Os vértices nunca saem de `box` — quem
+ * pode sangrar para fora é só a tinta de `drawRoute` (linha + glow), por isso
+ * o `box` passado aqui deve já vir encolhido o suficiente para essa margem de
+ * tinta (ver `clip` em `drawRoute` como rede de segurança).
  */
 export function projectRoute(
   points: { lat: number; lon: number }[],
@@ -122,10 +124,10 @@ export function projectRoute(
 export function drawRoute(
   ctx: CanvasRenderingContext2D,
   coords: [number, number][],
-  opts: { color?: string; lineWidth?: number } = {}
+  opts: { color?: string; lineWidth?: number; clip?: Box } = {}
 ): void {
   if (coords.length < 2) return;
-  const { color = "#C6FF00", lineWidth = 9 } = opts;
+  const { color = "#C6FF00", lineWidth = 9, clip } = opts;
 
   const tracePath = () => {
     ctx.beginPath();
@@ -134,6 +136,18 @@ export function drawRoute(
   };
 
   ctx.save();
+  /**
+   * Rede de segurança, não o mecanismo principal: em operação normal a tinta
+   * (linha + glow) já cabe com folga dentro de `clip` — ver `routePlot` em
+   * `regions.ts`, dimensionado pra isso. Se algum dia isso deixar de valer
+   * (caixa re-alargada, linha mais grossa), o corte aparece como uma aresta
+   * reta no glow — sintoma óbvio, não um vazamento silencioso sobre a arte.
+   */
+  if (clip) {
+    ctx.beginPath();
+    ctx.rect(clip.x, clip.y, clip.w, clip.h);
+    ctx.clip();
+  }
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.strokeStyle = color;

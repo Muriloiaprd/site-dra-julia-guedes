@@ -12,6 +12,14 @@ import type { Box } from "./engine";
 /** Cor nativa da arte (o lima do Canva). Esportes com essa cor saem em identidade — pixel a pixel iguais ao PNG. */
 export const ART_NATIVE_COLOR = "#C6FF00";
 
+/** Quanto o modo "clear" de `buildArtLayer` infla cada retângulo apagado, em px. */
+export const ART_CLEAR_PAD = 6;
+
+/** A área realmente apagada da arte por um retângulo `box` (inflada por `ART_CLEAR_PAD`). Útil como caixa de `clip` para o que é desenhado por cima. */
+export function clearedBox(box: Box, pad: number = ART_CLEAR_PAD): Box {
+  return { x: box.x - pad, y: box.y - pad, w: box.w + pad * 2, h: box.h + pad * 2 };
+}
+
 /**
  * Cor do Story por esporte. Corrida (e esteira) usa a cor nativa da arte: os
  * modelos do Canva foram desenhados em cima de uma corrida, então manter o lima
@@ -103,7 +111,8 @@ export function buildArtLayer(
   /** Regiões que o recolor não pode tocar (a logo) — restauradas da arte original depois da LUT. */
   noTint: Box[] = []
 ): HTMLCanvasElement {
-  const key = `${src}|${regions.mode}|${regions.rects.map((r) => `${r.x},${r.y},${r.w},${r.h}`).join(";")}|${color}`;
+  const rectsKey = (rects: Box[]) => rects.map((r) => `${r.x},${r.y},${r.w},${r.h}`).join(";");
+  const key = `${src}|${regions.mode}|${rectsKey(regions.rects)}|${color}|${rectsKey(noTint)}`;
   const hit = layerCache.get(key);
   if (hit) return hit;
 
@@ -113,7 +122,6 @@ export function buildArtLayer(
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return canvas;
 
-  const PAD = 6;
   if (regions.mode === "keep") {
     for (const r of regions.rects) {
       ctx.drawImage(img, r.x, r.y, r.w, r.h, r.x, r.y, r.w, r.h);
@@ -121,7 +129,8 @@ export function buildArtLayer(
   } else {
     ctx.drawImage(img, 0, 0);
     for (const r of regions.rects) {
-      ctx.clearRect(r.x - PAD, r.y - PAD, r.w + PAD * 2, r.h + PAD * 2);
+      const c = clearedBox(r);
+      ctx.clearRect(c.x, c.y, c.w, c.h);
     }
   }
 

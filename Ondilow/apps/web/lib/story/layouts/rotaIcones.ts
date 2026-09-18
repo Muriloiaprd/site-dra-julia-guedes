@@ -1,4 +1,4 @@
-import { buildArtLayer } from "../art";
+import { buildArtLayer, clearedBox } from "../art";
 import { drawCoverImage, drawRoute, drawScrim, projectRoute, STORY_H, STORY_W, textWithShadow } from "../engine";
 import { metricByKey } from "../metrics";
 import { ROTA_ICONES as R } from "../regions";
@@ -35,8 +35,8 @@ export const rotaIcones: StoryLayout = {
     );
     ctx.drawImage(base, 0, 0);
 
-    const coords = projectRoute(data.routePoints, R.route);
-    if (coords) drawRoute(ctx, coords, { color: data.color });
+    const coords = projectRoute(data.routePoints, R.routePlot);
+    if (coords) drawRoute(ctx, coords, { color: data.color, clip: clearedBox(R.route) });
 
     const icons = buildArtLayer(data.art, `${R.art}#icons`, { mode: "keep", rects: R.icons }, data.color);
     ctx.drawImage(icons, 0, 0);

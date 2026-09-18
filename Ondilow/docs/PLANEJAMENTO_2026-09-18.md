@@ -31,7 +31,9 @@ Três achados que alteraram decisões:
 
 ---
 
-## Fase 1 — Rota dos Stories
+## Fase 1 — Rota dos Stories — CONCLUÍDA
+
+**Verificado ao vivo** (conta `teste@teste.com`): testei nos 3 layouts com rota, usando a atividade de ciclismo de 45,01km (a rota mais "landscape" disponível na base, ratio de span longitude/latitude 1,52 — a que mais se aproxima do pior caso da conta, já que não existe uma atividade real de ida-e-volta em avenida reta). Medi os pixels do canvas via `getImageData`, excluindo explicitamente os retângulos dos ícones para não confundir a cor deles com a tinta da rota: a tinta da rota parou em x=528, com **46px de folga** antes da coluna de ícones (x=574) — sem nenhuma invasão. Testei também "Rota + faixa" e "Stats à direita" na mesma atividade (sem mudança visível, como esperado, já que `routePlot` neles é igual a `route`), e o toggle "Fundo transparente" no `rota-icones` (glow correto sobre alfa 0, ícones e rota sem sobreposição). Sem erros no console. `npx tsc --noEmit` limpo.
 
 O problema: em `regions.ts`, a constante `route` acumula dois papéis conflitantes — é a área que se **apaga** da arte e também a área onde a rota é **projetada**. Como os 4 ícones do modelo `rota-icones` ficam 100% dentro dela, a rota tem licença para chegar até eles.
 

@@ -28,8 +28,15 @@ export interface TextSlot {
 
 export const ROTA_ICONES = {
   art: "/story-art/rota-icones.png",
-  /** Caixa da rota de exemplo na arte — é o que precisa ser apagado e também onde a nova rota é projetada. */
+  /** Caixa da rota de exemplo na arte — é a área que se apaga da arte. */
   route: { x: 74, y: 572, w: 622, h: 886 } satisfies Box,
+  /**
+   * Onde a rota nova é PROJETADA — sempre ⊆ `route`. Encolhida na largura
+   * (622 → 488) para a tinta da rota (linha + glow, ~40px de sangramento por
+   * borda) nunca alcançar a coluna de ícones, que começa em x=574. `route`
+   * continua sendo só a área apagada; não confundir os dois papéis de novo.
+   */
+  routePlot: { x: 74, y: 572, w: 488, h: 886 } satisfies Box,
   /**
    * Os ícones ficam dentro da caixa da rota, então são apagados junto com ela e
    * redesenhados por cima do traçado novo (assim a rota pode ocupar toda a área
@@ -84,6 +91,8 @@ export const ICONES_ESQUERDA = {
 export const ROTA_FAIXA = {
   art: "/story-art/rota-faixa.png",
   route: { x: 250, y: 509, w: 636, h: 899 } satisfies Box,
+  /** Igual a `route`: nenhuma outra região vizinha, a tinta tem folga de sobra em todas as bordas. */
+  routePlot: { x: 250, y: 509, w: 636, h: 899 } satisfies Box,
   /**
    * Na arte cada coluna ocupa ~200px e as divisórias verticais ficam em x=398 e
    * x=706, então o texto é reduzido pra caber em 215 e não encostar nelas.
@@ -135,6 +144,8 @@ export const DESAFIO = {
 export const STATS_DIREITA = {
   art: "/story-art/stats-direita.png",
   route: { x: 577, y: 1006, w: 405, h: 572 } satisfies Box,
+  /** Igual a `route`: a folga até a logo (desenhada por cima, depois) é suficiente. */
+  routePlot: { x: 577, y: 1006, w: 405, h: 572 } satisfies Box,
   /** A arte alinha o texto à direita em x≈977, não na margem do canvas. */
   right: 977,
   /** Texto cresce pra esquerda; 760 impede que um valor longo estoure a margem. */
