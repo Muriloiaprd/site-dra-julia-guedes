@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError
+from argon2.exceptions import InvalidHashError, VerificationError
 from cryptography.fernet import Fernet, InvalidToken
 from jose import JWTError, jwt
 
@@ -18,7 +18,10 @@ def verify_password(plain: str, hashed: str) -> bool:
     try:
         _hasher.verify(hashed, plain)
         return True
-    except VerifyMismatchError:
+    except (VerificationError, InvalidHashError):
+        # VerificationError cobre senha errada (VerifyMismatchError e subclasse);
+        # InvalidHashError cobre hash corrompido/malformado no banco. Os dois
+        # devem virar "credenciais invalidas" (401), nao 500.
         return False
 
 

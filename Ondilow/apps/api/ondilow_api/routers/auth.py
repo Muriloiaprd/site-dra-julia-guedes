@@ -9,7 +9,7 @@ from ondilow_api.config import settings
 from ondilow_api.deps import CurrentUser, DbSession
 from ondilow_api.models import User
 from ondilow_api.rate_limit import limiter
-from ondilow_api.schemas.auth import RegisterIn, Token, UserOut
+from ondilow_api.schemas.auth import ChangePasswordIn, RegisterIn, Token, UserOut
 from ondilow_api.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -58,3 +58,26 @@ def register(payload: RegisterIn, db: DbSession) -> User:
 @router.get("/me", response_model=UserOut)
 def me(current_user: CurrentUser) -> User:
     return current_user
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(payload: ChangePasswordIn, current_user: CurrentUser, db: DbSession) -> None:
+    """Troca a senha do usuario logado. Nao invalida sessoes ja emitidas em
+    outros aparelhos (nao ha blacklist de token nem `tokens_valid_from`) — o
+    token antigo continua valido ate expirar (ate 7 dias)."""
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Senha atual incorreta")
+    current_user.password_hash = hash_password(payload.new_password)
+    db.commit()
+
+
+@router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(current_user: CurrentUser, db: DbSession) -> None:
+    """Apaga permanentemente a conta e todos os dados do usuario. Cascata no
+    banco (ON DELETE CASCADE em todo user_id) remove perfil, integracoes,
+    atividades (+ pontos/laps), recordes, metricas diarias, equipamentos,
+    treinos planejados e interacoes do coach. Sem confirmacao adicional no
+    backend -- a UI e responsavel pela confirmacao, mesmo padrao de
+    DELETE /activities (delete_all_activities)."""
+    db.delete(current_user)
+    db.commit()

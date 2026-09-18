@@ -82,7 +82,21 @@ Isto **não** é busca e substituição cega: em alguns pontos o texto está sob
 
 ---
 
-## Fase 3 — Perfil, backend
+## Fase 3 — Perfil, backend — CONCLUÍDA
+
+**Infra de testes nova:** `apps/api/tests/conftest.py` não existia. Descoberta importante no caminho: o `DATABASE_URL` do `.env` do projeto aponta para o **Neon de produção** (onde estão as 298 atividades reais), não para o Postgres local do `docker-compose.yml` — e o Docker Desktop nesta máquina não sobe (falta WSL2 instalado, exigiria reiniciar o Windows). Em vez disso, os testes rodam contra uma **branch Neon `test`** (copy-on-write da `main`, criada via MCP do Neon) — escrever/apagar dados ali nunca toca a `main`. `conftest.py` força o `DATABASE_URL` por variável de ambiente antes de qualquer import de `ondilow_api` (senão o `.env` da raiz venceria) e tem uma trava de segurança que falha alto se o host resolvido bater com o de produção. Cada teste roda numa transação com savepoint (revertida no fim) para isolamento real mesmo com os `db.commit()` que os endpoints já fazem. Confirmado por query direta na branch: zero resíduo de usuário de teste depois de rodar a suíte.
+
+**Entregue:**
+1. `hr_zones` validado (`schemas/profile.py`): 5 zonas contíguas z1..z5, `[lo, hi]` inteiros, começando em 0 — antes um JSON malformado passava pelo `PUT /profile` e só quebrava depois, em `hr_zone_distribution()`, como 500.
+2. `POST /auth/change-password` — reaproveita `hash_password`/`verify_password`. De carona, `verify_password` passou a capturar `VerificationError` (classe-base) e `InvalidHashError`, não só `VerifyMismatchError` — hash corrompido agora também vira 401, não 500.
+3. `DELETE /auth/account` — **não precisou de transação manual**: todo `user_id` FK no schema já tem `ON DELETE CASCADE` no banco (confirmado por grep nos 8 modelos), então `db.delete(current_user)` sozinho já cascateia perfil, integrações, atividades (+pontos/laps), recordes, métricas diárias, equipamentos, treinos planejados e interações do coach. Sem confirmação adicional no backend, mesmo padrão do `DELETE /activities` já existente.
+4. `GET /profile/export` — monta o JSON inteiro em memória (não usa `StreamingResponse`, exatamente pra evitar o "Session is closed" que a sessão fechando antes do generator rodar causaria). Testado com os dados reais via `fetch` no browser (só leitura): 298 atividades, 295.055 pontos GPS, 57 recordes, 50,6MB, **11,8s** — funciona, mas é lento; aceitável pra um botão de uso ocasional, não para automatizar.
+
+**Testes:** 11 novos (`test_auth_account.py`, `test_profile.py`), 41 no total, `ruff` limpo nos arquivos tocados. Dois bugs pegos no caminho, ambos de reuso de sessão entre requests dentro do mesmo teste (não do app): `current_user.profile` fica em cache no objeto ORM quando a mesma sessão atende duas requisições seguidas — corrigido com `db_session.expire_all()` a cada request simulado, e rate limit do login (5/min por IP) estourando porque o `TestClient` sempre usa o mesmo IP fake — corrigido com `limiter.reset()` no fixture de autenticação.
+
+**Verificado ao vivo:** API reiniciada (roda sem `--reload`) sobe sem erro de import; `GET /profile` da conta real carrega normal; sem erros no console.
+
+**Branch Neon `test` fica disponível** para rodar testes de integração no futuro (br-solitary-poetry-acj7i9ej). Não foi apagada — é infraestrutura reutilizável, custo zero no free tier.
 
 Vem antes da acessibilidade porque adiciona superfície de UI nova — auditar a11y antes disso seria retrabalho garantido.
 
