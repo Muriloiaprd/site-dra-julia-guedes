@@ -66,7 +66,9 @@ Só o `rota-icones` muda de número. A rota fica 21,5% mais estreita **apenas em
 
 ---
 
-## Fase 2 — Contraste AA (micro-fase)
+## Fase 2 — Contraste AA (micro-fase) — CONCLUÍDA
+
+**Verificado ao vivo:** o token estava de fato triplicado nos 3 arquivos (`tailwind.config.ts`, `lib/theme.ts` **e** `globals.css` — a suspeita do levantamento anterior se confirmou). Nova cor `#7C7C7C` (~4,75:1 contra `#0A0A0A`, folga sobre o mínimo AA de 4,5:1, e ainda mais escura que `muted` #888888, preservando a hierarquia). Além dos 3 tokens, havia 5 hex inline (`profile/page.tsx:267`, `predictions/page.tsx:203`, `MonthCalendar.tsx:82`, `import/page.tsx:278`, `WeekStrip.tsx:94`) — todos em fundos escuros (tiles, cards), sem risco de piorar contraste ao clarear, então atualizados junto. `grep` por `6E6E6E` no `apps/web` inteiro ficou limpo. Testado em dashboard, predictions e profile no browser: texto legível, sem erro no console, `npx tsc --noEmit` limpo.
 
 Puxada da frente de acessibilidade de propósito, para que a UI nova das Fases 3–4 não nasça já reprovada.
 

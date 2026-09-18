@@ -275,7 +275,7 @@ export default function ImportPage() {
             </div>
             <div className="od-tile p-3.5">
               <div className="od-metric-label">Erros</div>
-              <div className="od-num mt-1 text-[1.6rem] leading-none" style={{ color: totals.errors ? "#F85149" : "#6E6E6E" }}>{totals.errors}</div>
+              <div className="od-num mt-1 text-[1.6rem] leading-none" style={{ color: totals.errors ? "#F85149" : "#7C7C7C" }}>{totals.errors}</div>
               <div className="mt-1 text-[0.66rem] text-brand-muted">{totals.points > 0 ? `${totals.points.toLocaleString("pt-BR")} pontos GPS` : "arquivos com falha"}</div>
             </div>
           </div>

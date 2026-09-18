@@ -264,7 +264,7 @@ export default function ProfilePage() {
             ].map((m) => (
               <div key={m.k} className="od-tile p-3" style={{ background: "rgba(8,11,9,0.6)" }}>
                 <div className="od-metric-label">{m.k}</div>
-                <div className="od-num mt-1 text-lg" style={{ color: m.v == null ? "#6E6E6E" : "#fff" }}>
+                <div className="od-num mt-1 text-lg" style={{ color: m.v == null ? "#7C7C7C" : "#fff" }}>
                   {m.v ?? "—"}{m.v != null && <span className="ml-0.5 font-sans text-[0.65rem] text-brand-muted">{m.u}</span>}
                 </div>
               </div>

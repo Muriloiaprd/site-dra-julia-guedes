@@ -91,7 +91,7 @@ export function WeekStrip({
                 background: "transparent",
                 boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04)",
               };
-            const titleColor = done ? "#00FF66" : c.state === "today" ? "#fff" : c.state === "planned" ? "#B8B8B8" : "#6E6E6E";
+            const titleColor = done ? "#00FF66" : c.state === "today" ? "#fff" : c.state === "planned" ? "#B8B8B8" : "#7C7C7C";
             const statusText = done ? "Feito" : c.isToday ? "Hoje" : c.state === "planned" ? "Planejado" : c.state === "rest" ? "" : "—";
 
             return (

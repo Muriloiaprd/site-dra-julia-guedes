@@ -200,7 +200,7 @@ export default function PredictionsPage() {
                   return (
                     <div key={lvl}>
                       <div className="h-2 rounded-full transition-all" style={{ background: on ? RISK_COLORS[lvl] : "rgba(255,255,255,0.07)", boxShadow: on ? `0 0 12px ${RISK_COLORS[lvl]}` : undefined }} />
-                      <div className="mt-1.5 text-[0.62rem] font-semibold uppercase tracking-wider" style={{ color: on ? RISK_COLORS[lvl] : "#6E6E6E" }}>{RISK_LABELS[lvl]}</div>
+                      <div className="mt-1.5 text-[0.62rem] font-semibold uppercase tracking-wider" style={{ color: on ? RISK_COLORS[lvl] : "#7C7C7C" }}>{RISK_LABELS[lvl]}</div>
                     </div>
                   );
                 })}

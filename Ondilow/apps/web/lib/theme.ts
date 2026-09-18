@@ -12,7 +12,7 @@ export const C = {
   text: "#FFFFFF",
   textSecondary: "#B8B8B8",
   muted: "#888888",
-  textTertiary: "#6E6E6E",
+  textTertiary: "#7C7C7C",
   accent: "#00FF66",
   lime: "#C6FF00",
   info: "#00BFFF",

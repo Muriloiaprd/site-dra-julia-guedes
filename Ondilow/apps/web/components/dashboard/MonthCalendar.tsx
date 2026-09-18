@@ -79,7 +79,7 @@ export function MonthCalendar({
                       ? "inset 0 0 0 1px rgba(0,255,102,0.6), 0 0 14px -4px rgba(0,255,102,0.6)"
                       : done ? `inset 0 0 0 1px ${color}33`
                       : planned ? "inset 0 0 0 1px rgba(255,255,255,0.16)" : undefined,
-                    color: isToday ? "#00FF66" : done ? "#fff" : isFuture ? "#6E6E6E" : "#8a8a8a",
+                    color: isToday ? "#00FF66" : done ? "#fff" : isFuture ? "#7C7C7C" : "#8a8a8a",
                     fontWeight: isToday || done ? 700 : 500,
                     cursor: done ? "pointer" : "default",
                   }}

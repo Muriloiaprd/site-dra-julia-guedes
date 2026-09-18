@@ -24,7 +24,7 @@ const config: Config = {
           text: "#FFFFFF",
           textSecondary: "#B8B8B8",
           muted: "#888888",
-          textTertiary: "#6E6E6E",
+          textTertiary: "#7C7C7C",
           accent: "#00FF66",
           accentHover: "#C6FF00",
           accentSoft: "rgba(0,255,102,0.08)",
