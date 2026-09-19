@@ -378,7 +378,7 @@ export default function ActivityPage() {
               <span className="text-xs text-brand-muted">+{Math.round(activity.elevation_gain_m ?? 0)} m{activity.elevation_loss_m != null ? ` · −${Math.round(activity.elevation_loss_m)} m` : ""}</span>
             </div>
             <ResponsiveContainer width="100%" height={190}>
-              <AreaChart data={chartData} margin={{ top: 8, right: 4, left: -8, bottom: 0 }}>
+              <AreaChart accessibilityLayer data={chartData} margin={{ top: 8, right: 4, left: -8, bottom: 0 }}>
                 <defs>
                   <linearGradient id="alt-fill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={C.accent} stopOpacity={0.3} />
@@ -411,7 +411,7 @@ export default function ActivityPage() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={240}>
-              <ComposedChart data={chartData} margin={{ top: 8, right: 0, left: -8, bottom: 0 }}>
+              <ComposedChart accessibilityLayer data={chartData} margin={{ top: 8, right: 0, left: -8, bottom: 0 }}>
                 <CartesianGrid {...gridProps} />
                 <XAxis {...axisProps} dataKey="distKm" tickFormatter={(v) => `${v}km`} minTickGap={40} />
                 <YAxis

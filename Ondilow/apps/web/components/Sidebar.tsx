@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Logo } from "@/components/Logo";
 import { clearToken, fetchMe, fetchProfile, type User } from "@/lib/api";
 
@@ -97,6 +97,27 @@ export function Sidebar() {
 
   useEffect(() => { setMoreOpen(false); }, [pathname]);
 
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const sheet = sheetRef.current;
+    const focusables = () => Array.from(sheet?.querySelectorAll<HTMLElement>("a[href], button") ?? []);
+    focusables()[0]?.focus();
+    const btn = moreBtnRef.current;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setMoreOpen(false); return; }
+      if (e.key !== "Tab") return;
+      const items = focusables();
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("keydown", onKey); btn?.focus(); };
+  }, [moreOpen]);
+
   function handleLogout() {
     clearToken();
     router.push("/login");
@@ -121,7 +142,7 @@ export function Sidebar() {
           <Logo size={30} textClassName="hidden lg:flex" />
         </Link>
 
-        <nav className="relative flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4 pt-2" aria-label="Navegação principal">
+        <nav className="relative flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4 pt-2" aria-label="Navegação lateral">
           {NAV_GROUPS.map((group) => (
             <div key={group.label} className="mb-5">
               <div className="mb-2 hidden px-3 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-brand-textTertiary lg:block">
@@ -191,7 +212,7 @@ export function Sidebar() {
       <nav
         className="fixed inset-x-0 bottom-0 z-40 md:hidden"
         style={{ background: "rgba(10,10,10,0.9)", backdropFilter: "blur(18px)", borderTop: "1px solid rgba(255,255,255,0.06)", paddingBottom: "env(safe-area-inset-bottom)" }}
-        aria-label="Navegação principal"
+        aria-label="Navegação inferior"
       >
         <ul className="grid h-16 grid-cols-5">
           {MOBILE_PRIMARY.map((href) => {
@@ -216,8 +237,10 @@ export function Sidebar() {
           })}
           <li>
             <button
+              ref={moreBtnRef}
               onClick={() => setMoreOpen((o) => !o)}
               aria-expanded={moreOpen}
+              aria-haspopup="dialog"
               className={`flex h-full w-full flex-col items-center justify-center gap-1 text-[0.62rem] font-semibold ${moreOpen || ALL_ITEMS.some((i) => !MOBILE_PRIMARY.includes(i.href) && isActive(pathname, i.href)) ? "text-brand-accent" : "text-brand-muted"}`}
             >
               {ICONS.more}
@@ -231,6 +254,10 @@ export function Sidebar() {
         <div className="fixed inset-0 z-30 md:hidden" onClick={() => setMoreOpen(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div
+            ref={sheetRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mais opções de navegação"
             className="od-panel od-panel-glass od-nav-sheet absolute inset-x-3 bottom-[76px] animate-od-fade-up overflow-hidden !p-2"
             onClick={(e) => e.stopPropagation()}
           >

@@ -128,7 +128,12 @@ UI para os quatro endpoints da Fase 3, em `app/profile/page.tsx`.
 
 ---
 
-## Fase 5 — Acessibilidade
+## Fase 5 — Acessibilidade — CONCLUÍDA
+
+**Desvio do plano:** as páginas já renderizam `<main>` via `PageContainer`, então o `AppShell` **não** cria outro (seria `<main>` aninhado): recebeu só o skip-link e um wrapper `#conteudo` focável. Foco nos gráficos agora só some com mouse (`:focus:not(:focus-visible)`). `accessibilityLayer` ligado nos 8 gráficos. Sheet "Mais" com `role="dialog"`, Escape, focus trap e foco devolvido ao botão (o `ActivityModal` não tinha trap, então foi escrito do zero). Navs renomeados: "Navegação lateral" / "Navegação inferior".
+
+**Verificado ao vivo** (`/metrics`, viewport mobile): Tab foca o gráfico com contorno verde; 5×ArrowRight moveu o TSB de 21→26 jun; sheet abre com foco dentro, 6×Tab não escapa, Escape fecha e devolve foco ao "Mais"; `/predictions` sem erros de console; `tsc` limpo. Não verificado: `/activities/[id]` e dashboard ao vivo.
+
 
 Agora que a superfície parou de mudar. É a frente de maior raio de alcance.
 

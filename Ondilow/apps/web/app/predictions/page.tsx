@@ -287,7 +287,7 @@ export default function PredictionsPage() {
                 <LegendDot color={C.lime} label="Tendência" dashed />
               </div>
               <ResponsiveContainer width="100%" height={240}>
-                <ComposedChart data={evolution.rows} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+                <ComposedChart accessibilityLayer data={evolution.rows} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
                   <defs>
                     <linearGradient id="pace-fill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={C.accent} stopOpacity={0.25} />
@@ -370,7 +370,7 @@ export default function PredictionsPage() {
                 <LegendDot color={C.lime} label="TSB" dashed />
               </div>
               <ResponsiveContainer width="100%" height={240}>
-                <ComposedChart data={simData} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
+                <ComposedChart accessibilityLayer data={simData} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
                   <defs>
                     <linearGradient id="sim-fill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={C.accent} stopOpacity={0.22} />

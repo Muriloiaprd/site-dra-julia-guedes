@@ -275,7 +275,7 @@ export default function MetricsPage() {
             </div>
             {loading ? <Skeleton className="h-[280px]" /> : (
               <ResponsiveContainer width="100%" height={280}>
-                <ComposedChart data={chartData} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
+                <ComposedChart accessibilityLayer data={chartData} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
                   <defs>
                     <linearGradient id="ctl-fill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={C.accent} stopOpacity={0.3} />
@@ -309,7 +309,7 @@ export default function MetricsPage() {
               </div>
               {loading ? <Skeleton className="h-[220px]" /> : (
                 <ResponsiveContainer width="100%" height={220}>
-                  <ComposedChart data={chartData} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
+                  <ComposedChart accessibilityLayer data={chartData} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
                     <CartesianGrid {...gridProps} />
                     <XAxis {...axisProps} dataKey="date" tickFormatter={fmtDay} minTickGap={32} />
                     <YAxis {...axisProps} width={40} />
@@ -335,7 +335,7 @@ export default function MetricsPage() {
               </div>
               {loading ? <Skeleton className="h-[220px]" /> : (
                 <ResponsiveContainer width="100%" height={220}>
-                  <ComposedChart data={chartData} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
+                  <ComposedChart accessibilityLayer data={chartData} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
                     <CartesianGrid {...gridProps} />
                     <ReferenceArea y1={0.8} y2={1.3} fill={C.accent} fillOpacity={0.06} ifOverflow="hidden" />
                     <ReferenceArea y1={1.3} y2={1.5} fill={C.warning} fillOpacity={0.07} ifOverflow="hidden" />

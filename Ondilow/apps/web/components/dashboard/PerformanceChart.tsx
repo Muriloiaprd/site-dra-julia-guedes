@@ -217,7 +217,7 @@ export function PerformanceChart({
           <EmptyState title="Atividades insuficientes no período" description="Escolha um período maior ou importe mais atividades." />
         ) : (
           <ResponsiveContainer width="100%" height={250}>
-            <ComposedChart
+            <ComposedChart accessibilityLayer
               data={rows}
               margin={{ top: 12, right: 6, left: -6, bottom: 0 }}
               onClick={(s: { activePayload?: { payload: Row }[] } | null) => {
