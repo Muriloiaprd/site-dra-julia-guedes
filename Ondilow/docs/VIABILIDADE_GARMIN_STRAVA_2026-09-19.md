@@ -1,7 +1,7 @@
 # Viabilidade: importar treinos do Garmin/Strava sem arquivo manual
 
 **Data:** 2026-09-19 · **Origem:** Fase 9 do `PLANEJAMENTO_2026-09-18.md` (investigação, não entrega)
-**Status:** investigação concluída. Endpoint validado; solução recomendada definida; **nada instalado, nada autenticado**.
+**Status:** investigação concluída **e script implementado** no mesmo dia (ver "Adendo — entrega").
 
 ---
 
@@ -165,3 +165,35 @@ Escopo proposto para uma eventual fase de entrega (~1 dia, não executada):
 
 **Não fazer sem decisão explícita:** instalar MCP de Garmin, registrar app no Strava, ou guardar
 credenciais em qualquer arquivo do repositório.
+
+
+---
+
+## Adendo — entrega (2026-09-19, mesmo dia)
+
+O usuário aprovou a implementação, e o escopo da seção 7 foi entregue.
+
+- `apps/api/ondilow_api/services/garmin_sync.py` — lógica, com a rede isolada em `build_client`.
+- `apps/api/ondilow_api/scripts/sync_garmin.py` — CLI.
+- `apps/api/tests/test_garmin_sync.py` — **17 testes**, com duble do cliente: nada de rede.
+- Dependência adicionada: `garminconnect>=0.2.25` (resolveu para 0.3.16).
+
+**Coberto por teste:** extração do `.fit` de dentro do zip (e download cru sem zip), dedup do
+sync consigo mesmo, **dedup contra upload manual do mesmo treino**, uma atividade quebrada não
+derruba o lote, `--dry-run` não baixa nada, `--limit`, listagem sem `activityId`, e o incremental
+ignorando uploads manuais. Suíte completa: **74 testes passam**, `ruff` limpo.
+
+**Não testável sem credencial** (e não testado): o login real e o `download_activity` real. É
+exatamente a fronteira que o duble substitui.
+
+**Decisão de implementação:** `import_activity` é chamado com `recompute_metrics=False` e a carga
+é recalculada **uma vez só** ao final, com a data mais antiga do lote — é o que o próprio
+`import_service` recomenda para import em lote.
+
+**Detalhe defensivo:** os formatos aceitos (`.fit`/`.tcx`/`.gpx`) sempre rendem uma atividade só,
+então o caso multi-atividade é inalcançável hoje. Ainda assim o `source_activity_id` e o
+`file_hash` são derivados por índice, como o router de upload já faz para CSV — senão, se um
+formato multi entrar em `_PARSEABLE` um dia, a segunda atividade seria silenciosamente tratada
+como duplicata da primeira.
+
+**Pendente do usuário:** rodar `--garmin-login` uma vez. Nenhum login foi feito.

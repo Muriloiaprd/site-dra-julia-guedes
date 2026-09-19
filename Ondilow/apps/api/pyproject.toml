@@ -22,6 +22,7 @@ dependencies = [
     "anthropic>=0.40.0",
     "google-genai>=1.0.0",
     "slowapi>=0.1.9",
+    "garminconnect>=0.2.25",
 ]
 
 [dependency-groups]

@@ -80,6 +80,29 @@ Para rodar cada lado separado (ex.: debugar so a API), use `pnpm dev:api` ou `pn
 
 > Se ja houver outro `next dev` rodando em `apps/web`, suba um extra com `NEXT_DIST_DIR=.next-preview` para nao corromper o cache compartilhado (ver `docs/ESTADO_DO_PROJETO.md`).
 
+## Importar treinos do Garmin
+
+Baixa o arquivo `.FIT` original de cada atividade e reusa o mesmo parser do upload manual,
+entao um treino ja subido a mao nao duplica.
+
+Primeira vez (pede a senha e, se a conta tiver MFA, o codigo):
+
+```bash
+cd apps/api && uv run python -m ondilow_api.scripts.sync_garmin --email SEU@EMAIL --garmin-login
+```
+
+Depois disso o token fica em `~/.garminconnect` e renova sozinho:
+
+```bash
+cd apps/api && uv run python -m ondilow_api.scripts.sync_garmin --email SEU@EMAIL
+```
+
+Sem `--since`/`--days`, o sync e incremental (parte da ultima atividade ja vinda do Garmin,
+com 3 dias de margem). Use `--dry-run` para so listar, e `--limit N` para limitar o lote.
+
+> A API do Garmin usada aqui nao e oficial e pode mudar sem aviso; o upload manual continua
+> funcionando como alternativa. Nenhuma credencial fica no repositorio.
+
 ## Estrutura
 
 - `apps/api/ondilow_api/` — `routers/`, `parsers/`, `metrics/` (carga, recordes, previsoes), `ai/` (Treinador de IA)
