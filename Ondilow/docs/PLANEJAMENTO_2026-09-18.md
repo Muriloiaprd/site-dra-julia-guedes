@@ -167,7 +167,9 @@ Separada da Fase 7 de propósito: é 100% local e testável, e se a plataforma t
 
 ---
 
-## Fase 7 — Deploy público
+## Fase 7 — Deploy público — ADIADA
+
+**Adiada em 2026-09-19:** o usuário usa o Ondilow só na própria máquina por enquanto. Nada aqui foi executado; retomar só se ele pedir. A Fase 6 já deixou a API pronta para quando for publicar.
 
 ```
 Browser → Vercel Hobby (Next.js, runtime Node, root apps/web)
