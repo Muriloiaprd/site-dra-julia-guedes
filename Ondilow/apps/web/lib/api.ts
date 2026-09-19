@@ -157,6 +157,15 @@ export interface Profile {
 
 // ---------- helper de fetch ----------
 
+const REQUEST_TIMEOUT_MS = 60_000;
+const UPLOAD_TIMEOUT_MS = 300_000;
+const WAKING_AFTER_MS = 3_000;
+
+/** Avisa a UI (WakingBanner) que a API esta demorando -- cold start em hospedagem gratuita. */
+function emitWaking(waking: boolean) {
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("ondilow:waking", { detail: waking }));
+}
+
 async function apiFetch<T>(
   path: string,
   options?: RequestInit
@@ -166,7 +175,21 @@ async function apiFetch<T>(
     ...(options?.headers as Record<string, string>),
   };
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  const res = await fetch(`/api${path}`, { ...options, headers });
+  const timeoutMs = options?.body instanceof FormData ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
+  let waking = false;
+  const wakingTimer = setTimeout(() => { waking = true; emitWaking(true); }, WAKING_AFTER_MS);
+  let res: Response;
+  try {
+    res = await fetch(`/api${path}`, { signal: AbortSignal.timeout(timeoutMs), ...options, headers });
+  } catch (e) {
+    if (e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError")) {
+      throw new Error("O servidor demorou demais para responder. Tente novamente.");
+    }
+    throw e;
+  } finally {
+    clearTimeout(wakingTimer);
+    if (waking) emitWaking(false);
+  }
   if (res.status === 401) {
     clearToken();
     window.location.href = "/login";

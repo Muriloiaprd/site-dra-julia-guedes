@@ -148,7 +148,12 @@ Agora que a superfície parou de mudar. É a frente de maior raio de alcance.
 
 ---
 
-## Fase 6 — API pronta para deploy (só código)
+## Fase 6 — API pronta para deploy (só código) — CONCLUÍDA
+
+**Medido** (298 atividades reais, só leitura, `tracemalloc`): método antigo (`selectinload(points)`) pico de **669 MB**; novo (colunas escalares + pontos em streaming, uma atividade por vez) **5 MB**. Confirma o risco de OOM em 512 MB. `recompute_all_records` roda em `BackgroundTasks` (`recompute_all_records_background`, sessão própria, exceção logada e engolida).
+
+**Desvios do plano:** `persist_raw_uploads` tem default **`True`** (não `False`): mantém o comportamento local; o deploy define `PERSIST_RAW_UPLOADS=false` (e `LOG_TO_FILE=false`). Consequência aceita do background: logo após editar a modalidade ou excluir uma atividade, os recordes podem ficar defasados por instantes. O `apiFetch` usa 60s de timeout (300s se o corpo for `FormData`, por causa do upload de até 50MB) e há um `WakingBanner` após 3s. Fail-fast testado (6 casos); `recompute` ganhou os primeiros testes (melhor por tipo em streaming, ignora soft-delete). 48 testes passam, `tsc` limpo. Não medido: tempo de resposta do `recompute` contra o Neon, e o banner ao vivo com a API lenta.
+
 
 Separada da Fase 7 de propósito: é 100% local e testável, e se a plataforma travar por motivo externo, este trabalho já está commitado e melhora o app local.
 

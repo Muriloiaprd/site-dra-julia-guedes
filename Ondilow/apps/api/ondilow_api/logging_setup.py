@@ -9,19 +9,15 @@ from ondilow_api.config import settings
 
 
 def configure_logging() -> None:
-    log_dir = settings.data_path / "logs"
-    log_dir.mkdir(parents=True, exist_ok=True)
-
     level = getattr(logging, settings.log_level.upper(), logging.INFO)
 
-    logging.basicConfig(
-        format="%(message)s",
-        level=level,
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            _rotating_file_handler(log_dir / "app.jsonl"),
-        ],
-    )
+    handlers: list[logging.Handler] = [logging.StreamHandler(sys.stdout)]
+    if settings.log_to_file:
+        log_dir = settings.data_path / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        handlers.append(_rotating_file_handler(log_dir / "app.jsonl"))
+
+    logging.basicConfig(format="%(message)s", level=level, handlers=handlers)
 
     processors: list = [
         structlog.contextvars.merge_contextvars,

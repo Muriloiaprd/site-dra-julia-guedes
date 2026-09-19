@@ -4,7 +4,7 @@ from dataclasses import asdict
 from datetime import UTC, date, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import delete, select, update
 
 from ondilow_api.config import settings
@@ -12,7 +12,7 @@ from ondilow_api.deps import CurrentUser, DbSession
 from ondilow_api.metrics import compute_splits, default_hr_zones, hr_zone_distribution
 from ondilow_api.metrics.basic import PointLike
 from ondilow_api.metrics.load import update_daily_metrics
-from ondilow_api.metrics.records import recompute_all_records
+from ondilow_api.metrics.records import recompute_all_records_background
 from ondilow_api.models import Activity, DailyMetric, Equipment, PersonalRecord, PlannedWorkout
 from ondilow_api.models.activity import SPORT_VALUES
 from ondilow_api.parsers import ParserError, UnsupportedFormatError, parse_file
@@ -272,6 +272,7 @@ def update_activity(
     body: ActivityUpdate,
     current_user: CurrentUser,
     db: DbSession,
+    background: BackgroundTasks,
 ) -> Activity:
     activity = _load_activity(db, activity_id, current_user.id)
     data = body.model_dump(exclude_unset=True)
@@ -296,14 +297,16 @@ def update_activity(
     # antigos e novos podem estar errados (ex.: essa atividade deixa de contar
     # pra "corrida" e passa a contar pra "ciclismo").
     if sport_changed:
-        recompute_all_records(db, current_user.id)
+        background.add_task(recompute_all_records_background, current_user.id)
 
     db.refresh(activity)
     return activity
 
 
 @router.delete("/{activity_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_activity(activity_id: uuid.UUID, current_user: CurrentUser, db: DbSession) -> None:
+def delete_activity(
+    activity_id: uuid.UUID, current_user: CurrentUser, db: DbSession, background: BackgroundTasks
+) -> None:
     """Soft delete: preenche deleted_at (ja respeitado em todas as queries de
     leitura). Recalcula metricas de carga e recordes, pois a atividade pode
     ter sustentado um PR ou contribuido pro CTL/ATL/TSB de dias posteriores."""
@@ -313,7 +316,7 @@ def delete_activity(activity_id: uuid.UUID, current_user: CurrentUser, db: DbSes
     db.commit()
 
     update_daily_metrics(db, current_user.id, from_date=activity_date)
-    recompute_all_records(db, current_user.id)
+    background.add_task(recompute_all_records_background, current_user.id)
 
 
 @router.get("/{activity_id}/splits", response_model=list[SplitOut])
@@ -369,7 +372,11 @@ def _derived_hash(file_hash: str, index: int) -> str:
     return hashlib.sha256(f"{file_hash}:{index}".encode()).hexdigest()
 
 
-def _persist_raw(user_id: uuid.UUID, filename: str, content: bytes) -> str:
+def _persist_raw(user_id: uuid.UUID, filename: str, content: bytes) -> str | None:
+    """Guarda o arquivo original em disco. file_path e write-only (nenhum codigo
+    o le), entao em deploy sem disco persistente isto fica desligado."""
+    if not settings.persist_raw_uploads:
+        return None
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
     user_dir = settings.data_path / "uploads" / str(user_id)
     user_dir.mkdir(parents=True, exist_ok=True)

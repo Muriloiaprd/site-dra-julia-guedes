@@ -6,12 +6,13 @@ mais recente por combinacao.
 """
 
 import uuid
+from itertools import groupby
 
 from sqlalchemy import delete, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from ondilow_api.metrics.basic import PointLike, best_efforts
-from ondilow_api.models import Activity, PersonalRecord
+from ondilow_api.models import Activity, ActivityPoint, PersonalRecord
 
 # (record_type, valor, unidade, "menor e melhor?")
 _RecordCandidate = tuple[str, float, str, bool]
@@ -61,20 +62,33 @@ def recompute_all_records(db: Session, user_id) -> None:
     db.execute(delete(PersonalRecord).where(PersonalRecord.user_id == user_id))
     db.commit()
 
+    # Colunas escalares apenas: materializar Activity + points (centenas de
+    # milhares de objetos) podia estourar a memoria de um container de 512MB.
     activities = db.execute(
-        select(Activity)
+        select(
+            Activity.id, Activity.sport, Activity.start_time,
+            Activity.distance_m, Activity.max_hr,
+        )
         .where(Activity.user_id == user_id, Activity.deleted_at.is_(None))
-        .options(selectinload(Activity.points))
         .order_by(Activity.start_time.asc())
-    ).scalars().all()
+    ).all()
+
+    # Pontos so importam para esportes com melhores esforcos. Sao lidos em
+    # streaming, uma atividade por vez (ordem da PK activity_id, elapsed), e
+    # cada atividade vira uma lista minuscula de candidatos -- nunca ha mais de
+    # uma atividade de pontos em memoria.
+    by_id = {a.id: a for a in activities}
+    effort_ids = [a.id for a in activities if _efforts_for_sport(a.sport)]
+    candidates_by_id: dict[uuid.UUID, list[_RecordCandidate]] = {}
+    for activity_id, points in _stream_points(db, effort_ids):
+        candidates_by_id[activity_id] = _record_candidates(by_id[activity_id], points)
 
     best: dict[tuple[str, str], tuple[float, uuid.UUID]] = {}
     for activity in activities:
-        points = [
-            PointLike(elapsed_time_s=p.elapsed_time_s, distance_m=_f(p.distance_m))
-            for p in activity.points
-        ]
-        for record_type, value, unit, lower_is_better in _record_candidates(activity, points):
+        candidates = candidates_by_id.get(activity.id)
+        if candidates is None:
+            candidates = _record_candidates(activity, [])
+        for record_type, value, unit, lower_is_better in candidates:
             key = (activity.sport, record_type)
             prev = best.get(key)
             better = prev is None or (value < prev[0] if lower_is_better else value > prev[0])
@@ -96,6 +110,22 @@ def recompute_all_records(db: Session, user_id) -> None:
             best[key] = (value, activity.id)
 
     db.commit()
+
+
+def _stream_points(db: Session, activity_ids: list[uuid.UUID]):
+    """Gera (activity_id, pontos) uma atividade por vez, sem materializar tudo."""
+    if not activity_ids:
+        return
+    rows = db.execute(
+        select(ActivityPoint.activity_id, ActivityPoint.elapsed_time_s, ActivityPoint.distance_m)
+        .where(ActivityPoint.activity_id.in_(activity_ids))
+        .order_by(ActivityPoint.activity_id, ActivityPoint.elapsed_time_s)
+        .execution_options(yield_per=5000)
+    )
+    for activity_id, group in groupby(rows, key=lambda r: r.activity_id):
+        yield activity_id, [
+            PointLike(elapsed_time_s=r.elapsed_time_s, distance_m=_f(r.distance_m)) for r in group
+        ]
 
 
 def _record_candidates(activity: Activity, points: list[PointLike]) -> list[_RecordCandidate]:
@@ -180,3 +210,17 @@ def _maybe_record(
 
 def _f(v) -> float | None:
     return float(v) if v is not None else None
+
+
+def recompute_all_records_background(user_id: uuid.UUID) -> None:
+    """Versao para BackgroundTasks: abre sessao propria (a da dependency ja foi
+    fechada ao fim do response) e nunca propaga excecao ao ciclo do request."""
+    from ondilow_api.db import SessionLocal
+    from ondilow_api.logger import get_logger
+
+    with SessionLocal() as db:
+        try:
+            recompute_all_records(db, user_id)
+        except Exception:
+            db.rollback()
+            get_logger(__name__).exception("recompute_records_failed", user_id=str(user_id))

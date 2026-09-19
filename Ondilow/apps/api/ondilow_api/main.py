@@ -27,8 +27,6 @@ log = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging()
-    for sub in ("uploads", "logs"):
-        (settings.data_path / sub).mkdir(parents=True, exist_ok=True)
     yield
 
 
