@@ -88,17 +88,19 @@ entao um treino ja subido a mao nao duplica.
 Primeira vez (pede a senha e, se a conta tiver MFA, o codigo):
 
 ```bash
-cd apps/api && uv run python -m ondilow_api.scripts.sync_garmin --email SEU@EMAIL --garmin-login
+uv run --directory apps/api python -m ondilow_api.scripts.sync_garmin --email SEU@EMAIL --garmin-login
 ```
 
 Depois disso o token fica em `~/.garminconnect` e renova sozinho:
 
 ```bash
-cd apps/api && uv run python -m ondilow_api.scripts.sync_garmin --email SEU@EMAIL
+uv run --directory apps/api python -m ondilow_api.scripts.sync_garmin --email SEU@EMAIL
 ```
 
 Sem `--since`/`--days`, o sync e incremental (parte da ultima atividade ja vinda do Garmin,
 com 3 dias de margem). Use `--dry-run` para so listar, e `--limit N` para limitar o lote.
+
+> Comando em uma linha so, sem `cd ... &&`: o PowerShell do Windows nao aceita `&&`.
 
 > A API do Garmin usada aqui nao e oficial e pode mudar sem aviso; o upload manual continua
 > funcionando como alternativa. Nenhuma credencial fica no repositorio.
