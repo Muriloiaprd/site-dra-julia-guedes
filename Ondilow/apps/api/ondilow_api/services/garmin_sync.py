@@ -275,7 +275,11 @@ def build_client(email: str | None = None, password: str | None = None):
     O handshake de MFA e ligado a UM cliente em memoria: o `prompt_mfa` roda
     dentro do mesmo `login()`, por isso nao se cria outro cliente aqui.
     """
-    from garminconnect import Garmin
+    from garminconnect import (
+        Garmin,
+        GarminConnectAuthenticationError,
+        GarminConnectTooManyRequestsError,
+    )
 
     if TOKEN_STORE.exists():
         try:
@@ -292,8 +296,32 @@ def build_client(email: str | None = None, password: str | None = None):
             "depois disso o token renova sozinho."
         )
 
-    client = Garmin(email, password, prompt_mfa=lambda: input("Codigo MFA do Garmin: ").strip())
-    client.login(str(TOKEN_STORE))
+    # retry_attempts=1: o padrao (3) insiste sozinho e, num 429, so aprofunda o
+    # bloqueio de IP. Melhor falhar rapido e orientar a esperar.
+    client = Garmin(
+        email,
+        password,
+        prompt_mfa=lambda: input("Codigo MFA do Garmin: ").strip(),
+        retry_attempts=1,
+    )
+    try:
+        client.login(str(TOKEN_STORE))
+    except GarminConnectTooManyRequestsError as e:
+        raise GarminSyncError(
+            "O Garmin respondeu 429: o IP desta maquina esta bloqueado temporariamente "
+            "por excesso de tentativas.\n"
+            "NAO tente de novo em seguida -- cada tentativa renova o bloqueio. Espere "
+            "pelo menos 1 hora (as vezes algumas horas) e rode outra vez.\n"
+            "O bloqueio e por IP, nao por conta: trocar de senha ou de e-mail nao resolve. "
+            "Se tiver pressa, trocar de rede (4G do celular, por exemplo) costuma dar outro IP.\n"
+            "Enquanto isso, o upload manual em /import continua funcionando normalmente."
+        ) from e
+    except GarminConnectAuthenticationError as e:
+        raise GarminSyncError(
+            f"O Garmin recusou as credenciais de '{email}'. Confira o e-mail (use "
+            "--garmin-email se o login do Garmin for diferente do e-mail do Ondilow) "
+            "e a senha."
+        ) from e
     return client
 
 
