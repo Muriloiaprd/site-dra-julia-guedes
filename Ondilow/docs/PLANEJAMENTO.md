@@ -150,4 +150,4 @@ P = horas · M = 1 a 3 dias · G = mais de 1 semana
 - **Mercado Livre API**: sugerir tênis quando um equipamento passar do limite de km.
 - **Motor de "look" por clima**: Open-Meteo mais uma tabela de regras, usando as roupas cadastradas em `/equipment`.
 - **Open-Meteo** (clima e qualidade do ar), **Sunrise-Sunset**, **OpenRouteService** (gerar rota de X km), **Telegram Bot**, **Intervals.icu/Withings** (sono e VFC), **Google Calendar**, **Web Speech API**, **Sentry**.
-- **Descartadas:** Garmin (bloqueia API não oficial), COROS/Suunto (só parceiros), WhatsApp Cloud API (cobra por conversa), calendário de provas no Brasil (sem API pública).
+- **Descartadas:** ~~Garmin (bloqueia API não oficial)~~ — **corrigido em 2026-09-19**: a premissa estava desatualizada, o acesso funciona e MFA não impede; ver `VIABILIDADE_GARMIN_STRAVA_2026-09-19.md`. COROS/Suunto (só parceiros), WhatsApp Cloud API (cobra por conversa), calendário de provas no Brasil (sem API pública).

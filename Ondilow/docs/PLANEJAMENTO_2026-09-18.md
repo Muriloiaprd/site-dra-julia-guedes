@@ -214,7 +214,17 @@ Depois do deploy, para que cada ajuste seja verificável no celular em minutos.
 
 ---
 
-## Fase 9 — Garmin/Strava: investigação de 2h, não fase de entrega
+## Fase 9 — Garmin/Strava: investigação de 2h, não fase de entrega — CONCLUÍDA
+
+**Relatório completo: `VIABILIDADE_GARMIN_STRAVA_2026-09-19.md`.** Resumo: endpoint
+`import-normalized` validado com 9 testes (nenhum bug; ~0,9s por atividade, sem degradar). Saída da
+fase = a segunda prevista ("vira fase real com escopo conhecido"), **mas sem MCP**: MCP move a série
+de GPS pelo contexto da conversa, inviável para backfill. Caminho recomendado é script local que
+baixa o `.FIT` original (`download_activity(..., ORIGINAL)`) e reusa o parser existente — dedup por
+`file_hash` sai de graça. **Duas premissas do projeto estavam erradas** e foram corrigidas: o Garmin
+não "bloqueia API não oficial" (biblioteca ativa) e MFA **não** mata o login (é interativo uma vez;
+tokens renovam sozinhos). Nada instalado, nada autenticado.
+
 
 Três fatos que impedem prometer isso como feature:
 
