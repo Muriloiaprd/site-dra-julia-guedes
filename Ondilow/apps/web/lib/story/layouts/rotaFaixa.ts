@@ -1,10 +1,8 @@
 import { buildArtLayer, clearedBox } from "../art";
-import { drawCoverImage, drawRoute, drawScrim, fitFontSize, projectRoute, STORY_H, STORY_W, textWithShadow } from "../engine";
-import { metricByKey } from "../metrics";
+import { drawCoverImage, drawRoute, drawScrim, projectRoute, STORY_H, STORY_W } from "../engine";
 import { ROTA_FAIXA as R } from "../regions";
 import type { StoryLayout } from "../types";
-
-const KEYS = ["distance", "duration", "pace"] as const;
+import { drawStatBand } from "./shared";
 
 /**
  * Modelo "7" do usuário: listras diagonais no topo e na base, rota grande no
@@ -40,28 +38,6 @@ export const rotaFaixa: StoryLayout = {
       ctx.drawImage(data.logo, R.logoHiRes.x, R.logoHiRes.y, R.logoHiRes.w, R.logoHiRes.h);
     }
 
-    R.cols.forEach((col, i) => {
-      const metric = metricByKey(data.metrics, KEYS[i]);
-      if (!metric) return;
-
-      const label = metric.label.toUpperCase();
-      const labelFont = (s: number) => `700 ${s}px 'Montserrat', sans-serif`;
-      textWithShadow(ctx, label, col.label.x, col.label.y, {
-        font: labelFont(fitFontSize(ctx, label, labelFont, R.colMaxW, col.label.size, 18)),
-        color: "rgba(255,255,255,0.75)",
-        align: "center",
-        shadowBlur: 6,
-        shadowColor: "rgba(0,0,0,0.45)",
-      });
-
-      const value = metric.value + (metric.unit ? ` ${metric.unit}` : "");
-      const valueFont = (s: number) => `800 ${s}px 'Montserrat', sans-serif`;
-      textWithShadow(ctx, value, col.value.x, col.value.y, {
-        font: valueFont(fitFontSize(ctx, value, valueFont, R.colMaxW, col.value.size, 30)),
-        align: "center",
-        shadowBlur: 6,
-        shadowColor: "rgba(0,0,0,0.45)",
-      });
-    });
+    drawStatBand(ctx, data, R);
   },
 };

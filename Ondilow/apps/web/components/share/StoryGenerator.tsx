@@ -46,6 +46,12 @@ export function StoryGenerator({ activity, onClose }: { activity: ActivityDetail
   const color = storyColor(activity.sport);
   const layouts = useMemo(() => availableLayouts(routePoints.length >= 2), [routePoints.length]);
   const layout = layouts[Math.min(layoutIndex, layouts.length - 1)];
+  const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  useEffect(() => {
+    // "nearest" no eixo vertical: só a fileira rola, o painel do modal fica onde está
+    chipRefs.current[layoutIndex]?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [layoutIndex]);
 
   useEffect(() => {
     loadStoryFonts().then(() => setFontsReady(true));
@@ -237,12 +243,15 @@ export function StoryGenerator({ activity, onClose }: { activity: ActivityDetail
         {photoError && <p className="mt-2 text-center text-xs text-brand-danger">{photoError}</p>}
 
         {layouts.length > 1 && (
-          <div className="mt-4 flex items-center justify-center gap-2">
+          // 15 modelos não cabem numa linha: a fileira rola na horizontal e o escolhido vem pro centro
+          <div className="mt-4 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Modelos">
             {layouts.map((l, i) => (
               <button
                 key={l.id}
+                ref={(el) => { chipRefs.current[i] = el; }}
                 onClick={() => setLayoutIndex(i)}
-                className="od-btn od-btn-ghost od-btn-sm !px-3"
+                aria-pressed={i === layoutIndex}
+                className="od-btn od-btn-ghost od-btn-sm shrink-0 !px-3"
                 style={i === layoutIndex ? { color: "#00FF66", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.4)" } : undefined}
               >
                 {l.label}

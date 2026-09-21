@@ -147,6 +147,8 @@ Todos os 18 são 1080x1920 RGBA com fundo realmente transparente. A análise mos
 
 **Descartados e por quê:** 18 (vazio), 9 e 10 (elementos soltos, não são layouts), 15 (ícones quase invisíveis, parece erro de opacidade), 2 (rota ocupa só 1/4 da tela), 4 (ícones minúsculos no canto), 6/8/11 (esqueletos sem conteúdo — são subsets do 5/7), 5 (é o 7 sem as listras), 12 (ícones sólidos destoam do resto), 14 (só a camada de rótulos).
 
+> **Revisto em 2026-09-20 — 10 desses viraram modelos (total: 15).** A análise acima olhou os PNGs sobre fundo branco, e o texto de exemplo e vários ícones são **brancos sobre transparente** — por isso 6, 8, 11, 14 e 15 pareciam "esqueletos", "só rótulos" ou "ícones invisíveis". Sobre fundo escuro são layouts completos. Implementados: 1 `icones-direita`, 2 `rota-minimal`, 4 `logo-lateral`, 5 `rota-limpa`, 6 `faixa-simples`, 8 `faixa-listras`, 11 `bandeiras`, 12 `icones-solidos`, 14 `rotulos-centro`, 15 `moldura-tracejada`. Continuam fora só o 9, o 10 (elementos soltos) e o 18 (vazio de verdade). Medidas e método em `lib/story/regions.ts`. Os modelos 5, 6, 7, 8 e 11 dividem a mesma faixa de 3 colunas (`layouts/shared.ts`). Os modelos 14 e 15 usam Impact (fonte condensada que vem com o Windows) e o 2 usa Georgia — ambas de sistema, sem download, escolhidas porque o uso é local; noutra máquina caem no fallback.
+
 ### 3.1 Decisões de arquitetura (confirmadas com o usuário)
 
 - **Recriar em código, não compor PNG.** Os 18 PNGs viram **referência visual**, não asset de runtime. Motivo prático: a rota e os números estão chapados na arte (13, 7, 17 têm a rota de uma corrida real do usuário; 16 e 17 têm "5.39 km", "16:10" impressos), e esses dois precisam ser dinâmicos.
