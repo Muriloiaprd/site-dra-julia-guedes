@@ -483,7 +483,15 @@ export interface CoachChatMessage {
 }
 
 export interface CoachErrorDetail {
-  error: "not_configured" | "llm_unavailable" | "insufficient_data" | "invalid_plan_response";
+  error:
+    | "not_configured"
+    | "quota_exceeded"
+    | "invalid_key"
+    | "model_not_found"
+    | "llm_unavailable"
+    | "llm_timeout"
+    | "insufficient_data"
+    | "invalid_plan_response";
   weeks_available?: number;
   message?: string;
 }

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import time
 import uuid
 from datetime import date, timedelta
 
@@ -257,11 +258,43 @@ def _call_anthropic(system_prompt: str, user_content: str, response_model: type[
     return text, settings.anthropic_model
 
 
-def _call_gemini(system_prompt: str, user_content: str, response_model: type[BaseModel] | None):
-    from google import genai
-    from google.genai import types
+# Orcamento TOTAL de uma chamada, somando todos os modelos da lista. Tem que
+# ficar abaixo do proxyTimeout do Next (240s em apps/web/next.config.mjs): em
+# 2026-09-21 o free tier levou minutos so para devolver 503, e um timeout por
+# modelo deixava a soma estourar o proxy.
+_GEMINI_BUDGET_S = 200.0
+# Abaixo disso nao vale comecar outro modelo: nao da tempo de responder.
+_GEMINI_MIN_ATTEMPT_S = 20.0
+# Sobrecarga momentanea do modelo (nao e cota): vale tentar o proximo da lista.
+_GEMINI_OVERLOAD_CODES = {500, 503, 504}
 
-    client = genai.Client(api_key=settings.gemini_api_key)
+
+def _gemini_models() -> list[str]:
+    """GEMINI_MODEL aceita uma lista separada por virgula, em ordem de preferencia."""
+    return [m.strip() for m in settings.gemini_model.split(",") if m.strip()]
+
+
+def _gemini_error_reason(e: Exception) -> str:
+    """Traduz o erro do SDK do Gemini num motivo que o front sabe explicar.
+
+    429 e cota do free tier: nao ha retry (nem aqui nem no SDK), porque tentar
+    de novo so queima mais cota."""
+    code = getattr(e, "code", None)
+    status_ = getattr(e, "status", None) or ""
+    message = getattr(e, "message", None) or ""
+    if code == 429 or status_ == "RESOURCE_EXHAUSTED":
+        return "quota_exceeded"
+    if code in (401, 403) or "API_KEY_INVALID" in str(e) or "API key not valid" in message:
+        return "invalid_key"
+    if code == 404:
+        return "model_not_found"
+    return "llm_unavailable"
+
+
+def _call_gemini(system_prompt: str, user_content: str, response_model: type[BaseModel] | None):
+    import httpx
+    from google import genai
+    from google.genai import errors, types
 
     if response_model is not None:
         config = types.GenerateContentConfig(
@@ -269,16 +302,47 @@ def _call_gemini(system_prompt: str, user_content: str, response_model: type[Bas
             response_mime_type="application/json",
             response_schema=response_model,
         )
-        resp = client.models.generate_content(model=settings.gemini_model, contents=user_content, config=config)
-        try:
-            parsed = response_model.model_validate_json(resp.text)
-        except Exception as e:
-            raise CoachPlanParseError(f"Gemini retornou JSON invalido: {e}") from e
-        return parsed, settings.gemini_model
+    else:
+        config = types.GenerateContentConfig(system_instruction=system_prompt)
 
-    config = types.GenerateContentConfig(system_instruction=system_prompt)
-    resp = client.models.generate_content(model=settings.gemini_model, contents=user_content, config=config)
-    return resp.text, settings.gemini_model
+    # Cada modelo e tentado uma vez so, com o que sobrou do orcamento. Passa pro
+    # proximo apenas em sobrecarga (500/503/504) ou timeout; cota esgotada, chave
+    # invalida etc. param na hora.
+    deadline = time.monotonic() + _GEMINI_BUDGET_S
+    resp = None
+    last_error: Exception | None = None
+    reason = "llm_unavailable"
+    for model in _gemini_models():
+        remaining = deadline - time.monotonic()
+        if remaining < _GEMINI_MIN_ATTEMPT_S:
+            break
+        client = genai.Client(
+            api_key=settings.gemini_api_key,
+            http_options=types.HttpOptions(
+                timeout=int(remaining * 1000),
+                retry_options=types.HttpRetryOptions(attempts=1),
+            ),
+        )
+        try:
+            resp = client.models.generate_content(model=model, contents=user_content, config=config)
+            break
+        except errors.APIError as e:
+            last_error = e
+            if e.code not in _GEMINI_OVERLOAD_CODES:
+                raise CoachUnavailableError(_gemini_error_reason(e)) from e
+        except httpx.TimeoutException as e:
+            last_error = e
+            reason = "llm_timeout"
+    if resp is None:
+        raise CoachUnavailableError(reason) from last_error
+
+    if response_model is None:
+        return resp.text, model
+    try:
+        parsed = response_model.model_validate_json(resp.text)
+    except Exception as e:
+        raise CoachPlanParseError(f"Gemini retornou JSON invalido: {e}") from e
+    return parsed, model
 
 
 def call_llm(

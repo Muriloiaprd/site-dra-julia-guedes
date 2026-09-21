@@ -66,7 +66,25 @@ Conferido no código e no banco (conta principal) em 2026-09-21:
 
 Este arquivo.
 
-## Fase 1 — Duni acordada (Gemini funcionando)
+## Fase 1 — Duni acordada (Gemini funcionando) — CONCLUÍDA
+
+**Verificado ao vivo em 2026-09-21** (conta principal: a sessão aberta no navegador era dela, e Claude não digita senha para trocar de conta). Pela interface: chat em 5,1s, relatório em 7,2s e plano de 7 dias em 9,2s, com 7 treinos válidos pelo `response_schema`. 16 testes em `test_coach_service.py`; `tsc` limpo.
+
+O que a execução mudou em relação ao plano:
+
+- **`gemini-2.0-flash` não existe mais** e `gemini-2.5-flash` responde 404 para chaves novas. O free tier estava congestionado: `3.7-flash`, `3.6-flash`, `3.8-flash` e `flash-latest` deram 503, e `3.5-flash` levou 45s para responder "ok" e depois deu 504. O **`gemini-3.5-flash-lite` respondeu o chat real (7,5 mil tokens de entrada) em 2,7s**. `GEMINI_MODEL` virou uma **lista em ordem de preferência** (`gemini-3.5-flash-lite,gemini-3.5-flash`), e o próximo modelo só entra em 500/503/504 ou timeout.
+- **Bug achado: o proxy do Next cortava em 30s** (`proxyTimeout` padrão do rewrite). Com o free tier levando 30–45s, a Duni daria erro sempre. `next.config.mjs` subiu para 240s.
+- **Orçamento de tempo total de 200s** para a chamada inteira (somando os modelos), abaixo dos 240s do proxy. Um timeout por modelo deixava a soma estourar o proxy, que foi o que aconteceu no primeiro teste ao vivo. Um timeout do httpx antes virava "Erro 500"; agora vira `llm_timeout`.
+- Erros mapeados: `quota_exceeded` (429, sem retry, sem modelo reserva), `invalid_key`, `model_not_found`, `llm_unavailable`, `llm_timeout`, cada um com mensagem própria no front.
+
+Achados para as próximas fases (não corrigidos aqui):
+
+- A resposta do chat supôs "descanso de propósito" e não viu o buraco de dados de 17/08 a 07/09 → **Fase 4** (lacunas).
+- O relatório afirmou "no passado houve muita tendência a volumes longos sem polarização" sem nenhum dado de distribuição de intensidade no contexto → **Fases 4 e 6** (fatos calculados e proibição explícita).
+- **O card de risco diz "ACWR 4.00 · Risco alto" e "Carga muito alta — priorize recuperação" com TSB +6,7.** O ACWR explode quando a carga crônica é quase zero (uma corrida de 0,7 km depois de 3 semanas paradas). É inconsistência antiga do dashboard, mas a Duni vai ler esse número → tratar na **Fase 4** (ACWR só é confiável com carga crônica mínima).
+- O plano gerado ainda é de triathlon (bike e "other"), o esperado até a **Fase 6**. Os 7 treinos ficaram salvos na conta principal (22–28/09).
+
+Texto original da fase:
 
 - **O usuário gera a chave** em aistudio.google.com/apikey (sem cartão) e coloca `GEMINI_API_KEY=` no `Ondilow/.env`. Claude não cria conta nem cola a chave.
 - Confirmar o modelo Flash atual do free tier e atualizar `gemini_model` em `config.py` e no `.env.example`.

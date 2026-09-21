@@ -45,7 +45,11 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = Field(default=None)
     anthropic_model: str = Field(default="claude-opus-5")
     gemini_api_key: str | None = Field(default=None)
-    gemini_model: str = Field(default="gemini-2.0-flash")
+    # Lista em ordem de preferencia; o proximo so e usado se o anterior estiver
+    # sobrecarregado (503/504) ou estourar o tempo. Medido no free tier em
+    # 2026-09-21: o Lite respondeu o chat real em 2,7s; 3.7-flash e 3.5-flash
+    # deram 503/504 depois de minutos na fila.
+    gemini_model: str = Field(default="gemini-3.5-flash-lite,gemini-3.5-flash")
     coach_prompt_version: str = Field(default="v1")
 
     @model_validator(mode="after")
