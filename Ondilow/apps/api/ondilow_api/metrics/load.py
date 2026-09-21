@@ -7,7 +7,8 @@ TSS por modalidade (MVP simplificado — usa HR quando disponivel):
 """
 
 import math
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from typing import Protocol
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -19,6 +20,17 @@ from ondilow_api.models import Activity
 from ondilow_api.models.daily_metric import DailyMetric
 from ondilow_api.models.user import AthleteProfile
 
+
+class TssInput(Protocol):
+    """O que compute_tss realmente le — serve tanto para um Activity da ORM
+    quanto para a Row enxuta que update_daily_metrics busca."""
+
+    start_time: datetime
+    sport: str
+    duration_s: int
+    avg_hr: int | None
+    avg_power_w: int | None
+
 _CTL_TC = 42  # dias (constante de tempo forma cronica)
 _ATL_TC = 7   # dias (constante de tempo forma aguda)
 _K_CTL = 1 - math.exp(-1 / _CTL_TC)
@@ -27,7 +39,7 @@ _K_ATL = 1 - math.exp(-1 / _ATL_TC)
 _BIKE_SPORTS = {"bike", "mtb", "gravel", "indoor_bike"}
 
 
-def compute_tss(activity: Activity, profile: "AthleteProfile | None" = None) -> float:
+def compute_tss(activity: TssInput, profile: "AthleteProfile | None" = None) -> float:
     """Retorna o TSS estimado da atividade (nunca None — fallback garantido)."""
     duration_h = activity.duration_s / 3600
 
@@ -55,8 +67,6 @@ def compute_tss(activity: Activity, profile: "AthleteProfile | None" = None) -> 
 
 def update_daily_metrics(db: Session, user_id, from_date: date | None = None) -> None:
     """Recalcula CTL/ATL/TSB/ACWR a partir de from_date ate hoje (idempotente)."""
-    from sqlalchemy.orm import selectinload
-
     today = date.today()
 
     # busca perfil do atleta (necessario para compute_tss)
@@ -79,18 +89,26 @@ def update_daily_metrics(db: Session, user_id, from_date: date | None = None) ->
     # precisa de pelo menos 42 dias de historico para CTL estavel; vai atras se possivel
     lookback = start - timedelta(days=_CTL_TC * 2)
 
-    # busca todos os TSS diarios agregados a partir do lookback
-    from datetime import datetime, timezone
+    # busca todos os TSS diarios agregados a partir do lookback. So as colunas
+    # que compute_tss le: num backfill isso varre o historico inteiro, e trazer
+    # o objeto completo da ORM (com todos os campos e identity map) nao paga.
+    from datetime import timezone
     lookback_dt = datetime(lookback.year, lookback.month, lookback.day, tzinfo=timezone.utc)
     activities = db.execute(
-        select(Activity)
+        select(
+            Activity.start_time,
+            Activity.sport,
+            Activity.duration_s,
+            Activity.avg_hr,
+            Activity.avg_power_w,
+        )
         .where(
             Activity.user_id == user_id,
             Activity.deleted_at.is_(None),
             Activity.start_time >= cast(lookback_dt, SADateTime(timezone=True)),
         )
         .order_by(Activity.start_time.asc())
-    ).scalars().all()
+    ).all()
 
     # agrupa TSS por data
     tss_by_date: dict[date, float] = {}
