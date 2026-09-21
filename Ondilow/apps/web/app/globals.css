@@ -3,6 +3,53 @@
 @tailwind utilities;
 
 /* ════════════════════════════════════════════════════════════════
+   FONTES — servidas de public/fonts, sem rede
+   Subset latin (o mesmo que o Google entrega), que cobre portugues.
+   Peso faltando aqui = browser sintetiza (faux bold): ao usar um peso
+   novo no CSS, baixar o .woff2 correspondente tambem.
+   ════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900; /* arquivo variavel: conferido, varia de 300 a 900 */
+  font-display: swap;
+  src: url("/fonts/Inter-Variable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/Poppins-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/Poppins-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("/fonts/Poppins-800.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("/fonts/Poppins-900.woff2") format("woff2");
+}
+
+/* ════════════════════════════════════════════════════════════════
    ONDILOW DESIGN SYSTEM
    Tokens espelhados em tailwind.config.ts e lib/theme.ts
    ════════════════════════════════════════════════════════════════ */
