@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Logo } from "@/components/Logo";
 import { clearToken, fetchMe, fetchProfile, type User } from "@/lib/api";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 
 type NavItem = { href: string; label: string; short?: string; icon: ReactNode; ai?: boolean };
 
@@ -99,24 +100,7 @@ export function Sidebar() {
 
   const sheetRef = useRef<HTMLDivElement>(null);
   const moreBtnRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (!moreOpen) return;
-    const sheet = sheetRef.current;
-    const focusables = () => Array.from(sheet?.querySelectorAll<HTMLElement>("a[href], button") ?? []);
-    focusables()[0]?.focus();
-    const btn = moreBtnRef.current;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setMoreOpen(false); return; }
-      if (e.key !== "Tab") return;
-      const items = focusables();
-      if (!items.length) return;
-      const first = items[0], last = items[items.length - 1];
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => { document.removeEventListener("keydown", onKey); btn?.focus(); };
-  }, [moreOpen]);
+  useFocusTrap(sheetRef, moreOpen, () => setMoreOpen(false), moreBtnRef);
 
   function handleLogout() {
     clearToken();

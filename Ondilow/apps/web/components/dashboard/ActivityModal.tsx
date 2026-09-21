@@ -2,13 +2,14 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sparkline } from "@/components/ui/charts";
 import { Skeleton, TrendBadge } from "@/components/ui/primitives";
 import { SportTile } from "@/components/SportIcon";
 import { pctChange } from "@/lib/athlete";
 import { fetchActivity, type ActivityDetail, type ActivitySummary } from "@/lib/api";
 import { C } from "@/lib/theme";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 import { formatDistance, formatDuration, formatPace, sportLabel } from "@/lib/utils";
 
 const ActivityMap = dynamic(
@@ -35,14 +36,15 @@ export function ActivityModal({ activity, activities, detail, onClose }: {
   const [fetched, setFetched] = useState<ActivityDetail | null>(null);
   const [loadingMap, setLoadingMap] = useState(!detail);
   const points = detail?.points ?? fetched?.points;
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(panelRef, true, onClose);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = overflow; };
-  }, [onClose]);
+    return () => { document.body.style.overflow = overflow; };
+  }, []);
 
   useEffect(() => {
     if (detail) { setLoadingMap(false); return; }
@@ -78,8 +80,10 @@ export function ActivityModal({ activity, activities, detail, onClose }: {
       aria-label={activity.title ?? sportLabel(activity.sport)}
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="od-panel max-h-[88vh] w-full max-w-[760px] animate-od-fade-up overflow-y-auto !rounded-b-none sm:!rounded-card"
+        className="od-panel max-h-[88vh] w-full max-w-[760px] animate-od-fade-up overflow-y-auto !rounded-b-none sm:!rounded-card outline-none"
         style={{ background: "linear-gradient(180deg, rgba(0,255,102,0.04), transparent 30%), #0e0e0e" }}
       >
         <div className="mb-5 flex items-start justify-between gap-4">
