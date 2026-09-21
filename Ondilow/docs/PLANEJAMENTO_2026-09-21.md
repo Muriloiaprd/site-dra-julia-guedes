@@ -94,7 +94,31 @@ Texto original da fase:
 
 **Pronto quando:** as três ações funcionam ao vivo.
 
-## Fase 2 — Dados corretos e derivados
+## Fase 2 — Dados corretos e derivados — CONCLUÍDA
+
+**Executado em 2026-09-21.** 124 testes na API (35 novos: `test_derived_metrics.py` e 2 de import) e `tsc` limpo. Verificado ao vivo: numa corrida de 36 km, a página mostra cadência **174 ppm** (antes "87 spm"), GAP 5:40/km, deriva −0,0% e a coluna GAP nos splits; uma caminhada aparece como "Caminhada" com 128 ppm; o perfil mostra zonas Karvonen (133/147/162/176) com o título certo.
+
+Como ficou:
+
+- **Cálculos puros** em `metrics/derived.py`: fator de cadência, GAP por Minetti (2002) e deriva de Friel. Aplicados por `services/derived_metrics.py`, a mesma função no import e no backfill.
+- **Migrations** `011` (enum: `walk`, `strength`, `pilates`) e `012` (colunas `gap_pace_s_per_km`, `hr_decoupling_pct` e `derived_version` em `activities`; `gap_pace_s_per_km` em `activity_laps`).
+- **Backfill** `scripts/backfill_derived.py`: idempotente pela `derived_version`. A cadência e a reclassificação só acontecem na 1ª passada (versão nula), e os pontos são corrigidos com um `UPDATE` SQL por atividade, não um por ponto.
+- **Zonas** `resolve_hr_zones()`: salvas > Karvonen > %FCmáx. O perfil no front usa a mesma regra.
+
+O que a execução mudou em relação ao plano:
+
+- **Reclassificação automática, não manual.** Os arquivos originais (`.gz` em `data/uploads`) dizem o esporte. Das 12 atividades `other` da conta principal: **6 caminhadas** e **3 musculação**. O resto (2 `cardio_training` e 1 elíptico) continua `other`, porque o enum não tem tipo para isso. O usuário não precisou editar nada.
+- **Caminhada também grava cadência por perna** (54–64), então a correção vale para `walk` além de corrida.
+- **A média móvel na altitude entrou por causa de um teste**: ruído simétrico de ±2 m deixava o GAP 9% mais lento, porque a curva de Minetti é convexa. Com média de ±30 m, o erro caiu para menos de 1%.
+- **Ensaio na branch `test` achou dois bugs antes da main**:
+  1. Uma volta de 2 m em 40 s dava ritmo de 20.174 s/km e estourava `numeric(6,2)`. Agora voltas com menos de 50 m e ritmos acima de 60 min/km são ignorados.
+  2. A deriva chegava a −134% em corrida com muita parada. Agora só é calculada com tempo em movimento ≥ 90% do total. Por isso `DERIVED_VERSION = 2`, e a 2ª passada na branch `test` confirmou que **reprocessar não dobra a cadência de novo**.
+- **Resultado na main** (igual ao ensaio): 396 cadências dobradas (as duas contas), 556 atividades com GAP e 214 com deriva. A 2ª execução encontrou 0 pendentes. Na conta principal, a cadência média de corrida ficou em **161 ppm** (mediana dos pontos 168), a caminhada em ~119, e a deriva mediana em **2,3%** (75% abaixo de 5%).
+- **"Corridas" com 80–128 ppm** são caminhadas registradas como corrida (10–12 min/km, FC baixa). O dado está certo; o rótulo é que está errado. A Fase 4 deve tratar ritmo acima de ~9 min/km como caminhada ao montar a carga.
+
+**Limitação conhecida do GAP** (documentada, não corrigida): em terreno muito íngreme, a inclinação medida a cada 50 m pesa as rampas curtas mais do que uma média por km. No caso mais extremo do histórico (trilha de 5 km, +208/−242 m, ritmo de caminhada), o GAP saiu 9:50/km pela janela de 50 m, contra ~11:00/km numa conta à mão por km. Na corrida mediana a razão GAP/pace é **1,000**, e em todo o histórico fica entre 0,88 e 1,07. Minetti também é conhecido por exagerar o alívio da descida. Por isso a UI sempre chama de "estimativa".
+
+Texto original da fase:
 
 **Objetivo:** dar à Duni números em que ela possa confiar.
 

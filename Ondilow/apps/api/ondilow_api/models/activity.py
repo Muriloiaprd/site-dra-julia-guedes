@@ -29,6 +29,9 @@ SPORT_VALUES = (
     "swim",
     "open_water_swim",
     "multisport",
+    "walk",
+    "strength",
+    "pilates",
     "other",
 )
 SOURCE_VALUES = ("fit", "gpx", "tcx", "csv", "garmin_api", "strava_api", "manual")
@@ -71,6 +74,11 @@ class Activity(Base):
     avg_speed_kmh: Mapped[float | None] = mapped_column(Numeric(5, 2))
     max_speed_kmh: Mapped[float | None] = mapped_column(Numeric(5, 2))
     avg_cadence: Mapped[float | None] = mapped_column(Numeric(5, 2))
+    # Derivados da serie de pontos (services/derived_metrics.py). derived_version
+    # nulo = atividade ainda nao passou pelo calculo (nem pela correcao de cadencia).
+    gap_pace_s_per_km: Mapped[float | None] = mapped_column(Numeric(6, 2))
+    hr_decoupling_pct: Mapped[float | None] = mapped_column(Numeric(5, 2))
+    derived_version: Mapped[int | None] = mapped_column(SmallInteger)
     avg_power_w: Mapped[int | None] = mapped_column(SmallInteger)
     max_power_w: Mapped[int | None] = mapped_column(SmallInteger)
     normalized_power_w: Mapped[int | None] = mapped_column(SmallInteger)
@@ -152,6 +160,7 @@ class ActivityLap(Base):
     duration_s: Mapped[int | None] = mapped_column(Integer)
     distance_m: Mapped[float | None] = mapped_column(Numeric(10, 2))
     avg_pace_s_per_km: Mapped[float | None] = mapped_column(Numeric(6, 2))
+    gap_pace_s_per_km: Mapped[float | None] = mapped_column(Numeric(6, 2))
     avg_speed_kmh: Mapped[float | None] = mapped_column(Numeric(5, 2))
     avg_hr: Mapped[int | None] = mapped_column(SmallInteger)
     max_hr: Mapped[int | None] = mapped_column(SmallInteger)

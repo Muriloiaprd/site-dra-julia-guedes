@@ -188,6 +188,45 @@ def test_import_normalized_accepts_strava_sport_names(
     assert resp.json()["sport"] == "trail_run"
 
 
+def test_import_doubles_per_leg_cadence_and_fills_derived_metrics(
+    auth_client: tuple[TestClient, dict], db_session: Session
+) -> None:
+    """Relogio Garmin grava passadas de uma perna (84 = 168 passos/min). Tudo
+    que entra pelo import (resumo, voltas, pontos) sai em passos/min, com GAP."""
+    client, _user = auth_client
+    base = _payload()
+    points = [{**p, "cadence": 84} for p in base["points"]]
+    laps = [{**lap, "avg_cadence": 84} for lap in base["laps"]]
+    resp = _post(client, points=points, laps=laps, avg_cadence=84.0, source_activity_id="por-perna")
+    assert resp.status_code == 201, resp.text
+
+    activity = db_session.get(Activity, resp.json()["activity_id"])
+    assert float(activity.avg_cadence) == 168.0
+    stored_laps = db_session.execute(
+        select(ActivityLap).where(ActivityLap.activity_id == activity.id)
+    ).scalars().all()
+    assert {lap.avg_cadence for lap in stored_laps} == {168}
+    point_cadences = db_session.execute(
+        select(ActivityPoint.cadence).where(ActivityPoint.activity_id == activity.id)
+    ).scalars().all()
+    assert set(point_cadences) == {168}
+
+    # altitude sobe ~0,3%: GAP um pouco mais rapido que o pace real de 5:00
+    assert activity.gap_pace_s_per_km is not None
+    assert 290 < float(activity.gap_pace_s_per_km) < 300
+    assert all(lap.gap_pace_s_per_km is not None for lap in stored_laps)
+    # 25 min: curto demais para deriva
+    assert activity.hr_decoupling_pct is None
+    assert activity.derived_version is not None
+
+
+def test_import_normalized_accepts_walking(auth_client: tuple[TestClient, dict]) -> None:
+    client, _user = auth_client
+    resp = _post(client, sport="walking", source_activity_id="caminhada")
+    assert resp.status_code == 201
+    assert resp.json()["sport"] == "walk"
+
+
 def test_import_normalized_rejects_unknown_source(auth_client: tuple[TestClient, dict]) -> None:
     """source e o unico campo com allowlist: 'fit'/'gpx' viriam de upload."""
     client, _user = auth_client

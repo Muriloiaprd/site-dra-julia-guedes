@@ -9,7 +9,7 @@ from sqlalchemy import delete, select, update
 
 from ondilow_api.config import settings
 from ondilow_api.deps import CurrentUser, DbSession
-from ondilow_api.metrics import compute_splits, default_hr_zones, hr_zone_distribution
+from ondilow_api.metrics import compute_splits, hr_zone_distribution, resolve_hr_zones
 from ondilow_api.metrics.basic import PointLike
 from ondilow_api.metrics.load import update_daily_metrics
 from ondilow_api.metrics.records import recompute_all_records_background
@@ -337,12 +337,8 @@ def get_splits(
 @router.get("/{activity_id}/zones", response_model=list[ZoneBucketOut])
 def get_zones(activity_id: uuid.UUID, current_user: CurrentUser, db: DbSession) -> list[ZoneBucketOut]:
     activity = _load_activity(db, activity_id, current_user.id)
-    profile = current_user.profile
-    if profile and profile.hr_zones:
-        zones = profile.hr_zones
-    elif profile and profile.max_hr:
-        zones = default_hr_zones(profile.max_hr)
-    else:
+    zones = resolve_hr_zones(current_user.profile)
+    if zones is None:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "Configure max_hr (ou zonas) no perfil para calcular zonas de FC",

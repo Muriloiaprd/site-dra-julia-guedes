@@ -17,6 +17,7 @@ from ondilow_api.metrics.load import update_daily_metrics
 from ondilow_api.metrics.records import update_records
 from ondilow_api.models import Activity, ActivityLap, ActivityPoint
 from ondilow_api.parsers.base import NormalizedActivity
+from ondilow_api.services.derived_metrics import apply_derived_metrics, normalize_step_cadence
 
 
 @dataclass(slots=True)
@@ -107,6 +108,10 @@ def import_activity(
         )
         for lap in norm.laps
     ]
+
+    # dado cru do arquivo: a cadencia ainda nao foi corrigida
+    normalize_step_cadence(activity)
+    apply_derived_metrics(activity)
 
     db.add(activity)
     db.commit()

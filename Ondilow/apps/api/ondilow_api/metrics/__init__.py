@@ -6,6 +6,8 @@ from ondilow_api.metrics.basic import (
     compute_splits,
     default_hr_zones,
     hr_zone_distribution,
+    karvonen_hr_zones,
+    resolve_hr_zones,
 )
 
 __all__ = [
@@ -16,4 +18,6 @@ __all__ = [
     "hr_zone_distribution",
     "best_efforts",
     "default_hr_zones",
+    "karvonen_hr_zones",
+    "resolve_hr_zones",
 ]

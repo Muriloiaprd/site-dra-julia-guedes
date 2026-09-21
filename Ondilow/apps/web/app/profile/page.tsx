@@ -20,12 +20,14 @@ import {
 
 const DELETE_CONFIRM_WORD = "EXCLUIR";
 
-/** Faixas padrao por %FCmax (Z1<60, Z2 60-70, Z3 70-80, Z4 80-90, Z5>90) —
- * mesmas de metrics/basic.py::default_hr_zones, usadas como ponto de partida
- * ao personalizar zonas manualmente. */
-function defaultHrZones(maxHr: number): HrZones {
-  const edges = [0, 0.6, 0.7, 0.8, 0.9, 1.01];
-  const bounds = edges.map((e) => Math.round(maxHr * e));
+/** Zonas automaticas, iguais a metrics/basic.py::resolve_hr_zones sem zonas
+ * salvas: com FC de repouso, Karvonen (Z1<60, Z2 60-70, Z3 70-80, Z4 80-90,
+ * Z5>90 da FC de reserva); sem ela, as mesmas faixas sobre a FC max. Tambem e o
+ * ponto de partida ao personalizar zonas manualmente. */
+function automaticHrZones(maxHr: number, restingHr: number | null): HrZones {
+  const karvonen = restingHr != null && maxHr > restingHr;
+  const at = (e: number) => Math.round(karvonen ? restingHr! + (maxHr - restingHr!) * e : maxHr * e);
+  const bounds = [0, at(0.6), at(0.7), at(0.8), at(0.9), karvonen ? maxHr + 1 : Math.round(maxHr * 1.01)];
   return {
     z1: [bounds[0], bounds[1]],
     z2: [bounds[1], bounds[2]],
@@ -225,7 +227,7 @@ export default function ProfilePage() {
   function handleToggleCustomZones(enabled: boolean) {
     setForm((f) => ({
       ...f,
-      hr_zones: enabled ? f.hr_zones ?? defaultHrZones(f.max_hr ?? 190) : null,
+      hr_zones: enabled ? f.hr_zones ?? automaticHrZones(f.max_hr ?? 190, f.resting_hr ?? null) : null,
     }));
   }
 
@@ -333,17 +335,12 @@ export default function ProfilePage() {
     );
   }
 
-  // Zonas customizadas (form.hr_zones) tem prioridade; sem isso, mesmas faixas
-  // de metrics/basic.py::default_hr_zones (Z1 <60%, ..., Z5 >90% da FC max).
-  const zones = form.hr_zones
+  // Zonas customizadas (form.hr_zones) tem prioridade; sem isso, as automaticas
+  // (Karvonen com FC de repouso, %FC max sem ela), como no backend.
+  const shownZones = form.hr_zones ?? (form.max_hr ? automaticHrZones(form.max_hr, form.resting_hr ?? null) : null);
+  const zones = shownZones
     ? (["z1", "z2", "z3", "z4", "z5"] as const).map((k, i) => {
-        const [from, to] = form.hr_zones![k];
-        return { z: i + 1, range: i === 0 ? `<${to}` : i === 4 ? `>${from}` : `${from}–${to}` };
-      })
-    : form.max_hr
-    ? [0, 0.6, 0.7, 0.8, 0.9].map((lo, i, arr) => {
-        const from = Math.round(form.max_hr! * lo);
-        const to = Math.round(form.max_hr! * (arr[i + 1] ?? 1));
+        const [from, to] = shownZones[k];
         return { z: i + 1, range: i === 0 ? `<${to}` : i === 4 ? `>${from}` : `${from}–${to}` };
       })
     : null;
@@ -400,7 +397,9 @@ export default function ProfilePage() {
 
           {zones && (
             <div className="relative mt-4">
-              <div className="od-metric-label mb-2">Zonas de FC (% da máxima)</div>
+              <div className="od-metric-label mb-2">
+                Zonas de FC ({form.hr_zones ? "personalizadas" : form.resting_hr != null ? "Karvonen · FC de reserva" : "% da máxima"})
+              </div>
               <div className="flex h-2 overflow-hidden rounded-full">
                 {["#00BFFF", "#00FF66", "#C6FF00", "#FFC145", "#F85149"].map((c) => <div key={c} className="flex-1" style={{ background: c, opacity: 0.8 }} />)}
               </div>

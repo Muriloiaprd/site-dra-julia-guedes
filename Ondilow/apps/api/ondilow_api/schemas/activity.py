@@ -48,6 +48,7 @@ class ActivityLapOut(BaseModel):
     duration_s: int | None = None
     distance_m: float | None = None
     avg_pace_s_per_km: float | None = None
+    gap_pace_s_per_km: float | None = None
     avg_hr: int | None = None
     avg_power_w: int | None = None
 
@@ -60,6 +61,8 @@ class ActivityDetail(ActivitySummary):
     avg_power_w: int | None = None
     max_power_w: int | None = None
     avg_cadence: float | None = None
+    gap_pace_s_per_km: float | None = None
+    hr_decoupling_pct: float | None = None
     calories: int | None = None
     location_start_lat: float | None = None
     location_start_lon: float | None = None
@@ -74,6 +77,7 @@ class SplitOut(BaseModel):
     pace_s_per_km: float | None = None
     avg_hr: int | None = None
     elevation_gain_m: float | None = None
+    gap_pace_s_per_km: float | None = None
 
 
 class ZoneBucketOut(BaseModel):

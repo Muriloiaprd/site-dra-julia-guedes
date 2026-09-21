@@ -81,6 +81,7 @@ export interface ActivityLap {
   duration_s: number | null;
   distance_m: number | null;
   avg_pace_s_per_km: number | null;
+  gap_pace_s_per_km: number | null;
   avg_hr: number | null;
   avg_power_w: number | null;
 }
@@ -92,7 +93,12 @@ export interface ActivityDetail extends ActivitySummary {
   max_hr: number | null;
   avg_power_w: number | null;
   max_power_w: number | null;
+  /** Passos/min em esportes de passada (ja corrigido do "por perna" do FIT). */
   avg_cadence: number | null;
+  /** Ritmo ajustado a inclinacao, estimado (s/km). */
+  gap_pace_s_per_km: number | null;
+  /** Deriva cardiaca (%), so em corrida continua de 30+ min. */
+  hr_decoupling_pct: number | null;
   calories: number | null;
   location_start_lat: number | null;
   location_start_lon: number | null;
@@ -114,6 +120,7 @@ export interface Split {
   pace_s_per_km: number | null;
   avg_hr: number | null;
   elevation_gain_m: number | null;
+  gap_pace_s_per_km: number | null;
 }
 
 export interface ZoneBucket {

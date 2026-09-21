@@ -7,6 +7,8 @@ reaproveitar em workers.
 
 from dataclasses import dataclass
 
+from ondilow_api.metrics.derived import gap_pace
+
 
 @dataclass(slots=True)
 class PointLike:
@@ -24,6 +26,7 @@ class Split:
     pace_s_per_km: float | None
     avg_hr: int | None
     elevation_gain_m: float | None
+    gap_pace_s_per_km: float | None = None
 
 
 @dataclass(slots=True)
@@ -98,6 +101,14 @@ def compute_splits(points: list, split_m: float = 1000.0) -> list[Split]:
                     elevation_gain_m=_gain(seg_start_alt, last.altitude_m),
                 )
             )
+
+    # GAP de cada trecho: so os pontos dentro dele (com as bordas).
+    start_m = 0.0
+    for s in splits:
+        end_m = start_m + s.distance_m
+        seg = [p for p in pts if start_m <= p.distance_m <= end_m]
+        s.gap_pace_s_per_km = gap_pace(s.pace_s_per_km, seg)
+        start_m = end_m
     return splits
 
 
@@ -110,6 +121,29 @@ def default_hr_zones(max_hr: int) -> dict[str, list[int]]:
         hi = round(max_hr * edges[i + 1])
         zones[f"z{i + 1}"] = [lo, hi]
     return zones
+
+
+def karvonen_hr_zones(max_hr: int, resting_hr: int) -> dict[str, list[int]]:
+    """Zonas por % da FC de reserva (Karvonen): Z1<60, Z2 60-70, Z3 70-80,
+    Z4 80-90, Z5>90 de (FCmax - FCrepouso), somado a FC de repouso. Mais fiel que
+    %FCmax quando a FC de repouso e conhecida."""
+    reserve = max_hr - resting_hr
+    edges = [0.60, 0.70, 0.80, 0.90]
+    bounds = [0] + [round(resting_hr + reserve * e) for e in edges] + [max_hr + 1]
+    return {f"z{i + 1}": [bounds[i], bounds[i + 1]] for i in range(5)}
+
+
+def resolve_hr_zones(profile) -> dict[str, list[int]] | None:
+    """Zonas salvas no perfil > Karvonen (max + repouso) > %FCmax > None."""
+    if profile is None:
+        return None
+    if profile.hr_zones:
+        return profile.hr_zones
+    if profile.max_hr and profile.resting_hr and profile.max_hr > profile.resting_hr:
+        return karvonen_hr_zones(profile.max_hr, profile.resting_hr)
+    if profile.max_hr:
+        return default_hr_zones(profile.max_hr)
+    return None
 
 
 def hr_zone_distribution(points: list, zones: dict[str, list[int]]) -> list[ZoneBucket]:

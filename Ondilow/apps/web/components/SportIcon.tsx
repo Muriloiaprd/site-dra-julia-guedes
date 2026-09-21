@@ -3,7 +3,7 @@ import { sportColor } from "@/lib/utils";
 const SPORT_EMOJI: Record<string, string> = {
   run: "🏃", trail_run: "🏔️", treadmill: "🏃", bike: "🚴", mtb: "🚵",
   gravel: "🚴", indoor_bike: "🚴", swim: "🏊", open_water_swim: "🏊",
-  strength: "🏋️", pilates: "🧘", rest: "💤", other: "⚡",
+  walk: "🚶", strength: "🏋️", pilates: "🧘", rest: "💤", other: "⚡",
 };
 
 const SPORT_ICON_SRC: Record<string, string> = {

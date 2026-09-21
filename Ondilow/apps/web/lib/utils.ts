@@ -65,6 +65,11 @@ export function sportGroup(sport: string): "run" | "bike" | "swim" | "other" {
   return "other";
 }
 
+/** Esportes em que cadencia e GAP fazem sentido (passos, nao pedaladas). */
+export function isStepSport(sport: string): boolean {
+  return ["run", "trail_run", "treadmill", "walk"].includes(sport);
+}
+
 export function formatPace(sPerKm: number): string {
   const m = Math.floor(sPerKm / 60);
   const s = Math.round(sPerKm % 60);
@@ -104,6 +109,9 @@ export function sportLabel(sport: string): string {
     swim: "Natação",
     open_water_swim: "Natação Águas Abertas",
     multisport: "Multiesporte",
+    walk: "Caminhada",
+    strength: "Musculação",
+    pilates: "Pilates",
     other: "Outro",
   };
   return labels[sport] ?? sport;
@@ -121,6 +129,9 @@ export function sportColor(sport: string): string {
     swim: "#00CFFF",
     open_water_swim: "#0099CC",
     multisport: "#FF6B6B",
+    walk: "#7FD8BE",
+    strength: "#FFB347",
+    pilates: "#C9A0FF",
     other: "#888888",
   };
   return colors[sport] ?? "#888888";

@@ -15,6 +15,9 @@ VALID_SPORTS = {
     "swim",
     "open_water_swim",
     "multisport",
+    "walk",
+    "strength",
+    "pilates",
     "other",
 }
 
@@ -47,6 +50,16 @@ _ALIASES = {
     "openwaterswimming": "open_water_swim",
     "multisport": "multisport",
     "triathlon": "multisport",
+    # complementares (FIT: sport=walking / training + sub_sport=strength_training)
+    "walking": "walk",
+    "walk": "walk",
+    "hiking": "walk",
+    "casual_walking": "walk",
+    "speed_walking": "walk",
+    "strength_training": "strength",
+    "weighttraining": "strength",
+    "weight_training": "strength",
+    "pilates": "pilates",
     # nomenclatura da API do Strava (sport_type)
     "run": "run",
     "trailrun": "trail_run",

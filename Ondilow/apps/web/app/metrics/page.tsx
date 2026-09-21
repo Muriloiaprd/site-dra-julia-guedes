@@ -28,6 +28,9 @@ const SPORT_COLOR_MAP: Record<string, string> = {
   mtb: "#99CC00",
   swim: "#00CFFF",
   open_water_swim: "#0099CC",
+  walk: "#7FD8BE",
+  strength: "#FFB347",
+  pilates: "#C9A0FF",
   other: "#888888",
 };
 

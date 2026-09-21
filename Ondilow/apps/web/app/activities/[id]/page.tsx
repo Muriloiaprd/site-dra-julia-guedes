@@ -40,6 +40,7 @@ import {
   formatPace,
   formatPaceShort,
   formatTime,
+  isStepSport,
   sportColor,
   sportLabel,
 } from "@/lib/utils";
@@ -67,7 +68,7 @@ const ZONE_NAMES: Record<number, string> = {
 
 const SPORTS = [
   "run", "trail_run", "treadmill", "bike", "mtb", "gravel",
-  "indoor_bike", "swim", "open_water_swim", "multisport", "other",
+  "indoor_bike", "swim", "open_water_swim", "multisport", "walk", "strength", "pilates", "other",
 ];
 
 export default function ActivityPage() {
@@ -200,13 +201,29 @@ export default function ActivityPage() {
   const splitPaces = splits.map((s) => s.pace_s_per_km).filter((p): p is number => p != null);
   const fastest = splitPaces.length ? Math.min(...splitPaces) : null;
   const slowest = splitPaces.length ? Math.max(...splitPaces) : null;
+  const showSplitGap = isStepSport(activity.sport) && splits.some((s) => s.gap_pace_s_per_km != null);
 
-  const secondary: { label: string; value: string | number; unit?: string }[] = [];
+  const step = isStepSport(activity.sport);
+  const secondary: { label: string; value: string | number; unit?: string; hint?: string }[] = [];
   if (activity.moving_time_s != null) secondary.push({ label: "Em movimento", value: formatDuration(activity.moving_time_s) });
   if (activity.max_hr != null) secondary.push({ label: "FC máx", value: activity.max_hr, unit: "bpm" });
   if (activity.elevation_gain_m != null) secondary.push({ label: "Elevação", value: `+${Math.round(activity.elevation_gain_m)}`, unit: "m" });
   if (activity.avg_speed_kmh != null && hasPace) secondary.push({ label: "Vel. média", value: activity.avg_speed_kmh.toFixed(1), unit: "km/h" });
-  if (activity.avg_cadence != null) secondary.push({ label: "Cadência", value: activity.avg_cadence, unit: "spm" });
+  if (activity.gap_pace_s_per_km != null) secondary.push({
+    label: "Pace ajustado (GAP)",
+    value: formatPaceShort(activity.gap_pace_s_per_km),
+    unit: "/km",
+    hint: "Estimativa do pace equivalente no plano: desconta o esforço das subidas e o alívio das descidas.",
+  });
+  const drift = activity.hr_decoupling_pct != null ? Math.round(activity.hr_decoupling_pct * 10) / 10 : null;
+  if (drift != null) secondary.push({
+    label: "Deriva cardíaca",
+    // arredonda antes do sinal: -0.04 viraria "-0.0"
+    value: `${drift > 0 ? "+" : ""}${(drift === 0 ? 0 : drift).toFixed(1)}`,
+    unit: "%",
+    hint: "Quanto o coração trabalhou a mais na 2ª metade para o mesmo ritmo. Até ~5% é normal num treino leve contínuo.",
+  });
+  if (activity.avg_cadence != null) secondary.push({ label: "Cadência", value: Math.round(activity.avg_cadence), unit: step ? "ppm" : "rpm" });
   if (activity.avg_power_w != null) secondary.push({ label: "Potência", value: activity.avg_power_w, unit: "W" });
   if (activity.calories != null) secondary.push({ label: "Calorias", value: activity.calories, unit: "kcal" });
 
@@ -326,7 +343,7 @@ export default function ActivityPage() {
         {secondary.length > 0 && (
           <div className="relative mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
             {secondary.map((s) => (
-              <div key={s.label} className="od-tile px-3 py-2.5">
+              <div key={s.label} className="od-tile px-3 py-2.5" title={s.hint}>
                 <Metric size="sm" value={s.value} unit={s.unit} label={s.label} />
               </div>
             ))}
@@ -462,6 +479,7 @@ export default function ActivityPage() {
                   <tr>
                     <th className="text-left">km</th>
                     <th className="text-left">Pace</th>
+                    {showSplitGap && <th className="text-right" title="Pace ajustado à inclinação (estimativa)">GAP</th>}
                     <th className="text-right">Tempo</th>
                     <th className="text-right">FC</th>
                     <th className="text-right">Elevação</th>
@@ -488,6 +506,11 @@ export default function ActivityPage() {
                             {isFast && <span className="od-badge !px-1.5 !py-0 !text-[0.55rem]">Melhor</span>}
                           </div>
                         </td>
+                        {showSplitGap && (
+                          <td className="od-num text-right text-brand-textSecondary">
+                            {s.gap_pace_s_per_km != null ? formatPaceShort(s.gap_pace_s_per_km) : "–"}
+                          </td>
+                        )}
                         <td className="text-right text-brand-textSecondary">{formatDuration(s.duration_s)}</td>
                         <td className="text-right text-brand-textSecondary">{s.avg_hr != null ? `${s.avg_hr} bpm` : "–"}</td>
                         <td className="text-right text-brand-textSecondary">

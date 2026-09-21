@@ -10,7 +10,7 @@ import { formatDistance, formatDuration, formatPace, formatPaceShort, isBikeSpor
 
 const SPORTS = [
   "run", "trail_run", "treadmill", "bike", "mtb", "gravel",
-  "indoor_bike", "swim", "open_water_swim", "multisport", "other",
+  "indoor_bike", "swim", "open_water_swim", "multisport", "walk", "strength", "pilates", "other",
 ];
 
 const SOURCE_LABEL: Record<string, string> = {
