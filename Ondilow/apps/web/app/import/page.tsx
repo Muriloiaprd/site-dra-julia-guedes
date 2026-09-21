@@ -309,6 +309,14 @@ export default function ImportPage() {
                               <span key={i}>
                                 {i > 0 && " · "}
                                 {r.duplicate ? "Duplicada (ignorada)" : `${sportLabel(r.sport)}${r.distance_m ? ` · ${formatDistance(r.distance_m)}` : ""}`}
+                                {!r.duplicate && (
+                                  <>
+                                    {" · "}
+                                    <Link href={`/activities/${r.activity_id}#checkin`} className="text-brand-accent hover:underline">
+                                      Como foi? →
+                                    </Link>
+                                  </>
+                                )}
                               </span>
                             ))
                       )}

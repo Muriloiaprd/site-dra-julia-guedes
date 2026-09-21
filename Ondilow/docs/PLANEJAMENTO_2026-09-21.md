@@ -132,7 +132,37 @@ Texto original da fase:
 
 **Pronto quando:** a página da atividade mostra a cadência correta e o GAP, e as 3 corridas de referência conferidas à mão batem.
 
-## Fase 3 — Check-in pós-treino
+## Fase 3 — Check-in pós-treino — CONCLUÍDA
+
+**Executado em 2026-09-21.** 127 testes na API (6 novos em `test_checkin.py`: gravar, sRPE, local sem dor, apagar, validação e atividade de outro usuário) e `tsc` limpo.
+
+**Verificado ao vivo** numa corrida real de 36 km, só clicando:
+- PSE 6, "Pernas pesadas", dor 3 na panturrilha e uma observação, gravados.
+- O resumo mostrou carga interna 1225 (6 × 204 min).
+- Em "Editar" o formulário voltou preenchido.
+- "Apagar check-in" deixou tudo nulo de novo, **sem resíduo** para a Duni ler depois.
+- O atalho `#checkin` rola até o painel.
+- No celular (375 px) os 11 botões quebram em 2 linhas, sem scroll lateral.
+
+Como ficou:
+
+- **Migration `013`**: `rpe`, `pain_level` (com check de 0–10 no banco), `pain_location`, `feeling`, `checkin_notes` e `checkin_at` em `activities`. As notas têm campo próprio em vez de reusar `description`, porque o formulário de edição da atividade manda `description` vazio e apagaria as notas.
+- **`PUT /activities/{id}/checkin`** substitui o check-in inteiro. Tudo nulo apaga e zera `checkin_at`. Sem dor, o local da dor é descartado.
+- **sRPE** (Foster) = PSE × minutos em movimento, como property do model (`Activity.srpe`), sem coluna, então nunca fica defasado.
+- **Sensação**: lista fechada (`otimo`, `bem`, `normal`, `cansado`, `pernas_pesadas`, `sem_energia`), para a Fase 4 contar sem interpretar texto livre.
+- **Interface** (`components/activity/CheckinPanel.tsx`), logo abaixo do resumo da atividade:
+  - Escala de PSE com a explicação prática de cada nível (ex.: "5 · Moderado. Ainda conversa, mas em frases curtas").
+  - Chips de sensação e de local da dor, e observações.
+  - Aviso para procurar fisioterapeuta ou médico com dor ≥ 5.
+- **Atalho** "Como foi? →" em cada atividade nova na tela de importação. Não testado ao vivo por exigir importar um arquivo; `tsc` cobre.
+
+**Sono ficou de fora**, como previa o texto da fase ("a decidir"). Sono é do dia, não da atividade, e merece um lugar próprio. A Duni vai declarar sono como indisponível. Se o usuário quiser, entra depois como registro diário.
+
+Dois detalhes de execução:
+- **Âncora do atalho**: o `public/landing.css` põe `scroll-behavior: smooth` no `html`, e com a aba em segundo plano a animação nem começa. O scroll usa `behavior: "instant"` explícito.
+- **Bug antigo notado, fora do escopo**: o formulário de edição da atividade abre com a descrição vazia e grava `null` ao salvar, apagando uma descrição que exista. Hoje nenhuma atividade tem descrição (vêm do FIT), então é latente.
+
+Texto original da fase:
 
 **Objetivo:** carga interna e sinais subjetivos.
 

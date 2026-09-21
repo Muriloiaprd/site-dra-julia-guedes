@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -25,6 +26,20 @@ class ActivityUpdate(BaseModel):
     description: str | None = None
     sport: str | None = None
     equipment_id: uuid.UUID | None = None
+
+
+FEELINGS = ("otimo", "bem", "normal", "cansado", "pernas_pesadas", "sem_energia")
+
+
+class CheckinIn(BaseModel):
+    """Check-in pos-treino. Substitui o check-in inteiro: campo ausente ou nulo
+    apaga o valor anterior (a tela sempre manda o formulario completo)."""
+
+    rpe: int | None = Field(default=None, ge=0, le=10)
+    pain_level: int | None = Field(default=None, ge=0, le=10)
+    pain_location: str | None = Field(default=None, max_length=100)
+    feeling: Literal[FEELINGS] | None = None  # type: ignore[valid-type]
+    notes: str | None = Field(default=None, max_length=2000)
 
 
 class ActivityPointOut(BaseModel):
@@ -63,6 +78,13 @@ class ActivityDetail(ActivitySummary):
     avg_cadence: float | None = None
     gap_pace_s_per_km: float | None = None
     hr_decoupling_pct: float | None = None
+    rpe: int | None = None
+    srpe: float | None = None
+    pain_level: int | None = None
+    pain_location: str | None = None
+    feeling: str | None = None
+    checkin_notes: str | None = None
+    checkin_at: datetime | None = None
     calories: int | None = None
     location_start_lat: float | None = None
     location_start_lon: float | None = None

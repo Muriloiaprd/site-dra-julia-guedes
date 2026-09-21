@@ -22,6 +22,7 @@ from ondilow_api.schemas.activity import (
     ActivityDetail,
     ActivitySummary,
     ActivityUpdate,
+    CheckinIn,
     NormalizedActivityIn,
     SplitOut,
     UploadItemResult,
@@ -299,6 +300,28 @@ def update_activity(
     if sport_changed:
         background.add_task(recompute_all_records_background, current_user.id)
 
+    db.refresh(activity)
+    return activity
+
+
+@router.put("/{activity_id}/checkin", response_model=ActivityDetail)
+def put_checkin(
+    activity_id: uuid.UUID, body: CheckinIn, current_user: CurrentUser, db: DbSession
+) -> Activity:
+    """Grava (ou apaga, com tudo nulo) o check-in pos-treino da atividade."""
+    activity = _load_activity(db, activity_id, current_user.id)
+    location = (body.pain_location or "").strip() or None
+    notes = (body.notes or "").strip() or None
+
+    activity.rpe = body.rpe
+    activity.pain_level = body.pain_level
+    # sem dor, o local nao significa nada
+    activity.pain_location = location if body.pain_level else None
+    activity.feeling = body.feeling
+    activity.checkin_notes = notes
+    filled = any(v is not None for v in (body.rpe, body.pain_level, body.feeling, notes))
+    activity.checkin_at = datetime.now(UTC) if filled else None
+    db.commit()
     db.refresh(activity)
     return activity
 

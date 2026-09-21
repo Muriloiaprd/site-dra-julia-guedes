@@ -16,6 +16,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { CheckinPanel } from "@/components/activity/CheckinPanel";
 import { SportTile } from "@/components/SportIcon";
 import { StoryGenerator } from "@/components/share/StoryGenerator";
 import { ChartTooltipBox, LegendDot } from "@/components/ui/charts";
@@ -107,6 +108,18 @@ export default function ActivityPage() {
       setLoading(false);
     });
   }, [id]);
+
+  // atalho "Como foi?" da tela de importacao aponta para #checkin
+  useEffect(() => {
+    if (loading || !activity || window.location.hash !== "#checkin") return;
+    // espera o layout assentar: o router do Next volta o scroll pro topo ao navegar
+    const t = setTimeout(() => {
+      // "instant" explicito: o public/landing.css poe scroll-behavior: smooth no
+      // html, e animacao de scroll nem anda com a aba em segundo plano
+      document.getElementById("checkin")?.scrollIntoView({ behavior: "instant", block: "start" });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [loading, activity?.id]);
 
   if (loading) {
     return (
@@ -350,6 +363,11 @@ export default function ActivityPage() {
           </div>
         )}
       </Panel>
+
+      {/* check-in pos-treino */}
+      <div className="mb-4">
+        <CheckinPanel key={activity.id} activity={activity} onSaved={setActivity} />
+      </div>
 
       <div className="od-stagger grid gap-4 xl:grid-cols-12">
         {/* mapa */}

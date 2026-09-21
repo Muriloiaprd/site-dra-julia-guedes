@@ -99,6 +99,15 @@ export interface ActivityDetail extends ActivitySummary {
   gap_pace_s_per_km: number | null;
   /** Deriva cardiaca (%), so em corrida continua de 30+ min. */
   hr_decoupling_pct: number | null;
+  /** Check-in pos-treino (opcional). */
+  rpe: number | null;
+  /** Carga interna: PSE x minutos em movimento. */
+  srpe: number | null;
+  pain_level: number | null;
+  pain_location: string | null;
+  feeling: Feeling | null;
+  checkin_notes: string | null;
+  checkin_at: string | null;
   calories: number | null;
   location_start_lat: number | null;
   location_start_lon: number | null;
@@ -263,6 +272,25 @@ export async function fetchActivity(id: string): Promise<ActivityDetail> {
 export async function updateActivity(id: string, data: ActivityUpdate): Promise<ActivityDetail> {
   return apiFetch<ActivityDetail>(`/activities/${id}`, {
     method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export type Feeling = "otimo" | "bem" | "normal" | "cansado" | "pernas_pesadas" | "sem_energia";
+
+export interface CheckinInput {
+  rpe: number | null;
+  pain_level: number | null;
+  pain_location: string | null;
+  feeling: Feeling | null;
+  notes: string | null;
+}
+
+/** Grava o check-in pos-treino inteiro (campos nulos apagam o valor). */
+export async function putCheckin(id: string, data: CheckinInput): Promise<ActivityDetail> {
+  return apiFetch<ActivityDetail>(`/activities/${id}/checkin`, {
+    method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });

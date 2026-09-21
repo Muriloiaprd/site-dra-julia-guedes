@@ -93,6 +93,14 @@ class Activity(Base):
     file_path: Mapped[str | None] = mapped_column(Text)
     title: Mapped[str | None] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text)
+    # Check-in pos-treino (opcional, preenchido pelo atleta): carga interna e
+    # sinais subjetivos que o arquivo do relogio nao tem.
+    rpe: Mapped[int | None] = mapped_column(SmallInteger)  # PSE 0-10 (Borg CR10)
+    pain_level: Mapped[int | None] = mapped_column(SmallInteger)  # 0-10
+    pain_location: Mapped[str | None] = mapped_column(String(100))
+    feeling: Mapped[str | None] = mapped_column(String(30))
+    checkin_notes: Mapped[str | None] = mapped_column(Text)
+    checkin_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     weather: Mapped[dict | None] = mapped_column(JSONB)
     location_start_lat: Mapped[float | None] = mapped_column(Numeric(10, 7))
     location_start_lon: Mapped[float | None] = mapped_column(Numeric(10, 7))
@@ -106,6 +114,14 @@ class Activity(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+
+    @property
+    def srpe(self) -> float | None:
+        """Carga interna (sRPE, Foster): PSE x minutos em movimento."""
+        if self.rpe is None:
+            return None
+        minutes = (self.moving_time_s or self.duration_s) / 60
+        return round(self.rpe * minutes, 1)
 
     points: Mapped[list["ActivityPoint"]] = relationship(
         "ActivityPoint",
