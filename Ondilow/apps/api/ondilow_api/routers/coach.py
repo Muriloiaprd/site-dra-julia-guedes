@@ -14,13 +14,16 @@ from ondilow_api.ai.coach_service import (
     generate_plan,
 )
 from ondilow_api.deps import CurrentUser, DbSession
-from ondilow_api.models.coach import CoachInteraction, PlannedWorkout
+from ondilow_api.models.coach import AthleteMemory, CoachInteraction, PlannedWorkout
 from ondilow_api.schemas.coach import (
     AnalyzeResponse,
     ChatHistoryItem,
     ChatRequest,
     ChatResponse,
     GeneratePlanRequest,
+    MemoryIn,
+    MemoryOut,
+    MemoryUpdate,
     PlannedWorkoutOut,
     UpdateWorkoutStatusRequest,
 )
@@ -46,10 +49,68 @@ def _raise_parse_error(e: CoachPlanParseError) -> None:
 @router.post("/chat", response_model=ChatResponse)
 def post_chat(body: ChatRequest, current_user: CurrentUser, db: DbSession) -> dict:
     try:
-        reply, model_used = coach_service.chat(db, current_user.id, body.message)
+        reply, model_used, suggestions = coach_service.chat(db, current_user.id, body.message)
     except CoachUnavailableError as e:
         _raise_unavailable(e)
-    return {"reply": reply, "model_used": model_used}
+    except CoachPlanParseError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail={"error": "invalid_response", "message": str(e)}
+        ) from e
+    return {"reply": reply, "model_used": model_used, "memory_suggestions": suggestions}
+
+
+# ── memorias ────────────────────────────────────────────────────────────────
+
+
+def _load_memory(db: DbSession, memory_id: uuid.UUID, user_id: uuid.UUID) -> AthleteMemory:
+    memory = db.execute(
+        select(AthleteMemory).where(AthleteMemory.id == memory_id, AthleteMemory.user_id == user_id)
+    ).scalar_one_or_none()
+    if memory is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Memoria nao encontrada")
+    return memory
+
+
+@router.get("/memories", response_model=list[MemoryOut])
+def list_memories(current_user: CurrentUser, db: DbSession, include_archived: bool = False) -> list:
+    stmt = select(AthleteMemory).where(AthleteMemory.user_id == current_user.id)
+    if not include_archived:
+        stmt = stmt.where(AthleteMemory.active.is_(True))
+    return list(db.execute(stmt.order_by(AthleteMemory.created_at.asc())).scalars())
+
+
+@router.post("/memories", response_model=MemoryOut, status_code=status.HTTP_201_CREATED)
+def create_memory(body: MemoryIn, current_user: CurrentUser, db: DbSession) -> AthleteMemory:
+    memory = AthleteMemory(
+        user_id=current_user.id,
+        kind=body.kind,
+        content=body.content.strip(),
+        event_date=body.event_date,
+        source=body.source,
+    )
+    db.add(memory)
+    db.commit()
+    db.refresh(memory)
+    return memory
+
+
+@router.patch("/memories/{memory_id}", response_model=MemoryOut)
+def update_memory(memory_id: uuid.UUID, body: MemoryUpdate, current_user: CurrentUser, db: DbSession) -> AthleteMemory:
+    memory = _load_memory(db, memory_id, current_user.id)
+    for field, value in body.model_dump(exclude_unset=True).items():
+        if field in ("kind", "content", "active") and value is None:
+            continue  # campo obrigatorio: null nao apaga
+        setattr(memory, field, value.strip() if field == "content" else value)
+    memory.updated_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(memory)
+    return memory
+
+
+@router.delete("/memories/{memory_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_memory(memory_id: uuid.UUID, current_user: CurrentUser, db: DbSession) -> None:
+    db.delete(_load_memory(db, memory_id, current_user.id))
+    db.commit()
 
 
 @router.post("/analyze", response_model=AnalyzeResponse)

@@ -1,7 +1,7 @@
 """PUT /activities/{id}/checkin: PSE, dor, sensacao e notas pos-treino."""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -104,7 +104,9 @@ def test_checkin_uses_duration_when_moving_time_missing(auth_client: tuple[TestC
 def test_analysis_endpoint_reads_checkin(auth_client: tuple[TestClient, dict]) -> None:
     """GET /coach/analysis ponta a ponta: atividade + check-in viram fatos."""
     client, _user = auth_client
-    today = datetime.now(UTC).replace(hour=12, minute=0, second=0, microsecond=0)
+    # 1h atras, nao "meio-dia UTC de hoje": entre 21h e 0h em Sao Paulo o dia
+    # UTC ja virou, e a analise (que usa o fuso da atividade) veria um treino futuro.
+    today = datetime.now(UTC).replace(second=0, microsecond=0) - timedelta(hours=1)
     resp = client.post(
         "/activities/import-normalized",
         json={

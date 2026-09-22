@@ -1,7 +1,7 @@
 import datetime as dt
 import uuid
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ondilow_api.db import Base
@@ -27,6 +27,27 @@ class PlannedWorkout(Base):
     plan_batch_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=dt.datetime.utcnow)
     updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=dt.datetime.utcnow)
+
+
+MEMORY_KINDS = ("objetivo", "prova", "lesao", "disponibilidade", "preferencia", "outro")
+
+
+class AthleteMemory(Base):
+    """O que a Duni sabe do atleta alem dos dados do relogio: objetivo, provas,
+    lesoes, dias disponiveis, preferencias. Sugeridas pela Duni no chat so viram
+    memoria com a confirmacao do atleta (source='duni')."""
+
+    __tablename__ = "athlete_memories"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    content: Mapped[str] = mapped_column(Text(), nullable=False)
+    event_date: Mapped[dt.date | None] = mapped_column(Date(), nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
+    source: Mapped[str] = mapped_column(String(10), nullable=False, default="manual")
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=lambda: dt.datetime.now(dt.UTC))
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=lambda: dt.datetime.now(dt.UTC))
 
 
 class CoachInteraction(Base):

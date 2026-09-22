@@ -526,7 +526,8 @@ export interface CoachErrorDetail {
     | "llm_unavailable"
     | "llm_timeout"
     | "insufficient_data"
-    | "invalid_plan_response";
+    | "invalid_plan_response"
+    | "invalid_response";
   weeks_available?: number;
   message?: string;
 }
@@ -571,12 +572,59 @@ export async function postCoachAnalyze(): Promise<{ report: string; model_used: 
   return coachFetch("/coach/analyze", { method: "POST" });
 }
 
-export async function postCoachChat(message: string): Promise<{ reply: string; model_used: string }> {
+export type MemoryKind = "objetivo" | "prova" | "lesao" | "disponibilidade" | "preferencia" | "outro";
+
+/** Algo que a Duni percebeu no chat; so vira memoria se o atleta confirmar. */
+export interface MemorySuggestion {
+  kind: MemoryKind;
+  content: string;
+  event_date: string | null;
+}
+
+export interface AthleteMemory {
+  id: string;
+  kind: MemoryKind;
+  content: string;
+  event_date: string | null;
+  active: boolean;
+  source: "manual" | "duni";
+  created_at: string;
+}
+
+export async function postCoachChat(
+  message: string,
+): Promise<{ reply: string; model_used: string; memory_suggestions: MemorySuggestion[] }> {
   return coachFetch("/coach/chat", { method: "POST", body: JSON.stringify({ message }) });
 }
 
 export async function fetchCoachHistory(): Promise<CoachChatMessage[]> {
   return coachFetch<CoachChatMessage[]>("/coach/chat/history");
+}
+
+export async function fetchMemories(includeArchived = false): Promise<AthleteMemory[]> {
+  return coachFetch<AthleteMemory[]>(`/coach/memories${includeArchived ? "?include_archived=true" : ""}`);
+}
+
+export async function createMemory(
+  data: { kind: MemoryKind; content: string; event_date: string | null; source?: "manual" | "duni" },
+): Promise<AthleteMemory> {
+  return coachFetch<AthleteMemory>("/coach/memories", { method: "POST", body: JSON.stringify(data) });
+}
+
+export async function updateMemory(
+  id: string,
+  data: Partial<Pick<AthleteMemory, "kind" | "content" | "event_date" | "active">>,
+): Promise<AthleteMemory> {
+  return coachFetch<AthleteMemory>(`/coach/memories/${id}`, { method: "PATCH", body: JSON.stringify(data) });
+}
+
+export async function deleteMemory(id: string): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`/api/coach/memories/${id}`, {
+    method: "DELETE",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error(`Erro ${res.status}`);
 }
 
 // ---------- limpar dados ----------

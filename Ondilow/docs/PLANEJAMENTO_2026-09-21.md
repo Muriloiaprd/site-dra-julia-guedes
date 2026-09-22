@@ -229,7 +229,23 @@ Um módulo `ondilow_api/ai/athlete_analysis.py` que devolve um JSON com:
 
 **Pronto quando:** o JSON da conta de teste é revisado à mão e bate com os números das páginas do app.
 
-## Fase 5 — Memória e objetivos
+## Fase 5 — Memória e objetivos — CONCLUÍDA (teste ao vivo pendente)
+
+**Executado em 2026-09-21.** 170 testes na API, todos verdes (novos em `test_memories.py`). O aviso do ponto 6 (memórias vão para o Google no free tier) foi dado ao usuário antes de começar.
+
+Como ficou:
+
+- **Migration `014_athlete_memories`**, com CHECK em `kind` e `source` e índice `(user_id, active)`. Já aplicada na `main`.
+- **CRUD** `GET/POST /coach/memories` e `PATCH/DELETE /coach/memories/{id}`. O GET esconde as arquivadas (`active=false`), a menos que se passe `?include_archived=true`.
+- **Chat com saída estruturada** (`ChatReply`): `{reply, memory_suggestions[]}`, no máximo 3 sugestões. `clean_memory_suggestions` descarta as vazias, as repetidas (entre si ou com o que já está salvo) e as datas inválidas. Resposta fora do formato vira `502 invalid_response`.
+- **Contexto** ganha `memorias` (datas futuras vêm com "faltam N dias", porque a IA erra conta de calendário) e `objetivo_cadastrado`. O prompt do plano manda respeitar a disponibilidade, as lesões e as provas, e diz o que fazer sem objetivo.
+- **Front**: painel `components/coach/MemoryPanel.tsx` ("O que a Duni sabe de você") e sugestões com botão de confirmar embaixo da resposta da Duni.
+
+**Pendente, adiado para a Fase 9 a pedido do usuário**: verificação ao vivo no navegador (painel, confirmar uma sugestão do chat, arquivar e apagar). A sessão caiu nesse passo por erros 500/529 da API da Anthropic, sem relação com o código.
+
+De carona: `test_analysis_endpoint_reads_checkin` (Fase 4) falhava entre 21h e meia-noite de Brasília, porque criava a atividade ao meio-dia UTC de "hoje UTC", que já é amanhã em São Paulo. Agora usa "uma hora atrás".
+
+Texto original da fase:
 
 > **Antes de começar:** confirmar com o usuário o ponto 6 da investigação (dados de lesão e dor vão para o Google no free tier).
 
@@ -262,7 +278,7 @@ Um módulo `ondilow_api/ai/athlete_analysis.py` que devolve um JSON com:
 
 ## Fase 9 — Fechamento
 
-- Verificação ao vivo de tudo junto na conta de teste.
+- Verificação ao vivo de tudo junto na conta de teste, **incluindo as memórias da Fase 5** (adiada de lá).
 - Atualizar `ESTADO_DO_PROJETO.md` e `BACKLOG.md`, e fechar este documento.
 
 ---

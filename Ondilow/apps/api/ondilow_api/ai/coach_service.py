@@ -7,6 +7,7 @@ import json
 import time
 import uuid
 from datetime import date, timedelta
+from typing import Literal
 
 import anthropic
 from pydantic import BaseModel
@@ -20,7 +21,7 @@ from ondilow_api.metrics.predictions import (
     training_recommendation,
 )
 from ondilow_api.models.activity import Activity
-from ondilow_api.models.coach import CoachInteraction, PlannedWorkout
+from ondilow_api.models.coach import AthleteMemory, CoachInteraction, PlannedWorkout
 from ondilow_api.models.daily_metric import DailyMetric
 from ondilow_api.models.record import PersonalRecord
 from ondilow_api.models.user import AthleteProfile
@@ -85,9 +86,32 @@ Um treino por dia. Varie intensidade e modalidade de forma coerente com o TSB/AC
 atual, o esporte predominante do atleta, e a metodologia de periodizacao. Inclua
 pelo menos um dia de recuperacao/descanso na semana. As datas devem ser strings
 no formato AAAA-MM-DD, cada uma dentro do intervalo pedido, sem repetir data.
+Respeite as memorias do atleta (campo "memorias"): so marque treino nos dias
+disponiveis, evite o que agrava uma lesao ativa e oriente a semana pelo objetivo
+e pelas provas com data. Sem objetivo cadastrado, monte uma semana de base
+aerobica e diga isso na descricao do primeiro treino.
 
 Contexto do atleta (JSON):
 {context}"""
+
+_CHAT_MEMORY_INSTRUCTION = """Alem da resposta, avalie se a mensagem do atleta
+trouxe algo NOVO que vale lembrar nas proximas conversas e planos: objetivo,
+prova (com data), lesao ou dor recorrente, dias/horarios disponiveis, preferencia
+de treino. Coloque em memory_suggestions (no maximo 3), cada uma curta e na
+terceira pessoa (ex.: "Meia maratona em 30/11"). Use event_date (AAAA-MM-DD) so
+quando o atleta disser a data. Nao sugira o que ja esta em "memorias" no contexto,
+nem suposicoes suas. Se nada novo apareceu, devolva a lista vazia."""
+
+
+class ChatMemorySuggestion(BaseModel):
+    kind: Literal["objetivo", "prova", "lesao", "disponibilidade", "preferencia", "outro"]
+    content: str
+    event_date: str | None = None
+
+
+class ChatReply(BaseModel):
+    reply: str
+    memory_suggestions: list[ChatMemorySuggestion] = []
 
 
 class PlannedWorkoutItem(BaseModel):
@@ -158,10 +182,13 @@ def build_context(db: Session, user_id: uuid.UUID) -> dict:
     run_records = [r for r in records if r.record_type in _RUN_RECORD_TYPES]
 
     latest_metric = metrics[-1] if metrics else None
+    memories = memories_context(db, user_id)
 
     return {
         "insufficient_data": weeks_available < _MIN_WEEKS_FOR_ANALYSIS,
         "weeks_available": round(weeks_available, 1),
+        "memorias": memories,
+        "objetivo_cadastrado": any(m["tipo"] == "objetivo" for m in memories),
         "profile": {
             "weight_kg": float(profile.weight_kg) if profile and profile.weight_kg else None,
             "resting_hr": profile.resting_hr if profile else None,
@@ -189,6 +216,30 @@ def build_context(db: Session, user_id: uuid.UUID) -> dict:
         "risk": assess_injury_risk(list(metrics)),
         "recommendation": training_recommendation(latest_metric),
     }
+
+
+def memories_context(db: Session, user_id: uuid.UUID, today: date | None = None) -> list[dict]:
+    """Memorias ativas no formato que a Duni le. Datas futuras vem com quantos
+    dias faltam (a IA erra conta de calendario)."""
+    today = today or date.today()
+    rows = db.execute(
+        select(AthleteMemory)
+        .where(AthleteMemory.user_id == user_id, AthleteMemory.active.is_(True))
+        .order_by(AthleteMemory.event_date.asc().nulls_last(), AthleteMemory.created_at.asc())
+    ).scalars().all()
+    out = []
+    for m in rows:
+        item: dict = {"tipo": m.kind, "conteudo": m.content}
+        if m.event_date:
+            item["data"] = m.event_date.isoformat()
+            delta = (m.event_date - today).days
+            item["quando"] = (
+                "hoje" if delta == 0
+                else f"faltam {delta} dias" if delta > 0
+                else f"foi há {-delta} dias"
+            )
+        out.append(item)
+    return out
 
 
 def reconcile_plan(db: Session, user_id: uuid.UUID) -> None:
@@ -382,7 +433,8 @@ def _require_sufficient_data(context: dict) -> None:
         raise InsufficientDataError(context["weeks_available"])
 
 
-def chat(db: Session, user_id: uuid.UUID, message: str) -> tuple[str, str]:
+def chat(db: Session, user_id: uuid.UUID, message: str) -> tuple[str, str, list[dict]]:
+    """Resposta da Duni, modelo usado e sugestoes de memoria (ainda nao salvas)."""
     context = build_context(db, user_id)
     history = db.execute(
         select(CoachInteraction)
@@ -396,14 +448,39 @@ def chat(db: Session, user_id: uuid.UUID, message: str) -> tuple[str, str]:
     user_content = (
         f"Contexto atual do atleta (JSON):\n{json.dumps(context, ensure_ascii=False)}\n\n"
         f"Historico da conversa:\n{convo}\n\n"
-        f"Nova mensagem do atleta:\n{message}"
+        f"Nova mensagem do atleta:\n{message}\n\n"
+        f"{_CHAT_MEMORY_INSTRUCTION}"
     )
-    reply, model_used = call_llm(SYSTEM_PROMPT, user_content)
+    parsed, model_used = call_llm(SYSTEM_PROMPT, user_content, response_model=ChatReply)
+    reply = parsed.reply
 
     db.add(CoachInteraction(user_id=user_id, kind="chat", role="user", content=message))
     db.add(CoachInteraction(user_id=user_id, kind="chat", role="assistant", content=reply, model_used=model_used))
     db.commit()
-    return reply, model_used
+    return reply, model_used, clean_memory_suggestions(parsed.memory_suggestions, context["memorias"])
+
+
+def clean_memory_suggestions(suggestions: list[ChatMemorySuggestion], existing: list[dict]) -> list[dict]:
+    """Descarta vazias, repetidas (entre si ou com o que ja esta salvo) e datas
+    invalidas; no maximo 3."""
+    seen = {m["conteudo"].strip().lower() for m in existing}
+    out = []
+    for s in suggestions:
+        content = s.content.strip()
+        key = content.lower()
+        if not content or key in seen or len(content) > 500:
+            continue
+        seen.add(key)
+        event_date = None
+        if s.event_date:
+            try:
+                event_date = date.fromisoformat(s.event_date).isoformat()
+            except ValueError:
+                event_date = None
+        out.append({"kind": s.kind, "content": content, "event_date": event_date})
+        if len(out) == 3:
+            break
+    return out
 
 
 def generate_analysis(db: Session, user_id: uuid.UUID) -> tuple[str, str]:

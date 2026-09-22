@@ -4,13 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { kindLabel, MemoryPanel, whenLabel } from "@/components/coach/MemoryPanel";
 import { AiOrb } from "@/components/dashboard/CoachCard";
 import { SportTile } from "@/components/SportIcon";
 import { Markdown } from "@/components/ui/Markdown";
 import { Alert, PageContainer, Panel, Skeleton, StatusDot } from "@/components/ui/primitives";
 import {
   CoachApiError,
+  createMemory,
   fetchCoachHistory,
+  fetchMemories,
   fetchCoachPlan,
   fetchLoadMetrics,
   fetchMe,
@@ -18,8 +21,10 @@ import {
   postCoachAnalyze,
   postCoachChat,
   postCoachGeneratePlan,
+  type AthleteMemory,
   type CoachChatMessage,
   type DailyMetric,
+  type MemorySuggestion,
   type PlannedWorkout,
   type PredictionsOverview,
 } from "@/lib/api";
@@ -55,6 +60,8 @@ function errorMessage(e: unknown): { title: string; detail: string } {
         };
       case "invalid_plan_response":
         return { title: "Não consegui gerar um plano válido", detail: "Tente gerar de novo." };
+      case "invalid_response":
+        return { title: "A resposta veio num formato inválido", detail: "Acontece às vezes com o modelo grátis. Mande a mensagem de novo." };
     }
   }
   return { title: "Erro", detail: e instanceof Error ? e.message : "Erro desconhecido" };
@@ -121,9 +128,13 @@ function dayLabel(iso: string) {
   return `${WEEK_LABELS[(d.getDay() + 6) % 7]} ${d.getDate()}`;
 }
 
+/** Mensagem na tela: as sugestoes de memoria so existem na sessao (nao voltam no historico). */
+type ChatMessage = CoachChatMessage & { suggestions?: (MemorySuggestion & { state?: "saved" | "dismissed" })[] };
+
 export default function CoachPage() {
   const router = useRouter();
-  const [messages, setMessages] = useState<CoachChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [memories, setMemories] = useState<AthleteMemory[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [report, setReport] = useState<string | null>(null);
@@ -144,7 +155,25 @@ export default function CoachPage() {
     fetchPredictionsOverview().then(setOverview).catch(() => {});
     fetchLoadMetrics(30).then(setMetrics).catch(() => {});
     fetchCoachPlan(14).then(setPlan).catch(() => setPlan([]));
+    fetchMemories().then(setMemories).catch(() => {});
   }, [router]);
+
+  function setSuggestionState(msgIndex: number, sIndex: number, state: "saved" | "dismissed") {
+    setMessages((ms) => ms.map((m, i) => i !== msgIndex || !m.suggestions ? m : {
+      ...m,
+      suggestions: m.suggestions.map((s, j) => (j === sIndex ? { ...s, state } : s)),
+    }));
+  }
+
+  async function acceptSuggestion(msgIndex: number, sIndex: number, s: MemorySuggestion) {
+    try {
+      const saved = await createMemory({ kind: s.kind, content: s.content, event_date: s.event_date, source: "duni" });
+      setMemories((ms) => [...ms, saved]);
+      setSuggestionState(msgIndex, sIndex, "saved");
+    } catch (e) {
+      handleError(e);
+    }
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -163,8 +192,8 @@ export default function CoachPage() {
     setMessages((m) => [...m, { role: "user", content: message, created_at: new Date().toISOString() }]);
     setSending(true);
     try {
-      const { reply } = await postCoachChat(message);
-      setMessages((m) => [...m, { role: "assistant", content: reply, created_at: new Date().toISOString() }]);
+      const { reply, memory_suggestions } = await postCoachChat(message);
+      setMessages((m) => [...m, { role: "assistant", content: reply, created_at: new Date().toISOString(), suggestions: memory_suggestions }]);
     } catch (e) {
       handleError(e);
     } finally {
@@ -349,8 +378,33 @@ export default function CoachPage() {
                 ) : (
                   <div key={i} className="flex items-start gap-2.5">
                     <div className="mt-0.5"><AiOrb size={26} active={false} /></div>
-                    <div className="od-tile max-w-[88%] rounded-2xl rounded-tl-md px-4 py-3">
-                      <Markdown text={m.content} />
+                    <div className="max-w-[88%] space-y-2">
+                      <div className="od-tile rounded-2xl rounded-tl-md px-4 py-3">
+                        <Markdown text={m.content} />
+                      </div>
+                      {m.suggestions && m.suggestions.some((s) => s.state !== "dismissed") && (
+                        <div className="rounded-xl px-3 py-2.5" style={{ background: "rgba(0,255,102,0.04)", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.16)" }}>
+                          <p className="mb-1.5 text-[0.68rem] font-semibold uppercase tracking-wider text-brand-accent">Guardar para as próximas conversas?</p>
+                          <ul className="space-y-1.5">
+                            {m.suggestions.map((s, j) => s.state === "dismissed" ? null : (
+                              <li key={j} className="flex flex-wrap items-center gap-2 text-xs">
+                                <span className="od-badge od-badge-muted !normal-case !tracking-normal">{kindLabel(s.kind)}</span>
+                                <span className="min-w-0 flex-1 text-brand-textSecondary">
+                                  {s.content}{s.event_date && <span className="text-brand-muted"> · {whenLabel(s.event_date)}</span>}
+                                </span>
+                                {s.state === "saved" ? (
+                                  <span className="text-brand-accent">✓ Guardado</span>
+                                ) : (
+                                  <span className="flex gap-1">
+                                    <button type="button" onClick={() => acceptSuggestion(i, j, s)} className="od-btn od-btn-primary od-btn-sm !px-2 !py-1">Guardar</button>
+                                    <button type="button" onClick={() => setSuggestionState(i, j, "dismissed")} className="od-btn od-btn-ghost od-btn-sm !px-2 !py-1">Ignorar</button>
+                                  </span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
@@ -429,6 +483,9 @@ export default function CoachPage() {
             )}
           </Panel>
         </div>
+
+        {/* ───────── Memorias ───────── */}
+        <MemoryPanel memories={memories} onChange={setMemories} />
       </div>
     </PageContainer>
   );
