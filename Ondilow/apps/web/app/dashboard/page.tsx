@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  fetchActivities, fetchActivity, fetchCoachPlan, fetchLoadMetrics, fetchMe, fetchPredictionsOverview, fetchProfile, fetchRecords, getToken,
+  fetchActivities, fetchActivity, fetchCoachPlan, fetchLoadMetrics, fetchWeekPlan, fetchMe, fetchPredictionsOverview, fetchProfile, fetchRecords, getToken,
   type ActivityDetail, type ActivitySummary, type DailyMetric, type PersonalRecord, type PlannedWorkout,
-  type PredictionsOverview, type Profile, type User,
+  type PredictionsOverview, type Profile, type User, type WeeklyPlan,
 } from "@/lib/api";
 import {
   calcWeekStats, computeReadiness, metricDaysAgo, nameFromEmail, recoveryFromTsb, toISODate, WEEK_HOURS_GOAL, type Tone,
@@ -40,6 +40,7 @@ export default function DashboardPage() {
   const [loadMetrics, setLoadMetrics] = useState<DailyMetric[]>([]);
   const [plan, setPlan] = useState<PlannedWorkout[]>([]);
   const [planState, setPlanState] = useState<LoadState>("loading");
+  const [weekPlan, setWeekPlan] = useState<WeeklyPlan | null>(null);
   const [modalActivity, setModalActivity] = useState<ActivitySummary | null>(null);
   const [recentDetails, setRecentDetails] = useState<Record<string, ActivityDetail>>({});
   const [authError, setAuthError] = useState(false);
@@ -78,6 +79,7 @@ export default function DashboardPage() {
     fetchCoachPlan(35)
       .then((p) => { setPlan(p); setPlanState("ok"); })
       .catch(() => setPlanState("error"));
+    fetchWeekPlan().then((w) => setWeekPlan(w.plan)).catch(() => {});
   }, [user]);
 
   useEffect(() => {
@@ -189,6 +191,7 @@ export default function DashboardPage() {
           recoveryTrend={recoveryTrend}
           sessions={stats.cur.count}
           loading={loading}
+          duni={weekPlan}
         />
         {/* 4. O que devo fazer? */}
         <CoachCard className="md:col-span-6 xl:col-span-4" workouts={plan} planState={planState} recommendation={recommendation} />

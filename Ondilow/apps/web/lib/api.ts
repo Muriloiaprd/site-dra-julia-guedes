@@ -509,6 +509,77 @@ export interface PlannedWorkout {
   target_intensity: string | null;
   status: string;
   activity_id: string | null;
+  weekly_plan_id?: string | null;
+  /** Finalidade fisiologica do treino. */
+  objective?: string | null;
+  /** Por que este treino nesta semana, ligado aos dados. */
+  reason?: string | null;
+  steps?: WorkoutStep[] | null;
+  targets?: WorkoutTargets | null;
+}
+
+export interface WorkoutStep {
+  fase: "aquecimento" | "principal" | "desaquecimento";
+  descricao: string;
+  duracao_min: number | null;
+  distancia_km: number | null;
+  repeticoes: number | null;
+  ritmo: string | null;
+  zona_fc: string | null;
+  pse: string | null;
+  recuperacao: string | null;
+}
+
+export interface WorkoutTargets {
+  tipo?: string | null;
+  ritmo?: string | null;
+  gap?: string | null;
+  zona_fc?: string | null;
+  pse?: string | null;
+  cadencia?: string | null;
+  terreno?: string | null;
+  metrica_prioritaria?: string | null;
+  observacoes?: string | null;
+  ajuste_pedido?: string | null;
+}
+
+export type WeeklyStatus = "verde" | "amarelo" | "laranja" | "vermelho";
+
+export interface WeeklyPlanReport {
+  resumo: string;
+  carga_semana_anterior: {
+    corrida_km: number | null;
+    corrida_minutos: number | null;
+    corridas: number | null;
+    treinos_total: number | null;
+    longao_km: number | null;
+    ritmo_medio: string | null;
+    caminhada_km: number | null;
+    complementar: Record<string, { sessoes: number; minutos: number }>;
+    carga_interna_srpe: number | null;
+    pse_media: number | null;
+    intensidade_28d_pct: { leve_z1_z2: number; moderado_z3: number; forte_z4_z5: number } | null;
+  };
+  avaliacao: { positivos: string[]; fadiga: string[]; riscos: string[]; evolucao: string[] };
+  proxima_semana: { km_previsto: number | null; sessoes: number; estimulo_principal: string; objetivo: string };
+  criterios_ajuste: { manter: string[]; reduzir: string[]; acelerar: string[]; interromper: string[] };
+  proximas_4_semanas: { semana: number; km_aproximado: number | null; foco: string }[];
+}
+
+export interface WeeklyPlan {
+  id: string;
+  week_start: string;
+  week_end: string;
+  status: WeeklyStatus;
+  status_reason: string;
+  report: WeeklyPlanReport;
+  model_used: string | null;
+  created_at: string;
+}
+
+export interface WeeklyPlanResponse {
+  plan: WeeklyPlan | null;
+  workouts: PlannedWorkout[];
 }
 
 export interface CoachChatMessage {
@@ -527,9 +598,15 @@ export interface CoachErrorDetail {
     | "llm_timeout"
     | "insufficient_data"
     | "invalid_plan_response"
-    | "invalid_response";
+    | "invalid_response"
+    | "date_conflict"
+    | "not_editable"
+    | "not_found"
+    | "past_date"
+    | "not_swappable";
   weeks_available?: number;
   message?: string;
+  conflict?: { id: string; title: string; status: string };
 }
 
 export class CoachApiError extends Error {
@@ -561,10 +638,31 @@ export async function fetchCoachPlan(daysAhead = 14): Promise<PlannedWorkout[]> 
   return coachFetch<PlannedWorkout[]>(`/coach/plan?days_ahead=${daysAhead}`);
 }
 
-export async function postCoachGeneratePlan(days = 7): Promise<PlannedWorkout[]> {
-  return coachFetch<PlannedWorkout[]>("/coach/plan/generate", {
+/** Plano da proxima semana (7 dias a partir de amanha), com status e relatorio. */
+export async function postCoachGeneratePlan(): Promise<WeeklyPlanResponse> {
+  return coachFetch<WeeklyPlanResponse>("/coach/plan/generate", { method: "POST" });
+}
+
+export async function fetchWeekPlan(): Promise<WeeklyPlanResponse> {
+  return coachFetch<WeeklyPlanResponse>("/coach/plan/week");
+}
+
+export async function regenerateWorkout(
+  id: string,
+  reason: string,
+): Promise<{ workout: PlannedWorkout | null; explanation: string; model_used: string }> {
+  return coachFetch(`/coach/plan/${id}/regenerate`, { method: "POST", body: JSON.stringify({ reason }) });
+}
+
+/** 409 com detail.error "date_conflict" quando o dia ja tem treino e on_conflict = "error". */
+export async function moveWorkout(
+  id: string,
+  date: string,
+  onConflict: "error" | "swap" | "keep_both" = "error",
+): Promise<PlannedWorkout> {
+  return coachFetch<PlannedWorkout>(`/coach/plan/${id}/move`, {
     method: "POST",
-    body: JSON.stringify({ days }),
+    body: JSON.stringify({ date, on_conflict: onConflict }),
   });
 }
 

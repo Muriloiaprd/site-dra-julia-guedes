@@ -6,10 +6,10 @@ import { PulseLine, RadialGauge } from "@/components/ui/charts";
 import { CountUp } from "@/components/ui/CountUp";
 import { Panel, ProgressBar, SegmentBar, Skeleton } from "@/components/ui/primitives";
 import {
-  readinessColor, riskFromAcwr, statusHeadline, statusSubtitle,
-  WEEK_HOURS_GOAL, WEEK_SESSION_GOAL, type Readiness, type Tone,
+  duniDiverges, readinessColor, riskFromAcwr, statusHeadline, statusSubtitle,
+  WEEK_HOURS_GOAL, WEEK_SESSION_GOAL, WEEKLY_STATUS, type Readiness, type Tone,
 } from "@/lib/athlete";
-import type { TrainingRecommendation } from "@/lib/api";
+import type { TrainingRecommendation, WeeklyPlan } from "@/lib/api";
 
 function readinessTag(v: number | null): string {
   if (v == null) return "Sem dados";
@@ -36,7 +36,7 @@ const i = (d: ReactNode) => (
 );
 
 export function AthleteStatus({
-  readiness, recommendation, weekHours, recovery, recoveryTrend, sessions, loading, className = "",
+  readiness, recommendation, weekHours, recovery, recoveryTrend, sessions, loading, duni = null, className = "",
 }: {
   readiness: Readiness;
   recommendation: TrainingRecommendation | null;
@@ -45,6 +45,8 @@ export function AthleteStatus({
   recoveryTrend: { text: string; color: string };
   sessions: number;
   loading: boolean;
+  /** Plano semanal vigente da Duni (status salvo com o plano). */
+  duni?: WeeklyPlan | null;
   className?: string;
 }) {
   const v = readiness.value;
@@ -104,6 +106,17 @@ export function AthleteStatus({
               <span className="tabular-nums">{sourceNote}</span>
             </div>
           </div>
+          {duni && (
+            <Link href="/coach" className="mt-3 block max-w-md rounded-lg px-3 py-2 text-left text-xs transition-colors hover:bg-white/[0.03]" style={{ boxShadow: `inset 0 0 0 1px ${WEEKLY_STATUS[duni.status].color}33` }}>
+              <span className="text-brand-muted">Status da Duni · {new Date(duni.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}: </span>
+              <strong style={{ color: WEEKLY_STATUS[duni.status].color }}>{WEEKLY_STATUS[duni.status].emoji} {WEEKLY_STATUS[duni.status].label}</strong>
+              {duniDiverges(v, duni.status) && (
+                <span className="mt-1 block text-brand-textSecondary">
+                  A prontidão acima olha só a carga (TSB/ACWR). A Duni também pesa fadiga, check-ins e tendência, por isso a leitura dela é diferente.
+                </span>
+              )}
+            </Link>
+          )}
         </div>
       </div>
 

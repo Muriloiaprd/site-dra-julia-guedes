@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { kindLabel, MemoryPanel, whenLabel } from "@/components/coach/MemoryPanel";
+import { WeeklyPlanPanel } from "@/components/coach/WeeklyPlanPanel";
 import { AiOrb } from "@/components/dashboard/CoachCard";
 import { SportTile } from "@/components/SportIcon";
 import { Markdown } from "@/components/ui/Markdown";
@@ -18,6 +19,7 @@ import {
   fetchLoadMetrics,
   fetchMe,
   fetchPredictionsOverview,
+  fetchWeekPlan,
   postCoachAnalyze,
   postCoachChat,
   postCoachGeneratePlan,
@@ -27,6 +29,7 @@ import {
   type MemorySuggestion,
   type PlannedWorkout,
   type PredictionsOverview,
+  type WeeklyPlanResponse,
 } from "@/lib/api";
 import { formFromTsb, latestMetric, parseLocalDate, riskFromAcwr, toISODate, WEEK_LABELS } from "@/lib/athlete";
 import { formatDuration, sportLabel } from "@/lib/utils";
@@ -59,7 +62,10 @@ function errorMessage(e: unknown): { title: string; detail: string } {
           detail: `Você tem ${e.detail.weeks_available ?? 0} semana(s) de atividades — são necessárias pelo menos 2 semanas para uma análise confiável.`,
         };
       case "invalid_plan_response":
-        return { title: "Não consegui gerar um plano válido", detail: "Tente gerar de novo." };
+        return {
+          title: "O plano veio fora das regras e foi recusado",
+          detail: `${e.detail.message ? `${e.detail.message} ` : ""}Nada foi salvo. Tente gerar de novo.`,
+        };
       case "invalid_response":
         return { title: "A resposta veio num formato inválido", detail: "Acontece às vezes com o modelo grátis. Mande a mensagem de novo." };
     }
@@ -146,6 +152,7 @@ export default function CoachPage() {
   const [overview, setOverview] = useState<PredictionsOverview | null>(null);
   const [metrics, setMetrics] = useState<DailyMetric[]>([]);
   const [plan, setPlan] = useState<PlannedWorkout[] | null>(null);
+  const [week, setWeek] = useState<WeeklyPlanResponse | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -156,7 +163,14 @@ export default function CoachPage() {
     fetchLoadMetrics(30).then(setMetrics).catch(() => {});
     fetchCoachPlan(14).then(setPlan).catch(() => setPlan([]));
     fetchMemories().then(setMemories).catch(() => {});
+    fetchWeekPlan().then(setWeek).catch(() => setWeek({ plan: null, workouts: [] }));
   }, [router]);
+
+  async function refreshPlans() {
+    const [w, p] = await Promise.all([fetchWeekPlan(), fetchCoachPlan(14)]);
+    setWeek(w);
+    setPlan(p);
+  }
 
   function setSuggestionState(msgIndex: number, sIndex: number, state: "saved" | "dismissed") {
     setMessages((ms) => ms.map((m, i) => i !== msgIndex || !m.suggestions ? m : {
@@ -221,8 +235,9 @@ export default function CoachPage() {
     setError(null);
     setPlanCount(null);
     try {
-      const workouts = await postCoachGeneratePlan(7);
-      setPlanCount(workouts.length);
+      const res = await postCoachGeneratePlan();
+      setWeek(res);
+      setPlanCount(res.workouts.length);
       fetchCoachPlan(14).then(setPlan).catch(() => {});
     } catch (e) {
       handleError(e);
@@ -298,7 +313,7 @@ export default function CoachPage() {
             <button onClick={handleGeneratePlan} disabled={busy} className="od-tile group p-4 text-left transition-all duration-200 enabled:hover:-translate-y-0.5 enabled:hover:shadow-[inset_0_0_0_1px_rgba(0,255,102,0.35)] disabled:opacity-50">
               <div className="flex items-center gap-2 text-brand-lime">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="m9 16 2 2 4-4" /></svg>
-                <span className="text-sm font-bold text-white">{generating ? "Gerando…" : "Gerar plano (7 dias)"}</span>
+                <span className="text-sm font-bold text-white">{generating ? "Gerando…" : "Gerar plano da semana"}</span>
               </div>
               <p className="mt-1.5 text-xs leading-snug text-brand-muted">Treinos da semana, ajustados à sua carga, recuperação e objetivo.</p>
             </button>
@@ -326,11 +341,11 @@ export default function CoachPage() {
         )}
 
         {analyzing && <ProcessingPanel title="Analisando sua semana…" />}
-        {generating && <ProcessingPanel title="Montando seu plano de 7 dias…" />}
+        {generating && <ProcessingPanel title="Montando o plano da semana…" />}
 
         {planCount !== null && (
-          <Alert tone="accent" title={`Plano gerado com ${planCount} treino(s)`}>
-            Já disponível abaixo e no card da Duni no <Link href="/dashboard" className="underline">dashboard</Link>.
+          <Alert tone="accent" title={`Plano da semana pronto: ${planCount} treino${planCount === 1 ? "" : "s"}`}>
+            Veja o status, a tabela e cada treino logo abaixo. Também aparece no card da Duni no <Link href="/dashboard" className="underline">dashboard</Link>.
           </Alert>
         )}
 
@@ -346,6 +361,11 @@ export default function CoachPage() {
             </div>
             <Markdown text={report} />
           </Panel>
+        )}
+
+        {/* ───────── Plano da semana ───────── */}
+        {week && (
+          <WeeklyPlanPanel plan={week.plan} workouts={week.workouts} onRefresh={refreshPlans} onGenerate={handleGeneratePlan} generating={generating} />
         )}
 
         {/* ───────── Chat + plano ───────── */}

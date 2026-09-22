@@ -2,7 +2,7 @@
  * Interpretacao dos dados do atleta para a UI (dashboard, carga, coach).
  * Tudo aqui deriva de dados reais da API — nada de valores ficticios.
  */
-import type { ActivityPoint, ActivitySummary, DailyMetric, TrainingRecommendation } from "@/lib/api";
+import type { ActivityPoint, ActivitySummary, DailyMetric, TrainingRecommendation, WeeklyStatus } from "@/lib/api";
 import { C } from "@/lib/theme";
 import { sportGroup } from "@/lib/utils";
 
@@ -142,6 +142,27 @@ export function statusSubtitle(readiness: number | null, rec: TrainingRecommenda
   if (readiness >= 60) return "Recuperação em dia — sustente o ritmo com consistência.";
   if (readiness >= 40) return "Sinais de fadiga moderada. Ajuste a intensidade de hoje.";
   return "Carga acumulada alta. Priorize sono e recuperação ativa.";
+}
+
+/* ───────────── status da Duni ───────────── */
+
+/** `level` na mesma escala da prontidao em divergencia(): 0 = pode treinar, 2 = recuperar. */
+export const WEEKLY_STATUS: Record<WeeklyStatus, { emoji: string; label: string; color: string; level: number }> = {
+  verde: { emoji: "🟢", label: "Recuperado", color: "#00FF66", level: 0 },
+  amarelo: { emoji: "🟡", label: "Atenção", color: "#FFC145", level: 0.5 },
+  laranja: { emoji: "🟠", label: "Fadiga acumulada", color: "#FF8A3D", level: 1.5 },
+  vermelho: { emoji: "🔴", label: "Recuperação prioritária", color: "#F85149", level: 2 },
+};
+
+/**
+ * A prontidao do dashboard olha so TSB/ACWR; a Duni olha fadiga, check-ins e
+ * tendencia. Prontidao >= 60 / 40-59 / < 40 vira 0 / 1 / 2 e diverge da Duni a
+ * 1+ de distancia: 75% x laranja sim, 75% x amarelo nao, 30% x laranja nao.
+ */
+export function duniDiverges(readiness: number | null, status: WeeklyStatus): boolean {
+  if (readiness == null) return false;
+  const level = readiness >= 60 ? 0 : readiness >= 40 ? 1 : 2;
+  return Math.abs(level - WEEKLY_STATUS[status].level) >= 1;
 }
 
 export function readinessColor(v: number | null): string {

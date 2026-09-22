@@ -19,7 +19,7 @@ from ondilow_api.ai.athlete_analysis import build_analysis, effective_kind
 from ondilow_api.config import settings
 from ondilow_api.metrics.predictions import predict_race_times, training_recommendation
 from ondilow_api.models.activity import Activity
-from ondilow_api.models.coach import AthleteMemory, CoachInteraction, PlannedWorkout
+from ondilow_api.models.coach import AthleteMemory, CoachInteraction, PlannedWorkout, WeeklyPlan
 from ondilow_api.models.daily_metric import DailyMetric
 from ondilow_api.models.record import PersonalRecord
 from ondilow_api.models.user import AthleteProfile
@@ -130,22 +130,63 @@ MEMÓRIAS E OBJETIVO
 - Zonas de FC são estimadas pela FC máxima do perfil. Se a análise de intensidade
   pesar numa decisão, vale confirmar se essa FC máxima foi medida de verdade."""
 
-_PLAN_INSTRUCTION = """Monte um plano de treino para os proximos {days} dias
-corridos, comecando em {start_date}, com base no contexto do atleta (JSON) abaixo.
-No maximo um treino por dia; dia de descanso fica SEM item (senao conta como treino
-pulado na aderencia). Siga as regras de treino do seu papel: foco em corrida (use
-"run" ou "trail_run"), 1 a 2 dias de descanso, a maior parte leve, e cada treino
-com um objetivo claro na descricao.
-Ajuste a carga pelo que "analise" mostra (janelas, tendencia, sinais de fadiga,
-cobertura de dados) e pela aderencia recente. As datas devem ser strings no formato
-AAAA-MM-DD, cada uma dentro do intervalo pedido, sem repetir data.
-Respeite as memorias do atleta (campo "memorias"): so marque treino nos dias
-disponiveis, evite o que agrava uma lesao ativa e oriente a semana pelo objetivo
-e pelas provas com data. Sem objetivo cadastrado, monte uma semana de base
-aerobica e diga isso na descricao do primeiro treino.
+_WEEK_PLAN_INSTRUCTION = """Analise o atleta e monte o plano da proxima semana.
+Os 7 dias da semana sao: {days}.
+
+Preencha o JSON pedido:
+- status (verde = recuperado, amarelo = atencao, laranja = fadiga acumulada,
+  vermelho = recuperacao prioritaria) e status_justificativa citando os dados.
+- resumo: 2 a 4 frases com a leitura geral da semana que passou e o plano.
+- avaliacao: pontos positivos, sinais de fadiga (diga se isolado ou tendencia),
+  riscos e evolucao (use as sessoes equivalentes, se houver). Listas curtas; lista
+  vazia quando nao houver nada.
+- proxima_semana: km previsto, numero de sessoes, estimulo principal e objetivo.
+- treinos: SO os dias com treino. Dia de descanso fica SEM item (1 a 2 por semana,
+  no minimo 1). Um treino por dia, no maximo. Datas AAAA-MM-DD dentro da semana.
+  Para cada treino: esporte (run, trail_run ou treadmill), tipo (ex.: rodagem leve,
+  longao, intervalado, limiar, progressivo, regenerativo), titulo curto, objetivo
+  (a finalidade fisiologica), motivo (por que ESTE treino NESTA semana, ligado aos
+  dados), intensidade (leve, moderado ou forte), distancia e duracao, ritmo, GAP,
+  zona de FC, PSE com a explicacao pratica, cadencia (a partir da habitual do
+  atleta, nunca 180 como regra), terreno, qual metrica priorizar se ritmo, FC e PSE
+  discordarem, observacoes e os passos (aquecimento, principal, desaquecimento;
+  no principal, repeticoes e recuperacao quando for intervalado). Use null no que
+  nao se aplica.
+- criterios_ajuste: quando manter, reduzir, acelerar e interromper, com sinais
+  concretos (FC, PSE, dor, ritmo).
+- proximas_4_semanas: 4 itens so com km aproximado e foco de cada semana, sem
+  treinos diarios. E uma direcao, nao um compromisso.
+
+Regras que o sistema confere (plano fora delas e recusado): datas dentro da semana,
+pelo menos 1 dia sem treino, nenhum treino forte com status vermelho, objetivo e
+motivo em todo treino.
+Respeite as memorias (dias disponiveis, lesoes, objetivo, provas com data). Sem
+objetivo cadastrado, monte uma semana de base aerobica e diga isso no resumo.
+A carga da semana anterior ja e calculada pelo sistema; nao repita os numeros,
+interprete.
 
 Contexto do atleta (JSON):
 {context}"""
+
+_REGENERATE_INSTRUCTION = """O atleta pediu para trocar o treino de {day}.
+Motivo dele: "{reason}"
+
+Treino atual desse dia (JSON): {current}
+Resto da semana (JSON): {week}
+Status da semana: {status}
+
+Decida: um treino novo para o mesmo dia, adaptado ao motivo, ou descanso (se o
+motivo for dor, cansaco forte ou falta de tempo, descanso pode ser o certo).
+Explique a decisao em 1 ou 2 frases em explicacao. Se for treino, preencha treino
+com todos os campos (mesma data, objetivo e motivo obrigatorios; sem treino forte
+se o status for vermelho) e descanso=false. Se for descanso, treino=null e
+descanso=true.
+
+Contexto do atleta (JSON):
+{context}"""
+
+_WEEKDAYS_PT = ("segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo")
+WEEKLY_STATUS_EMOJI = {"verde": "🟢", "amarelo": "🟡", "laranja": "🟠", "vermelho": "🔴"}
 
 _ANALYSIS_INSTRUCTION = """Escreva o resumo da semana do atleta em markdown, curto e
 direto, nesta ordem:
@@ -182,19 +223,86 @@ class ChatReply(BaseModel):
     memory_suggestions: list[ChatMemorySuggestion] = []
 
 
-class PlannedWorkoutItem(BaseModel):
-    date: str
-    sport: str
-    title: str
-    description: str
-    target_duration_s: int | None = None
-    target_distance_m: float | None = None
-    target_tss: float | None = None
-    target_intensity: str | None = None
+# ── saida estruturada do plano da semana ────────────────────────────────────
+# Sem valores padrao nos campos: o schema vai para o Gemini, e campo opcional e
+# "X | None" obrigatorio (o modelo manda null).
 
 
-class WorkoutPlanResponse(BaseModel):
-    workouts: list[PlannedWorkoutItem]
+class PlanStep(BaseModel):
+    fase: Literal["aquecimento", "principal", "desaquecimento"]
+    descricao: str
+    duracao_min: float | None
+    distancia_km: float | None
+    repeticoes: int | None
+    ritmo: str | None
+    zona_fc: str | None
+    pse: str | None
+    recuperacao: str | None
+
+
+class PlanWorkout(BaseModel):
+    data: str
+    esporte: Literal["run", "trail_run", "treadmill"]
+    tipo: str
+    titulo: str
+    objetivo: str
+    motivo: str
+    intensidade: Literal["leve", "moderado", "forte"]
+    distancia_km: float | None
+    duracao_min: float | None
+    ritmo: str | None
+    gap: str | None
+    zona_fc: str | None
+    pse: str | None
+    cadencia: str | None
+    terreno: str | None
+    metrica_prioritaria: str | None
+    observacoes: str | None
+    passos: list[PlanStep]
+
+
+class PlanEvaluation(BaseModel):
+    positivos: list[str]
+    fadiga: list[str]
+    riscos: list[str]
+    evolucao: list[str]
+
+
+class PlanNextWeek(BaseModel):
+    km_previsto: float | None
+    sessoes: int
+    estimulo_principal: str
+    objetivo: str
+
+
+class PlanAdjustCriteria(BaseModel):
+    manter: list[str]
+    reduzir: list[str]
+    acelerar: list[str]
+    interromper: list[str]
+
+
+class PlanWeekOutlook(BaseModel):
+    semana: int
+    km_aproximado: float | None
+    foco: str
+
+
+class WeeklyPlanLLM(BaseModel):
+    status: Literal["verde", "amarelo", "laranja", "vermelho"]
+    status_justificativa: str
+    resumo: str
+    avaliacao: PlanEvaluation
+    proxima_semana: PlanNextWeek
+    treinos: list[PlanWorkout]
+    criterios_ajuste: PlanAdjustCriteria
+    proximas_4_semanas: list[PlanWeekOutlook]
+
+
+class RegeneratedDay(BaseModel):
+    descanso: bool
+    explicacao: str
+    treino: PlanWorkout | None
 
 
 def _fmt_pace(s_per_km) -> str | None:
@@ -419,7 +527,7 @@ def _call_anthropic(system_prompt: str, user_content: str, response_model: type[
     if response_model is not None:
         response = client.messages.parse(
             model=settings.anthropic_model,
-            max_tokens=4096,
+            max_tokens=8192,
             system=system_blocks,
             messages=[{"role": "user", "content": user_content}],
             output_format=response_model,
@@ -428,7 +536,7 @@ def _call_anthropic(system_prompt: str, user_content: str, response_model: type[
 
     response = client.messages.create(
         model=settings.anthropic_model,
-        max_tokens=4096,
+        max_tokens=8192,
         system=system_blocks,
         messages=[{"role": "user", "content": user_content}],
     )
@@ -622,65 +730,266 @@ def generate_analysis(db: Session, user_id: uuid.UUID) -> tuple[str, str]:
     return report, model_used
 
 
-def _validate_plan_items(items: list[PlannedWorkoutItem], days: int) -> list[PlannedWorkoutItem]:
-    today = date.today()
-    horizon_end = today + timedelta(days=days)
-    valid = []
-    for item in items:
+class PlanEditError(CoachError):
+    """Pedido de edicao do plano que nao pode ser feito (treino passado, feito...)."""
+
+    def __init__(self, code: str, message: str, status_code: int = 400):
+        self.code = code
+        self.status_code = status_code
+        super().__init__(message)
+
+
+class PlanConflictError(CoachError):
+    """Mover um treino para um dia que ja tem outro treino."""
+
+    def __init__(self, conflict: PlannedWorkout):
+        self.conflict = conflict
+        super().__init__("date_conflict")
+
+
+def week_range(today: date | None = None) -> tuple[date, date]:
+    """A "proxima semana" do plano: os 7 dias a partir de amanha."""
+    start = (today or date.today()) + timedelta(days=1)
+    return start, start + timedelta(days=6)
+
+
+def _check_workout(w: PlanWorkout, status: str) -> None:
+    if not w.objetivo.strip() or not w.motivo.strip():
+        raise CoachPlanParseError(f"A Duni mandou o treino de {w.data} sem objetivo ou sem motivo.")
+    if status == "vermelho" and w.intensidade == "forte":
+        raise CoachPlanParseError(
+            f"A Duni marcou recuperacao prioritaria (vermelho) e mesmo assim pos treino forte em {w.data}."
+        )
+
+
+def validate_weekly_plan(plan: WeeklyPlanLLM, start: date, end: date) -> list[PlanWorkout]:
+    """Regras que o codigo garante (nao confia no modelo). Descarta treinos com
+    data invalida, fora da semana ou repetida; recusa o plano (CoachPlanParseError)
+    sem treino, sem descanso, com treino forte no vermelho ou sem objetivo/motivo."""
+    valid: dict[date, PlanWorkout] = {}
+    for w in plan.treinos:
         try:
-            item_date = date.fromisoformat(item.date)
+            day = date.fromisoformat(w.data)
         except ValueError:
             continue
-        if item_date <= today or item_date > horizon_end:
+        if not (start <= day <= end) or day in valid:
             continue
-        if item.target_tss is not None and item.target_tss < 0:
-            continue
-        valid.append(item)
+        _check_workout(w, plan.status)
+        valid[day] = w
     if not valid:
-        raise CoachPlanParseError("O treinador nao retornou nenhum treino valido para o periodo pedido.")
-    return valid
+        raise CoachPlanParseError("A Duni nao mandou nenhum treino valido para a semana.")
+    days = (end - start).days + 1
+    if len(valid) >= days:
+        raise CoachPlanParseError("A Duni montou a semana sem nenhum dia de descanso.")
+    return [valid[d] for d in sorted(valid)]
 
 
-def generate_plan(db: Session, user_id: uuid.UUID, days: int = 7) -> tuple[list[PlannedWorkout], str]:
+def previous_week_load(analysis: dict) -> dict:
+    """Carga da semana anterior, calculada pelo codigo (janela de 7 dias da analise)."""
+    w7 = analysis.get("janelas", {}).get("7d", {})
+    run = w7.get("corrida", {})
+    intensity = analysis.get("distribuicao_intensidade_28d", {})
+    return {
+        "corrida_km": run.get("km"),
+        "corrida_minutos": run.get("minutos"),
+        "corridas": run.get("sessoes"),
+        "treinos_total": w7.get("sessoes_total"),
+        "longao_km": run.get("longao_km"),
+        "ritmo_medio": run.get("ritmo_medio"),
+        "caminhada_km": w7.get("caminhada", {}).get("km"),
+        "complementar": w7.get("complementar", {}),
+        "carga_interna_srpe": w7.get("carga_interna_srpe"),
+        "pse_media": w7.get("pse_media"),
+        "intensidade_28d_pct": intensity.get("percentual") if intensity.get("disponivel") else None,
+    }
+
+
+def _workout_fields(w: PlanWorkout) -> dict:
+    """Colunas de planned_workouts a partir de um treino da Duni."""
+    return {
+        "date": date.fromisoformat(w.data),
+        "sport": w.esporte,
+        "title": w.titulo[:200],
+        "description": w.objetivo,
+        "objective": w.objetivo,
+        "reason": w.motivo,
+        "target_distance_m": round(w.distancia_km * 1000, 2) if w.distancia_km else None,
+        "target_duration_s": round(w.duracao_min * 60) if w.duracao_min else None,
+        "target_intensity": w.intensidade,
+        "target_tss": None,
+        "steps": [s.model_dump() for s in w.passos],
+        "targets": {
+            "tipo": w.tipo,
+            "ritmo": w.ritmo,
+            "gap": w.gap,
+            "zona_fc": w.zona_fc,
+            "pse": w.pse,
+            "cadencia": w.cadencia,
+            "terreno": w.terreno,
+            "metrica_prioritaria": w.metrica_prioritaria,
+            "observacoes": w.observacoes,
+        },
+    }
+
+
+def generate_weekly_plan(db: Session, user_id: uuid.UUID) -> tuple[WeeklyPlan, list[PlannedWorkout], str]:
     context = build_context(db, user_id)
     _require_sufficient_data(context)
 
-    start_date = date.today() + timedelta(days=1)
-    user_content = _PLAN_INSTRUCTION.format(
-        days=days,
-        start_date=start_date.isoformat(),
-        context=json.dumps(context, ensure_ascii=False),
+    start, end = week_range()
+    days = ", ".join(
+        f"{_WEEKDAYS_PT[d.weekday()]} {d.isoformat()}" for d in (start + timedelta(days=i) for i in range(7))
     )
-    parsed, model_used = call_llm(SYSTEM_PROMPT, user_content, response_model=WorkoutPlanResponse)
-    items = _validate_plan_items(parsed.workouts, days)
+    user_content = _WEEK_PLAN_INSTRUCTION.format(days=days, context=json.dumps(context, ensure_ascii=False))
+    parsed, model_used = call_llm(SYSTEM_PROMPT, user_content, response_model=WeeklyPlanLLM)
+    workouts = validate_weekly_plan(parsed, start, end)
 
-    today = date.today()
-    horizon_end = today + timedelta(days=days)
     db.execute(
         delete(PlannedWorkout).where(
             PlannedWorkout.user_id == user_id,
             PlannedWorkout.status == "planned",
-            PlannedWorkout.date > today,
-            PlannedWorkout.date <= horizon_end,
+            PlannedWorkout.date >= start,
+            PlannedWorkout.date <= end,
         )
     )
+    plan = WeeklyPlan(
+        user_id=user_id,
+        week_start=start,
+        week_end=end,
+        status=parsed.status,
+        status_reason=parsed.status_justificativa,
+        report={
+            "resumo": parsed.resumo,
+            "carga_semana_anterior": previous_week_load(context["analise"]),
+            "avaliacao": parsed.avaliacao.model_dump(),
+            "proxima_semana": parsed.proxima_semana.model_dump(),
+            "criterios_ajuste": parsed.criterios_ajuste.model_dump(),
+            "proximas_4_semanas": [w.model_dump() for w in parsed.proximas_4_semanas[:4]],
+        },
+        model_used=model_used,
+        prompt_version=settings.coach_prompt_version,
+    )
+    db.add(plan)
+    db.flush()
 
     batch_id = uuid.uuid4()
-    rows = []
-    for item in items:
-        row = PlannedWorkout(
-            user_id=user_id,
-            date=date.fromisoformat(item.date),
-            sport=item.sport,
-            title=item.title,
-            description=item.description,
-            target_duration_s=item.target_duration_s,
-            target_distance_m=item.target_distance_m,
-            target_tss=item.target_tss,
-            target_intensity=item.target_intensity,
-            plan_batch_id=batch_id,
-        )
-        db.add(row)
-        rows.append(row)
+    rows = [
+        PlannedWorkout(user_id=user_id, plan_batch_id=batch_id, weekly_plan_id=plan.id, **_workout_fields(w))
+        for w in workouts
+    ]
+    db.add_all(rows)
     db.commit()
-    return rows, model_used
+    return plan, rows, model_used
+
+
+def current_weekly_plan(db: Session, user_id: uuid.UUID, today: date | None = None) -> WeeklyPlan | None:
+    """O plano mais recente que ainda nao terminou."""
+    today = today or date.today()
+    return db.execute(
+        select(WeeklyPlan)
+        .where(WeeklyPlan.user_id == user_id, WeeklyPlan.week_end >= today)
+        .order_by(WeeklyPlan.created_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+
+def _editable_workout(db: Session, user_id: uuid.UUID, workout_id: uuid.UUID) -> PlannedWorkout:
+    workout = db.execute(
+        select(PlannedWorkout).where(PlannedWorkout.id == workout_id, PlannedWorkout.user_id == user_id)
+    ).scalar_one_or_none()
+    if workout is None:
+        raise PlanEditError("not_found", "Treino nao encontrado.", 404)
+    if workout.status != "planned" or workout.date < date.today():
+        raise PlanEditError("not_editable", "So da para mudar treino ainda nao feito, de hoje em diante.")
+    return workout
+
+
+def _workout_brief(w: PlannedWorkout) -> dict:
+    return {
+        "data": w.date.isoformat(),
+        "titulo": w.title,
+        "intensidade": w.target_intensity,
+        "km": float(w.target_distance_m) / 1000 if w.target_distance_m else None,
+        "objetivo": w.objective or w.description,
+    }
+
+
+def regenerate_workout(
+    db: Session, user_id: uuid.UUID, workout_id: uuid.UUID, reason: str
+) -> tuple[PlannedWorkout | None, str, str]:
+    """Troca o treino de um dia pelo motivo do atleta. Devolve o treino novo (ou
+    None, se a Duni decidiu por descanso e o treino foi apagado), a explicacao
+    dela e o modelo usado."""
+    workout = _editable_workout(db, user_id, workout_id)
+    plan = db.get(WeeklyPlan, workout.weekly_plan_id) if workout.weekly_plan_id else None
+    status = plan.status if plan else "sem plano semanal"
+    week = db.execute(
+        select(PlannedWorkout)
+        .where(
+            PlannedWorkout.user_id == user_id,
+            PlannedWorkout.id != workout.id,
+            PlannedWorkout.date >= workout.date - timedelta(days=3),
+            PlannedWorkout.date <= workout.date + timedelta(days=3),
+        )
+        .order_by(PlannedWorkout.date)
+    ).scalars().all()
+
+    context = build_context(db, user_id)
+    user_content = _REGENERATE_INSTRUCTION.format(
+        day=f"{_WEEKDAYS_PT[workout.date.weekday()]} {workout.date.isoformat()}",
+        reason=reason.strip(),
+        current=json.dumps(_workout_brief(workout), ensure_ascii=False),
+        week=json.dumps([_workout_brief(w) for w in week], ensure_ascii=False),
+        status=status,
+        context=json.dumps(context, ensure_ascii=False),
+    )
+    parsed, model_used = call_llm(SYSTEM_PROMPT, user_content, response_model=RegeneratedDay)
+
+    if parsed.descanso or parsed.treino is None:
+        db.delete(workout)
+        db.commit()
+        return None, parsed.explicacao, model_used
+
+    new = parsed.treino.model_copy(update={"data": workout.date.isoformat()})  # o dia nao muda
+    _check_workout(new, plan.status if plan else "")
+    for field, value in _workout_fields(new).items():
+        setattr(workout, field, value)
+    workout.targets = {**(workout.targets or {}), "ajuste_pedido": reason.strip()}
+    workout.updated_at = datetime.now(UTC)
+    db.commit()
+    return workout, parsed.explicacao, model_used
+
+
+def move_workout(
+    db: Session,
+    user_id: uuid.UUID,
+    workout_id: uuid.UUID,
+    new_date: date,
+    on_conflict: Literal["error", "swap", "keep_both"] = "error",
+) -> PlannedWorkout:
+    """Muda o treino de dia. Se o dia ja tem treino: 'error' avisa
+    (PlanConflictError), 'swap' troca os dois de dia, 'keep_both' deixa os dois."""
+    workout = _editable_workout(db, user_id, workout_id)
+    if new_date < date.today():
+        raise PlanEditError("past_date", "Nao da para mover um treino para um dia que ja passou.")
+    if new_date == workout.date:
+        return workout
+    conflict = db.execute(
+        select(PlannedWorkout).where(
+            PlannedWorkout.user_id == user_id,
+            PlannedWorkout.id != workout.id,
+            PlannedWorkout.date == new_date,
+        )
+    ).scalars().first()
+    if conflict is not None:
+        if on_conflict == "error":
+            raise PlanConflictError(conflict)
+        if on_conflict == "swap":
+            if conflict.status != "planned":
+                raise PlanEditError("not_swappable", "O treino desse dia ja foi feito ou marcado; nao da para trocar.")
+            conflict.date = workout.date
+            conflict.updated_at = datetime.now(UTC)
+    workout.date = new_date
+    workout.updated_at = datetime.now(UTC)
+    db.commit()
+    return workout

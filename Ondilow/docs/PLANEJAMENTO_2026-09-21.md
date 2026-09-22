@@ -284,7 +284,43 @@ Texto original da fase:
 - **Aderência** no contexto (planejados, feitos e pulados em 4 semanas), para ela cobrar com dado real.
 - O contexto passa a ser o JSON da Fase 4, as memórias e as atividades recentes.
 
-## Fase 7 — Plano da semana
+## Fase 7 — Plano da semana — CONCLUÍDA (geração ao vivo pendente)
+
+**Executado em 2026-09-21/22.** 185 testes na API (15 novos em `test_weekly_plan.py`; os 4 do validador antigo saíram de `test_coach_service.py`).
+
+Como ficou:
+
+- **Migration `015_weekly_plans`**, já aplicada na `main`:
+  - tabela `weekly_plans` com `status` (verde/amarelo/laranja/vermelho, com CHECK), `status_reason`, `report` (JSONB), `model_used` e `prompt_version`;
+  - em `planned_workouts`, as colunas `weekly_plan_id`, `objective` (finalidade fisiológica), `reason` (por que nesta semana), `steps` e `targets` (JSONB).
+- **Saída estruturada** (`WeeklyPlanLLM`): status + justificativa, resumo, avaliação (positivos, fadiga, riscos, evolução), próxima semana, treinos com todos os campos da seção 6 (passos de aquecimento/principal/desaquecimento; ritmo, GAP, zona, PSE, cadência, terreno, métrica prioritária) e critérios de ajuste. Os campos não têm valor padrão, porque o schema vai para o Gemini. Conferi que o SDK 2.23 converte o schema.
+- **A carga da semana anterior é calculada pelo código** (`previous_week_load`, a partir da janela de 7 dias da análise), não pelo modelo.
+- **A semana** são os 7 dias a partir de amanhã. O prompt recebe cada dia com o nome ("quarta 2026-09-23") por causa das memórias de disponibilidade.
+- **Validação no código** (`validate_weekly_plan`): descarta treino com data inválida, fora da semana ou repetida. Recusa o plano inteiro (502, nada salvo, motivo mostrado na tela) quando falta dia de descanso, há treino forte com status vermelho ou falta objetivo ou motivo em algum treino. O "1–2 dias de descanso" virou **no mínimo 1**: quem treina 3 vezes por semana tem 4 dias sem treino, e isso não é erro.
+- **Endpoints**:
+  - `POST /coach/plan/generate` (sem parâmetro de dias; devolve `{plan, workouts}`);
+  - `GET /coach/plan/week`: o plano que ainda não terminou;
+  - `POST /coach/plan/{id}/regenerate` com o motivo. A Duni devolve um treino novo para o mesmo dia (a data vinda do modelo é ignorada) ou decide por descanso e apaga o treino;
+  - `POST /coach/plan/{id}/move` com `on_conflict` = `error` (409 com o treino em conflito), `swap` (troca os dois de dia) ou `keep_both`.
+  - Só dá para editar treino `planned` de hoje em diante.
+- **Interface** (`components/coach/WeeklyPlanPanel.tsx`, em `/coach`), na ordem da seção 18:
+  - status da Duni e justificativa, resumo, semana anterior, avaliação e próxima semana;
+  - a tabela `Dia | Treino | Distância | Ritmo/GAP | FC | PSE | Cadência | Objetivo`, com os dias de descanso;
+  - um card expansível por treino, com "Pedir outro treino" e "Mudar de dia";
+  - os critérios de ajuste e a direção das 4 semanas seguintes (recolhida).
+- **Dashboard**: o card de prontidão ganhou "Status da Duni · data" e uma nota quando os dois divergem. A régua: prontidão ≥60/40–59/<40 contra verde/amarelo, laranja e vermelho. Assim 75% com laranja avisa, e 75% com amarelo ou 30% com laranja não.
+- O botão "Gerar plano (7 dias)" virou "Gerar plano da semana". Não havia seletor de 7/14/28 dias para trocar.
+
+**Verificado no navegador sem gastar cota**: inseri um plano `[TESTE]` na conta principal, conferi resumo, tabela, card aberto, o aviso de conflito ao mover e o status no dashboard, e apaguei o plano de teste (3 treinos e 1 plano; nada com `[TESTE]` sobrou). Para isso encerrei o servidor de dev da sessão anterior, que rodava sem `--reload` e não tinha as rotas novas.
+
+**De carona**: o teste de check-in da Fase 4 falhava perto da meia-noite nos dois sentidos. Agora cria a atividade ao meio-dia de hoje no horário de São Paulo.
+
+**Pendente para a Fase 9**:
+- gerar um plano de verdade com o Gemini (o schema é grande para o `flash-lite`; se ele errar o formato com frequência, simplificar);
+- regerar um dia ao vivo.
+- Os 7 treinos da v1 (22–28/09) continuam na conta principal e somem quando o primeiro plano novo for gerado. O aviso de conflito do teste pegou um deles.
+
+Texto original da fase:
 
 - **Saída estruturada** num único JSON: `status` (🟢🟡🟠🔴 + justificativa com dados), `carga_semana_anterior`, `avaliacao` (pontos positivos, fadiga, riscos, evolução), `proxima_semana` (km, sessões, estímulo, objetivo), `treinos[]` com todos os campos da seção 6 (aquecimento, bloco principal e desaquecimento como passos; ritmo, GAP, zona, PSE, cadência, recuperação, terreno, qual métrica priorizar) e `criterios_ajuste` (manter, reduzir, acelerar, interromper).
 - Migrations: `steps` e os campos novos em `planned_workouts`, e uma tabela `weekly_plans` para o status e o relatório.
@@ -301,7 +337,7 @@ Texto original da fase:
 
 ## Fase 9 — Fechamento
 
-- Verificação ao vivo de tudo junto na conta de teste, **incluindo as memórias da Fase 5 e a conversa com o prompt v2 da Fase 6** (adiadas de lá).
+- Verificação ao vivo de tudo junto na conta de teste, **incluindo as memórias da Fase 5, a conversa com o prompt v2 da Fase 6 e gerar/regerar o plano da Fase 7** (adiadas de lá).
 - Atualizar `ESTADO_DO_PROJETO.md` e `BACKLOG.md`, e fechar este documento.
 
 ---

@@ -2,9 +2,30 @@ import datetime as dt
 import uuid
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Numeric, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ondilow_api.db import Base
+
+WEEKLY_STATUSES = ("verde", "amarelo", "laranja", "vermelho")
+
+
+class WeeklyPlan(Base):
+    """Plano da semana da Duni: status (verde/amarelo/laranja/vermelho) com a
+    justificativa e o relatorio estruturado. Os treinos ficam em planned_workouts."""
+
+    __tablename__ = "weekly_plans"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    week_start: Mapped[dt.date] = mapped_column(Date(), nullable=False)
+    week_end: Mapped[dt.date] = mapped_column(Date(), nullable=False)
+    status: Mapped[str] = mapped_column(String(10), nullable=False)
+    status_reason: Mapped[str] = mapped_column(Text(), nullable=False)
+    report: Mapped[dict] = mapped_column(JSONB(), nullable=False)
+    model_used: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    prompt_version: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=lambda: dt.datetime.now(dt.UTC))
 
 
 class PlannedWorkout(Base):
@@ -25,6 +46,13 @@ class PlannedWorkout(Base):
         ForeignKey("activities.id", ondelete="SET NULL"), nullable=True
     )
     plan_batch_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
+    weekly_plan_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("weekly_plans.id", ondelete="SET NULL"), nullable=True
+    )
+    objective: Mapped[str | None] = mapped_column(Text(), nullable=True)  # finalidade fisiologica
+    reason: Mapped[str | None] = mapped_column(Text(), nullable=True)  # por que esta semana (dados)
+    steps: Mapped[list | None] = mapped_column(JSONB(), nullable=True)  # aquecimento/principal/desaquecimento
+    targets: Mapped[dict | None] = mapped_column(JSONB(), nullable=True)  # ritmo, GAP, FC, PSE, cadencia...
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=dt.datetime.utcnow)
     updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=dt.datetime.utcnow)
 

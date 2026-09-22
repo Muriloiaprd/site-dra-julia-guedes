@@ -10,8 +10,10 @@ from ondilow_api.ai.coach_service import (
     CoachPlanParseError,
     CoachUnavailableError,
     InsufficientDataError,
+    PlanConflictError,
+    PlanEditError,
     generate_analysis,
-    generate_plan,
+    generate_weekly_plan,
 )
 from ondilow_api.deps import CurrentUser, DbSession
 from ondilow_api.models.coach import AthleteMemory, CoachInteraction, PlannedWorkout
@@ -20,12 +22,15 @@ from ondilow_api.schemas.coach import (
     ChatHistoryItem,
     ChatRequest,
     ChatResponse,
-    GeneratePlanRequest,
     MemoryIn,
     MemoryOut,
     MemoryUpdate,
+    MoveWorkoutRequest,
     PlannedWorkoutOut,
+    RegenerateWorkoutRequest,
+    RegenerateWorkoutResponse,
     UpdateWorkoutStatusRequest,
+    WeeklyPlanResponse,
 )
 
 router = APIRouter(prefix="/coach", tags=["coach"])
@@ -124,17 +129,69 @@ def post_analyze(current_user: CurrentUser, db: DbSession) -> dict:
     return {"report": report, "model_used": model_used, "generated_at": datetime.now(UTC)}
 
 
-@router.post("/plan/generate", response_model=list[PlannedWorkoutOut])
-def post_generate_plan(body: GeneratePlanRequest, current_user: CurrentUser, db: DbSession) -> list:
+@router.post("/plan/generate", response_model=WeeklyPlanResponse)
+def post_generate_plan(current_user: CurrentUser, db: DbSession) -> dict:
+    """Plano da proxima semana (7 dias a partir de amanha), com status e relatorio."""
     try:
-        rows, _model_used = generate_plan(db, current_user.id, days=body.days)
+        plan, rows, _model_used = generate_weekly_plan(db, current_user.id)
     except InsufficientDataError as e:
         _raise_insufficient_data(e)
     except CoachUnavailableError as e:
         _raise_unavailable(e)
     except CoachPlanParseError as e:
         _raise_parse_error(e)
-    return rows
+    return {"plan": plan, "workouts": rows}
+
+
+@router.get("/plan/week", response_model=WeeklyPlanResponse)
+def get_plan_week(current_user: CurrentUser, db: DbSession) -> dict:
+    """O plano semanal que ainda nao terminou (ou nada) e os treinos dele."""
+    coach_service.reconcile_plan(db, current_user.id)
+    plan = coach_service.current_weekly_plan(db, current_user.id)
+    if plan is None:
+        return {"plan": None, "workouts": []}
+    rows = db.execute(
+        select(PlannedWorkout)
+        .where(PlannedWorkout.user_id == current_user.id, PlannedWorkout.weekly_plan_id == plan.id)
+        .order_by(PlannedWorkout.date.asc())
+    ).scalars().all()
+    return {"plan": plan, "workouts": list(rows)}
+
+
+def _raise_plan_edit(e: PlanEditError) -> None:
+    raise HTTPException(status_code=e.status_code, detail={"error": e.code, "message": str(e)}) from e
+
+
+@router.post("/plan/{workout_id}/regenerate", response_model=RegenerateWorkoutResponse)
+def post_regenerate_workout(
+    workout_id: uuid.UUID, body: RegenerateWorkoutRequest, current_user: CurrentUser, db: DbSession
+) -> dict:
+    try:
+        workout, explanation, model_used = coach_service.regenerate_workout(db, current_user.id, workout_id, body.reason)
+    except PlanEditError as e:
+        _raise_plan_edit(e)
+    except CoachUnavailableError as e:
+        _raise_unavailable(e)
+    except CoachPlanParseError as e:
+        _raise_parse_error(e)
+    return {"workout": workout, "explanation": explanation, "model_used": model_used}
+
+
+@router.post("/plan/{workout_id}/move", response_model=PlannedWorkoutOut)
+def post_move_workout(workout_id: uuid.UUID, body: MoveWorkoutRequest, current_user: CurrentUser, db: DbSession) -> PlannedWorkout:
+    try:
+        return coach_service.move_workout(db, current_user.id, workout_id, body.date, body.on_conflict)
+    except PlanEditError as e:
+        _raise_plan_edit(e)
+    except PlanConflictError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": "date_conflict",
+                "message": f"Já tem \"{e.conflict.title}\" nesse dia.",
+                "conflict": {"id": str(e.conflict.id), "title": e.conflict.title, "status": e.conflict.status},
+            },
+        ) from e
 
 
 @router.get("/plan", response_model=list[PlannedWorkoutOut])

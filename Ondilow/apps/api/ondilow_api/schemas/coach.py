@@ -58,11 +58,9 @@ class AnalyzeResponse(BaseModel):
     generated_at: datetime
 
 
-class GeneratePlanRequest(BaseModel):
-    days: int = 7
-
-
 class PlannedWorkoutOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     date: date
     sport: str
@@ -74,9 +72,47 @@ class PlannedWorkoutOut(BaseModel):
     target_intensity: str | None
     status: str
     activity_id: uuid.UUID | None
+    weekly_plan_id: uuid.UUID | None = None
+    objective: str | None = None
+    reason: str | None = None
+    steps: list[dict] | None = None
+    targets: dict | None = None
 
-    class Config:
-        from_attributes = True
+
+class WeeklyPlanOut(BaseModel):
+    """Status e relatorio da semana. `report` tem resumo, carga_semana_anterior,
+    avaliacao, proxima_semana, criterios_ajuste e proximas_4_semanas."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    week_start: date
+    week_end: date
+    status: str
+    status_reason: str
+    report: dict
+    model_used: str | None
+    created_at: datetime
+
+
+class WeeklyPlanResponse(BaseModel):
+    plan: WeeklyPlanOut | None
+    workouts: list[PlannedWorkoutOut]
+
+
+class RegenerateWorkoutRequest(BaseModel):
+    reason: str = Field(min_length=3, max_length=300)
+
+
+class RegenerateWorkoutResponse(BaseModel):
+    workout: PlannedWorkoutOut | None  # None = a Duni trocou por descanso
+    explanation: str
+    model_used: str
+
+
+class MoveWorkoutRequest(BaseModel):
+    date: date
+    on_conflict: Literal["error", "swap", "keep_both"] = "error"
 
 
 class UpdateWorkoutStatusRequest(BaseModel):
