@@ -17,6 +17,7 @@ import {
 } from "recharts";
 
 import { CheckinPanel } from "@/components/activity/CheckinPanel";
+import { DuniComment } from "@/components/activity/DuniComment";
 import { SportTile } from "@/components/SportIcon";
 import { StoryGenerator } from "@/components/share/StoryGenerator";
 import { ChartTooltipBox, LegendDot } from "@/components/ui/charts";
@@ -367,6 +368,11 @@ export default function ActivityPage() {
       {/* check-in pos-treino */}
       <div className="mb-4">
         <CheckinPanel key={activity.id} activity={activity} onSaved={setActivity} />
+      </div>
+
+      {/* comentario da Duni (sob demanda) */}
+      <div className="mb-4">
+        <DuniComment activity={activity} />
       </div>
 
       <div className="od-stagger grid gap-4 xl:grid-cols-12">

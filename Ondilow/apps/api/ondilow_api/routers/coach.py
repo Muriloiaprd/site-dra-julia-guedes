@@ -7,6 +7,7 @@ from sqlalchemy import select
 from ondilow_api.ai import coach_service
 from ondilow_api.ai.athlete_analysis import build_analysis
 from ondilow_api.ai.coach_service import (
+    ActivityNotFoundError,
     CoachPlanParseError,
     CoachUnavailableError,
     InsufficientDataError,
@@ -18,6 +19,7 @@ from ondilow_api.ai.coach_service import (
 from ondilow_api.deps import CurrentUser, DbSession
 from ondilow_api.models.coach import AthleteMemory, CoachInteraction, PlannedWorkout
 from ondilow_api.schemas.coach import (
+    ActivityCommentResponse,
     AnalyzeResponse,
     ChatHistoryItem,
     ChatRequest,
@@ -233,6 +235,32 @@ def patch_workout(
         workout.activity_id = body.activity_id
     db.commit()
     return workout
+
+
+def _comment_out(row: CoachInteraction | None) -> dict:
+    if row is None:
+        return {"comment": None}
+    return {"comment": row.content, "model_used": row.model_used, "generated_at": row.created_at}
+
+
+@router.get("/activities/{activity_id}/analyze", response_model=ActivityCommentResponse)
+def get_activity_comment(activity_id: uuid.UUID, current_user: CurrentUser, db: DbSession) -> dict:
+    """Ultimo comentario salvo (nao chama a IA)."""
+    try:
+        return _comment_out(coach_service.latest_activity_comment(db, current_user.id, activity_id))
+    except ActivityNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Atividade nao encontrada") from e
+
+
+@router.post("/activities/{activity_id}/analyze", response_model=ActivityCommentResponse)
+def post_activity_comment(activity_id: uuid.UUID, current_user: CurrentUser, db: DbSession) -> dict:
+    """Pede um comentario novo a Duni (gasta cota; so sob demanda)."""
+    try:
+        return _comment_out(coach_service.generate_activity_comment(db, current_user.id, activity_id))
+    except ActivityNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Atividade nao encontrada") from e
+    except CoachUnavailableError as e:
+        _raise_unavailable(e)
 
 
 @router.get("/analysis")

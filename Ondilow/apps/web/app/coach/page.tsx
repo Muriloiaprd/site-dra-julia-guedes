@@ -31,47 +31,9 @@ import {
   type PredictionsOverview,
   type WeeklyPlanResponse,
 } from "@/lib/api";
+import { coachErrorMessage } from "@/lib/coachErrors";
 import { formFromTsb, latestMetric, parseLocalDate, riskFromAcwr, toISODate, WEEK_LABELS } from "@/lib/athlete";
 import { formatDuration, sportLabel } from "@/lib/utils";
-
-function errorMessage(e: unknown): { title: string; detail: string } {
-  if (e instanceof CoachApiError) {
-    switch (e.detail.error) {
-      case "not_configured":
-        return {
-          title: "A Duni ainda não está configurada",
-          detail:
-            "Falta a chave do Gemini: gere uma grátis em aistudio.google.com/apikey e coloque em GEMINI_API_KEY no Ondilow/.env. Depois reinicie a API.",
-        };
-      case "quota_exceeded":
-        return {
-          title: "Limite gratuito do Gemini atingido",
-          detail: "A cota grátis acabou por agora. Volta a funcionar sozinho mais tarde (a cota diária renova todo dia) — não adianta insistir agora.",
-        };
-      case "invalid_key":
-        return { title: "Chave do Gemini inválida", detail: "Confira a GEMINI_API_KEY no Ondilow/.env (sem espaços nem aspas) e reinicie a API." };
-      case "model_not_found":
-        return { title: "Modelo do Gemini não encontrado", detail: "O modelo em GEMINI_MODEL não existe mais ou não está no plano grátis." };
-      case "llm_unavailable":
-        return { title: "Gemini sobrecarregado", detail: "Os modelos grátis do Gemini estão com muita demanda agora. Tente de novo em alguns minutos." };
-      case "llm_timeout":
-        return { title: "O Gemini demorou demais", detail: "A fila do plano grátis está lenta agora e a resposta não chegou a tempo. Tente de novo em alguns minutos." };
-      case "insufficient_data":
-        return {
-          title: "Ainda não há dados suficientes",
-          detail: `Você tem ${e.detail.weeks_available ?? 0} semana(s) de atividades — são necessárias pelo menos 2 semanas para uma análise confiável.`,
-        };
-      case "invalid_plan_response":
-        return {
-          title: "O plano veio fora das regras e foi recusado",
-          detail: `${e.detail.message ? `${e.detail.message} ` : ""}Nada foi salvo. Tente gerar de novo.`,
-        };
-      case "invalid_response":
-        return { title: "A resposta veio num formato inválido", detail: "Acontece às vezes com o modelo grátis. Mande a mensagem de novo." };
-    }
-  }
-  return { title: "Erro", detail: e instanceof Error ? e.message : "Erro desconhecido" };
-}
 
 /** O que a Duni realmente le do seu contexto (ai/coach_service.build_context). */
 const ANALYSIS_STEPS = [
@@ -195,7 +157,7 @@ export default function CoachPage() {
 
   function handleError(e: unknown) {
     if (e instanceof CoachApiError && e.detail.error === "not_configured") setNotConfigured(true);
-    setError(errorMessage(e));
+    setError(coachErrorMessage(e));
   }
 
   async function handleSend(text?: string) {

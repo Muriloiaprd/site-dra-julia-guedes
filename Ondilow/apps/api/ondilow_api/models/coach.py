@@ -87,4 +87,8 @@ class CoachInteraction(Base):
     role: Mapped[str | None] = mapped_column(String(20), nullable=True)
     content: Mapped[str] = mapped_column(Text(), nullable=False)
     model_used: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # kind='activity': comentario da Duni sobre esta atividade (Fase 8)
+    activity_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("activities.id", ondelete="CASCADE"), nullable=True
+    )
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=dt.datetime.utcnow)

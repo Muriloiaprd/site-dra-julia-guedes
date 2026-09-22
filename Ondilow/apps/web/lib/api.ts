@@ -654,6 +654,22 @@ export async function regenerateWorkout(
   return coachFetch(`/coach/plan/${id}/regenerate`, { method: "POST", body: JSON.stringify({ reason }) });
 }
 
+export interface ActivityComment {
+  comment: string | null;
+  model_used?: string | null;
+  generated_at?: string | null;
+}
+
+/** Ultimo comentario salvo da Duni sobre a atividade (nao chama a IA). */
+export async function fetchActivityComment(activityId: string): Promise<ActivityComment> {
+  return coachFetch<ActivityComment>(`/coach/activities/${activityId}/analyze`);
+}
+
+/** Pede um comentario novo a Duni (gasta cota do Gemini). */
+export async function postActivityComment(activityId: string): Promise<ActivityComment> {
+  return coachFetch<ActivityComment>(`/coach/activities/${activityId}/analyze`, { method: "POST" });
+}
+
 /** 409 com detail.error "date_conflict" quando o dia ja tem treino e on_conflict = "error". */
 export async function moveWorkout(
   id: string,

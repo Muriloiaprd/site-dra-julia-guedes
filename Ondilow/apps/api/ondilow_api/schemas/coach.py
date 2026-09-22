@@ -110,6 +110,14 @@ class RegenerateWorkoutResponse(BaseModel):
     model_used: str
 
 
+class ActivityCommentResponse(BaseModel):
+    """Comentario da Duni sobre uma atividade; comment=None se ainda nao pediu."""
+
+    comment: str | None
+    model_used: str | None = None
+    generated_at: datetime | None = None
+
+
 class MoveWorkoutRequest(BaseModel):
     date: date
     on_conflict: Literal["error", "swap", "keep_both"] = "error"

@@ -329,7 +329,33 @@ Texto original da fase:
 - **Regerar um dia** com motivo ("panturrilha dura") e **mover um treino** (avisa se houver conflito de data).
 - Visão opcional das 4 semanas seguintes só em volume e foco.
 
-## Fase 8 — Análise pós-treino
+## Fase 8 — Análise pós-treino — CONCLUÍDA (comentário ao vivo pendente)
+
+**Executado em 2026-09-22.** 188 testes na API (3 novos em `test_activity_comment.py`).
+
+Como ficou:
+
+- **Migration `016_coach_activity_comment`**: `coach_interactions.activity_id` (FK com CASCADE) e índice `(activity_id, created_at)`. Já aplicada na `main`. O comentário é salvo com `kind='activity'` e não aparece no histórico do chat, que filtra `kind='chat'`.
+- **`GET /coach/activities/{id}/analyze`** devolve o último comentário salvo, sem chamar a IA. **`POST`** pede um novo, e só quando o atleta clica, nunca no import. Atividade de outro usuário ou apagada devolve 404. Cota esgotada devolve 503 e não salva nada.
+- **Contexto** (`activity_context`), com ~7,5 mil caracteres e 1,2 s na corrida de 36 km de 30/05:
+  - a atividade com o check-in;
+  - minutos por zona de FC;
+  - as voltas (até 60) com ritmo, GAP, FC, cadência já corrigida e subida;
+  - o planejado do dia, pelo `activity_id` ou pela data, com passos e alvos;
+  - a sessão equivalente;
+  - a cadência habitual;
+  - as janelas de 7 e 28 dias e os sinais de fadiga **até o dia do treino**, não até hoje;
+  - as memórias.
+- **Prompt**: texto livre em markdown, curto, na ordem: o que foi feito, planejado × feito, execução (voltas, GAP na subida, deriva, cadência, zonas), esforço e corpo (pede o check-in se faltar), evolução e próximos dias.
+- **Interface**: o bloco "Comentário da Duni" (`components/activity/DuniComment.tsx`) fica logo abaixo do check-in em `/activities/[id]`, com "Pedir comentário" e depois "Pedir de novo". Sem check-in, avisa que ela só vê o relógio. As mensagens de erro da Duni saíram de `/coach` para `lib/coachErrors.ts`, compartilhado.
+
+**Verificação ao vivo de `/activities/[id]`** (pendente desde o plano de 18/09), na corrida de 36 km:
+- no desktop, topo, métricas (cadência 174 ppm, GAP), check-in, bloco da Duni, mapa, zonas, elevação, pace × FC e 37 splits, todas as chamadas com 200;
+- no celular (375 px), sem rolagem horizontal.
+
+**Pendente para a Fase 9**: pedir um comentário de verdade ao Gemini.
+
+Texto original da fase:
 
 - `POST/GET /coach/activities/{id}/analyze`, salvo em `coach_interactions` com `activity_id` (migration). Sob demanda, **nunca no import** (import em lote queimaria a cota).
 - O contexto junta a atividade, as voltas com ritmo e GAP, a deriva, o check-in, o treino planejado do dia (planejado contra feito) e as sessões equivalentes.
@@ -337,7 +363,7 @@ Texto original da fase:
 
 ## Fase 9 — Fechamento
 
-- Verificação ao vivo de tudo junto na conta de teste, **incluindo as memórias da Fase 5, a conversa com o prompt v2 da Fase 6 e gerar/regerar o plano da Fase 7** (adiadas de lá).
+- Verificação ao vivo de tudo junto na conta de teste, **incluindo as memórias da Fase 5, a conversa com o prompt v2 da Fase 6 gerar/regerar o plano da Fase 7 e o comentário pós-treino da Fase 8** (adiadas de lá).
 - Atualizar `ESTADO_DO_PROJETO.md` e `BACKLOG.md`, e fechar este documento.
 
 ---

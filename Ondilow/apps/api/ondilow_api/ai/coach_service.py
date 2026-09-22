@@ -17,8 +17,9 @@ from sqlalchemy.orm import Session
 
 from ondilow_api.ai.athlete_analysis import build_analysis, effective_kind
 from ondilow_api.config import settings
+from ondilow_api.metrics.basic import PointLike, hr_zone_distribution, resolve_hr_zones
 from ondilow_api.metrics.predictions import predict_race_times, training_recommendation
-from ondilow_api.models.activity import Activity
+from ondilow_api.models.activity import Activity, ActivityLap, ActivityPoint
 from ondilow_api.models.coach import AthleteMemory, CoachInteraction, PlannedWorkout, WeeklyPlan
 from ondilow_api.models.daily_metric import DailyMetric
 from ondilow_api.models.record import PersonalRecord
@@ -993,3 +994,151 @@ def move_workout(
     workout.updated_at = datetime.now(UTC)
     db.commit()
     return workout
+
+
+# ── comentario pos-treino (Fase 8) ──────────────────────────────────────────
+
+_ACTIVITY_INSTRUCTION = """Comente este treino do atleta, em markdown, curto e
+direto (ate ~250 palavras), nesta ordem e pulando o que nao tiver dado:
+1. **O que foi feito**: uma frase com distancia, tempo, ritmo e FC.
+2. **Planejado x feito**: se havia treino planejado para o dia, compare com o
+   que ele fez (volume, intensidade, zona). Sem plano, diga so que nao havia.
+3. **Execucao**: leia as voltas (ritmo e GAP constantes ou caindo, FC subindo,
+   deriva cardiaca, cadencia contra a habitual dele para o mesmo ritmo, tempo por
+   zona). Em subida, julgue pelo GAP, nao pelo ritmo.
+4. **Esforco e corpo**: use o check-in (PSE, sensacao, dor). Se nao houver
+   check-in, peca para ele preencher. Dor que persiste ou piora: avaliacao
+   profissional.
+5. **Evolucao**: se houver sessao equivalente, diga se melhorou, ficou estavel
+   ou custou mais, com os numeros.
+6. **Para os proximos dias**: 1 ou 2 recomendacoes praticas.
+
+Nao invente numero. Use so os dados abaixo.
+
+Dados do treino (JSON):
+{context}"""
+
+
+class ActivityNotFoundError(CoachError):
+    pass
+
+
+def _lap_detail(lap: ActivityLap) -> dict:
+    item = {
+        "volta": lap.lap_index + 1,
+        "km": round(float(lap.distance_m) / 1000, 2) if lap.distance_m else None,
+        "tempo": _fmt_duration(lap.duration_s) if lap.duration_s else None,
+        "ritmo": _fmt_pace(lap.avg_pace_s_per_km),
+        "gap": _fmt_pace(lap.gap_pace_s_per_km),
+        "fc_media": lap.avg_hr,
+        "fc_max": lap.max_hr,
+        "cadencia_ppm": lap.avg_cadence,
+        "subida_m": round(float(lap.elevation_gain_m)) if lap.elevation_gain_m else None,
+    }
+    return {k: v for k, v in item.items() if v is not None}
+
+
+def _zone_minutes(db: Session, act: Activity, profile: AthleteProfile | None) -> dict | None:
+    zones = resolve_hr_zones(profile)
+    if zones is None or not act.avg_hr:
+        return None
+    points = [
+        PointLike(elapsed_time_s=t, hr=hr)
+        for t, hr in db.execute(
+            select(ActivityPoint.elapsed_time_s, ActivityPoint.hr)
+            .where(ActivityPoint.activity_id == act.id)
+            .order_by(ActivityPoint.elapsed_time_s)
+        )
+    ]
+    buckets = hr_zone_distribution(points, zones)
+    if sum(b.seconds for b in buckets) <= 0:
+        return None
+    return {f"Z{b.zone}": round(b.seconds / 60, 1) for b in buckets}
+
+
+def _load_activity(db: Session, user_id: uuid.UUID, activity_id: uuid.UUID) -> Activity:
+    act = db.execute(
+        select(Activity).where(
+            Activity.id == activity_id, Activity.user_id == user_id, Activity.deleted_at.is_(None)
+        )
+    ).scalar_one_or_none()
+    if act is None:
+        raise ActivityNotFoundError("Atividade nao encontrada.")
+    return act
+
+
+def activity_context(db: Session, user_id: uuid.UUID, act: Activity) -> dict:
+    """O treino e o que cerca ele: voltas, zonas, check-in, o planejado do dia,
+    a sessao equivalente e a analise ate aquele dia (nao ate hoje)."""
+    day = act.start_time.astimezone(ZoneInfo(act.timezone or "America/Sao_Paulo")).date()
+    profile = db.execute(select(AthleteProfile).where(AthleteProfile.user_id == user_id)).scalar_one_or_none()
+    analysis = build_analysis(db, user_id, day)
+
+    laps = db.execute(
+        select(ActivityLap).where(ActivityLap.activity_id == act.id).order_by(ActivityLap.lap_index).limit(60)
+    ).scalars().all()
+    planned = db.execute(
+        select(PlannedWorkout)
+        .where(
+            PlannedWorkout.user_id == user_id,
+            (PlannedWorkout.activity_id == act.id) | (PlannedWorkout.date == day),
+        )
+        .order_by(PlannedWorkout.date)
+    ).scalars().all()
+
+    detail = _activity_detail(act)
+    if act.tss:
+        detail["tss"] = round(float(act.tss))
+    if act.avg_temperature_c is not None:
+        detail["temperatura_c"] = float(act.avg_temperature_c)
+
+    return {
+        "atividade": detail,
+        "minutos_por_zona_fc": _zone_minutes(db, act, profile),
+        "voltas": [_lap_detail(lap) for lap in laps],
+        "planejado_para_o_dia": [
+            {**_workout_brief(w), "status": w.status, "passos": w.steps, "alvos": w.targets} for w in planned
+        ],
+        "sessao_equivalente": [
+            e for e in analysis.get("sessoes_equivalentes", []) if e["atual"]["data"] == day.isoformat()
+        ],
+        "cadencia_habitual": analysis.get("cadencia_habitual"),
+        "semana_ate_o_dia": {k: analysis["janelas"][k] for k in ("7d", "28d")} if "janelas" in analysis else None,
+        "sinais_de_fadiga_ate_o_dia": analysis.get("sinais_de_fadiga"),
+        "memorias": memories_context(db, user_id, today=day),
+        "perfil": {
+            "fc_repouso": profile.resting_hr if profile else None,
+            "fc_max": profile.max_hr if profile else None,
+        },
+    }
+
+
+def generate_activity_comment(db: Session, user_id: uuid.UUID, activity_id: uuid.UUID) -> CoachInteraction:
+    """Comentario da Duni sobre um treino. So sob demanda (nunca no import: um
+    import em lote queimaria a cota do free tier)."""
+    act = _load_activity(db, user_id, activity_id)
+    context = activity_context(db, user_id, act)
+    user_content = _ACTIVITY_INSTRUCTION.format(context=json.dumps(context, ensure_ascii=False))
+    text, model_used = call_llm(SYSTEM_PROMPT, user_content)
+
+    row = CoachInteraction(
+        user_id=user_id, kind="activity", role="assistant", content=text, model_used=model_used, activity_id=act.id
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def latest_activity_comment(db: Session, user_id: uuid.UUID, activity_id: uuid.UUID) -> CoachInteraction | None:
+    _load_activity(db, user_id, activity_id)
+    return db.execute(
+        select(CoachInteraction)
+        .where(
+            CoachInteraction.user_id == user_id,
+            CoachInteraction.kind == "activity",
+            CoachInteraction.activity_id == activity_id,
+        )
+        .order_by(CoachInteraction.created_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
