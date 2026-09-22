@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select
 
 from ondilow_api.ai import coach_service
+from ondilow_api.ai.athlete_analysis import build_analysis
 from ondilow_api.ai.coach_service import (
     CoachPlanParseError,
     CoachUnavailableError,
@@ -114,6 +115,13 @@ def patch_workout(
         workout.activity_id = body.activity_id
     db.commit()
     return workout
+
+
+@router.get("/analysis")
+def get_analysis(current_user: CurrentUser, db: DbSession) -> dict:
+    """Fatos calculados (sem IA) que a Duni interpreta: janelas 7/14/28d,
+    tendencia semanal, sinais de fadiga, sessoes equivalentes, lacunas."""
+    return build_analysis(db, current_user.id)
 
 
 @router.get("/chat/history", response_model=list[ChatHistoryItem])

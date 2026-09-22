@@ -101,6 +101,36 @@ def test_checkin_uses_duration_when_moving_time_missing(auth_client: tuple[TestC
     assert body["srpe"] == 300.0  # 5 x 60 min
 
 
+def test_analysis_endpoint_reads_checkin(auth_client: tuple[TestClient, dict]) -> None:
+    """GET /coach/analysis ponta a ponta: atividade + check-in viram fatos."""
+    client, _user = auth_client
+    today = datetime.now(UTC).replace(hour=12, minute=0, second=0, microsecond=0)
+    resp = client.post(
+        "/activities/import-normalized",
+        json={
+            "sport": "running",
+            "start_time": today.isoformat(),
+            "duration_s": 2400,
+            "moving_time_s": 2400,
+            "source": "garmin_api",
+            "source_activity_id": "analise-1",
+            "distance_m": 7000.0,
+        },
+    )
+    activity_id = resp.json()["activity_id"]
+    client.put(f"/activities/{activity_id}/checkin", json={"rpe": 7, "pain_level": 4, "pain_location": "joelho"})
+
+    body = client.get("/coach/analysis").json()
+
+    w7 = body["janelas"]["7d"]
+    assert w7["corrida"]["sessoes"] == 1 and w7["corrida"]["km"] == 7.0
+    assert w7["carga_interna_srpe"] == 280  # 7 x 40 min
+    (checkin,) = body["checkins_28d"]
+    assert checkin["pse"] == 7 and checkin["local_dor"] == "joelho"
+    assert body["sinais_de_fadiga"][0]["codigo"] == "dor_relatada"
+    assert body["cobertura_de_dados"]["dias_desde_a_ultima"] == 0
+
+
 def test_checkin_other_users_activity_is_404(
     auth_client: tuple[TestClient, dict], db_session: Session
 ) -> None:

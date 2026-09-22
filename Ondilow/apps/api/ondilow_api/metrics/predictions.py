@@ -3,6 +3,7 @@
 import math
 from datetime import date, timedelta
 
+from ondilow_api.metrics.load import ACWR_MIN_CHRONIC_DAILY_LOAD
 from ondilow_api.models.daily_metric import DailyMetric
 from ondilow_api.models.record import PersonalRecord
 
@@ -105,7 +106,8 @@ def assess_injury_risk(metrics: list[DailyMetric]) -> dict:
     if len(recent) >= 14:
         load_recent7 = sum(float(m.daily_load or 0) for m in recent[-7:]) / 7
         load_prev7 = sum(float(m.daily_load or 0) for m in recent[-14:-7]) / 7
-        spike = load_prev7 > 0 and (load_recent7 / load_prev7) > 1.3
+        # com base quase zero, qualquer treino vira "aumento de 30%"
+        spike = load_prev7 >= ACWR_MIN_CHRONIC_DAILY_LOAD and (load_recent7 / load_prev7) > 1.3
 
     reasons: list[str] = []
     level = "low"
@@ -162,7 +164,17 @@ def training_recommendation(latest_metric: "DailyMetric | None") -> dict:
 
     tsb = float(latest_metric.tsb) if latest_metric.tsb is not None else 0.0
     acwr = float(latest_metric.acwr) if latest_metric.acwr is not None else 1.0
+    ctl = float(latest_metric.ctl) if latest_metric.ctl is not None else 0.0
 
+    # TSB positivo depois de uma pausa nao e "forma em alta": e condicionamento
+    # que se perdeu. Sem base, a recomendacao e retomar leve, nunca intensidade.
+    if ctl < ACWR_MIN_CHRONIC_DAILY_LOAD:
+        return {
+            "type": "easy",
+            "label": "Retomada gradual",
+            "color": "#00BFFF",
+            "detail": f"Pouco treino nas últimas semanas (CTL {ctl:.0f}) — volte com corridas leves antes de qualquer intensidade",
+        }
     if acwr > 1.5 or tsb < -30:
         return {
             "type": "rest",

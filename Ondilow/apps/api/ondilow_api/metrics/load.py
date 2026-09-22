@@ -162,10 +162,17 @@ def update_daily_metrics(db: Session, user_id, from_date: date | None = None) ->
     db.commit()
 
 
+# Carga media diaria (TSS) minima em 28 dias para o ACWR significar algo
+# (~70 TSS/semana, pouco mais de 1h de corrida leve). Abaixo disso a razao e
+# ruido: em 2026-09-21, uma corrida de 0,7 km depois de 3 semanas parado deu
+# ACWR 4,0 e o app mandou "priorizar recuperacao" um atleta descansado.
+ACWR_MIN_CHRONIC_DAILY_LOAD = 10.0
+
+
 def _compute_acwr(tss_by_date: dict[date, float], today: date) -> float | None:
-    """ACWR = media 7d / media 28d (se 28d disponivel)."""
+    """ACWR = media 7d / media 28d; None se a carga cronica for baixa demais."""
     seven = sum(tss_by_date.get(today - timedelta(days=i), 0.0) for i in range(7))
     twenty_eight = sum(tss_by_date.get(today - timedelta(days=i), 0.0) for i in range(28))
-    if twenty_eight == 0:
+    if twenty_eight / 28 < ACWR_MIN_CHRONIC_DAILY_LOAD:
         return None
     return (seven / 7) / (twenty_eight / 28)

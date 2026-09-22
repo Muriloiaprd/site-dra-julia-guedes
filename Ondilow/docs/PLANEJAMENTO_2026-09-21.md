@@ -173,7 +173,48 @@ Texto original da fase:
 
 **Pronto quando:** o check-in é salvo e aparece na atividade.
 
-## Fase 4 — Motor de análise (Python, sem IA)
+## Fase 4 — Motor de análise (Python, sem IA) — CONCLUÍDA
+
+**Executado em 2026-09-21.** 163 testes na API (36 novos: 35 em `test_athlete_analysis.py` e 1 de ponta a ponta de `GET /coach/analysis` em `test_checkin.py`).
+
+Como ficou:
+
+- **`ai/athlete_analysis.py`**: a parte pura (`analyze()`, testável sem banco) calcula; `build_analysis()` lê do banco. Roda em 0,5 s na conta principal e gera ~5 mil caracteres de JSON, pequeno para o contexto da Duni.
+- O JSON traz:
+  - `cobertura_de_dados` (buracos, aviso de silêncio, dados indisponíveis, cobertura de FC e check-in);
+  - `janelas` 7/14/28d (corrida, caminhada e complementares separados; dias sem treino; TSS; sRPE; PSE média);
+  - `tendencia_semanal` (8 semanas);
+  - `distribuicao_intensidade_28d` (Z1–Z2 / Z3 / Z4–Z5 pelos pontos de FC);
+  - `carga`;
+  - `sinais_de_fadiga` (8 tipos, cada um `isolado` ou `tendencia` e com a evidência em números);
+  - `sessoes_equivalentes` (distância ±10% e subida ±10 m/km, com veredito pela eficiência);
+  - `cadencia_habitual` por faixa de ritmo;
+  - `checkins_28d`.
+- **`GET /coach/analysis`** expõe o JSON (a Fase 6 vai usar como contexto).
+- **Datas no fuso da atividade** (`America/Sao_Paulo`), não UTC.
+- **"Corrida" acima de 9:00/km conta como caminhada**, como anotado na Fase 2. Nos últimos 90 dias foram 4, e a cobertura avisa isso.
+
+**Correções que vieram junto:**
+
+- **ACWR com base mínima**: `ACWR_MIN_CHRONIC_DAILY_LOAD = 10` TSS/dia (média de 28 dias). Abaixo disso o ACWR é `None`. Recalculei o histórico das duas contas: os dias com "ACWR > 1,5" caíram de 239 para 62 na conta principal. O "salto de carga >30%" do `assess_injury_risk` ganhou a mesma trava.
+- **Recomendação após pausa**: sem ACWR, o card caía no TSB positivo e diria "Treino Duro — forma em alta" para quem voltou de semanas parado. Com CTL abaixo do mínimo, a recomendação agora é **"Retomada gradual"**. Verificado ao vivo em `/coach` e no dashboard, que antes diziam "Carga muito alta — priorize recuperação" e "ACWR 4.00 · Risco alto".
+- **`daily_metrics` parada numa pausa**: só recalculava no import, então a última linha ficava no dia do último import (15/09) e o CTL/ATL não caíam. `build_analysis` completa até hoje antes de ler.
+
+**Conferência à mão** (a conta principal quase sem dados recentes não exercita quase nada, então rodei também "como se hoje fosse" duas datas passadas):
+
+- **Hoje (21/09)**: buracos de 18/08–08/09 (22 dias) e de 10/09 até hoje; aviso "pergunte antes de concluir". Os volumes semanais batem com o SQL da investigação.
+- **05/06**:
+  - 176 km em 28 dias, longão de 36 km, ACWR 0,98 e nenhum sinal de fadiga.
+  - Achado real: **56% do tempo de corrida em Z3**, o padrão "maioria moderada" que o prompt manda evitar.
+  - A sessão equivalente do longão: 36 km a 5:40 com FC 146 contra 33 km a 5:28 com FC 156, eficiência +3%.
+- **20/08** (volta da pausa de junho–julho): sinal **"ritmo custando mais batimentos" como tendência** (3 corridas de 7 a 9% menos eficientes que a base) e cadência isolada de 154 ppm (habitual 171). Coerente com destreino.
+- Dois bugs pegos nessa conferência:
+  1. Atividades depois do "hoje" vazavam para a análise de data passada.
+  2. A mensagem "sem FC" aparecia em corrida com FC, quando o motivo real era corrida curta demais para medir eficiência.
+
+**Para as próximas fases**: as zonas de intensidade usam Karvonen (FC de repouso 48, máxima 190). Se a FC máxima do perfil não for medida de verdade, a distribuição Z1–Z2/Z3 muda bastante. Vale a Duni perguntar isso ao usuário.
+
+Texto original da fase:
 
 **Objetivo:** calcular os fatos que o prompt pede. A Duni só interpreta.
 
