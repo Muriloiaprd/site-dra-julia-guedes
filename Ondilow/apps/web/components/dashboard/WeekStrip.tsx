@@ -150,7 +150,7 @@ export function WeekStrip({
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5">
         <LegendDot color="#00FF66" label="Realizado" />
-        <span className="inline-flex items-center gap-1.5 text-[0.72rem] text-brand-muted"><span className="h-2 w-2 rounded-full" style={{ boxShadow: "inset 0 0 0 1px #888" }} />Planejado (Treinador IA)</span>
+        <span className="inline-flex items-center gap-1.5 text-[0.72rem] text-brand-muted"><span className="h-2 w-2 rounded-full" style={{ boxShadow: "inset 0 0 0 1px #888" }} />Planejado (Duni)</span>
         <LegendDot color="#3a3a3a" label="Descanso" />
         <span className="inline-flex items-center gap-1.5 text-[0.72rem] text-brand-muted"><span className="h-2 w-2 rounded-full animate-od-pulse bg-brand-accent" />Hoje</span>
         <span className="ml-auto hidden text-[0.68rem] text-brand-textTertiary sm:inline">Barra = carga relativa (duração)</span>

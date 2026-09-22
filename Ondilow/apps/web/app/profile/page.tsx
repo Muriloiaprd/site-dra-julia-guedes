@@ -351,7 +351,7 @@ export default function ProfilePage() {
       <PageHeader
         kicker="Atleta"
         title="Perfil do atleta"
-        description="Seus dados fisiológicos alimentam zonas, carga (TSS), previsões e o Treinador IA."
+        description="Seus dados fisiológicos alimentam zonas, carga (TSS), previsões e a Duni."
       />
 
       <form onSubmit={handleSave} className="grid gap-4 lg:grid-cols-12">
@@ -631,8 +631,8 @@ export default function ProfilePage() {
         <h2 className="mb-2 text-[0.6875rem] font-bold uppercase tracking-[0.16em] text-brand-danger">Zona de perigo</h2>
         <p className="mb-4 max-w-2xl text-sm text-brand-muted">
           Apaga permanentemente todas as suas atividades — incluindo rotas GPS, recordes pessoais,
-          métricas de carga (CTL/ATL/TSB) e o histórico de aderência ao plano do treinador. Perfil,
-          login e o histórico de chat com o treinador não são afetados. <strong className="text-brand-danger">Não pode ser desfeito.</strong>
+          métricas de carga (CTL/ATL/TSB) e o histórico de aderência ao plano da Duni. Perfil,
+          login, a conversa com a Duni e o que ela sabe de você não são afetados. <strong className="text-brand-danger">Não pode ser desfeito.</strong>
         </p>
 
         {clearResult !== null && (
@@ -689,7 +689,7 @@ export default function ProfilePage() {
           <h3 className="mb-2 text-sm font-bold text-brand-danger">Excluir conta</h3>
           <p className="mb-4 max-w-2xl text-sm text-brand-muted">
             Apaga permanentemente sua conta e todos os seus dados — perfil, atividades, recordes,
-            métricas, equipamentos e histórico com o treinador. <strong className="text-brand-danger">Não pode ser desfeito.</strong>
+            métricas, equipamentos, a conversa com a Duni e o que ela sabe de você. <strong className="text-brand-danger">Não pode ser desfeito.</strong>
           </p>
 
           {deleteAccountError && (

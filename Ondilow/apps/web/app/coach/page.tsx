@@ -36,7 +36,7 @@ function errorMessage(e: unknown): { title: string; detail: string } {
     switch (e.detail.error) {
       case "not_configured":
         return {
-          title: "Treinador de IA ainda não configurado",
+          title: "A Duni ainda não está configurada",
           detail:
             "Falta a chave do Gemini: gere uma grátis em aistudio.google.com/apikey e coloque em GEMINI_API_KEY no Ondilow/.env. Depois reinicie a API.",
         };
@@ -67,19 +67,19 @@ function errorMessage(e: unknown): { title: string; detail: string } {
   return { title: "Erro", detail: e instanceof Error ? e.message : "Erro desconhecido" };
 }
 
-/** O que o treinador realmente le do seu contexto (ai/coach_service.build_context). */
+/** O que a Duni realmente le do seu contexto (ai/coach_service.build_context). */
 const ANALYSIS_STEPS = [
-  "Carga de treino (CTL · ATL · TSB)",
-  "Recuperação e risco (ACWR)",
-  "Últimas 30 atividades",
-  "Recordes pessoais",
-  "Previsões de prova",
+  "Volume de 7, 14 e 28 dias",
+  "Tendência de 8 semanas",
+  "Sinais de fadiga",
+  "Check-ins e memórias",
+  "Plano feito × pulado",
 ];
 
 const SUGGESTIONS = [
   "Como está minha recuperação esta semana?",
   "Posso fazer um treino intenso amanhã?",
-  "O que priorizar para melhorar meu pace?",
+  "Estou evoluindo nas corridas parecidas?",
   "Minha carga está segura para aumentar o volume?",
 ];
 
@@ -95,7 +95,7 @@ function ProcessingPanel({ title }: { title: string }) {
       <div className="relative flex items-center gap-4">
         <AiOrb size={56} />
         <div>
-          <div className="font-mono text-[0.62rem] tracking-[0.18em] text-brand-accent">AI COACH · PROCESSANDO</div>
+          <div className="font-mono text-[0.62rem] tracking-[0.18em] text-brand-accent">DUNI · ANALISANDO</div>
           <p className="mt-1 font-display text-xl font-bold">{title}</p>
         </div>
       </div>
@@ -267,20 +267,20 @@ export default function CoachPage() {
             <AiOrb size={76} active={!notConfigured} />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 font-mono text-[0.62rem] tracking-[0.2em]">
-                <span className="text-brand-accent">ONDILOW AI COACH</span>
+                <span className="text-brand-accent">ONDILOW · TREINADORA DE IA</span>
                 <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5" style={{ color: notConfigured ? "#FFC145" : "#00FF66", background: notConfigured ? "rgba(255,193,69,0.08)" : "rgba(0,255,102,0.06)", boxShadow: `inset 0 0 0 1px ${notConfigured ? "rgba(255,193,69,0.3)" : "rgba(0,255,102,0.22)"}` }}>
                   <StatusDot color={notConfigured ? "#FFC145" : "#00FF66"} pulse={!notConfigured} size={5} />
                   {busy ? "ANALISANDO" : notConfigured ? "NÃO CONFIGURADO" : "PRONTO"}
                 </span>
               </div>
               <h1 className="mt-2 font-display text-[1.7rem] font-extrabold leading-tight tracking-tight sm:text-[2.1rem]">
-                Seu treinador <span className="text-brand-accent">inteligente</span>
+                <span className="text-brand-accent">Duni</span>, sua treinadora
               </h1>
               <p className="mt-1.5 max-w-xl text-sm text-brand-muted">
-                Especialista em triathlon (corrida, ciclismo, natação), fisioterapia e pilates — analisa seus dados reais.
+                Treinadora de corrida de rua. Direta e exigente, mas sem jargão: lê seu histórico real antes de mandar qualquer treino.
               </p>
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {["Carga", "Recuperação", "Atividades", "Recordes", "Previsões"].map((c) => (
+                {["Carga", "Fadiga", "Evolução", "Check-ins", "Memórias", "Aderência"].map((c) => (
                   <span key={c} className="od-badge od-badge-muted !normal-case !tracking-normal">{c}</span>
                 ))}
               </div>
@@ -293,14 +293,14 @@ export default function CoachPage() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M3 3v18h18" /><path d="m7 15 4-4 3 3 6-6" /></svg>
                 <span className="text-sm font-bold text-white">{analyzing ? "Analisando…" : "Gerar relatório"}</span>
               </div>
-              <p className="mt-1.5 text-xs leading-snug text-brand-muted">Análise da semana: carga, recuperação, performance e riscos.</p>
+              <p className="mt-1.5 text-xs leading-snug text-brand-muted">Resumo da semana: status, carga, fadiga, evolução e próximos passos.</p>
             </button>
             <button onClick={handleGeneratePlan} disabled={busy} className="od-tile group p-4 text-left transition-all duration-200 enabled:hover:-translate-y-0.5 enabled:hover:shadow-[inset_0_0_0_1px_rgba(0,255,102,0.35)] disabled:opacity-50">
               <div className="flex items-center gap-2 text-brand-lime">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="m9 16 2 2 4-4" /></svg>
                 <span className="text-sm font-bold text-white">{generating ? "Gerando…" : "Gerar plano (7 dias)"}</span>
               </div>
-              <p className="mt-1.5 text-xs leading-snug text-brand-muted">Um treino por dia, ajustado ao seu TSB e ACWR atuais.</p>
+              <p className="mt-1.5 text-xs leading-snug text-brand-muted">Treinos da semana, ajustados à sua carga, recuperação e objetivo.</p>
             </button>
           </div>
         </div>
@@ -330,14 +330,14 @@ export default function CoachPage() {
 
         {planCount !== null && (
           <Alert tone="accent" title={`Plano gerado com ${planCount} treino(s)`}>
-            Já disponível abaixo e no card &quot;Treinador IA&quot; do <Link href="/dashboard" className="underline">dashboard</Link>.
+            Já disponível abaixo e no card da Duni no <Link href="/dashboard" className="underline">dashboard</Link>.
           </Alert>
         )}
 
         {report && (
           <Panel variant="accent" className="animate-od-fade-up">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="od-label od-label-accent">Relatório do treinador</h2>
+              <h2 className="od-label od-label-accent">Resumo da Duni</h2>
               {reportMeta && (
                 <span className="font-mono text-[0.62rem] tracking-wider text-brand-muted">
                   {new Date(reportMeta.at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })} · {reportMeta.model}
@@ -352,7 +352,7 @@ export default function CoachPage() {
         <div className="grid gap-4 xl:grid-cols-12">
           <Panel className="flex flex-col !p-0 xl:col-span-8" style={{ height: 600 }}>
             <div className="flex items-center justify-between border-b border-white/5 px-5 py-3.5">
-              <h2 className="od-label">Conversa com o treinador</h2>
+              <h2 className="od-label">Conversa com a Duni</h2>
               <span className="text-[0.68rem] text-brand-muted">{messages.length} mensagens</span>
             </div>
 
@@ -360,7 +360,7 @@ export default function CoachPage() {
               {messages.length === 0 && (
                 <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
                   <AiOrb size={52} />
-                  <p className="max-w-sm text-sm text-brand-muted">Pergunte qualquer coisa sobre seus treinos, carga ou recuperação.</p>
+                  <p className="max-w-sm text-sm text-brand-muted">Pergunte à Duni sobre seus treinos, carga ou recuperação. Conte também seu objetivo e suas provas.</p>
                   <div className="flex max-w-lg flex-wrap justify-center gap-2">
                     {SUGGESTIONS.map((s) => (
                       <button key={s} onClick={() => handleSend(s)} disabled={sending} className="od-chip">{s}</button>
@@ -428,9 +428,9 @@ export default function CoachPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") handleSend(); }}
-                  placeholder="Pergunte ao treinador…"
+                  placeholder="Pergunte à Duni…"
                   className="od-input flex-1"
-                  aria-label="Mensagem para o treinador"
+                  aria-label="Mensagem para a Duni"
                 />
                 <button
                   onClick={() => handleSend()}

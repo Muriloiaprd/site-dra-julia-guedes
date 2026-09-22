@@ -57,11 +57,11 @@ export function CoachCard({
   const online = planState === "ok";
 
   return (
-    <Panel variant="accent" className={`flex flex-col overflow-hidden ${className}`} aria-label="Treinador IA">
+    <Panel variant="accent" className={`flex flex-col overflow-hidden ${className}`} aria-label="Duni, sua treinadora">
       {online && <div className="od-scanline" />}
 
       <div className="relative flex items-center justify-between gap-3">
-        <h2 className="od-label od-label-accent whitespace-nowrap">Treinador IA</h2>
+        <h2 className="od-label od-label-accent whitespace-nowrap">Duni · sua treinadora</h2>
         <span
           className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 font-mono text-[0.56rem] font-semibold tracking-[0.08em]"
           style={{ color: online ? "#00FF66" : "#888", background: online ? "rgba(0,255,102,0.06)" : "rgba(255,255,255,0.04)", boxShadow: `inset 0 0 0 1px ${online ? "rgba(0,255,102,0.22)" : "rgba(255,255,255,0.08)"}` }}
@@ -76,7 +76,7 @@ export function CoachCard({
           {planState === "loading"
             ? "Carregando seu plano…"
             : planState === "error"
-              ? "Treinador indisponível agora."
+              ? "A Duni está indisponível agora."
               : next
                 ? <>Seu próximo treino <span className="text-brand-accent">está pronto.</span></>
                 : "Nenhum plano ativo."}
@@ -117,8 +117,8 @@ export function CoachCard({
         ) : (
           <div className="od-tile p-4 text-sm text-brand-muted">
             {planState === "error"
-              ? "Não foi possível falar com o Treinador IA. Verifique a configuração da API."
-              : "Gere um plano semanal baseado na sua carga, recuperação e histórico recente."}
+              ? "Não foi possível falar com a Duni. Verifique a configuração da API."
+              : "Peça à Duni um plano semanal baseado na sua carga, recuperação e histórico recente."}
           </div>
         )}
       </div>
@@ -132,7 +132,7 @@ export function CoachCard({
 
       <div className="relative mt-4 flex items-center gap-3">
         <Link href="/coach" className="od-btn od-btn-primary flex-1">
-          {next ? "Ver treino" : "Abrir Treinador IA"} <span aria-hidden>→</span>
+          {next ? "Ver treino" : "Falar com a Duni"} <span aria-hidden>→</span>
         </Link>
         {online && countWeek > 0 && (
           <span className="text-[0.7rem] leading-tight text-brand-muted"><strong className="text-white">{countWeek}</strong> treinos<br />nos próx. 7 dias</span>

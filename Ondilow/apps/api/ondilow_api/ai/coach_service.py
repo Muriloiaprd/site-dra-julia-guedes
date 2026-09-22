@@ -1,36 +1,36 @@
-"""Servico do treinador de IA: monta contexto real do atleta, chama Claude
-(com fallback pro Gemini) e persiste chat/analises/plano de treino."""
+"""Servico da Duni, a treinadora de IA: monta o contexto real do atleta, chama o
+modelo (Claude se houver chave, senao Gemini) e persiste chat/analises/plano."""
 
 from __future__ import annotations
 
 import json
 import time
 import uuid
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 import anthropic
 from pydantic import BaseModel
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from ondilow_api.ai.athlete_analysis import build_analysis, effective_kind
 from ondilow_api.config import settings
-from ondilow_api.metrics.predictions import (
-    assess_injury_risk,
-    predict_race_times,
-    training_recommendation,
-)
+from ondilow_api.metrics.predictions import predict_race_times, training_recommendation
 from ondilow_api.models.activity import Activity
 from ondilow_api.models.coach import AthleteMemory, CoachInteraction, PlannedWorkout
 from ondilow_api.models.daily_metric import DailyMetric
 from ondilow_api.models.record import PersonalRecord
 from ondilow_api.models.user import AthleteProfile
 
-_RUN_RECORD_TYPES = {
-    "fastest_1k", "fastest_5k", "fastest_10k", "fastest_21k", "fastest_42k",
-}
+_RUN_RECORD_ORDER = ("fastest_1k", "fastest_5k", "fastest_10k", "fastest_21k", "fastest_42k")
+_RUN_RECORD_TYPES = set(_RUN_RECORD_ORDER)
 _MIN_WEEKS_FOR_ANALYSIS = 2
 _CHAT_HISTORY_LIMIT = 20
+# Detalhe atividade por atividade so do recente; o resto vem agregado na analise.
+_RECENT_DETAIL_DAYS = 14
+_RECENT_DETAIL_LIMIT = 15
 
 _SPORT_GROUPS = {
     "run": "run", "trail_run": "run", "treadmill": "run",
@@ -63,35 +63,103 @@ class InsufficientDataError(CoachError):
         super().__init__("insufficient_data")
 
 
-SYSTEM_PROMPT = """Voce e o treinador virtual do Ondilow: um especialista em triathlon com
-profundo conhecimento de corrida, ciclismo e natacao, alem de fisioterapia e pilates
-aplicados a prevencao de lesao do atleta amador serio.
+# Versao do prompt: settings.coach_prompt_version. v2 = Duni (Anexo A do
+# PLANEJAMENTO_2026-09-21, com os ajustes da secao "Onde eu discordo do prompt").
+SYSTEM_PROMPT = """Você é a Duni, treinadora de corrida de rua do Ondilow. Domina
+fisiologia do exercício, biomecânica da corrida e periodização, e treina um atleta
+amador sério. Fale sempre em português do Brasil, no feminino ("sou sua treinadora").
 
-Baseie-se nas metodologias de treinamento estabelecidas — periodizacao classica,
-treino polarizado, VDOT/formula de Jack Daniels, e o modelo de carga
-CTL/ATL/TSB (Coggan/TrainingPeaks) — e sempre fundamente sua analise nos dados
-reais fornecidos no contexto. Nunca invente numeros, recordes ou metricas que
-nao estejam no contexto.
+TOM
+- Direta e exigente: cobra consistência e diz com clareza quando o atleta errou a mão
+  (pulou treino, correu forte no dia fácil, aumentou demais). Segurança vem antes da
+  cobrança: diante de dor, fadiga acumulada ou risco, a prioridade é proteger o atleta.
+- Linguagem simples, sem jargão. Quando usar um termo técnico, explique na prática na
+  primeira vez: "PSE 3/10 = leve, dá para conversar sem perder o fôlego"; "GAP = o
+  ritmo equivalente no plano, descontando subidas e descidas".
 
-Responda sempre em portugues do Brasil, de forma direta e pratica, como um
-treinador experiente conversando com o atleta — sem jargao excessivo, mas
-citando os conceitos por nome quando forem relevantes para a recomendacao.
-Se o risco de lesao ou overtraining (ACWR, TSB) estiver elevado, priorize
-seguranca sobre performance e sugira ajustes concretos (volume, intensidade,
-mobilidade/fortalecimento) antes de qualquer progressao."""
+DADOS (o campo "analise" do contexto já traz os cálculos feitos pelo código)
+- Quem calcula é o código; você interpreta. Use os números de "analise" (janelas de
+  7/14/28 dias, tendência semanal, carga, sinais de fadiga, sessões equivalentes,
+  cadência habitual, check-ins) em vez de refazer contas. Nunca invente número,
+  treino, recorde ou métrica que não esteja no contexto.
+- Olhe o histórico, não só a última semana: compare 7, 14 e 28 dias com a tendência
+  de 8 semanas para ver como o atleta RESPONDE ao treino.
+- Leia "cobertura_de_dados" antes de concluir. Se houver aviso de dias sem
+  atividade, pergunte se foi pausa ou atividade não importada antes de dizer que ele
+  destreinou. Sono, HRV, Training Readiness, tempo de recuperação e tipo de terreno
+  não existem no Ondilow: diga que não tem esses dados quando fariam diferença, e
+  nunca suponha valores.
+- Combine carga externa (km, tempo, ritmo, GAP, subida, sessões) e interna (FC, PSE,
+  carga sRPE, sensação, dor). Nunca decida por uma métrica isolada, e não use regra
+  fixa de % de aumento semanal.
+- Diferencie sinal isolado de tendência (o campo "sinais_de_fadiga" já marca qual é).
+  Um treino ruim isolado não muda o plano; vários sinais na mesma direção, sim.
+- Desempenho: compare sessões equivalentes ("antes 10 km a 5:30 com FC 150, agora
+  5:25 com FC 146") e diga se houve melhora, estabilidade, regressão ou custo maior.
+- Aderência ("aderencia_4_semanas"): cobre com o dado real. Treinos pulados ou
+  trocados entram na conversa, sem sermão, com a consequência prática.
 
-_PLAN_INSTRUCTION = """Monte um plano de treino real para os proximos {days} dias
+REGRAS DE TREINO
+- Foco em corrida. Bicicleta, academia, Pilates e caminhada são carga complementar:
+  contam no cansaço, mas você não prescreve esses treinos.
+- Ritmo, FC e PSE juntos. Treino fácil é guiado por percepção e FC baixa, não pelo
+  pace. Treino de qualidade: ritmo/GAP + FC + PSE. Na subida, não cobre o pace
+  absoluto: mantenha o esforço e deixe o ritmo cair; na descida, não acelere para
+  compensar.
+- Cadência: não existe regra de 180 passos por minuto. Parta da cadência habitual do
+  atleta em cada faixa de ritmo e só sugira mudanças pequenas e justificadas.
+- A maior parte do volume em intensidade leve; evite a semana cheia de treinos
+  moderados. Não suba volume, intensidade e frequência ao mesmo tempo.
+- 1 a 2 dias de descanso por semana (total ou atividade muito leve). Treino com carga
+  relevante não conta como descanso.
+- Autorregulação: FC alta + PSE alta + ritmo baixo → aliviar. Dor aumentando →
+  parar ou modificar o treino.
+- Cada treino tem uma finalidade fisiológica clara. Não coloque intensidade só porque
+  há uma prova marcada.
+
+SEGURANÇA
+- Não diagnostique lesão nem doença. Dor que persiste ou piora → recomende avaliação
+  com fisioterapeuta ou médico do esporte.
+- O status é 🟢 recuperado, 🟡 atenção, 🟠 fadiga acumulada ou 🔴 recuperação
+  prioritária. Sempre diga quais dados levaram ao status; ele não é diagnóstico.
+
+MEMÓRIAS E OBJETIVO
+- "memorias" é o que o atleta confirmou sobre si: objetivo, provas com data, lesões,
+  dias disponíveis e preferências. Respeite tudo isso. Se "objetivo_cadastrado" for
+  falso, pergunte o objetivo antes de montar a próxima semana.
+- Zonas de FC são estimadas pela FC máxima do perfil. Se a análise de intensidade
+  pesar numa decisão, vale confirmar se essa FC máxima foi medida de verdade."""
+
+_PLAN_INSTRUCTION = """Monte um plano de treino para os proximos {days} dias
 corridos, comecando em {start_date}, com base no contexto do atleta (JSON) abaixo.
-Um treino por dia. Varie intensidade e modalidade de forma coerente com o TSB/ACWR
-atual, o esporte predominante do atleta, e a metodologia de periodizacao. Inclua
-pelo menos um dia de recuperacao/descanso na semana. As datas devem ser strings
-no formato AAAA-MM-DD, cada uma dentro do intervalo pedido, sem repetir data.
+No maximo um treino por dia; dia de descanso fica SEM item (senao conta como treino
+pulado na aderencia). Siga as regras de treino do seu papel: foco em corrida (use
+"run" ou "trail_run"), 1 a 2 dias de descanso, a maior parte leve, e cada treino
+com um objetivo claro na descricao.
+Ajuste a carga pelo que "analise" mostra (janelas, tendencia, sinais de fadiga,
+cobertura de dados) e pela aderencia recente. As datas devem ser strings no formato
+AAAA-MM-DD, cada uma dentro do intervalo pedido, sem repetir data.
 Respeite as memorias do atleta (campo "memorias"): so marque treino nos dias
 disponiveis, evite o que agrava uma lesao ativa e oriente a semana pelo objetivo
 e pelas provas com data. Sem objetivo cadastrado, monte uma semana de base
 aerobica e diga isso na descricao do primeiro treino.
 
 Contexto do atleta (JSON):
+{context}"""
+
+_ANALYSIS_INSTRUCTION = """Escreva o resumo da semana do atleta em markdown, curto e
+direto, nesta ordem:
+1. **Status** (🟢/🟡/🟠/🔴) com os dados que levaram a ele.
+2. **Semana anterior**: km, tempo, treinos, longao, intensidade e complementares
+   (use a janela de 7 dias e compare com 28 dias e a tendencia).
+3. **Avaliacao**: pontos positivos, sinais de fadiga (isolado ou tendencia), riscos
+   e evolucao (sessoes equivalentes, se houver).
+4. **Aderencia** ao plano nas ultimas 4 semanas, se houver plano.
+5. **Proxima semana**: volume aproximado, numero de sessoes, estimulo principal e
+   objetivo. Sem objetivo cadastrado, diga isso e pergunte.
+6. **O que falta de dado** para uma analise melhor (so o que faria diferenca).
+
+Contexto (JSON):
 {context}"""
 
 _CHAT_MEMORY_INSTRUCTION = """Alem da resposta, avalie se a mensagem do atleta
@@ -129,21 +197,75 @@ class WorkoutPlanResponse(BaseModel):
     workouts: list[PlannedWorkoutItem]
 
 
-def _activity_summary(act: Activity) -> dict:
+def _fmt_pace(s_per_km) -> str | None:
+    if not s_per_km:
+        return None
+    s = round(float(s_per_km))
+    return f"{s // 60}:{s % 60:02d}/km"
+
+
+def _fmt_duration(seconds: float) -> str:
+    s = round(seconds)
+    h, rem = divmod(s, 3600)
+    return f"{h}:{rem // 60:02d}:{rem % 60:02d}" if h else f"{rem // 60}:{rem % 60:02d}"
+
+
+def _activity_detail(act: Activity) -> dict:
+    """Uma atividade recente como a Duni le: data local, numeros ja formatados e
+    o check-in. Campos vazios saem do dict para nao gastar contexto."""
+    kind = effective_kind(act.sport, float(act.avg_pace_s_per_km) if act.avg_pace_s_per_km else None)
+    item = {
+        "data": act.start_time.astimezone(ZoneInfo(act.timezone or "America/Sao_Paulo")).date().isoformat(),
+        "tipo": kind,
+        "titulo": act.title,
+        "km": round(float(act.distance_m) / 1000, 2) if act.distance_m else None,
+        "minutos": round((act.moving_time_s or act.duration_s) / 60),
+        "ritmo": _fmt_pace(act.avg_pace_s_per_km) if kind in ("run", "walk") else None,
+        "gap": _fmt_pace(act.gap_pace_s_per_km) if kind == "run" else None,
+        "fc_media": act.avg_hr,
+        "fc_max": act.max_hr,
+        "cadencia_ppm": round(float(act.avg_cadence)) if act.avg_cadence and kind == "run" else None,
+        "deriva_cardiaca_pct": float(act.hr_decoupling_pct) if act.hr_decoupling_pct is not None else None,
+        "subida_m": round(float(act.elevation_gain_m)) if act.elevation_gain_m else None,
+        "pse": act.rpe,
+        "sensacao": act.feeling,
+        "dor": act.pain_level,
+        "local_dor": act.pain_location,
+        "observacoes": act.checkin_notes,
+    }
+    return {k: v for k, v in item.items() if v is not None}
+
+
+def adherence_context(db: Session, user_id: uuid.UUID, today: date | None = None) -> dict:
+    """Planejado x feito nas ultimas 4 semanas (dias ja passados), para a Duni
+    cobrar com dado real. Chame depois de reconcile_plan."""
+    today = today or date.today()
+    rows = db.execute(
+        select(PlannedWorkout)
+        .where(
+            PlannedWorkout.user_id == user_id,
+            PlannedWorkout.date >= today - timedelta(days=28),
+            PlannedWorkout.date < today,
+        )
+        .order_by(PlannedWorkout.date.asc())
+    ).scalars().all()
+    if not rows:
+        return {"planejados": 0, "nota": "Nenhum treino planejado nas últimas 4 semanas."}
+    done = [w for w in rows if w.status == "done"]
+    skipped = [w for w in rows if w.status == "skipped"]
     return {
-        "date": act.start_time.date().isoformat(),
-        "sport": act.sport,
-        "duration_s": act.duration_s,
-        "distance_m": float(act.distance_m) if act.distance_m else None,
-        "avg_hr": act.avg_hr,
-        "avg_pace_s_per_km": float(act.avg_pace_s_per_km) if act.avg_pace_s_per_km else None,
-        "avg_speed_kmh": float(act.avg_speed_kmh) if act.avg_speed_kmh else None,
-        "elevation_gain_m": float(act.elevation_gain_m) if act.elevation_gain_m else None,
-        "tss": float(act.tss) if act.tss else None,
+        "planejados": len(rows),
+        "feitos": len(done),
+        "pulados": len(skipped),
+        "percentual_feito": round(100 * len(done) / len(rows)),
+        "pulados_detalhe": [{"data": w.date.isoformat(), "treino": w.title} for w in skipped[-10:]],
     }
 
 
 def build_context(db: Session, user_id: uuid.UUID) -> dict:
+    """Tudo o que a Duni recebe: a analise da Fase 4 (calculada pelo codigo), as
+    memorias, a aderencia ao plano e o detalhe das atividades recentes."""
+    today = date.today()
     profile = db.execute(
         select(AthleteProfile).where(AthleteProfile.user_id == user_id)
     ).scalar_one_or_none()
@@ -156,32 +278,40 @@ def build_context(db: Session, user_id: uuid.UUID) -> dict:
 
     weeks_available = 0.0
     if earliest_start:
-        weeks_available = (date.today() - earliest_start.date()).days / 7
+        weeks_available = (today - earliest_start.date()).days / 7
 
-    since90 = date.today() - timedelta(days=90)
-    metrics = db.execute(
+    # build_analysis completa daily_metrics ate hoje; so depois dele a ultima
+    # metrica (usada na recomendacao do app) esta atualizada.
+    analysis = build_analysis(db, user_id, today)
+    latest_metric = db.execute(
         select(DailyMetric)
-        .where(
-            DailyMetric.user_id == user_id,
-            DailyMetric.sport.is_(None),
-            DailyMetric.date >= since90,
-        )
-        .order_by(DailyMetric.date.asc())
-    ).scalars().all()
+        .where(DailyMetric.user_id == user_id, DailyMetric.sport.is_(None), DailyMetric.date <= today)
+        .order_by(DailyMetric.date.desc())
+        .limit(1)
+    ).scalar_one_or_none()
 
-    recent_activities = db.execute(
+    recent = db.execute(
         select(Activity)
-        .where(Activity.user_id == user_id, Activity.deleted_at.is_(None))
+        .where(
+            Activity.user_id == user_id,
+            Activity.deleted_at.is_(None),
+            Activity.start_time >= datetime.combine(today - timedelta(days=_RECENT_DETAIL_DAYS + 1), datetime.min.time(), tzinfo=UTC),
+        )
         .order_by(Activity.start_time.desc())
-        .limit(30)
+        .limit(_RECENT_DETAIL_LIMIT)
     ).scalars().all()
 
-    records = db.execute(
-        select(PersonalRecord).where(PersonalRecord.user_id == user_id)
-    ).scalars().all()
-    run_records = [r for r in records if r.record_type in _RUN_RECORD_TYPES]
+    # A tabela guarda cada recorde batido; o atual e o mais recente de cada tipo
+    # (mesma regra de routers/predictions.py).
+    run_records: dict[str, PersonalRecord] = {}
+    for r in db.execute(
+        select(PersonalRecord)
+        .where(PersonalRecord.user_id == user_id, PersonalRecord.record_type.in_(_RUN_RECORD_TYPES))
+        .order_by(PersonalRecord.achieved_at.desc())
+    ).scalars():
+        run_records.setdefault(r.record_type, r)
 
-    latest_metric = metrics[-1] if metrics else None
+    reconcile_plan(db, user_id)
     memories = memories_context(db, user_id)
 
     return {
@@ -189,32 +319,29 @@ def build_context(db: Session, user_id: uuid.UUID) -> dict:
         "weeks_available": round(weeks_available, 1),
         "memorias": memories,
         "objetivo_cadastrado": any(m["tipo"] == "objetivo" for m in memories),
-        "profile": {
-            "weight_kg": float(profile.weight_kg) if profile and profile.weight_kg else None,
-            "resting_hr": profile.resting_hr if profile else None,
-            "max_hr": profile.max_hr if profile else None,
-            "ftp_watts": profile.ftp_watts if profile else None,
-            "css_pace_s_per_100m": float(profile.css_pace_s_per_100m) if profile and profile.css_pace_s_per_100m else None,
+        "perfil": {
+            "peso_kg": float(profile.weight_kg) if profile and profile.weight_kg else None,
+            "fc_repouso": profile.resting_hr if profile else None,
+            "fc_max": profile.max_hr if profile else None,
         },
-        "recent_activities": [_activity_summary(a) for a in recent_activities],
-        "daily_metrics_last_30": [
+        "analise": analysis,
+        "aderencia_4_semanas": adherence_context(db, user_id, today),
+        f"atividades_ultimos_{_RECENT_DETAIL_DAYS}_dias": [_activity_detail(a) for a in recent],
+        "recordes_corrida": [
             {
-                "date": m.date.isoformat(),
-                "daily_load": float(m.daily_load) if m.daily_load else None,
-                "ctl": float(m.ctl) if m.ctl else None,
-                "atl": float(m.atl) if m.atl else None,
-                "tsb": float(m.tsb) if m.tsb else None,
-                "acwr": float(m.acwr) if m.acwr else None,
+                "distancia": t.removeprefix("fastest_"),
+                "tempo": _fmt_duration(float(r.value)),
+                "data": r.achieved_at.date().isoformat(),
             }
-            for m in metrics[-30:]
+            for t, r in sorted(run_records.items(), key=lambda kv: _RUN_RECORD_ORDER.index(kv[0]))
         ],
-        "personal_records": [
-            {"sport": r.sport, "record_type": r.record_type, "value": float(r.value), "unit": r.unit}
-            for r in records
+        "previsoes_de_prova": [
+            {"distancia": p["distance"], "tempo_previsto": _fmt_duration(p["predicted_s"]), "base": p["source"], "vdot": p["vdot"]}
+            for p in predict_race_times(list(run_records.values()))
         ],
-        "race_predictions": predict_race_times(run_records),
-        "risk": assess_injury_risk(list(metrics)),
-        "recommendation": training_recommendation(latest_metric),
+        # O que o dashboard mostra hoje (so TSB/ACWR). Se a Duni discordar, que
+        # diga por que, em vez de o app se contradizer calado.
+        "recomendacao_do_app": training_recommendation(latest_metric),
     }
 
 
@@ -487,12 +614,7 @@ def generate_analysis(db: Session, user_id: uuid.UUID) -> tuple[str, str]:
     context = build_context(db, user_id)
     _require_sufficient_data(context)
 
-    user_content = (
-        "Analise os dados de treino do atleta abaixo (JSON) e escreva um relatorio em "
-        "portugues com: pontos fortes, pontos a melhorar, e recomendacoes concretas "
-        "para as proximas semanas.\n\n"
-        f"Contexto (JSON):\n{json.dumps(context, ensure_ascii=False)}"
-    )
+    user_content = _ANALYSIS_INSTRUCTION.format(context=json.dumps(context, ensure_ascii=False))
     report, model_used = call_llm(SYSTEM_PROMPT, user_content)
 
     db.add(CoachInteraction(user_id=user_id, kind="analysis", role=None, content=report, model_used=model_used))

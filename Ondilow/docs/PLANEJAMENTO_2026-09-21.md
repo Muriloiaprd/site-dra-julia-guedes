@@ -254,7 +254,30 @@ Texto original da fase:
 - **A Duni sugere, o atleta confirma**: o chat devolve `{reply, memory_suggestions[]}`, e nada é salvo sem um clique.
 - O **objetivo** é o que o prompt chama de "objetivo informado". Sem objetivo cadastrado, a Duni pergunta antes de montar a semana. A prova é uma memória com data, sem a periodização completa por prova-alvo, que foi descartada em 2026-09-15.
 
-## Fase 6 — Persona da Duni
+## Fase 6 — Persona da Duni — CONCLUÍDA (conversa ao vivo pendente)
+
+**Executado em 2026-09-21.** 175 testes na API (5 novos em `test_coach_context.py`).
+
+Como ficou:
+
+- **`SYSTEM_PROMPT` v2** (`coach_prompt_version` = `v2` no `config.py` e no `.env.example`): a Duni, treinadora de corrida de rua, no feminino. Tom direto e exigente, segurança acima da cobrança, termos técnicos explicados na prática. Traz as regras do Anexo A com os ajustes aceitos: o código calcula e ela interpreta, sono/HRV/Readiness/terreno declarados indisponíveis, foco em corrida com o resto como carga complementar, sem regra de 10% nem de 180 ppm, e o formato longo fica para o plano (Fase 7).
+- **Contexto novo** (`build_context`), com ~5,9 mil caracteres na conta principal e 0,8 s:
+  - `analise`: o JSON inteiro da Fase 4;
+  - `memorias` e `objetivo_cadastrado`;
+  - `aderencia_4_semanas`: planejados, feitos, pulados, % feito e os pulados com data. Roda `reconcile_plan` antes;
+  - atividades dos últimos 14 dias (até 15), com data no fuso da atividade, ritmo, GAP, cadência, deriva, subida e check-in;
+  - recordes atuais e previsões formatados (`1:50:45`);
+  - `recomendacao_do_app`, para ela explicar se discordar do card do dashboard.
+- **Saiu do contexto**: `daily_metrics_last_30`, `risk`, FTP e CSS (resquícios de triathlon).
+- **Relatório** ("Gerar relatório") virou resumo da semana na ordem das seções 4 e 17: status, semana anterior, avaliação, aderência, próxima semana e dados que faltam.
+- **Plano**: foco em corrida e dia de descanso **sem item**. Se o descanso fosse um treino, o `reconcile_plan` o marcaria como "pulado" e estragaria a aderência.
+- **Interface**: sidebar "Duni · treinadora", card "Duni · sua treinadora", `/coach` com "Duni, sua treinadora", passos do "analisando" e sugestões de pergunta atualizados, e textos do perfil e da semana. Conferido no navegador sem chamar o Gemini.
+
+**Bug corrigido de carona**: o contexto antigo mandava todo o histórico de recordes (a tabela guarda cada recorde batido) e as previsões usavam um recorde qualquer de cada distância. Agora vai o mais recente de cada tipo, a mesma regra de `routers/predictions.py`.
+
+**Pendente para a Fase 9**: conversar com a Duni ao vivo, gerar o resumo e o plano com o prompt v2. As mensagens antigas do chat continuam no histórico com a persona v1 (triathlon).
+
+Texto original da fase:
 
 - Nome e gênero na interface ("Duni, sua treinadora") na página `/coach`, no `CoachCard`, na sidebar e nos textos. Rotas e API não mudam.
 - **Novo `SYSTEM_PROMPT` baseado no Anexo A**, com os ajustes da seção de discordâncias. Tom direto e exigente, linguagem simples, e segurança acima da cobrança. `coach_prompt_version` = `v2`.
@@ -278,7 +301,7 @@ Texto original da fase:
 
 ## Fase 9 — Fechamento
 
-- Verificação ao vivo de tudo junto na conta de teste, **incluindo as memórias da Fase 5** (adiada de lá).
+- Verificação ao vivo de tudo junto na conta de teste, **incluindo as memórias da Fase 5 e a conversa com o prompt v2 da Fase 6** (adiadas de lá).
 - Atualizar `ESTADO_DO_PROJETO.md` e `BACKLOG.md`, e fechar este documento.
 
 ---

@@ -1,0 +1,96 @@
+"""Contexto da Duni (Fase 6): analise da Fase 4, memorias, aderencia e atividades recentes."""
+
+import uuid
+from datetime import UTC, date, datetime, timedelta
+from zoneinfo import ZoneInfo
+
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from ondilow_api.ai import coach_service
+from ondilow_api.config import settings
+from ondilow_api.models import PlannedWorkout
+
+_BATCH = uuid.uuid4()
+
+
+def _workout(user_id, day: date, status: str, title: str = "Rodagem leve") -> PlannedWorkout:
+    return PlannedWorkout(user_id=user_id, date=day, sport="run", title=title, status=status, plan_batch_id=_BATCH)
+
+
+def test_adherence_counts_only_the_last_4_weeks(auth_client: tuple[TestClient, dict], db_session: Session) -> None:
+    _client, user = auth_client
+    today = date(2026, 9, 21)
+    db_session.add_all([
+        _workout(user["id"], today - timedelta(days=2), "done"),
+        _workout(user["id"], today - timedelta(days=4), "done"),
+        _workout(user["id"], today - timedelta(days=6), "skipped", "Intervalado 6x800"),
+        _workout(user["id"], today - timedelta(days=40), "skipped"),  # fora da janela
+        _workout(user["id"], today, "planned"),                        # hoje ainda nao conta
+        _workout(user["id"], today + timedelta(days=2), "planned"),    # futuro
+    ])
+    db_session.commit()
+
+    adh = coach_service.adherence_context(db_session, user["id"], today=today)
+
+    assert adh == {
+        "planejados": 3,
+        "feitos": 2,
+        "pulados": 1,
+        "percentual_feito": 67,
+        "pulados_detalhe": [{"data": "2026-09-15", "treino": "Intervalado 6x800"}],
+    }
+
+
+def test_adherence_without_plan(auth_client: tuple[TestClient, dict], db_session: Session) -> None:
+    _client, user = auth_client
+    adh = coach_service.adherence_context(db_session, user["id"], today=date(2026, 9, 21))
+    assert adh["planejados"] == 0 and "nota" in adh
+
+
+def test_build_context_shape(auth_client: tuple[TestClient, dict], db_session: Session) -> None:
+    client, user = auth_client
+    start = datetime.now(UTC).replace(second=0, microsecond=0) - timedelta(hours=1)
+    resp = client.post(
+        "/activities/import-normalized",
+        json={
+            "sport": "running",
+            "start_time": start.isoformat(),
+            "duration_s": 2400,
+            "moving_time_s": 2400,
+            "source": "garmin_api",
+            "source_activity_id": "contexto-1",
+            "distance_m": 8000.0,
+            "avg_hr": 148,
+        },
+    )
+    activity_id = resp.json()["activity_id"]
+    client.put(f"/activities/{activity_id}/checkin", json={"rpe": 4, "feeling": "bem"})
+    client.post("/coach/memories", json={"kind": "objetivo", "content": "Meia abaixo de 1h45"})
+
+    ctx = coach_service.build_context(db_session, user["id"])
+
+    # a analise da Fase 4 vai inteira, e o formato de triathlon saiu
+    assert ctx["analise"]["janelas"]["7d"]["corrida"]["km"] == 8.0
+    assert "profile" not in ctx and "daily_metrics_last_30" not in ctx
+    assert set(ctx["perfil"]) == {"peso_kg", "fc_repouso", "fc_max"}
+    assert ctx["objetivo_cadastrado"] is True
+    assert ctx["aderencia_4_semanas"]["planejados"] == 0
+
+    [act] = ctx["atividades_ultimos_14_dias"]
+    local_day = start.astimezone(ZoneInfo("America/Sao_Paulo")).date().isoformat()
+    assert act["data"] == local_day  # data no fuso da atividade, nao UTC
+    assert act["tipo"] == "run" and act["km"] == 8.0 and act["ritmo"] == "5:00/km"
+    assert act["fc_media"] == 148 and act["pse"] == 4 and act["sensacao"] == "bem"
+    assert "dor" not in act  # campo vazio nao vai
+
+
+def test_fmt_duration() -> None:
+    assert coach_service._fmt_duration(233) == "3:53"
+    assert coach_service._fmt_duration(6645) == "1:50:45"
+
+
+def test_prompt_is_the_duni_v2() -> None:
+    assert settings.coach_prompt_version == "v2"
+    assert "Você é a Duni" in coach_service.SYSTEM_PROMPT
+    assert "triathlon" not in coach_service.SYSTEM_PROMPT.lower()

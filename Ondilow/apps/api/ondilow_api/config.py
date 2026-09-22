@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     # 2026-09-21: o Lite respondeu o chat real em 2,7s; 3.7-flash e 3.5-flash
     # deram 503/504 depois de minutos na fila.
     gemini_model: str = Field(default="gemini-3.5-flash-lite,gemini-3.5-flash")
-    coach_prompt_version: str = Field(default="v1")
+    coach_prompt_version: str = Field(default="v2")
 
     @model_validator(mode="after")
     def _fail_fast_outside_dev(self) -> "Settings":

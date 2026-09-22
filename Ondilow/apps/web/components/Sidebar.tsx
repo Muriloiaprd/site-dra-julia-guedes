@@ -40,7 +40,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   },
   {
     label: "Inteligência",
-    items: [{ href: "/coach", label: "Treinador IA", short: "Coach IA", icon: ICONS.coach, ai: true }],
+    items: [{ href: "/coach", label: "Duni · treinadora", short: "Duni", icon: ICONS.coach, ai: true }],
   },
   {
     label: "Gestão",
