@@ -1,6 +1,6 @@
 # Ondilow — Estado do Projeto
 
-**Última atualização deste doc**: 2026-09-11 (import em lote + limpar atividades + redesign visual completo — ver seções abaixo)
+**Última atualização deste doc**: 2026-09-23 (Duni, a treinadora de IA — ver a última sessão abaixo)
 **Branch**: master
 **Backlog priorizado do que falta melhorar**: ver [`BACKLOG.md`](./BACKLOG.md)
 
@@ -87,6 +87,17 @@ Evolução visual de todas as telas internas mantendo identidade (preto + verde 
 - **Páginas**: `/metrics` (status Forma/Risco/Tendência, KPIs com sparkline, régua de ACWR, gráficos com zonas, estado vazio), `/predictions` (laboratório: recomendação, risco, cards de prova com confiança, tendência mensal de pace, simulador), `/coach` (hero, insights reais, painel de processamento, relatório formatado, chat com sugestões, plano ativo), `/import` (dropzone técnica, progresso, km analisados), `/activities` (totais, filtros avançados colapsáveis, tabela no desktop / cards no mobile), `/activities/[id]` (hero, métricas secundárias, zonas em barras, splits com barra de pace, erro de export visível), `/equipment`, `/profile` (zonas de FC com as mesmas faixas do backend).
 - **Verificação**: `tsc` + `next build` (13 rotas) + todas as páginas abertas no navegador com dados reais, sem erros de console, desktop e mobile.
 
+### ✅ Sessões 2026-09-21 a 23 — Duni, a treinadora de IA
+O Treinador de IA virou a **Duni**, treinadora de corrida de rua. Detalhes fase a fase em [`PLANEJAMENTO_2026-09-21.md`](./PLANEJAMENTO_2026-09-21.md) (fechado).
+- **Provedor**: Gemini no free tier (`gemini-3.5-flash-lite`, com `flash` de reserva). A Anthropic só entra se houver `ANTHROPIC_API_KEY` no `.env`.
+- **Dados**: cadência corrigida (dobrada), GAP e deriva cardíaca por atividade; check-in pós-treino (PSE, sensação, dor, observações).
+- **Motor de análise sem IA** (`ai/athlete_analysis.py`): janelas de 7/14/28 dias, tendência de 8 semanas, sinais de fadiga, sessões equivalentes e cadência habitual. O código calcula e a Duni interpreta.
+- **Memórias** (`athlete_memories`): objetivo, prova, lesão, disponibilidade e preferência. A Duni sugere no chat e o atleta confirma com um clique.
+- **Persona v2**: direta e exigente, sem jargão, segurança antes da cobrança. Contexto com análise, memórias, aderência de 4 semanas e atividades recentes.
+- **Plano da semana** (`weekly_plans`): status 🟢🟡🟠🔴, resumo, avaliação, tabela, treinos com passos e alvos, critérios de ajuste, validação no código, "Pedir outro treino" com motivo e "Mudar de dia".
+- **Comentário pós-treino** em `/activities/[id]`, sob demanda.
+- **Verificado ao vivo com o Gemini em 2026-09-23** na conta de teste: chat, memórias, resumo, plano, regerar um dia e comentário.
+
 ---
 
 ## Para iniciar uma sessão de trabalho
@@ -171,4 +182,4 @@ Nenhuma decisão pode exigir cartão de crédito. Tudo no free tier:
 - Fontes Inter/Poppins via Google Fonts (grátis)
 - MCP servers (Garmin/Strava) rodam localmente, sem custo — ver `BACKLOG.md` item 17
 
-**Exceção combinada com o usuário**: o Treinador de IA usa a API da Anthropic (Claude) como provedor principal — isso tem custo real e o usuário decidiu pagar por essa feature especificamente. Fallback pro Gemini free tier se a chamada à Anthropic falhar por cota. Nenhuma outra parte do projeto deve seguir esse precedente sem confirmação explícita.
+**Treinadora de IA (Duni)**: roda no Gemini free tier (chave do Google AI Studio, sem cartão), decisão de 2026-09-21. No free tier o Google pode usar os dados enviados, inclusive lesões e dores das memórias; o usuário foi avisado e aceitou. O código ainda aceita a API da Anthropic (paga), mas só se houver `ANTHROPIC_API_KEY` no `.env`; hoje não há. Qualquer custo novo precisa de confirmação explícita do usuário.

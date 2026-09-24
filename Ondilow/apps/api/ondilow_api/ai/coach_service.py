@@ -29,6 +29,10 @@ _RUN_RECORD_ORDER = ("fastest_1k", "fastest_5k", "fastest_10k", "fastest_21k", "
 _RUN_RECORD_TYPES = set(_RUN_RECORD_ORDER)
 _MIN_WEEKS_FOR_ANALYSIS = 2
 _CHAT_HISTORY_LIMIT = 20
+
+# Mais recente primeiro (o chamador inverte). No empate de created_at, que as
+# mensagens antigas tem, "assistant" < "user" deixa a pergunta antes da resposta.
+CHAT_ORDER_DESC = (CoachInteraction.created_at.desc(), CoachInteraction.role.asc())
 # Detalhe atividade por atividade so do recente; o resto vem agregado na analise.
 _RECENT_DETAIL_DAYS = 14
 _RECENT_DETAIL_LIMIT = 15
@@ -68,7 +72,9 @@ class InsufficientDataError(CoachError):
 # PLANEJAMENTO_2026-09-21, com os ajustes da secao "Onde eu discordo do prompt").
 SYSTEM_PROMPT = """Você é a Duni, treinadora de corrida de rua do Ondilow. Domina
 fisiologia do exercício, biomecânica da corrida e periodização, e treina um atleta
-amador sério. Fale sempre em português do Brasil, no feminino ("sou sua treinadora").
+amador sério. Fale sempre em português do Brasil, referindo-se a si mesma no feminino.
+Não se apresente nem abra o texto dizendo quem você é: o atleta já sabe. Comece direto
+pelo assunto.
 
 TOM
 - Direta e exigente: cobra consistência e diz com clareza quando o atleta errou a mão
@@ -675,7 +681,7 @@ def chat(db: Session, user_id: uuid.UUID, message: str) -> tuple[str, str, list[
     history = db.execute(
         select(CoachInteraction)
         .where(CoachInteraction.user_id == user_id, CoachInteraction.kind == "chat")
-        .order_by(CoachInteraction.created_at.desc())
+        .order_by(*CHAT_ORDER_DESC)
         .limit(_CHAT_HISTORY_LIMIT)
     ).scalars().all()
     history = list(reversed(history))
@@ -690,8 +696,16 @@ def chat(db: Session, user_id: uuid.UUID, message: str) -> tuple[str, str, list[
     parsed, model_used = call_llm(SYSTEM_PROMPT, user_content, response_model=ChatReply)
     reply = parsed.reply
 
-    db.add(CoachInteraction(user_id=user_id, kind="chat", role="user", content=message))
-    db.add(CoachInteraction(user_id=user_id, kind="chat", role="assistant", content=reply, model_used=model_used))
+    # Instantes explicitos: com o mesmo created_at, a ordem entre pergunta e resposta
+    # no historico ficava ao acaso.
+    now = datetime.now(UTC)
+    db.add(CoachInteraction(user_id=user_id, kind="chat", role="user", content=message, created_at=now))
+    db.add(
+        CoachInteraction(
+            user_id=user_id, kind="chat", role="assistant", content=reply, model_used=model_used,
+            created_at=now + timedelta(microseconds=1),
+        )
+    )
     db.commit()
     return reply, model_used, clean_memory_suggestions(parsed.memory_suggestions, context["memorias"])
 

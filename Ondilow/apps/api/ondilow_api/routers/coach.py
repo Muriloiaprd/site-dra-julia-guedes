@@ -7,6 +7,7 @@ from sqlalchemy import select
 from ondilow_api.ai import coach_service
 from ondilow_api.ai.athlete_analysis import build_analysis
 from ondilow_api.ai.coach_service import (
+    CHAT_ORDER_DESC,
     ActivityNotFoundError,
     CoachPlanParseError,
     CoachUnavailableError,
@@ -275,7 +276,7 @@ def get_chat_history(current_user: CurrentUser, db: DbSession, limit: int = Quer
     rows = db.execute(
         select(CoachInteraction)
         .where(CoachInteraction.user_id == current_user.id, CoachInteraction.kind == "chat")
-        .order_by(CoachInteraction.created_at.desc())
+        .order_by(*CHAT_ORDER_DESC)
         .limit(limit)
     ).scalars().all()
     return list(reversed(rows))

@@ -54,14 +54,19 @@ function volume(w: PlannedWorkout) {
   return parts.join(" · ") || "—";
 }
 
+// A IA as vezes ja escreve o rotulo no valor ("PSE 3/10"); nao repetir.
+function labeled(label: string, value: string) {
+  return value.trimStart().toUpperCase().startsWith(label) ? value : `${label} ${value}`;
+}
+
 function stepDetail(s: WorkoutStep) {
   const parts: string[] = [];
   if (s.repeticoes) parts.push(`${s.repeticoes}×`);
   if (s.distancia_km) parts.push(`${s.distancia_km} km`);
   if (s.duracao_min) parts.push(`${s.duracao_min} min`);
   if (s.ritmo) parts.push(s.ritmo);
-  if (s.zona_fc) parts.push(`FC ${s.zona_fc}`);
-  if (s.pse) parts.push(`PSE ${s.pse}`);
+  if (s.zona_fc) parts.push(labeled("FC", s.zona_fc));
+  if (s.pse) parts.push(labeled("PSE", s.pse));
   if (s.recuperacao) parts.push(`recuperação: ${s.recuperacao}`);
   return parts.join(" · ");
 }

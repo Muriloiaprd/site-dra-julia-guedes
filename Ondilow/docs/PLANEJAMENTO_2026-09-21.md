@@ -1,7 +1,7 @@
 # Ondilow — Planejamento da Duni, a treinadora de IA (2026-09-21)
 
 **Criado em**: 2026-09-21
-**Status**: Aguardando aprovação. Fase 0 concluída ao criar este documento.
+**Status**: FECHADO em 2026-09-23. Fases 0 a 9 concluídas; os achados da Fase 9 que ficaram para depois estão no `BACKLOG.md` (itens 18 a 23).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md) · [`PLANEJAMENTO_2026-09-18.md`](./PLANEJAMENTO_2026-09-18.md) (fechado em 2026-09-19)
 
 ## Como retomar
@@ -361,7 +361,35 @@ Texto original da fase:
 - O contexto junta a atividade, as voltas com ritmo e GAP, a deriva, o check-in, o treino planejado do dia (planejado contra feito) e as sessões equivalentes.
 - Bloco "Comentário da Duni" em `/activities/[id]`. De carona, fazer a verificação ao vivo dessa página, pendente desde o plano de 18/09.
 
-## Fase 9 — Fechamento
+## Fase 9 — Fechamento — CONCLUÍDA
+
+**Executado em 2026-09-23**, na conta de teste (298 atividades), com `gemini-3.5-flash-lite`. 189 testes na API (1 novo em `test_memories.py`), `tsc` sem erros.
+
+Verificado ao vivo:
+
+- **Fase 5**: uma mensagem com prova, lesão e disponibilidade gerou as 3 sugestões certas, com a data da prova ("faltam 53 dias"). Guardar, adicionar à mão, arquivar, ver arquivadas e apagar funcionaram. O `confirm()` de "Apagar" não aparece no painel de navegador do Claude; em navegador normal aparece.
+- **Fase 6**: o chat e o resumo usaram o histórico real (última atividade, 14 dias parado, CTL 2,7), as memórias e a canelite, e perguntaram o motivo da pausa. Na segunda mensagem ("posso fazer mais rápido?") ela negou com base na carga e na lesão.
+- **Fase 7**: o plano saiu de primeira no `flash-lite`, sem precisar simplificar o schema. Ficou 🟡, com 3 treinos leves em qui/sáb/dom (os dias informados), descanso nos outros e critérios de interrupção citando a canelite. "Pedir outro treino" no sábado, com "canela sensível, só 30 min", virou descanso com explicação.
+- **Fase 8**: o comentário da corrida de 5 km de 17/08 trouxe voltas, GAP, deriva, cadência contra a habitual, zonas e a sessão equivalente de 10/08, e pediu o check-in que faltava.
+
+Corrigido durante a fase:
+
+- **Ordem do chat**: pergunta e resposta eram gravadas com o mesmo `created_at`, e depois de recarregar a resposta podia vir antes da pergunta. Agora a resposta leva +1 µs, e o histórico desempata pelo papel (`CHAT_ORDER_DESC`), o que também conserta as mensagens antigas.
+- **Markdown**: lista numerada separada por parágrafos mostrava "1." em todos os itens; agora usa o número do texto. `*itálico*` aparecia com os asteriscos.
+- **Prompt**: o exemplo `("sou sua treinadora")` fazia o `flash-lite` abrir todo texto com "Sou sua treinadora". Agora o prompt manda não se apresentar e ir direto ao assunto. Conferido no chat.
+- **Plano**: os passos mostravam "PSE PSE 3/10" quando a IA já escrevia o rótulo.
+
+Ficaram no `BACKLOG.md` (itens 18 a 23):
+- o resumo some ao recarregar;
+- os números da "Próxima semana" ficam velhos depois de regerar um dia;
+- 🔴 usado para destreino no resumo;
+- "Anotei" antes do clique;
+- gênero do atleta;
+- aviso de objetivo com uma prova que tem tempo-alvo.
+
+Os 7 treinos da v1 na conta principal continuam lá e somem quando o usuário gerar o primeiro plano novo nela.
+
+Texto original da fase:
 
 - Verificação ao vivo de tudo junto na conta de teste, **incluindo as memórias da Fase 5, a conversa com o prompt v2 da Fase 6 gerar/regerar o plano da Fase 7 e o comentário pós-treino da Fase 8** (adiadas de lá).
 - Atualizar `ESTADO_DO_PROJETO.md` e `BACKLOG.md`, e fechar este documento.

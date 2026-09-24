@@ -1,7 +1,7 @@
 """Memorias da Duni (/coach/memories) e sugestoes de memoria no chat."""
 
 import uuid
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from ondilow_api.ai import coach_service
 from ondilow_api.ai.coach_service import ChatMemorySuggestion, ChatReply, CoachPlanParseError
 from ondilow_api.models import User
+from ondilow_api.models.coach import CoachInteraction
 from ondilow_api.security import create_access_token, hash_password
 
 
@@ -135,6 +136,17 @@ def test_chat_returns_clean_suggestions_without_saving_them(auth_client: tuple[T
     assert len(client.get("/coach/memories").json()) == 1
     history = client.get("/coach/chat/history").json()
     assert [h["role"] for h in history] == ["user", "assistant"]
+
+
+def test_chat_history_puts_question_first_on_timestamp_tie(auth_client: tuple[TestClient, dict], db_session: Session) -> None:
+    """Mensagens antigas tem pergunta e resposta com o mesmo created_at."""
+    client, user = auth_client
+    same = datetime(2026, 9, 21, 18, 23, 8, tzinfo=UTC)
+    for role in ("assistant", "user"):  # a resposta gravada primeiro, de proposito
+        db_session.add(CoachInteraction(user_id=user["id"], kind="chat", role=role, content=role, created_at=same))
+    db_session.commit()
+
+    assert [h["role"] for h in client.get("/coach/chat/history").json()] == ["user", "assistant"]
 
 
 def test_chat_invalid_structured_response_is_502(auth_client: tuple[TestClient, dict], fake_llm) -> None:
