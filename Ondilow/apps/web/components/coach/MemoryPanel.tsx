@@ -110,7 +110,11 @@ export function MemoryPanel({ memories, onChange }: { memories: AthleteMemory[];
 
   const kindInfo = draft ? MEMORY_KINDS.find((k) => k.value === draft.kind)! : null;
   const grouped = MEMORY_KINDS.map((k) => ({ ...k, items: memories.filter((m) => m.kind === k.value) })).filter((g) => g.items.length);
-  const hasGoal = memories.some((m) => m.kind === "objetivo");
+  // Mesma regra do has_goal da API: uma prova que ainda nao passou tambem e objetivo.
+  const today = new Date().toLocaleDateString("sv-SE"); // AAAA-MM-DD no fuso local
+  const hasGoal = memories.some(
+    (m) => m.active && (m.kind === "objetivo" || (m.kind === "prova" && (!m.event_date || m.event_date >= today))),
+  );
 
   return (
     <Panel>
@@ -130,7 +134,7 @@ export function MemoryPanel({ memories, onChange }: { memories: AthleteMemory[];
 
       {!hasGoal && !draft && (
         <p className="mb-3 rounded-xl px-3 py-2 text-xs text-brand-warning" style={{ background: "rgba(255,193,69,0.06)", boxShadow: "inset 0 0 0 1px rgba(255,193,69,0.2)" }}>
-          Nenhum objetivo cadastrado. Sem ele, a Duni monta semanas de base aeróbica em vez de treinar para algo específico.
+          Nenhum objetivo ou prova cadastrados. Sem isso, a Duni monta semanas de base aeróbica em vez de treinar para algo específico.
         </p>
       )}
 

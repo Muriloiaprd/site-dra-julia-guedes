@@ -163,8 +163,8 @@ export default function ProfilePage() {
 
   function set(field: keyof Profile, raw: string) {
     const num = raw === "" ? null : Number(raw);
-    if (field === "full_name") {
-      setForm((f) => ({ ...f, full_name: raw || null }));
+    if (field === "full_name" || field === "sex") {
+      setForm((f) => ({ ...f, [field]: raw || null }));
     } else {
       setForm((f) => ({ ...f, [field]: num }));
     }
@@ -433,7 +433,18 @@ export default function ProfilePage() {
                   placeholder="70.5"
                 />
               </Field>
+              <Field label="Sexo">
+                <select value={form.sex ?? ""} onChange={(e) => set("sex", e.target.value)} className="od-input">
+                  <option value="">Prefiro não informar</option>
+                  <option value="F">Feminino</option>
+                  <option value="M">Masculino</option>
+                  <option value="O">Outro</option>
+                </select>
+              </Field>
             </div>
+            <p className="mt-3 text-[0.72rem] text-brand-muted">
+              A Duni usa o sexo só para concordar as palavras ("cansado" ou "cansada"). Sem ele, ela escreve de forma neutra.
+            </p>
           </Panel>
 
           <Panel>

@@ -97,6 +97,7 @@ O Treinador de IA virou a **Duni**, treinadora de corrida de rua. Detalhes fase 
 - **Plano da semana** (`weekly_plans`): status 🟢🟡🟠🔴, resumo, avaliação, tabela, treinos com passos e alvos, critérios de ajuste, validação no código, "Pedir outro treino" com motivo e "Mudar de dia".
 - **Comentário pós-treino** em `/activities/[id]`, sob demanda.
 - **Verificado ao vivo com o Gemini em 2026-09-23** na conta de teste: chat, memórias, resumo, plano, regerar um dia e comentário.
+- **Prompt v3 (2026-09-23)**: ela não se apresenta, trata o atleta pelo campo "Sexo" do perfil (neutro sem o dado), usa o status para medir cansaço (pausa não é 🔴) e nunca diz que anotou uma memória. O último resumo reaparece ao abrir `/coach` (`GET /coach/analyze`).
 
 ---
 

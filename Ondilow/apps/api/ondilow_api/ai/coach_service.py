@@ -11,7 +11,7 @@ from typing import Literal
 from zoneinfo import ZoneInfo
 
 import anthropic
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
@@ -70,11 +70,15 @@ class InsufficientDataError(CoachError):
 
 # Versao do prompt: settings.coach_prompt_version. v2 = Duni (Anexo A do
 # PLANEJAMENTO_2026-09-21, com os ajustes da secao "Onde eu discordo do prompt").
+# v3 (2026-09-23) = sem se apresentar, tratamento pelo perfil, status mede cansaco.
 SYSTEM_PROMPT = """Você é a Duni, treinadora de corrida de rua do Ondilow. Domina
 fisiologia do exercício, biomecânica da corrida e periodização, e treina um atleta
 amador sério. Fale sempre em português do Brasil, referindo-se a si mesma no feminino.
 Não se apresente nem abra o texto dizendo quem você é: o atleta já sabe. Comece direto
-pelo assunto.
+pelo assunto. Ao falar do atleta, siga "perfil.tratamento": "feminino" ou "masculino"
+para concordar as palavras (cansada/cansado); "neutro" quando não se sabe, e então
+evite adjetivos com gênero sobre ele ("você ficou sem treinar", não "você ficou
+parado"), a não ser que o próprio atleta use um gênero ao falar de si na conversa.
 
 TOM
 - Direta e exigente: cobra consistência e diz com clareza quando o atleta errou a mão
@@ -129,11 +133,17 @@ SEGURANÇA
   com fisioterapeuta ou médico do esporte.
 - O status é 🟢 recuperado, 🟡 atenção, 🟠 fadiga acumulada ou 🔴 recuperação
   prioritária. Sempre diga quais dados levaram ao status; ele não é diagnóstico.
+  O status mede o CANSAÇO, não a forma. 🟠 e 🔴 exigem sinais de fadiga, dor ou
+  doença (FC alta para o ritmo, PSE alta, dor que piora, carga aguda muito acima da
+  crônica). Pouco treino ou uma pausa não é 🔴: o corpo está descansado, então é 🟢,
+  ou 🟡 quando a volta precisa de cuidado (lesão anterior, pausa longa).
 
 MEMÓRIAS E OBJETIVO
 - "memorias" é o que o atleta confirmou sobre si: objetivo, provas com data, lesões,
   dias disponíveis e preferências. Respeite tudo isso. Se "objetivo_cadastrado" for
   falso, pergunte o objetivo antes de montar a próxima semana.
+- Você não guarda memórias: só sugere, e o atleta confirma com um clique. Nunca diga
+  "anotei", "guardei", "registrei" ou "salvei".
 - Zonas de FC são estimadas pela FC máxima do perfil. Se a análise de intensidade
   pesar numa decisão, vale confirmar se essa FC máxima foi medida de verdade."""
 
@@ -216,7 +226,10 @@ prova (com data), lesao ou dor recorrente, dias/horarios disponiveis, preferenci
 de treino. Coloque em memory_suggestions (no maximo 3), cada uma curta e na
 terceira pessoa (ex.: "Meia maratona em 30/11"). Use event_date (AAAA-MM-DD) so
 quando o atleta disser a data. Nao sugira o que ja esta em "memorias" no contexto,
-nem suposicoes suas. Se nada novo apareceu, devolva a lista vazia."""
+nem suposicoes suas. Se nada novo apareceu, devolva a lista vazia.
+As sugestoes so viram memoria se o atleta clicar em "Guardar" embaixo da resposta.
+Por isso, em reply, nunca diga que anotou, guardou ou registrou algo. Se sugerir,
+diga no maximo que ele pode guardar abaixo."""
 
 
 class ChatMemorySuggestion(BaseModel):
@@ -226,7 +239,11 @@ class ChatMemorySuggestion(BaseModel):
 
 
 class ChatReply(BaseModel):
-    reply: str
+    # A descricao vai no schema para o Gemini; o flash-lite ignorava a regra so no texto.
+    reply: str = Field(
+        description="Resposta ao atleta. Nunca diga que anotou, guardou, registrou ou salvou algo: "
+        "quem guarda e o atleta, clicando nas sugestoes."
+    )
     memory_suggestions: list[ChatMemorySuggestion] = []
 
 
@@ -433,8 +450,9 @@ def build_context(db: Session, user_id: uuid.UUID) -> dict:
         "insufficient_data": weeks_available < _MIN_WEEKS_FOR_ANALYSIS,
         "weeks_available": round(weeks_available, 1),
         "memorias": memories,
-        "objetivo_cadastrado": any(m["tipo"] == "objetivo" for m in memories),
+        "objetivo_cadastrado": has_goal(memories),
         "perfil": {
+            "tratamento": _address(profile),
             "peso_kg": float(profile.weight_kg) if profile and profile.weight_kg else None,
             "fc_repouso": profile.resting_hr if profile else None,
             "fc_max": profile.max_hr if profile else None,
@@ -482,6 +500,23 @@ def memories_context(db: Session, user_id: uuid.UUID, today: date | None = None)
             )
         out.append(item)
     return out
+
+
+def has_goal(memories: list[dict]) -> bool:
+    """Objetivo cadastrado, ou uma prova que ainda nao passou: treinar para ela ja
+    e um objetivo, e pedir os dois confundia o atleta."""
+    return any(
+        m["tipo"] == "objetivo" or (m["tipo"] == "prova" and not m.get("quando", "").startswith("foi"))
+        for m in memories
+    )
+
+
+_ADDRESS = {"F": "feminino", "M": "masculino"}
+
+
+def _address(profile: AthleteProfile | None) -> str:
+    """Como concordar as palavras com o atleta. Sem o dado, texto neutro."""
+    return _ADDRESS.get(profile.sex if profile else None, "neutro")
 
 
 def reconcile_plan(db: Session, user_id: uuid.UUID) -> None:
@@ -1121,6 +1156,7 @@ def activity_context(db: Session, user_id: uuid.UUID, act: Activity) -> dict:
         "sinais_de_fadiga_ate_o_dia": analysis.get("sinais_de_fadiga"),
         "memorias": memories_context(db, user_id, today=day),
         "perfil": {
+            "tratamento": _address(profile),
             "fc_repouso": profile.resting_hr if profile else None,
             "fc_max": profile.max_hr if profile else None,
         },

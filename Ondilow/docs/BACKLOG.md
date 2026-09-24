@@ -30,14 +30,14 @@ Consolidado em 2026-09-10 a partir de uma auditoria completa (histórico de comm
 16. **Acessibilidade.** *Parcial no redesign:* botões só-ícone ganharam `aria-label`, textos auxiliares subiram de 8–9px para ≥ 9.6px (a maioria 11–13px), tons de cinza passaram a tokens (`textTertiary` #6E6E6E, `muted` #888) e há suporte a `prefers-reduced-motion`. Falta uma passada de contraste AA nos rótulos de 9.6px e navegação por teclado nos gráficos.
 17. ~~**Integração Garmin: script de sync local**~~ — **FEITO em 2026-09-19** (`uv run python -m ondilow_api.scripts.sync_garmin`, 17 testes). Falta só o usuário rodar `--garmin-login` uma vez. Contexto original: Investigado em 2026-09-19, ver `VIABILIDADE_GARMIN_STRAVA_2026-09-19.md`: o endpoint `import-normalized` foi validado (9 testes) e serve o caminho Strava, mas para o Garmin o melhor é baixar o `.FIT` original e reusar o parser existente. Escopo de ~1 dia definido no relatório; exige um login interativo único do usuário (senha + MFA). **MCP de Garmin foi avaliado e descartado** para import: move a série de GPS pelo contexto. Strava segue descartado (OAuth).
 
-### Duni: achados do teste ao vivo de 2026-09-23 (nada urgente)
+### Duni: achados do teste ao vivo de 2026-09-23 (todos resolvidos no mesmo dia)
 
-18. **O resumo some ao recarregar.** O "Gerar relatório" é salvo (`coach_interactions`, `kind='analysis'`), mas `/coach` não carrega o último. Falta um `GET` como o do comentário da atividade, para não gastar cota gerando de novo.
-19. **Números da "Próxima semana" ficam velhos depois de "Pedir outro treino".** Quando o dia regerado vira descanso, o plano ainda mostra ~15 km e 3 sessões.
-20. **Status do resumo e do plano divergem.** No mesmo dia, o resumo deu 🔴 (atleta 14 dias parado, TSB +2,7) e o plano deu 🟡. O 🔴 é "recuperação prioritária", não destreino. Falta dizer isso no prompt do resumo.
-21. **A Duni diz "Anotei seu objetivo" antes de o atleta clicar em Guardar.** O prompt do chat deve dizer que ela sugere e o atleta confirma.
-22. **Gênero do atleta**: ela alterna entre "parado" e "parada". O perfil não tem o dado. Usar linguagem neutra ou perguntar.
-23. **O painel de memórias avisa "Nenhum objetivo cadastrado" mesmo com uma prova que tem tempo-alvo.** Aceitar a prova como objetivo ou pedir para a Duni sugerir os dois.
+18. ~~**O resumo some ao recarregar.**~~ **Resolvido**: `GET /coach/analyze` devolve o último resumo salvo sem chamar a IA, e `/coach` o carrega ao abrir.
+19. ~~**Números da "Próxima semana" ficam velhos depois de "Pedir outro treino".**~~ **Resolvido**: km e sessões saem dos treinos salvos, não do relatório gerado.
+20. ~~**Status do resumo e do plano divergem.**~~ **Resolvido** (prompt v3): o status mede cansaço, não forma, e pausa ou pouco treino dá 🟢 ou 🟡, nunca 🔴. Conferido ao vivo: o mesmo atleta que antes recebia 🔴 agora recebe 🟡, com a justificativa certa.
+21. ~~**A Duni diz "Anotei" antes de o atleta clicar em Guardar.**~~ **Resolvido**: a regra está no prompt do sistema e na descrição do campo `reply` do schema. Só a instrução no fim da mensagem, o `flash-lite` ignorava. Conferido ao vivo.
+22. ~~**Gênero do atleta.**~~ **Resolvido**: campo "Sexo" no perfil (opcional). Vira `perfil.tratamento` (feminino, masculino ou neutro) no contexto; sem o dado, texto neutro, a não ser que o atleta use um gênero ao falar de si.
+23. ~~**Aviso "Nenhum objetivo cadastrado" com uma prova salva.**~~ **Resolvido**: uma prova que ainda não passou conta como objetivo (`has_goal` na API, a mesma regra no painel).
 
 **Descartados por decisão do usuário em 2026-09-15** (ver `PLANEJAMENTO.md`): infra de testes (buracos de teste em `metrics/load.py`, `metrics/records.py`, `metrics/predictions.py`, `import_service.py`), CI (GitHub Actions), feature de meta/prova-alvo, Strava OAuth direto. Não são pendências — foi escolha de escopo, não voltar a sugerir.
 

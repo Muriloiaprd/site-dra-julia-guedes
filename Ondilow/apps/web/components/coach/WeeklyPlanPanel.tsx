@@ -292,6 +292,10 @@ export function WeeklyPlanPanel({
   const byDate = new Map(workouts.map((w) => [w.date, w]));
   const days = weekDays(plan.week_start, plan.week_end);
   const comp = Object.entries(load.complementar ?? {});
+  // Km e sessoes saem dos treinos salvos, nao do relatorio: "Pedir outro treino" e
+  // "Mudar de dia" mudam a semana e o relatorio fica como foi gerado.
+  const plannedM = workouts.reduce((s, w) => s + (w.target_distance_m ?? 0), 0);
+  const plannedKm = plannedM > 0 ? Math.round(plannedM / 100) / 10 : r.proxima_semana.km_previsto;
   const done = async (n?: string) => {
     if (n) setNotice(n);
     await onRefresh();
@@ -345,8 +349,8 @@ export function WeeklyPlanPanel({
       </div>
 
       <div className="od-tile grid gap-3 p-3 text-sm sm:grid-cols-4">
-        <div><div className="od-metric-label">Próxima semana</div><div className="od-num mt-1">{r.proxima_semana.km_previsto != null ? `~${r.proxima_semana.km_previsto} km` : "—"}</div></div>
-        <div><div className="od-metric-label">Sessões</div><div className="od-num mt-1">{r.proxima_semana.sessoes}</div></div>
+        <div><div className="od-metric-label">Próxima semana</div><div className="od-num mt-1">{plannedKm != null ? `~${plannedKm} km` : "—"}</div></div>
+        <div><div className="od-metric-label">Sessões</div><div className="od-num mt-1">{workouts.length}</div></div>
         <div><div className="od-metric-label">Estímulo principal</div><div className="mt-1 text-[0.82rem]">{r.proxima_semana.estimulo_principal}</div></div>
         <div><div className="od-metric-label">Objetivo</div><div className="mt-1 text-[0.82rem]">{r.proxima_semana.objetivo}</div></div>
       </div>

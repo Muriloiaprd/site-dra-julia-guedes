@@ -20,6 +20,7 @@ import {
   fetchMe,
   fetchPredictionsOverview,
   fetchWeekPlan,
+  fetchLastCoachReport,
   postCoachAnalyze,
   postCoachChat,
   postCoachGeneratePlan,
@@ -126,6 +127,14 @@ export default function CoachPage() {
     fetchCoachPlan(14).then(setPlan).catch(() => setPlan([]));
     fetchMemories().then(setMemories).catch(() => {});
     fetchWeekPlan().then(setWeek).catch(() => setWeek({ plan: null, workouts: [] }));
+    fetchLastCoachReport()
+      .then((r) => {
+        if (!r) return;
+        // nao sobrescreve um resumo pedido enquanto este carregava
+        setReport((cur) => cur ?? r.report);
+        setReportMeta((cur) => cur ?? { model: r.model_used, at: r.generated_at });
+      })
+      .catch(() => {});
   }, [router]);
 
   async function refreshPlans() {

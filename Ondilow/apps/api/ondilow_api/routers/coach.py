@@ -121,6 +121,20 @@ def delete_memory(memory_id: uuid.UUID, current_user: CurrentUser, db: DbSession
     db.commit()
 
 
+@router.get("/analyze", response_model=AnalyzeResponse | None)
+def get_last_analysis(current_user: CurrentUser, db: DbSession) -> dict | None:
+    """Ultimo resumo salvo, sem chamar a IA (null se nunca foi gerado)."""
+    row = db.execute(
+        select(CoachInteraction)
+        .where(CoachInteraction.user_id == current_user.id, CoachInteraction.kind == "analysis")
+        .order_by(CoachInteraction.created_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    if row is None:
+        return None
+    return {"report": row.content, "model_used": row.model_used or "", "generated_at": row.created_at}
+
+
 @router.post("/analyze", response_model=AnalyzeResponse)
 def post_analyze(current_user: CurrentUser, db: DbSession) -> dict:
     try:

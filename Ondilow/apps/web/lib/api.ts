@@ -682,7 +682,18 @@ export async function moveWorkout(
   });
 }
 
-export async function postCoachAnalyze(): Promise<{ report: string; model_used: string; generated_at: string }> {
+export interface CoachReport {
+  report: string;
+  model_used: string;
+  generated_at: string;
+}
+
+/** Ultimo resumo salvo, sem chamar a IA (null se nunca foi gerado). */
+export async function fetchLastCoachReport(): Promise<CoachReport | null> {
+  return coachFetch<CoachReport | null>("/coach/analyze");
+}
+
+export async function postCoachAnalyze(): Promise<CoachReport> {
   return coachFetch("/coach/analyze", { method: "POST" });
 }
 
