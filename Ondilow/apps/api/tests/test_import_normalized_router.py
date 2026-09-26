@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ondilow_api.models import Activity, ActivityLap, ActivityPoint, PersonalRecord
+from kactus_api.models import Activity, ActivityLap, ActivityPoint, PersonalRecord
 
 _START = datetime(2026, 3, 10, 6, 30, tzinfo=UTC)
 
@@ -169,7 +169,7 @@ def test_import_normalized_updates_records_and_metrics(
     assert "fastest_5k" in types
     assert "longest_run" in types
 
-    from ondilow_api.models import DailyMetric
+    from kactus_api.models import DailyMetric
 
     metrics = db_session.execute(
         select(DailyMetric).where(

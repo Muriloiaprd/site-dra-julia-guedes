@@ -5,9 +5,9 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ondilow_api.config import Settings
-from ondilow_api.metrics.records import recompute_all_records
-from ondilow_api.models import Activity, ActivityPoint, PersonalRecord
+from kactus_api.config import Settings
+from kactus_api.metrics.records import recompute_all_records
+from kactus_api.models import Activity, ActivityPoint, PersonalRecord
 
 _STRONG_SECRET = "x" * 40
 _REMOTE_DB = "postgresql+psycopg://u:p@ep-abc.neon.tech/db"

@@ -4,9 +4,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from ondilow_api.ai.athlete_analysis import ActSummary, analyze, effective_kind
-from ondilow_api.metrics.load import _compute_acwr
-from ondilow_api.metrics.predictions import training_recommendation
+from kactus_api.ai.athlete_analysis import ActSummary, analyze, effective_kind
+from kactus_api.metrics.load import _compute_acwr
+from kactus_api.metrics.predictions import training_recommendation
 
 TODAY = date(2026, 6, 30)
 

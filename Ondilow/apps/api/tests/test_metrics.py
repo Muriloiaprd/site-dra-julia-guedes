@@ -1,4 +1,4 @@
-from ondilow_api.metrics.basic import (
+from kactus_api.metrics.basic import (
     PointLike,
     best_efforts,
     compute_splits,

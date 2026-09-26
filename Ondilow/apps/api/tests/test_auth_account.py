@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ondilow_api.models import Activity, Equipment, PersonalRecord, User
+from kactus_api.models import Activity, Equipment, PersonalRecord, User
 
 
 def test_change_password_wrong_current_returns_401(auth_client: tuple[TestClient, dict]) -> None:

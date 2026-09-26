@@ -6,8 +6,8 @@ from datetime import UTC, date, datetime, timedelta
 import pytest
 from fastapi.testclient import TestClient
 
-from ondilow_api.ai import coach_service
-from ondilow_api.ai.coach_service import (
+from kactus_api.ai import coach_service
+from kactus_api.ai.coach_service import (
     CoachPlanParseError,
     PlanAdjustCriteria,
     PlanEvaluation,

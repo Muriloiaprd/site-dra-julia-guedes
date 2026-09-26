@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 /**
- * Design system Ondilow — tokens centralizados.
+ * Design system Kactus — tokens centralizados.
  * Os mesmos valores existem como variaveis CSS em app/globals.css (--od-*)
  * e como constantes JS em lib/theme.ts (para SVG/Recharts). Ao mudar um,
  * mude os tres.
@@ -35,7 +35,7 @@ const config: Config = {
           success: "#00FF66",
           danger: "#F85149",
         },
-        ondilow: {
+        kactus: {
           bg: "#0A0A0A",
           surface: "#111111",
           border: "#1e1e1e",

@@ -1,7 +1,7 @@
 # Ondilow → Kactus — Planejamento do rebrand (2026-09-26)
 
 **Criado em**: 2026-09-26
-**Status**: ABERTO. Fases 0 a 4 concluídas em 2026-09-26 (ver "Registro de execução" no fim).
+**Status**: ABERTO. Fases 0 a 5 concluídas em 2026-09-26 (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md)
 
 ## Como retomar
@@ -133,3 +133,8 @@ Criar `Ondilow/docs/PLANEJAMENTO_2026-09-26.md` com todo este conteúdo. Commita
 - **Modelo 18**: sombra dura agora preta a 65% (era cinza), como na arte nova.
 - Ferramenta nova só de desenvolvimento: `app/(dev)/story-calibrate` desenha um modelo com os valores de exemplo da arte e mostra a diferença pixel a pixel (`?id=`), ou o modelo numa cor de esporte (`&color=`).
 - Conferido: os 19 modelos no gerador real (atividade com GPS), comparação com a arte em todos e recolor com cor de outro esporte (logo não tinge).
+
+### Fase 5 (2026-09-26)
+- Pacote `ondilow_api` → `kactus_api` (imports, testes, `alembic/env.py`, script `dev:api`), `pyproject`/`uv.lock` como `kactus-api`, `package.json` como `kactus`/`kactus-web`.
+- `kactus_token` com migração da chave antiga (conferido no navegador: a sessão continuou), evento `kactus:waking`, export `kactus_export*.json` (web e API), chave tailwind `kactus`, docker-compose/`.env.example`/default do `config.py` com `kactus`, e-mails `@kactus.test`.
+- 192 testes passando; os 25 avisos do ruff já existiam antes (mesma contagem no commit anterior).

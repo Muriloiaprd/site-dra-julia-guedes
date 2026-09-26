@@ -2,22 +2,22 @@ from types import SimpleNamespace
 
 import pytest
 
-from ondilow_api.metrics.basic import (
+from kactus_api.metrics.basic import (
     PointLike,
     compute_splits,
     default_hr_zones,
     karvonen_hr_zones,
     resolve_hr_zones,
 )
-from ondilow_api.metrics.derived import (
+from kactus_api.metrics.derived import (
     flat_equivalent,
     gap_pace,
     grade_factor,
     hr_decoupling_pct,
     step_cadence_factor,
 )
-from ondilow_api.parsers.sports import normalize_sport
-from ondilow_api.services.derived_metrics import (
+from kactus_api.parsers.sports import normalize_sport
+from kactus_api.services.derived_metrics import (
     DERIVED_VERSION,
     apply_derived_metrics,
     normalize_step_cadence,

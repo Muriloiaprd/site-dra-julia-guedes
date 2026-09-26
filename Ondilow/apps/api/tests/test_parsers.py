@@ -2,10 +2,10 @@ from pathlib import Path
 
 import pytest
 
-from ondilow_api.parsers import parse_file
-from ondilow_api.parsers.base import ParserError
-from ondilow_api.parsers.dispatch import UnsupportedFormatError
-from ondilow_api.parsers.sports import normalize_sport
+from kactus_api.parsers import parse_file
+from kactus_api.parsers.base import ParserError
+from kactus_api.parsers.dispatch import UnsupportedFormatError
+from kactus_api.parsers.sports import normalize_sport
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

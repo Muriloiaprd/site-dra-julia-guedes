@@ -15,9 +15,9 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ondilow_api.models import Activity
-from ondilow_api.parsers.dispatch import UnsupportedFormatError
-from ondilow_api.services.garmin_sync import (
+from kactus_api.models import Activity
+from kactus_api.parsers.dispatch import UnsupportedFormatError
+from kactus_api.services.garmin_sync import (
     SOURCE,
     extract_activity_file,
     import_downloaded,

@@ -7,11 +7,11 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from ondilow_api.ai import coach_service
-from ondilow_api.ai.coach_service import ChatMemorySuggestion, ChatReply, CoachPlanParseError
-from ondilow_api.models import User
-from ondilow_api.models.coach import CoachInteraction
-from ondilow_api.security import create_access_token, hash_password
+from kactus_api.ai import coach_service
+from kactus_api.ai.coach_service import ChatMemorySuggestion, ChatReply, CoachPlanParseError
+from kactus_api.models import User
+from kactus_api.models.coach import CoachInteraction
+from kactus_api.security import create_access_token, hash_password
 
 
 def _create(client: TestClient, **body) -> dict:
@@ -60,7 +60,7 @@ def test_validation(auth_client: tuple[TestClient, dict]) -> None:
 def test_other_users_memory_is_404(auth_client: tuple[TestClient, dict], db_session: Session) -> None:
     client, _owner = auth_client
     m = _create(client)
-    other = User(email=f"pytest-{uuid.uuid4().hex[:12]}@ondilow.test", password_hash=hash_password("outra-senha-123"))
+    other = User(email=f"pytest-{uuid.uuid4().hex[:12]}@kactus.test", password_hash=hash_password("outra-senha-123"))
     db_session.add(other)
     db_session.commit()
     headers = {"Authorization": f"Bearer {create_access_token(str(other.id))}"}

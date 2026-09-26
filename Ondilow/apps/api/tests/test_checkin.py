@@ -7,8 +7,8 @@ from zoneinfo import ZoneInfo
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from ondilow_api.models import User
-from ondilow_api.security import create_access_token, hash_password
+from kactus_api.models import User
+from kactus_api.security import create_access_token, hash_password
 
 _START = datetime(2026, 4, 2, 7, 0, tzinfo=UTC)
 
@@ -140,7 +140,7 @@ def test_checkin_other_users_activity_is_404(
     client, _owner = auth_client
     activity_id = _create_activity(client)
 
-    other = User(email=f"pytest-{uuid.uuid4().hex[:12]}@ondilow.test", password_hash=hash_password("outra-senha-123"))
+    other = User(email=f"pytest-{uuid.uuid4().hex[:12]}@kactus.test", password_hash=hash_password("outra-senha-123"))
     db_session.add(other)
     db_session.commit()
     other_token = create_access_token(str(other.id))

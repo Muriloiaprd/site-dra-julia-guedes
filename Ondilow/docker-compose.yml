@@ -1,21 +1,21 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: ondilow-postgres
+    container_name: kactus-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ondilow
-      POSTGRES_PASSWORD: ondilow
-      POSTGRES_DB: ondilow
+      POSTGRES_USER: kactus
+      POSTGRES_PASSWORD: kactus
+      POSTGRES_DB: kactus
     ports:
       - "5432:5432"
     volumes:
-      - ondilow_pg_data:/var/lib/postgresql/data
+      - kactus_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ondilow -d ondilow"]
+      test: ["CMD-SHELL", "pg_isready -U kactus -d kactus"]
       interval: 5s
       timeout: 5s
       retries: 10
 
 volumes:
-  ondilow_pg_data:
+  kactus_pg_data:

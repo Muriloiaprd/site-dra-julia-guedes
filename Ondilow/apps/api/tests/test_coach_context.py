@@ -7,10 +7,10 @@ from zoneinfo import ZoneInfo
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from ondilow_api.ai import coach_service
-from ondilow_api.config import settings
-from ondilow_api.models import PlannedWorkout
-from ondilow_api.models.coach import CoachInteraction
+from kactus_api.ai import coach_service
+from kactus_api.config import settings
+from kactus_api.models import PlannedWorkout
+from kactus_api.models.coach import CoachInteraction
 
 _BATCH = uuid.uuid4()
 

@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from ondilow_api.models import Activity
+from kactus_api.models import Activity
 
 VALID_ZONES = {
     "z1": [0, 114],

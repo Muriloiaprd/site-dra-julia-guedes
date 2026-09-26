@@ -10,10 +10,10 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from ondilow_api.ai import coach_service
-from ondilow_api.ai.coach_service import CoachUnavailableError
-from ondilow_api.models import PlannedWorkout, User
-from ondilow_api.security import create_access_token, hash_password
+from kactus_api.ai import coach_service
+from kactus_api.ai.coach_service import CoachUnavailableError
+from kactus_api.models import PlannedWorkout, User
+from kactus_api.security import create_access_token, hash_password
 
 _TODAY_NOON = datetime.combine(date.today(), time(12, 0), tzinfo=ZoneInfo("America/Sao_Paulo"))
 
@@ -110,7 +110,7 @@ def test_other_users_or_missing_activity_is_404(
     client, _owner = auth_client
     activity_id = _import_run(client)
     fake_llm("nao deveria ser chamado")
-    other = User(email=f"pytest-{uuid.uuid4().hex[:12]}@ondilow.test", password_hash=hash_password("outra-senha-123"))
+    other = User(email=f"pytest-{uuid.uuid4().hex[:12]}@kactus.test", password_hash=hash_password("outra-senha-123"))
     db_session.add(other)
     db_session.commit()
     headers = {"Authorization": f"Bearer {create_access_token(str(other.id))}"}

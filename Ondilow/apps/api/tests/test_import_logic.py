@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
-from ondilow_api.parsers.base import NormalizedActivity, NormalizedPoint
-from ondilow_api.services.import_service import (
+from kactus_api.parsers.base import NormalizedActivity, NormalizedPoint
+from kactus_api.services.import_service import (
     _avg_pace,
     _avg_speed,
     _derive_summary,

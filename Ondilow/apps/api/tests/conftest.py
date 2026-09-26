@@ -5,8 +5,8 @@ Roda contra a branch Neon `test` do projeto Ondilow (br-solitary-poetry-acj7i9ej
 uma copia isolada (copy-on-write) da `main` -- escrever ou apagar dados aqui
 NUNCA toca na `main` (onde estao as atividades reais do usuario). O
 DATABASE_URL e forcado por variavel de ambiente ANTES de qualquer import de
-`ondilow_api`, porque `Settings()` e instanciado uma vez, no import de
-`ondilow_api.config` -- se algum modulo do app fosse importado antes desta
+`kactus_api`, porque `Settings()` e instanciado uma vez, no import de
+`kactus_api.config` -- se algum modulo do app fosse importado antes desta
 linha, o `.env` da raiz (que aponta pro Neon de producao) venceria.
 
 A string de conexao (com a senha da branch de teste) fica em `TEST_DATABASE_URL`
@@ -48,10 +48,10 @@ from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import event  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 
-from ondilow_api.db import engine, get_db  # noqa: E402
-from ondilow_api.main import app  # noqa: E402
-from ondilow_api.rate_limit import limiter  # noqa: E402
-from ondilow_api.security import hash_password  # noqa: E402
+from kactus_api.db import engine, get_db  # noqa: E402
+from kactus_api.main import app  # noqa: E402
+from kactus_api.rate_limit import limiter  # noqa: E402
+from kactus_api.security import hash_password  # noqa: E402
 
 _API_ROOT = Path(__file__).resolve().parents[1]
 
@@ -125,9 +125,9 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
 def auth_client(client: TestClient, db_session: Session) -> Generator[tuple[TestClient, dict], None, None]:
     """Cliente autenticado com um usuario novo (email aleatorio), token no
     header Authorization. Retorna (client, user_info) com id/email/password."""
-    from ondilow_api.models import User
+    from kactus_api.models import User
 
-    email = f"pytest-{uuid.uuid4().hex[:12]}@ondilow.test"
+    email = f"pytest-{uuid.uuid4().hex[:12]}@kactus.test"
     password = "senha-de-teste-123"
     user = User(email=email, password_hash=hash_password(password))
     db_session.add(user)

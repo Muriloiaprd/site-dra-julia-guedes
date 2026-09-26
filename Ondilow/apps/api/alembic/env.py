@@ -3,9 +3,9 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from ondilow_api.config import settings
-from ondilow_api.db import Base
-from ondilow_api import models  # noqa: F401  (importa todos os modelos)
+from kactus_api.config import settings
+from kactus_api.db import Base
+from kactus_api import models  # noqa: F401  (importa todos os modelos)
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

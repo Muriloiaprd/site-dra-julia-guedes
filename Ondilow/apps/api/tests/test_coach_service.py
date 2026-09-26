@@ -3,14 +3,14 @@ import pytest
 from google import genai
 from google.genai import errors
 
-from ondilow_api.ai import coach_service
-from ondilow_api.ai.coach_service import (
+from kactus_api.ai import coach_service
+from kactus_api.ai.coach_service import (
     CoachUnavailableError,
     _call_gemini,
     _gemini_error_reason,
     _same_sport_group,
 )
-from ondilow_api.config import settings
+from kactus_api.config import settings
 
 
 def test_same_sport_group_groups_related_disciplines():

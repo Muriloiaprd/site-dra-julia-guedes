@@ -1,10 +1,17 @@
-const TOKEN_KEY = "ondilow_token";
+const TOKEN_KEY = "kactus_token";
+/** Chave de antes do rebrand (Ondilow → Kactus): migrada na primeira leitura, pra ninguém ser deslogado. */
+const LEGACY_TOKEN_KEY = "ondilow_token";
 
 // ---------- token helpers ----------
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
   try {
+    const legacy = localStorage.getItem(LEGACY_TOKEN_KEY);
+    if (legacy !== null) {
+      if (localStorage.getItem(TOKEN_KEY) === null) localStorage.setItem(TOKEN_KEY, legacy);
+      localStorage.removeItem(LEGACY_TOKEN_KEY);
+    }
     return localStorage.getItem(TOKEN_KEY);
   } catch {
     return null;
@@ -179,7 +186,7 @@ const WAKING_AFTER_MS = 3_000;
 
 /** Avisa a UI (WakingBanner) que a API esta demorando -- cold start em hospedagem gratuita. */
 function emitWaking(waking: boolean) {
-  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("ondilow:waking", { detail: waking }));
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("kactus:waking", { detail: waking }));
 }
 
 async function apiFetch<T>(
@@ -796,7 +803,7 @@ export async function exportData(): Promise<void> {
   }
   const blob = await res.blob();
   const filename = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1]
-    ?? "ondilow_export.json";
+    ?? "kactus_export.json";
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
