@@ -1,7 +1,7 @@
 # Ondilow → Kactus — Planejamento do rebrand (2026-09-26)
 
 **Criado em**: 2026-09-26
-**Status**: ABERTO. Fases 0 a 6 concluídas em 2026-09-26 (ver "Registro de execução" no fim).
+**Status**: ABERTO. Fases 0 a 7 concluídas em 2026-09-26 (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md)
 
 ## Como retomar
@@ -145,3 +145,14 @@ Criar `Ondilow/docs/PLANEJAMENTO_2026-09-26.md` com todo este conteúdo. Commita
 - README, CLAUDE.md, ESTADO_DO_PROJETO (com a sessão do rebrand) e BACKLOG atualizados; screenshots do README refeitas (Edge headless, 1440x900, conta principal).
 - Ficou com o nome antigo **de propósito**: o banco e a role do Neon (`ondilow` / `ondilow_owner` na `DATABASE_URL` do `.env`) — renomear exigiria recriar o banco — e os documentos anteriores a 2026-09-26.
 - 192 testes passando a partir da pasta nova; app conferido rodando pela config `kactus`.
+
+### Fase 7 (2026-09-26)
+- Espelho atualizado com commit-ponte (pai = ponta do espelho, árvore = `HEAD:Kactus`), aceito como fast-forward, sem force-push.
+- Repositório do GitHub renomeado `Muriloiaprd/Ondilow` → `Muriloiaprd/Kactus` (o GitHub redireciona a URL antiga); remote local `ondilow` → `kactus`.
+- Projeto Neon `wispy-mountain-04630520` renomeado para "Kactus" (só o nome de exibição; ID, banco, role e connection string iguais).
+- **Sincronizar o espelho daqui pra frente** (na raiz `C:\Cloude Code`, depois do commit):
+  ```bash
+  git fetch kactus master
+  git push kactus $(git commit-tree HEAD:Kactus -p kactus/master -m "$(git log -1 --format=%B)"):refs/heads/master
+  ```
+  Cada sincronização vira um commit no espelho com a árvore da pasta `Kactus/` e a mensagem do último commit do monorepo.

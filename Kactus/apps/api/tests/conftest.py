@@ -1,7 +1,7 @@
 """
 Infra de teste de integracao (TestClient + Postgres real).
 
-Roda contra a branch Neon `test` do projeto Ondilow (br-solitary-poetry-acj7i9ej),
+Roda contra a branch Neon `test` do projeto Kactus (br-solitary-poetry-acj7i9ej),
 uma copia isolada (copy-on-write) da `main` -- escrever ou apagar dados aqui
 NUNCA toca na `main` (onde estao as atividades reais do usuario). O
 DATABASE_URL e forcado por variavel de ambiente ANTES de qualquer import de
