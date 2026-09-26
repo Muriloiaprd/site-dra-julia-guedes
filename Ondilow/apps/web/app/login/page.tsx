@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { Logo } from "@/components/Logo";
 import { login, setToken } from "@/lib/api";
 
 export default function LoginPage() {
@@ -114,7 +113,7 @@ export default function LoginPage() {
 
         {/* logo */}
         <div className="mb-8 flex justify-center">
-          <Logo size={40} />
+          <img src="/brand/kactus-empilhada.png" alt="Kactus" style={{ height: 88, width: "auto" }} />
         </div>
 
         {/* heading */}

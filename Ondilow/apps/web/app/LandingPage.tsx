@@ -75,23 +75,9 @@ export default function LandingPage() {
       {/* NAV */}
       <nav id="nav">
         <div className="nav-in">
-          <a href="#" className="logo">
-            <svg width="34" height="34" viewBox="0 0 36 36" fill="none">
-              <defs>
-                <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#C6FF00" /><stop offset="100%" stopColor="#00FF66" />
-                </linearGradient>
-                <filter id="gf1"><feGaussianBlur stdDeviation="1.2" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-              </defs>
-              <line x1="0" y1="18" x2="6" y2="18" stroke="#00FF66" strokeWidth="1.5" opacity=".7" />
-              <line x1="1" y1="13" x2="5.5" y2="13" stroke="#00FF66" strokeWidth="1" opacity=".4" />
-              <line x1="1" y1="23" x2="5.5" y2="23" stroke="#00FF66" strokeWidth="1" opacity=".4" />
-              <circle cx="21" cy="18" r="13" stroke="url(#lg1)" strokeWidth="2" fill="none" filter="url(#gf1)" />
-              <line x1="21" y1="8.5" x2="21" y2="15" stroke="url(#lg1)" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M13.5 13 A10 10 0 1 0 28.5 13" stroke="url(#lg1)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-            </svg>
+          <a href="#" className="logo" aria-label="Kactus">
             <div>
-              <span className="logo-text">ndilow</span>
+              <img src="/brand/kactus-wordmark.png" alt="Kactus" className="logo-mark" />
               <span className="logo-sub">corrida sem limites</span>
             </div>
           </a>
@@ -463,15 +449,11 @@ export default function LandingPage() {
       <footer>
         <div className="wrap">
           <div className="footer-in">
-            <a href="#" className="logo">
-              <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
-                <defs><linearGradient id="lg3" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#C6FF00" /><stop offset="100%" stopColor="#00FF66" /></linearGradient></defs>
-                <line x1="0" y1="18" x2="6" y2="18" stroke="#00FF66" strokeWidth="1.5" opacity=".6" />
-                <circle cx="21" cy="18" r="13" stroke="url(#lg3)" strokeWidth="2" fill="none" />
-                <line x1="21" y1="8.5" x2="21" y2="15" stroke="url(#lg3)" strokeWidth="2.5" strokeLinecap="round" />
-                <path d="M13.5 13 A10 10 0 1 0 28.5 13" stroke="url(#lg3)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-              </svg>
-              <div><span className="logo-text" style={{ fontSize: '1rem' }}>ndilow</span><span className="logo-sub">corrida sem limites</span></div>
+            <a href="#" className="logo" aria-label="Kactus">
+              <div>
+                <img src="/brand/kactus-wordmark.png" alt="Kactus" className="logo-mark" style={{ height: 20 }} />
+                <span className="logo-sub">corrida sem limites</span>
+              </div>
             </a>
             <ul className="foot-links">
               <li><a href="#treinar">Treinar</a></li>

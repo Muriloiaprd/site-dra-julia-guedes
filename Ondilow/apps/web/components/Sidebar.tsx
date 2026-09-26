@@ -123,7 +123,7 @@ export function Sidebar() {
         <div className="pointer-events-none absolute inset-x-0 top-0 h-40" style={{ background: "radial-gradient(ellipse 80% 100% at 30% 0%, rgba(0,255,102,0.07), transparent 70%)" }} />
 
         <Link href="/dashboard" className="relative flex h-[72px] items-center justify-center px-5 lg:justify-start" aria-label="Kactus — Dashboard">
-          <Logo size={30} textClassName="hidden lg:flex" />
+          <Logo size={30} compactBelowLg />
         </Link>
 
         <nav className="relative flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4 pt-2" aria-label="Navegação lateral">
