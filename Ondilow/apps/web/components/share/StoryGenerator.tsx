@@ -7,7 +7,6 @@ import { loadArt, storyColor } from "@/lib/story/art";
 import { loadStoryFonts, prepareCanvas, STORY_H, STORY_W } from "@/lib/story/engine";
 import { availableLayouts } from "@/lib/story/layouts";
 import { resolveStoryMetrics } from "@/lib/story/metrics";
-import { LOGO_HI_RES } from "@/lib/story/regions";
 import type { StoryPhoto } from "@/lib/story/types";
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -28,7 +27,6 @@ export function StoryGenerator({ activity, onClose }: { activity: ActivityDetail
   const [layoutIndex, setLayoutIndex] = useState(0);
   const [photo, setPhoto] = useState<{ image: HTMLImageElement; offsetX: number; offsetY: number; zoom: number } | null>(null);
   const [art, setArt] = useState<{ layoutId: string; image: HTMLImageElement } | null>(null);
-  const [logo, setLogo] = useState<HTMLImageElement | null>(null);
   const [transparent, setTransparent] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -55,7 +53,6 @@ export function StoryGenerator({ activity, onClose }: { activity: ActivityDetail
 
   useEffect(() => {
     loadStoryFonts().then(() => setFontsReady(true));
-    loadArt(LOGO_HI_RES).then(setLogo).catch(() => setLogo(null));
   }, []);
 
   useEffect(() => {
@@ -94,11 +91,10 @@ export function StoryGenerator({ activity, onClose }: { activity: ActivityDetail
       routePoints,
       photo: photo as StoryPhoto | null,
       art: artForLayout,
-      logo,
       transparent,
       color,
     });
-  }, [layout, artForLayout, logo, activity, metrics, routePoints, photo, transparent, color, fontsReady]);
+  }, [layout, artForLayout, activity, metrics, routePoints, photo, transparent, color, fontsReady]);
 
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -243,7 +239,7 @@ export function StoryGenerator({ activity, onClose }: { activity: ActivityDetail
         {photoError && <p className="mt-2 text-center text-xs text-brand-danger">{photoError}</p>}
 
         {layouts.length > 1 && (
-          // 15 modelos não cabem numa linha: a fileira rola na horizontal e o escolhido vem pro centro
+          // 19 modelos não cabem numa linha: a fileira rola na horizontal e o escolhido vem pro centro
           <div className="mt-4 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Modelos">
             {layouts.map((l, i) => (
               <button

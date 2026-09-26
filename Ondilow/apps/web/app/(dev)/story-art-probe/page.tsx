@@ -17,21 +17,25 @@ interface Rect {
 }
 
 const IMAGES = [
-  { id: "rota-icones", src: "/story-art/rota-icones.png" },
-  { id: "icones-esquerda", src: "/story-art/icones-esquerda.png" },
-  { id: "rota-faixa", src: "/story-art/rota-faixa.png" },
-  { id: "desafio", src: "/story-art/desafio.png" },
-  { id: "stats-direita", src: "/story-art/stats-direita.png" },
   { id: "icones-direita", src: "/story-art/icones-direita.png" },
+  { id: "icones-esquerda", src: "/story-art/icones-esquerda.png" },
   { id: "rota-minimal", src: "/story-art/rota-minimal.png" },
   { id: "logo-lateral", src: "/story-art/logo-lateral.png" },
   { id: "rota-limpa", src: "/story-art/rota-limpa.png" },
   { id: "faixa-simples", src: "/story-art/faixa-simples.png" },
+  { id: "rota-faixa", src: "/story-art/rota-faixa.png" },
   { id: "faixa-listras", src: "/story-art/faixa-listras.png" },
+  { id: "mao-apontando", src: "/story-art/mao-apontando.png" },
+  { id: "simbolo-metricas", src: "/story-art/simbolo-metricas.png" },
+  { id: "tenis", src: "/story-art/tenis.png" },
   { id: "bandeiras", src: "/story-art/bandeiras.png" },
   { id: "icones-solidos", src: "/story-art/icones-solidos.png" },
+  { id: "rota-icones", src: "/story-art/rota-icones.png" },
   { id: "rotulos-centro", src: "/story-art/rotulos-centro.png" },
   { id: "moldura-tracejada", src: "/story-art/moldura-tracejada.png" },
+  { id: "desafio", src: "/story-art/desafio.png" },
+  { id: "stats-direita", src: "/story-art/stats-direita.png" },
+  { id: "rota-grande", src: "/story-art/rota-grande.png" },
 ];
 
 /**

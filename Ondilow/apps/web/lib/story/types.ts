@@ -16,8 +16,6 @@ export interface StoryLayoutData {
   photo: StoryPhoto | null;
   /** Arte original (PNG do Canva) já carregada — cada layout monta sua própria camada a partir dela. */
   art: HTMLImageElement;
-  /** Logo em alta resolução (o arquivo original do usuário), desenhada por cima da logo embutida na arte. */
-  logo: HTMLImageElement | null;
   transparent: boolean;
   color: string;
 }

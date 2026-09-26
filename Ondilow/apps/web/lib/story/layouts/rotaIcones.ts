@@ -1,16 +1,13 @@
 import { buildArtLayer, clearedBox } from "../art";
-import { drawCoverImage, drawRoute, drawScrim, projectRoute, STORY_H, STORY_W, textWithShadow } from "../engine";
-import { metricByKey } from "../metrics";
+import { drawRoute, projectRoute } from "../engine";
 import { ROTA_ICONES as R } from "../regions";
 import type { StoryLayout } from "../types";
-
-const KEYS = ["distance", "duration", "pace", "elevation"] as const;
+import { drawPhotoAndScrims, drawValueColumn, MONTSERRAT_BOLD } from "./shared";
 
 /**
- * Modelo "13" do usuário: rota grande à esquerda, coluna de ícones à direita
- * com o valor de cada métrica. A rota de exemplo é apagada inteira (os ícones
- * ficam dentro da caixa dela, então saem junto) e os ícones voltam por cima do
- * traçado novo — assim a rota ocupa toda a área que o modelo reservou.
+ * Modelo "14" do usuário: coluna de ícones com o valor de cada métrica no meio
+ * da arte, rota pequena embaixo à direita e a logo na diagonal embaixo à
+ * esquerda. O topo fica livre pra foto.
  */
 export const rotaIcones: StoryLayout = {
   id: "rota-icones",
@@ -18,13 +15,10 @@ export const rotaIcones: StoryLayout = {
   art: R.art,
   requiresRoute: true,
   draw(ctx, data) {
-    if (data.photo && !data.transparent) {
-      drawCoverImage(ctx, data.photo.image, { x: 0, y: 0, w: STORY_W, h: STORY_H }, data.photo);
-    }
-    if (!data.transparent) {
-      drawScrim(ctx, { x: 0, y: 1150, w: STORY_W, h: STORY_H - 1150 }, "bottom", 0.75);
-      drawScrim(ctx, { x: 0, y: 0, w: STORY_W, h: 200 }, "top", 0.45);
-    }
+    drawPhotoAndScrims(ctx, data, [
+      { box: { x: 0, y: 500, w: 1080, h: 720 }, direction: "flat", strength: 0.4 },
+      { box: { x: 0, y: 1220, w: 1080, h: 700 }, direction: "bottom", strength: 0.75 },
+    ]);
 
     const base = buildArtLayer(
       data.art,
@@ -38,17 +32,6 @@ export const rotaIcones: StoryLayout = {
     const coords = projectRoute(data.routePoints, R.routePlot);
     if (coords) drawRoute(ctx, coords, { color: data.color, clip: clearedBox(R.route) });
 
-    const icons = buildArtLayer(data.art, `${R.art}#icons`, { mode: "keep", rects: R.icons }, data.color);
-    ctx.drawImage(icons, 0, 0);
-
-    R.values.forEach((slot, i) => {
-      const metric = metricByKey(data.metrics, KEYS[i]);
-      if (!metric) return;
-      textWithShadow(ctx, metric.value + (metric.unit ? ` ${metric.unit}` : ""), slot.x, slot.y, {
-        font: `800 ${slot.size}px 'Montserrat', sans-serif`,
-        shadowBlur: 6,
-        shadowColor: "rgba(0,0,0,0.45)",
-      });
-    });
+    drawValueColumn(ctx, data, R.values, R.maxW, MONTSERRAT_BOLD);
   },
 };

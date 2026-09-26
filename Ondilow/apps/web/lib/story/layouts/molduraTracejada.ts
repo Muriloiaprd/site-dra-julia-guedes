@@ -1,11 +1,11 @@
 import { buildArtLayer } from "../art";
-import { fitFontSize, textWithShadow } from "../engine";
+import { fitFontSize } from "../engine";
 import { metricByKey, type StoryMetric } from "../metrics";
 import { MOLDURA_TRACEJADA as R } from "../regions";
 import type { StoryLayout } from "../types";
-import { CONDENSED, drawPhotoAndScrims } from "./shared";
+import { CONDENSED, drawPhotoAndScrims, squeezedText } from "./shared";
 
-/** Ícone de cada linha na arte: disco da logo → tempo, alfinete → distância, cronômetro → ritmo. */
+/** Ícone de cada linha na arte: símbolo da marca → tempo, alfinete → distância, cronômetro → ritmo. */
 const KEYS = ["duration", "distance", "pace"] as const;
 
 /**
@@ -29,7 +29,7 @@ function formatDate(iso: string): string {
 }
 
 /**
- * Modelo "15" do usuário: moldura de linhas tracejadas, três linhas de ícone
+ * Modelo "16" do usuário: moldura de linhas tracejadas, três linhas de ícone
  * + valor em fonte condensada e a data da atividade embaixo. Os ícones são
  * brancos na arte — o recolor por esporte não mexe neles (saturação zero),
  * só nas linhas tracejadas.
@@ -46,7 +46,7 @@ export const molduraTracejada: StoryLayout = {
       R.art,
       { mode: "clear", rects: [...R.valueClears, R.dateClear] },
       data.color,
-      [R.logoDisc]
+      [R.logo]
     );
     ctx.drawImage(base, 0, 0);
 
@@ -55,16 +55,16 @@ export const molduraTracejada: StoryLayout = {
       const metric = metricByKey(data.metrics, KEYS[i]);
       if (!metric) return;
       const text = frameText(metric);
-      textWithShadow(ctx, text, slot.x, slot.y, {
-        font: font(fitFontSize(ctx, text, font, R.maxW, slot.size, 60)),
+      squeezedText(ctx, text, slot.x, slot.y, R.squeeze, {
+        font: font(fitFontSize(ctx, text, font, R.maxW / R.squeeze, slot.size, 60)),
         shadowBlur: 12,
         shadowColor: "rgba(0,0,0,0.5)",
       });
     });
 
     const date = formatDate(data.activity.start_time);
-    textWithShadow(ctx, date, R.date.x, R.date.y, {
-      font: font(fitFontSize(ctx, date, font, 700, R.date.size, 60)),
+    squeezedText(ctx, date, R.date.x, R.date.y, R.squeeze, {
+      font: font(fitFontSize(ctx, date, font, 700 / R.squeeze, R.date.size, 60)),
       align: "center",
       shadowBlur: 12,
       shadowColor: "rgba(0,0,0,0.5)",

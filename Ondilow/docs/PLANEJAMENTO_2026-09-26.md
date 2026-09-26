@@ -1,7 +1,7 @@
 # Ondilow → Kactus — Planejamento do rebrand (2026-09-26)
 
 **Criado em**: 2026-09-26
-**Status**: ABERTO. Fases 0, 1 e 2 concluídas em 2026-09-26.
+**Status**: ABERTO. Fases 0 a 4 concluídas em 2026-09-26 (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md)
 
 ## Como retomar
@@ -120,3 +120,16 @@ Criar `Ondilow/docs/PLANEJAMENTO_2026-09-26.md` com todo este conteúdo. Commita
 - **Login**: com o `ondilow_token` antigo no navegador, recarregar e confirmar que a sessão continua.
 - **Duni**: uma mensagem no coach, conferindo que ela se apresenta como do Kactus.
 - **Git**: árvore limpa após cada fase e o push do espelho aceito como fast-forward.
+
+---
+
+## Registro de execução
+
+### Fases 3 e 4 (2026-09-26) — feitas juntas
+- As 19 artes foram copiadas para `public/story-art/` pelo mapa acima; as 4 novas viraram `mao-apontando`, `simbolo-metricas`, `tenis` e `rota-grande`. O carrossel segue a numeração 1–19 do usuário.
+- **Medição**: cada linha de texto de exemplo foi ajustada no canvas do navegador contra as fontes candidatas (fonte, peso, tamanho, espaçamento), maximizando a sobreposição com a arte. Resultado: Inter 700 na maioria (2, 3, 4, 10, 11, faixa de 3 colunas com -5% de espaçamento, 18), Montserrat 700 no 1 e no 14, Montserrat 900 com +5% no 17, Georgia no 9, Arial 700 nos valores do 13 (a arte usa Open Sans) e Impact **comprimida na horizontal** no 15 (×0,67) e no 16 (×0,78), porque a condensada do Canva é bem mais estreita.
+- **Desvio do plano — logo de alta resolução removida**: a logo embutida nas artes Kactus é tão nítida quanto o arquivo original reduzido (comparado lado a lado), então o `logo.png` e a camada `logoHiRes` saíram. Cada layout só protege a caixa da logo do recolor (`noTint`).
+- **Faixa de 3 colunas segue a arte**: ordem distância, ritmo, tempo e rótulo sem caixa alta ("Distância", "Ritmo médio", "Tempo").
+- **Modelo 18**: sombra dura agora preta a 65% (era cinza), como na arte nova.
+- Ferramenta nova só de desenvolvimento: `app/(dev)/story-calibrate` desenha um modelo com os valores de exemplo da arte e mostra a diferença pixel a pixel (`?id=`), ou o modelo numa cor de esporte (`&color=`).
+- Conferido: os 19 modelos no gerador real (atividade com GPS), comparação com a arte em todos e recolor com cor de outro esporte (logo não tinge).

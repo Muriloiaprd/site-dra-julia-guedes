@@ -1,29 +1,24 @@
 import { sportLabel } from "@/lib/utils";
 import { buildArtLayer } from "../art";
-import { drawCoverImage, drawScrim, fitFontSize, STORY_H, STORY_W, textWithShadow } from "../engine";
+import { fitFontSize, textWithShadow } from "../engine";
 import { metricByKey } from "../metrics";
 import { DESAFIO as R } from "../regions";
 import type { StoryLayout } from "../types";
+import { drawPhotoAndScrims } from "./shared";
 
 const KEYS = ["duration", "pace", "distance"] as const;
 
 /**
- * Modelo "16" do usuário: título gigante em 2 linhas, listras no topo, 3
- * valores com rótulo embaixo, logo em badge preto e xadrez na base. A logo aqui
- * é a variante monocromática dentro do badge, então não recebe o arquivo
- * colorido de alta resolução.
+ * Modelo "17" do usuário: título gigante em 2 linhas, listras no topo, 3
+ * valores com rótulo embaixo, logo em badge preto e xadrez na base. Título e
+ * valores na cor do esporte, com o espaçamento aberto da arte.
  */
 export const desafio: StoryLayout = {
   id: "desafio",
   label: "Desafio",
   art: R.art,
   draw(ctx, data) {
-    if (data.photo && !data.transparent) {
-      drawCoverImage(ctx, data.photo.image, { x: 0, y: 0, w: STORY_W, h: STORY_H }, data.photo);
-    }
-    if (!data.transparent) {
-      drawScrim(ctx, { x: 0, y: 900, w: STORY_W, h: STORY_H - 900 }, "bottom", 0.9);
-    }
+    drawPhotoAndScrims(ctx, data, [{ box: { x: 0, y: 900, w: 1080, h: 1020 }, direction: "bottom", strength: 0.9 }]);
 
     const base = buildArtLayer(
       data.art,
@@ -39,36 +34,40 @@ export const desafio: StoryLayout = {
     const mid = Math.ceil(words.length / 2);
     const lines = [words.slice(0, mid).join(" ") || title, words.slice(mid).join(" ")];
 
-    ctx.save();
-    ctx.textAlign = "left";
-    ctx.fillStyle = data.color;
+    const titleFont = (s: number) => `900 ${s}px 'Montserrat', sans-serif`;
     lines.forEach((line, i) => {
       if (!line) return;
       const slot = R.title[i];
-      const fontAt = (size: number) => `900 ${size}px 'Montserrat', sans-serif`;
-      ctx.font = fontAt(fitFontSize(ctx, line, fontAt, slot.maxW, slot.size, 40));
-      ctx.fillText(line, slot.x, slot.y);
+      const size = fitFontSize(ctx, line, titleFont, slot.maxW, slot.size, 40, R.tracking);
+      textWithShadow(ctx, line, slot.x, slot.y, {
+        font: titleFont(size),
+        letterSpacing: size * R.tracking,
+        color: data.color,
+        shadowBlur: 0,
+        shadowOffset: { x: 0, y: 0 },
+      });
     });
-    ctx.restore();
 
     R.cols.forEach((col, i) => {
       const metric = metricByKey(data.metrics, KEYS[i]);
       if (!metric) return;
       const value = metric.value + (metric.unit ?? "");
-      const valueFont = (s: number) => `800 ${s}px 'Montserrat', sans-serif`;
-      ctx.save();
-      ctx.font = valueFont(fitFontSize(ctx, value, valueFont, R.colMaxW, col.value.size, 34));
-      ctx.textAlign = "left";
-      ctx.fillStyle = data.color;
-      ctx.fillText(value, col.value.x, col.value.y);
-      ctx.restore();
+      const valueFont = (s: number) => `900 ${s}px 'Montserrat', sans-serif`;
+      const size = fitFontSize(ctx, value, valueFont, R.colMaxW, col.value.size, 34, R.tracking);
+      textWithShadow(ctx, value, col.value.x, col.value.y, {
+        font: valueFont(size),
+        letterSpacing: size * R.tracking,
+        color: data.color,
+        shadowBlur: 0,
+        shadowOffset: { x: 0, y: 0 },
+      });
 
       const label = metric.label.toUpperCase();
-      const labelFont = (s: number) => `700 ${s}px 'Montserrat', sans-serif`;
+      const labelFont = (s: number) => `400 ${s}px 'Inter', sans-serif`;
       textWithShadow(ctx, label, col.label.x, col.label.y, {
         font: labelFont(fitFontSize(ctx, label, labelFont, R.colMaxW, col.label.size, 20)),
-        color: "#fff",
         shadowBlur: 0,
+        shadowOffset: { x: 0, y: 0 },
       });
     });
   },

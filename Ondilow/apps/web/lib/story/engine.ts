@@ -17,14 +17,12 @@ let fontsPromise: Promise<void> | null = null;
 
 /**
  * Carrega as fontes usadas no gerador de Stories, auto-hospedadas via
- * FontFace API. Montserrat (700/800/900) é a fonte dos títulos e valores,
- * igual ao que o usuário usou no Canva. O modelo "Stats à direita" usa Inter
- * (fonte variável, único arquivo cobrindo os pesos 700–900) — o usuário
- * confirmou que o Canva usou "Canva Sans" nesse modelo, que é proprietária da
- * Canva e não pode ser redistribuída; Inter é a aproximação livre mais
- * próxima (grotesque geométrica, mesma família de peso usada por várias
- * ferramentas de design). Poppins fica só pra outras partes do app
- * (dashboard, etc.), não é usada aqui. Idempotente.
+ * FontFace API. Inter (fonte variável, um arquivo cobrindo 100–900) é a fonte
+ * da maioria das artes Kactus — nos rótulos finos (400/500) e nos valores
+ * (700). Montserrat (700/800/900) fica nos modelos cuja arte usa essa família
+ * (1, 14 e 17). As demais (Impact, Georgia, Arial) vêm com o Windows, onde o
+ * app roda. Poppins fica só pra outras partes do app, não é usada aqui.
+ * Idempotente.
  */
 export function loadStoryFonts(): Promise<void> {
   if (fontsPromise) return fontsPromise;
@@ -34,7 +32,7 @@ export function loadStoryFonts(): Promise<void> {
       ["Montserrat", "700", "/fonts/Montserrat-700.woff2"],
       ["Montserrat", "800", "/fonts/Montserrat-800.woff2"],
       ["Montserrat", "900", "/fonts/Montserrat-900.woff2"],
-      ["Inter", "700 900", "/fonts/Inter-Variable.woff2"],
+      ["Inter", "100 900", "/fonts/Inter-Variable.woff2"],
     ];
     await Promise.all(
       specs.map(async ([family, weight, url]) => {
@@ -195,19 +193,25 @@ export function drawScrim(
   ctx.restore();
 }
 
-/** Reduz o tamanho da fonte até `text` caber em `maxWidth`, sem passar de `maxSize`. */
+/**
+ * Reduz o tamanho da fonte até `text` caber em `maxWidth`, sem passar de
+ * `maxSize`. `trackingEm` é o espaçamento entre letras em fração do tamanho
+ * (o mesmo que o layout vai usar ao desenhar).
+ */
 export function fitFontSize(
   ctx: CanvasRenderingContext2D,
   text: string,
   fontSpec: (size: number) => string,
   maxWidth: number,
   maxSize: number,
-  minSize = 24
+  minSize = 24,
+  trackingEm = 0
 ): number {
   let size = maxSize;
   ctx.save();
   while (size > minSize) {
     ctx.font = fontSpec(size);
+    ctx.letterSpacing = `${size * trackingEm}px`;
     if (ctx.measureText(text).width <= maxWidth) break;
     size -= 2;
   }
@@ -227,12 +231,15 @@ export function textWithShadow(
     baseline?: CanvasTextBaseline;
     shadowBlur?: number;
     shadowColor?: string;
-    /** Deslocamento da sombra. O modelo 17 usa sombra dura deslocada nos dois eixos. */
+    /** Deslocamento da sombra. O modelo 18 usa sombra dura deslocada nos dois eixos. */
     shadowOffset?: { x: number; y: number };
+    /** Espaçamento entre letras, em px (negativo aperta). */
+    letterSpacing?: number;
   }
 ): void {
   ctx.save();
   ctx.font = opts.font;
+  ctx.letterSpacing = `${opts.letterSpacing ?? 0}px`;
   ctx.textAlign = opts.align ?? "left";
   ctx.textBaseline = opts.baseline ?? "alphabetic";
   ctx.shadowColor = opts.shadowColor ?? "rgba(0,0,0,0.65)";

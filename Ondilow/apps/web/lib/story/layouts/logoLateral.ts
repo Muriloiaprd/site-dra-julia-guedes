@@ -1,7 +1,7 @@
 import { buildArtLayer } from "../art";
 import { LOGO_LATERAL as R } from "../regions";
 import type { StoryLayout } from "../types";
-import { drawPhotoAndScrims, drawValueColumn } from "./shared";
+import { drawPhotoAndScrims, drawValueColumn, INTER_BOLD } from "./shared";
 
 /**
  * Modelo "4" do usuário: logo vertical num badge preto colado na borda
@@ -18,6 +18,6 @@ export const logoLateral: StoryLayout = {
     const base = buildArtLayer(data.art, R.art, { mode: "clear", rects: R.valueClears }, data.color, [R.badge]);
     ctx.drawImage(base, 0, 0);
 
-    drawValueColumn(ctx, data, R.values, R.maxW);
+    drawValueColumn(ctx, data, R.values, R.maxW, INTER_BOLD);
   },
 };
