@@ -121,7 +121,7 @@ export default function LandingPage() {
               <span className="accent">RESULTADOS</span>
               AMANHÃ.
             </h1>
-            <p className="hero-sub">Ondilow é a plataforma de performance para atletas sérios. Registre, analise, evolua — com as mesmas métricas que atletas de elite usam.</p>
+            <p className="hero-sub">Kactus é a plataforma de performance para atletas sérios. Registre, analise, evolua — com as mesmas métricas que atletas de elite usam.</p>
             <div className="ctas">
               <Link href="/login" className="btn-g">
                 Começar Agora{' '}
@@ -299,7 +299,7 @@ export default function LandingPage() {
             <div className="reveal">
               <div className="sec-tag">Evolução</div>
               <h2 className="evo-q">PEQUENOS AVANÇOS GERAM <span className="acc">GRANDES RESULTADOS.</span></h2>
-              <p className="evo-body">Com o Ondilow você visualiza sua evolução semana a semana. Forma física (CTL), fadiga (ATL) e balanço (TSB) calculados com as mesmas métricas usadas por atletas profissionais.</p>
+              <p className="evo-body">Com o Kactus você visualiza sua evolução semana a semana. Forma física (CTL), fadiga (ATL) e balanço (TSB) calculados com as mesmas métricas usadas por atletas profissionais.</p>
               <div className="evo-nums">
                 <div className="ev"><span className="ev-v">+23%</span><span className="ev-l">Evolução de pace</span></div>
                 <div className="ev"><span className="ev-v">42d</span><span className="ev-l">Janela CTL</span></div>
@@ -479,7 +479,7 @@ export default function LandingPage() {
               <li><a href="#valores">Comunidade</a></li>
               <li><a href="#planos">Planos</a></li>
             </ul>
-            <span className="foot-copy">© 2026 Ondilow. Corrida Sem Limites.</span>
+            <span className="foot-copy">© 2026 Kactus. Corrida Sem Limites.</span>
           </div>
         </div>
       </footer>

@@ -253,7 +253,7 @@ export default function CoachPage() {
             <AiOrb size={76} active={!notConfigured} />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 font-mono text-[0.62rem] tracking-[0.2em]">
-                <span className="text-brand-accent">ONDILOW · TREINADORA DE IA</span>
+                <span className="text-brand-accent">KACTUS · TREINADORA DE IA</span>
                 <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5" style={{ color: notConfigured ? "#FFC145" : "#00FF66", background: notConfigured ? "rgba(255,193,69,0.08)" : "rgba(0,255,102,0.06)", boxShadow: `inset 0 0 0 1px ${notConfigured ? "rgba(255,193,69,0.3)" : "rgba(0,255,102,0.22)"}` }}>
                   <StatusDot color={notConfigured ? "#FFC145" : "#00FF66"} pulse={!notConfigured} size={5} />
                   {busy ? "ANALISANDO" : notConfigured ? "NÃO CONFIGURADO" : "PRONTO"}

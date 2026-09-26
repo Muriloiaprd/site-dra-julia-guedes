@@ -319,7 +319,7 @@ def build_client(email: str | None = None, password: str | None = None):
     except GarminConnectAuthenticationError as e:
         raise GarminSyncError(
             f"O Garmin recusou as credenciais de '{email}'. Confira o e-mail (use "
-            "--garmin-email se o login do Garmin for diferente do e-mail do Ondilow) "
+            "--garmin-email se o login do Garmin for diferente do e-mail do Kactus) "
             "e a senha."
         ) from e
     return client

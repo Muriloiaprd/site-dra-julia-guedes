@@ -122,7 +122,7 @@ export function Sidebar() {
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-40" style={{ background: "radial-gradient(ellipse 80% 100% at 30% 0%, rgba(0,255,102,0.07), transparent 70%)" }} />
 
-        <Link href="/dashboard" className="relative flex h-[72px] items-center justify-center px-5 lg:justify-start" aria-label="Ondilow — Dashboard">
+        <Link href="/dashboard" className="relative flex h-[72px] items-center justify-center px-5 lg:justify-start" aria-label="Kactus — Dashboard">
           <Logo size={30} textClassName="hidden lg:flex" />
         </Link>
 
@@ -188,7 +188,7 @@ export function Sidebar() {
         className="sticky top-0 z-40 flex h-14 items-center justify-between px-4 md:hidden"
         style={{ background: "rgba(10,10,10,0.82)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
       >
-        <Link href="/dashboard" aria-label="Ondilow — Dashboard"><Logo size={26} /></Link>
+        <Link href="/dashboard" aria-label="Kactus — Dashboard"><Logo size={26} /></Link>
         <Link href="/profile" aria-label="Perfil"><Avatar user={user} avatarUrl={avatarUrl} size={30} /></Link>
       </header>
 

@@ -245,7 +245,7 @@ export default function LoginPage() {
 
         {/* footer */}
         <p className="mt-6 text-center text-xs" style={{ color: "#444" }}>
-          Ondilow · Corrida Sem Limites
+          Kactus · Corrida Sem Limites
         </p>
       </div>
 

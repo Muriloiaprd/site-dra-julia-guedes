@@ -1,4 +1,4 @@
-"""Importa atividades do Garmin Connect para o Ondilow.
+"""Importa atividades do Garmin Connect para o Kactus.
 
 Primeira vez (pede senha e, se a conta tiver, o codigo MFA):
     uv run python -m ondilow_api.scripts.sync_garmin --email seu@email.com --garmin-login
@@ -35,7 +35,7 @@ _DEFAULT_DAYS = 30
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Importa atividades do Garmin Connect.")
-    parser.add_argument("--email", required=True, help="e-mail da conta no Ondilow")
+    parser.add_argument("--email", required=True, help="e-mail da conta no Kactus")
     parser.add_argument("--garmin-email", help="e-mail do Garmin, se diferente")
     parser.add_argument("--garmin-login", action="store_true", help="forca login com senha")
     parser.add_argument("--since", help="data inicial AAAA-MM-DD (padrao: incremental)")
@@ -47,7 +47,7 @@ def main() -> int:
     with SessionLocal() as db:
         user = db.execute(select(User).where(User.email == args.email)).scalar_one_or_none()
         if user is None:
-            print(f"Usuario '{args.email}' nao encontrado no Ondilow.", file=sys.stderr)
+            print(f"Usuario '{args.email}' nao encontrado no Kactus.", file=sys.stderr)
             return 1
 
         start = _resolve_start(db, user.id, args)

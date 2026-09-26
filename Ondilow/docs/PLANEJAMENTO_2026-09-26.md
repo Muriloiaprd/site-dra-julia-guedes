@@ -1,7 +1,7 @@
 # Ondilow → Kactus — Planejamento do rebrand (2026-09-26)
 
 **Criado em**: 2026-09-26
-**Status**: ABERTO. Nenhuma fase além da 0 foi executada.
+**Status**: ABERTO. Fases 0 e 1 concluídas em 2026-09-26.
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md)
 
 ## Como retomar

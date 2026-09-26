@@ -53,7 +53,7 @@ _EQUIV_EF = 0.03           # +-3% de eficiencia = estavel
 _GAP_DAYS = 7              # buraco de dados que vale avisar
 _NEGATIVE_FEELINGS = {"cansado", "pernas_pesadas", "sem_energia"}
 
-# Dados que o prompt da Duni pede e o Ondilow nao tem (ver PLANEJAMENTO_2026-09-21).
+# Dados que o prompt da Duni pede e o Kactus nao tem (ver PLANEJAMENTO_2026-09-21).
 ALWAYS_UNAVAILABLE = [
     "sono",
     "HRV",

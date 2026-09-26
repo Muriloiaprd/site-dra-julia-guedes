@@ -151,7 +151,7 @@ export function StoryGenerator({ activity, onClose }: { activity: ActivityDetail
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `ondilow_story_${activity.id}.png`;
+      a.download = `kactus_story_${activity.id}.png`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
@@ -167,9 +167,9 @@ export function StoryGenerator({ activity, onClose }: { activity: ActivityDetail
     try {
       const blob = await toBlob();
       if (!blob) throw new Error("Não foi possível gerar a imagem");
-      const file = new File([blob], `ondilow_story_${activity.id}.png`, { type: "image/png" });
+      const file = new File([blob], `kactus_story_${activity.id}.png`, { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Ondilow" });
+        await navigator.share({ files: [file], title: "Kactus" });
       } else {
         await handleSave();
       }

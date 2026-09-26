@@ -137,7 +137,7 @@ export function statusHeadline(readiness: number | null): string {
 
 export function statusSubtitle(readiness: number | null, rec: TrainingRecommendation | null): string {
   if (rec?.detail) return rec.detail;
-  if (readiness == null) return "Importe suas atividades para o Ondilow começar a interpretar sua forma.";
+  if (readiness == null) return "Importe suas atividades para o Kactus começar a interpretar sua forma.";
   if (readiness >= 80) return "Seu corpo responde bem aos estímulos. Mantenha o foco na consistência.";
   if (readiness >= 60) return "Recuperação em dia — sustente o ritmo com consistência.";
   if (readiness >= 40) return "Sinais de fadiga moderada. Ajuste a intensidade de hoje.";

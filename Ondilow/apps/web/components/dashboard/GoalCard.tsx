@@ -28,7 +28,7 @@ export function GoalCard({ predictions, loading, className = "" }: { predictions
         Defina seu<br /><span className="text-brand-accent">próximo desafio</span>
       </h3>
       <p className="relative mt-2 text-[0.8rem] leading-relaxed text-brand-muted">
-        Escolha uma prova e deixe o ONDILOW acompanhar sua evolução.
+        Escolha uma prova e deixe o KACTUS acompanhar sua evolução.
       </p>
 
       <div className="relative mt-4 flex-1">
@@ -51,7 +51,7 @@ export function GoalCard({ predictions, loading, className = "" }: { predictions
             </ul>
           </div>
         ) : (
-          <div className="od-tile p-3 text-xs text-brand-muted">Importe corridas para o ONDILOW estimar seu potencial em 5K, 10K, 21K e 42K.</div>
+          <div className="od-tile p-3 text-xs text-brand-muted">Importe corridas para o KACTUS estimar seu potencial em 5K, 10K, 21K e 42K.</div>
         )}
       </div>
 
