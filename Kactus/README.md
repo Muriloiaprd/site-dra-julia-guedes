@@ -1,4 +1,4 @@
-# Ondilow
+# Kactus
 
 Plataforma pessoal de analise de treino (corrida + ciclismo + natacao) com metricas de carga (CTL/ATL/TSB/ACWR), previsoes, Treinador de IA e gerador visual proprio.
 
@@ -58,7 +58,7 @@ Instalar dependencias e rodar migrations:
 cd apps/api
 uv sync
 uv run alembic upgrade head
-uv run python -m ondilow_api.scripts.seed_user
+uv run python -m kactus_api.scripts.seed_user
 ```
 
 Instalar dependencias do frontend e do orquestrador:
@@ -68,7 +68,7 @@ cd ..
 pnpm install
 ```
 
-Subir tudo com um comando so, a partir da raiz `Ondilow/`:
+Subir tudo com um comando so, a partir da raiz `Kactus/`:
 
 ```bash
 pnpm dev
@@ -88,13 +88,13 @@ entao um treino ja subido a mao nao duplica.
 Primeira vez (pede a senha e, se a conta tiver MFA, o codigo):
 
 ```bash
-uv run --directory apps/api python -m ondilow_api.scripts.sync_garmin --email SEU@EMAIL --garmin-login
+uv run --directory apps/api python -m kactus_api.scripts.sync_garmin --email SEU@EMAIL --garmin-login
 ```
 
 Depois disso o token fica em `~/.garminconnect` e renova sozinho:
 
 ```bash
-uv run --directory apps/api python -m ondilow_api.scripts.sync_garmin --email SEU@EMAIL
+uv run --directory apps/api python -m kactus_api.scripts.sync_garmin --email SEU@EMAIL
 ```
 
 Sem `--since`/`--days`, o sync e incremental (parte da ultima atividade ja vinda do Garmin,
@@ -107,7 +107,7 @@ com 3 dias de margem). Use `--dry-run` para so listar, e `--limit N` para limita
 
 ## Estrutura
 
-- `apps/api/ondilow_api/` — `routers/`, `parsers/`, `metrics/` (carga, recordes, previsoes), `ai/` (Treinador de IA)
+- `apps/api/kactus_api/` — `routers/`, `parsers/`, `metrics/` (carga, recordes, previsoes), `ai/` (Treinador de IA)
 - `apps/web/app/` — paginas (dashboard, activities, metrics, predictions, coach, equipment, import, profile)
 - `apps/web/components/ui/` — primitivos do design system; `components/dashboard/` — blocos do dashboard; `components/share/` — gerador de Stories
 - `apps/web/lib/` — cliente da API (`api.ts`), formatacao (`utils.ts`), interpretacao de dados do atleta (`athlete.ts`), tokens JS (`theme.ts`), motor do gerador de Stories (`story/`)

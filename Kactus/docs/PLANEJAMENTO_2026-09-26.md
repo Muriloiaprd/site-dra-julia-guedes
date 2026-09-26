@@ -1,7 +1,7 @@
 # Ondilow → Kactus — Planejamento do rebrand (2026-09-26)
 
 **Criado em**: 2026-09-26
-**Status**: ABERTO. Fases 0 a 5 concluídas em 2026-09-26 (ver "Registro de execução" no fim).
+**Status**: ABERTO. Fases 0 a 6 concluídas em 2026-09-26 (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md)
 
 ## Como retomar
@@ -138,3 +138,10 @@ Criar `Ondilow/docs/PLANEJAMENTO_2026-09-26.md` com todo este conteúdo. Commita
 - Pacote `ondilow_api` → `kactus_api` (imports, testes, `alembic/env.py`, script `dev:api`), `pyproject`/`uv.lock` como `kactus-api`, `package.json` como `kactus`/`kactus-web`.
 - `kactus_token` com migração da chave antiga (conferido no navegador: a sessão continuou), evento `kactus:waking`, export `kactus_export*.json` (web e API), chave tailwind `kactus`, docker-compose/`.env.example`/default do `config.py` com `kactus`, e-mails `@kactus.test`.
 - 192 testes passando; os 25 avisos do ruff já existiam antes (mesma contagem no commit anterior).
+
+### Fase 6 (2026-09-26)
+- Pasta `Ondilow/` → `Kactus/` (movida com `robocopy /MOVE`, porque uma janela do Explorer e um processo com a pasta como diretório atual travavam o rename; o git detectou tudo como rename). `.venv`, `node_modules` e `.next` foram apagados e recriados (`uv sync`, `pnpm install`).
+- `.claude/launch.json` da raiz: configs `kactus` e `kactus-web-isolated`. `settings.local.json` **não** foi mexido: as entradas com o caminho antigo são permissões de comandos antigos, avulsos.
+- README, CLAUDE.md, ESTADO_DO_PROJETO (com a sessão do rebrand) e BACKLOG atualizados; screenshots do README refeitas (Edge headless, 1440x900, conta principal).
+- Ficou com o nome antigo **de propósito**: o banco e a role do Neon (`ondilow` / `ondilow_owner` na `DATABASE_URL` do `.env`) — renomear exigiria recriar o banco — e os documentos anteriores a 2026-09-26.
+- 192 testes passando a partir da pasta nova; app conferido rodando pela config `kactus`.

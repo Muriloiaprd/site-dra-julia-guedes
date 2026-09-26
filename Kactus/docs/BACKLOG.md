@@ -1,4 +1,4 @@
-# Ondilow — Backlog Priorizado
+# Kactus — Backlog Priorizado
 
 Consolidado em 2026-09-10 a partir de uma auditoria completa (histórico de commits, backend, frontend). Veja o estado geral do projeto em [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md). Uso do app é só local por enquanto — isso pesa na priorização (P2 concentra o que só importa se/quando isso mudar).
 
@@ -17,7 +17,7 @@ Consolidado em 2026-09-10 a partir de uma auditoria completa (histórico de comm
 ## P1 — completude e robustez
 
 6. ~~**Atividade não pode ser editada nem excluída.**~~ **Resolvido em 2026-09-15**: `PATCH`/`DELETE /activities/{id}` em `routers/activities.py`, com botões em `activities/page.tsx` e `activities/[id]/page.tsx`. Ver `PLANEJAMENTO.md`, Fase 4.
-7. ~~**Sem rate limiting no login.**~~ **Resolvido**: `ondilow_api/rate_limit.py` (`slowapi.Limiter`), integrado em `main.py` e `routers/auth.py`. Ver `PLANEJAMENTO.md`, Fase 2.
+7. ~~**Sem rate limiting no login.**~~ **Resolvido**: `kactus_api/rate_limit.py` (`slowapi.Limiter`), integrado em `main.py` e `routers/auth.py`. Ver `PLANEJAMENTO.md`, Fase 2.
 9. ~~**`/metrics` fica em branco sem atividades.**~~ **Resolvido em 2026-09-11 (redesign)**: estado vazio explicativo com CTA para importar, e estado vazio próprio no heatmap.
 10. ~~**Equipamento não soma distância real.**~~ **Resolvido em 2026-09-15**: coluna `equipment_id` em `activities` (migration `009_activity_equipment`), `total_distance_m` agora soma `initial_distance_m` + `SUM(distance_m)` das atividades vinculadas não excluídas, com seletor de equipamento no formulário de edição da atividade. Ver `PLANEJAMENTO.md`, Fase 5.
 
@@ -28,7 +28,7 @@ Consolidado em 2026-09-10 a partir de uma auditoria completa (histórico de comm
 13. **Sem deploy público.** Hoje 100% local, só o Postgres é remoto (Neon). Só relevante se decidir acessar fora de casa.
 14. **Perfil incompleto.** Sem unidades (km/mi), fuso horário, zonas de FC customizáveis manualmente, exportar todos os dados, trocar senha, deletar conta.
 16. **Acessibilidade.** *Parcial no redesign:* botões só-ícone ganharam `aria-label`, textos auxiliares subiram de 8–9px para ≥ 9.6px (a maioria 11–13px), tons de cinza passaram a tokens (`textTertiary` #6E6E6E, `muted` #888) e há suporte a `prefers-reduced-motion`. Falta uma passada de contraste AA nos rótulos de 9.6px e navegação por teclado nos gráficos.
-17. ~~**Integração Garmin: script de sync local**~~ — **FEITO em 2026-09-19** (`uv run python -m ondilow_api.scripts.sync_garmin`, 17 testes). Falta só o usuário rodar `--garmin-login` uma vez. Contexto original: Investigado em 2026-09-19, ver `VIABILIDADE_GARMIN_STRAVA_2026-09-19.md`: o endpoint `import-normalized` foi validado (9 testes) e serve o caminho Strava, mas para o Garmin o melhor é baixar o `.FIT` original e reusar o parser existente. Escopo de ~1 dia definido no relatório; exige um login interativo único do usuário (senha + MFA). **MCP de Garmin foi avaliado e descartado** para import: move a série de GPS pelo contexto. Strava segue descartado (OAuth).
+17. ~~**Integração Garmin: script de sync local**~~ — **FEITO em 2026-09-19** (`uv run python -m kactus_api.scripts.sync_garmin`, 17 testes). Falta só o usuário rodar `--garmin-login` uma vez. Contexto original: Investigado em 2026-09-19, ver `VIABILIDADE_GARMIN_STRAVA_2026-09-19.md`: o endpoint `import-normalized` foi validado (9 testes) e serve o caminho Strava, mas para o Garmin o melhor é baixar o `.FIT` original e reusar o parser existente. Escopo de ~1 dia definido no relatório; exige um login interativo único do usuário (senha + MFA). **MCP de Garmin foi avaliado e descartado** para import: move a série de GPS pelo contexto. Strava segue descartado (OAuth).
 
 ### Duni: achados do teste ao vivo de 2026-09-23 (todos resolvidos no mesmo dia)
 

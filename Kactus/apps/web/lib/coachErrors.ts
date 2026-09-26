@@ -8,7 +8,7 @@ export function coachErrorMessage(e: unknown): { title: string; detail: string }
         return {
           title: "A Duni ainda não está configurada",
           detail:
-            "Falta a chave do Gemini: gere uma grátis em aistudio.google.com/apikey e coloque em GEMINI_API_KEY no Ondilow/.env. Depois reinicie a API.",
+            "Falta a chave do Gemini: gere uma grátis em aistudio.google.com/apikey e coloque em GEMINI_API_KEY no Kactus/.env. Depois reinicie a API.",
         };
       case "quota_exceeded":
         return {
@@ -16,7 +16,7 @@ export function coachErrorMessage(e: unknown): { title: string; detail: string }
           detail: "A cota grátis acabou por agora. Volta a funcionar sozinho mais tarde (a cota diária renova todo dia) — não adianta insistir agora.",
         };
       case "invalid_key":
-        return { title: "Chave do Gemini inválida", detail: "Confira a GEMINI_API_KEY no Ondilow/.env (sem espaços nem aspas) e reinicie a API." };
+        return { title: "Chave do Gemini inválida", detail: "Confira a GEMINI_API_KEY no Kactus/.env (sem espaços nem aspas) e reinicie a API." };
       case "model_not_found":
         return { title: "Modelo do Gemini não encontrado", detail: "O modelo em GEMINI_MODEL não existe mais ou não está no plano grátis." };
       case "llm_unavailable":

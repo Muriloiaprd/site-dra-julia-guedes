@@ -30,11 +30,11 @@ load_dotenv(_PROJECT_ENV_FILE)
 _TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
 if not _TEST_DATABASE_URL:
     raise RuntimeError(
-        "TEST_DATABASE_URL nao definida em Ondilow/.env -- necessaria para rodar "
+        "TEST_DATABASE_URL nao definida em Kactus/.env -- necessaria para rodar "
         "os testes de integracao contra a branch Neon `test`, isolada da producao. "
         "Ver apps/api/tests/conftest.py."
     )
-_PROD_HOST_FRAGMENT = "ep-tiny-rain-acyg4qmw"  # host da main, ver Ondilow/.env
+_PROD_HOST_FRAGMENT = "ep-tiny-rain-acyg4qmw"  # host da main, ver Kactus/.env
 
 os.environ["DATABASE_URL"] = _TEST_DATABASE_URL
 os.environ["ALLOW_REGISTRATION"] = "true"

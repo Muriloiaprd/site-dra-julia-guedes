@@ -1,6 +1,7 @@
-# Ondilow — Estado do Projeto
+# Kactus — Estado do Projeto
 
-**Última atualização deste doc**: 2026-09-23 (Duni, a treinadora de IA — ver a última sessão abaixo)
+**Última atualização deste doc**: 2026-09-26 (rebrand Ondilow → Kactus — ver a última sessão abaixo)
+**Nome**: o projeto se chamava **Ondilow** até 2026-09-26; os documentos anteriores a essa data (planejamentos, resumos) mantêm o nome antigo de propósito.
 **Branch**: master
 **Backlog priorizado do que falta melhorar**: ver [`BACKLOG.md`](./BACKLOG.md)
 
@@ -65,7 +66,7 @@ Trabalho concentrado num único dia, sem sprint numerada formal: identidade visu
 ### ✅ Sessão 2026-09-11 — Auditoria de bugs + Treinador de IA + export sticker
 - **Bugs corrigidos**: (1) `config.py` resolvia `.env` relativo ao CWD do processo — login (e qualquer request que tocasse o banco) travava para sempre quando a API era iniciada de um diretório diferente; corrigido ancorando via `Path(__file__)`. (2) Mesmo padrão em `data_dir`/`data_path` — uploads/exports/logs se espalhavam em duas pastas diferentes; ancorado do mesmo jeito. (3) `fetchMe()` sem `try/catch` podia travar o dashboard em "Carregando..." pra sempre numa falha de rede; agora trata o erro e o dashboard mostra banner com "Tentar de novo". (4) `cors_origins` default corrigido pra incluir a porta 3003.
 - **Export "sticker" transparente** (estilo Strava): novo módulo `rendering/sticker.py` desenha a rota do GPS do zero (projeção equiretangular + supersampling pra anti-aliasing, sem depender de tiles OSM) num PNG com canal alfa de verdade. Três layouts (`route`/`stats`/`full`) via `GET /activities/{id}/export?template=sticker&layout=...`. Botão "🏷️ Sticker" na tela de atividade (só o layout `full` está exposto na UI por ora — os outros dois já funcionam no backend, falta seletor). **Removido em 2026-09-15** — a projeção da rota foi portada para TypeScript (`apps/web/lib/story/engine.ts::projectRoute`) e reaproveitada no gerador de Stories novo, que roda inteiro no navegador.
-- **Treinador de IA** (`/coach`): novo pacote `ondilow_api/ai/coach_service.py` monta contexto real do atleta (perfil, métricas de carga, recordes, atividades recentes — nada recalculado, tudo reaproveitado de `metrics/predictions.py`) e chama a API da Anthropic (SDK oficial, cache de prompt no system prompt, structured outputs via `messages.parse()` pra gerar plano de treino), com fallback automático pro Gemini em caso de cota/erro. Três funcionalidades: chat livre, relatório de análise, geração de plano de treino (padrão 7 dias). Novas tabelas `planned_workouts` e `coach_interactions` (migration 008). O card "Próximos Treinos" do dashboard agora consome `GET /coach/plan` em vez do mock antigo. Reconciliação automática de aderência: `GET /coach/plan` casa treinos planejados com atividades importadas na mesma data/esporte (marca `done` + linka `activity_id`), ou marca `skipped` se o dia já passou sem atividade correspondente; `PATCH /coach/plan/{id}` permite override manual.
+- **Treinador de IA** (`/coach`): novo pacote `kactus_api/ai/coach_service.py` monta contexto real do atleta (perfil, métricas de carga, recordes, atividades recentes — nada recalculado, tudo reaproveitado de `metrics/predictions.py`) e chama a API da Anthropic (SDK oficial, cache de prompt no system prompt, structured outputs via `messages.parse()` pra gerar plano de treino), com fallback automático pro Gemini em caso de cota/erro. Três funcionalidades: chat livre, relatório de análise, geração de plano de treino (padrão 7 dias). Novas tabelas `planned_workouts` e `coach_interactions` (migration 008). O card "Próximos Treinos" do dashboard agora consome `GET /coach/plan` em vez do mock antigo. Reconciliação automática de aderência: `GET /coach/plan` casa treinos planejados com atividades importadas na mesma data/esporte (marca `done` + linka `activity_id`), ou marca `skipped` se o dia já passou sem atividade correspondente; `PATCH /coach/plan/{id}` permite override manual.
   - **Pendente de você**: colar `ANTHROPIC_API_KEY` (console.anthropic.com) e `GEMINI_API_KEY` (aistudio.google.com/apikey) no `.env` — sem isso, `/coach/*` responde `{"error": "not_configured"}`. Essa é a única feature do projeto que quebra a regra de custo zero (ver seção "Custo" abaixo).
 - **Testes novos**: ~~`tests/test_sticker.py` (renderização RGBA/alpha)~~ (removido junto com o `rendering/`, ver Sprint 6 acima) e `tests/test_coach_service.py` (validação de plano, agrupamento de esporte) — pure functions, sem fixture de banco (suite continua sem testes de rota HTTP, ver `BACKLOG.md` item 8).
 
@@ -99,18 +100,23 @@ O Treinador de IA virou a **Duni**, treinadora de corrida de rua. Detalhes fase 
 - **Verificado ao vivo com o Gemini em 2026-09-23** na conta de teste: chat, memórias, resumo, plano, regerar um dia e comentário.
 - **Prompt v3 (2026-09-23)**: ela não se apresenta, trata o atleta pelo campo "Sexo" do perfil (neutro sem o dado), usa o status para medir cansaço (pausa não é 🔴) e nunca diz que anotou uma memória. O último resumo reaparece ao abrir `/coach` (`GET /coach/analyze`).
 
+### ✅ Sessão 2026-09-26 — Rebrand Ondilow → Kactus
+O projeto passou a se chamar **Kactus**; funcionalidades não mudaram. Detalhes fase a fase em [`PLANEJAMENTO_2026-09-26.md`](./PLANEJAMENTO_2026-09-26.md).
+- **Marca**: símbolo, wordmark e marca empilhada em `apps/web/public/brand/` (gerados de `Imagens/`), favicon `app/icon.png`/`apple-icon.png`, `components/Logo.tsx` com o wordmark como imagem (a fonte TT Lakes Neue é paga e não é embutida).
+- **Stories**: 19 modelos (15 trocados + 4 novos), todas as coordenadas remedidas contra as artes; a logo fica a embutida na arte (sem camada de alta resolução). Ferramenta de dev `/story-calibrate` compara o desenho com a arte pixel a pixel.
+- **Nomes internos**: pasta `Kactus/`, pacote `kactus_api`, `kactus_token` (migra o `ondilow_token` sem deslogar), docker/`.env.example` com `kactus`.
+
 ---
 
 ## Para iniciar uma sessão de trabalho
 
 ### Pré-requisitos
 Servidores configurados em `.claude/launch.json` (raiz `C:\Cloude Code`, **fora do git** — `.claude/` está no `.gitignore` da raiz):
-- `ondilow-api` (porta 8000, uvicorn a partir do `.venv` — **não usar `--reload`**, foi fonte de bug antes por rodar com Python do sistema)
-- `ondilow-web` (porta 3003, `pnpm dev`, com `autoPort` habilitado)
-- `ondilow-web-isolated` (porta 3004, `NEXT_DIST_DIR=.next-preview`) — usar **quando outra sessão já tem `next dev` rodando em `apps/web`**: dois servidores no mesmo `.next` corrompem o cache (erros "reading 'run'" / SyntaxError em `page.js`). O `next.config.mjs` lê `NEXT_DIST_DIR` (padrão `.next`). Efeito colateral: o Next injeta `.next-preview/types/**/*.ts` no `include` do `tsconfig.json` — reverter com `git checkout -- apps/web/tsconfig.json` antes de commitar e apagar a pasta ao terminar.
+- `kactus` (porta 3003): `pnpm -C Kactus dev`, sobe API (uvicorn na 8000, **sem `--reload`**) e frontend juntos
+- `kactus-web-isolated` (porta 3004, `NEXT_DIST_DIR=.next-preview`) — usar **quando outra sessão já tem `next dev` rodando em `apps/web`**: dois servidores no mesmo `.next` corrompem o cache (erros "reading 'run'" / SyntaxError em `page.js`). O `next.config.mjs` lê `NEXT_DIST_DIR` (padrão `.next`). Efeito colateral: o Next injeta `.next-preview/types/**/*.ts` no `include` do `tsconfig.json` — reverter com `git checkout -- apps/web/tsconfig.json` antes de commitar e apagar a pasta ao terminar.
 
 ### Credenciais (NÃO commitar)
-- `.env` em `C:\Cloude Code\Ondilow\.env`
+- `.env` em `C:\Cloude Code\Kactus\.env`
 - Login principal: `muriloiaprd@hotmail.com` (senha no `.env`/memória)
 - Login de teste: `teste@teste.com` / `teste`
 - Neon project: `wispy-mountain-04630520`
@@ -126,10 +132,10 @@ Todo o levantamento de melhorias pendentes (tratamento de erro no perfil, featur
 ## Notas Técnicas Importantes
 
 ### Como rodar:
-- `pnpm dev` na raiz `Ondilow/` sobe API + frontend juntos (via `concurrently`) — único comando, único endereço `http://localhost:3003`.
+- `pnpm dev` na raiz `Kactus/` sobe API + frontend juntos (via `concurrently`) — único comando, único endereço `http://localhost:3003`.
 - API escuta só em `127.0.0.1:8000` (uso interno); frontend proxya `/api/*` → `http://localhost:8000/*` (`next.config.mjs`).
-- Rodar cada lado separado: `pnpm dev:api` / `pnpm dev:web` (também na raiz `Ondilow/`).
-- Preview no launch.json: config `ondilow` (porta 3003) substituiu `ondilow-api` + `ondilow-web`.
+- Rodar cada lado separado: `pnpm dev:api` / `pnpm dev:web` (também na raiz `Kactus/`).
+- Preview no launch.json: config `kactus` (porta 3003) sobe API + frontend juntos.
 
 ### Banco de dados:
 - Neon Postgres (`wispy-mountain-04630520`)
