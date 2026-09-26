@@ -1,7 +1,7 @@
 # Ondilow → Kactus — Planejamento do rebrand (2026-09-26)
 
 **Criado em**: 2026-09-26
-**Status**: ABERTO. Fases 0 a 7 concluídas em 2026-09-26 (ver "Registro de execução" no fim).
+**Status**: FECHADO em 2026-09-26. Fases 0 a 8 concluídas (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md)
 
 ## Como retomar
@@ -156,3 +156,7 @@ Criar `Ondilow/docs/PLANEJAMENTO_2026-09-26.md` com todo este conteúdo. Commita
   git push kactus $(git commit-tree HEAD:Kactus -p kactus/master -m "$(git log -1 --format=%B)"):refs/heads/master
   ```
   Cada sincronização vira um commit no espelho com a árvore da pasta `Kactus/` e a mensagem do último commit do monorepo.
+
+### Fase 8 (2026-09-26)
+- Varredura: fora dos documentos históricos, "ondilow" só aparece onde é intencional — a chave antiga do token (migração), a `DATABASE_URL` do `.env` (banco/role do Neon) e o registro deste próprio plano.
+- Memórias atualizadas: caminhos, pacote, chave do token, comando novo de sincronização do espelho e o gerador com 19 modelos.
