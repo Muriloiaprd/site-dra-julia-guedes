@@ -53,8 +53,11 @@ export function AthleteStatus({
   const color = readinessColor(v);
   const risk = riskFromAcwr(readiness.acwr);
   const sourceNote = readiness.source === "load"
-    ? `TSB ${readiness.tsb! > 0 ? "+" : ""}${readiness.tsb!.toFixed(1)}${readiness.acwr != null ? ` · ACWR ${readiness.acwr.toFixed(2)}` : ""}`
+    ? "Pelo seu cansaço e pelo ritmo de aumento da carga"
     : readiness.source === "recommendation" ? "Baseado na recomendação do dia" : "Sem métricas de carga";
+  const sourceTitle = readiness.source === "load"
+    ? `Disposição (TSB) ${readiness.tsb!.toFixed(1)}${readiness.acwr != null ? ` · Salto de carga (ACWR) ${readiness.acwr.toFixed(2)}` : ""}`
+    : undefined;
 
   return (
     <Panel variant="hero" className={className} aria-label="Status do atleta">
@@ -91,7 +94,7 @@ export function AthleteStatus({
         <div className="w-full min-w-0 flex-1 text-center sm:text-left">
           <span className="od-badge" style={{ color, boxShadow: `inset 0 0 0 1px ${color}44`, background: `${color}14` }}>
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
-            Readiness {readinessTag(v)}
+            Prontidão {readinessTag(v)}
           </span>
           <h3 className="mt-3 font-display text-[1.65rem] font-extrabold uppercase leading-[1.02] tracking-tight sm:text-[2.1rem]">
             {loading ? "Analisando…" : statusHeadline(v)}
@@ -102,8 +105,8 @@ export function AthleteStatus({
           <div className="mt-5 max-w-md">
             <ProgressBar value={v ?? 0} height={7} color={v != null && v < 60 ? color : undefined} />
             <div className="mt-1.5 flex justify-between text-[0.68rem] text-brand-muted">
-              <span>Readiness</span>
-              <span className="tabular-nums">{sourceNote}</span>
+              <span>Prontidão</span>
+              <span className="tabular-nums" title={sourceTitle}>{sourceNote}</span>
             </div>
           </div>
           {duni && (
@@ -112,7 +115,7 @@ export function AthleteStatus({
               <strong style={{ color: WEEKLY_STATUS[duni.status].color }}>{WEEKLY_STATUS[duni.status].emoji} {WEEKLY_STATUS[duni.status].label}</strong>
               {duniDiverges(v, duni.status) && (
                 <span className="mt-1 block text-brand-textSecondary">
-                  A prontidão acima olha só a carga (TSB/ACWR). A Duni também pesa fadiga, check-ins e tendência, por isso a leitura dela é diferente.
+                  A prontidão acima olha só a carga. A Duni também pesa cansaço, check-ins e tendência, por isso a leitura dela é diferente.
                 </span>
               )}
             </Link>
@@ -131,9 +134,9 @@ export function AthleteStatus({
           <div className="od-num text-[1.35rem] leading-none" style={{ color: recovery.color === "#888888" ? "#fff" : recovery.color }}>{recovery.label}</div>
           <div className="mt-2 text-[0.7rem] font-semibold" style={{ color: recoveryTrend.color }}>{recoveryTrend.text}</div>
         </Stat>
-        <Stat label="ACWR" icon={i(<path d="M3 12h4l3 8 4-16 3 8h4" />)}>
-          <div className="od-num text-[1.35rem] leading-none" style={{ color: readiness.acwr != null ? risk.color : "#fff" }}>
-            {readiness.acwr != null ? readiness.acwr.toFixed(2) : "—"}
+        <Stat label="Risco de lesão" icon={i(<path d="M3 12h4l3 8 4-16 3 8h4" />)}>
+          <div className="od-num text-[1.35rem] leading-none" style={{ color: readiness.acwr != null ? risk.color : "#fff" }} title={readiness.acwr != null ? `Salto de carga (ACWR) ${readiness.acwr.toFixed(2)}` : undefined}>
+            {risk.label}
           </div>
           <div className="mt-2 text-[0.7rem] font-semibold" style={{ color: risk.color }}>{risk.zone}</div>
         </Stat>

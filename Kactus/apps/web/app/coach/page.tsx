@@ -238,7 +238,7 @@ export default function CoachPage() {
       s: overview?.recommendation.detail ?? "Pela sua carga recente",
       c: overview?.recommendation.color ?? "#888",
     },
-    { k: "Cansaço", v: form.label, s: form.hint ?? "", c: form.color, t: latest?.tsb != null ? `Disposição (TSB) ${latest.tsb.toFixed(1)}` : undefined },
+    { k: "Forma", v: form.label, s: form.hint ?? "", c: form.color, t: latest?.tsb != null ? `Disposição (TSB) ${latest.tsb.toFixed(1)}` : undefined },
     { k: "Risco de lesão", v: risk.label, s: risk.hint ?? "", c: risk.color, t: latest?.acwr != null ? `Salto de carga (ACWR) ${latest.acwr.toFixed(2)}` : undefined },
     { k: "Treinos planejados", v: plan == null ? "—" : `${upcoming.length}`, s: "Nos próximos 14 dias", c: upcoming.length ? "#00FF66" : "#888" },
   ];

@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 
 from kactus_api.deps import CurrentUser, DbSession
 from kactus_api.metrics.load import update_daily_metrics
+from kactus_api.metrics.summary import load_summary
 from kactus_api.models.activity import Activity
 from kactus_api.models.daily_metric import DailyMetric
 from kactus_api.schemas.metrics import DailyMetricOut
@@ -51,6 +52,12 @@ def get_load_metrics(
         ).scalars().all()
 
     return list(rows)
+
+
+@router.get("/summary")
+def get_load_summary(current_user: CurrentUser, db: DbSession) -> dict:
+    """A aba Carga em linguagem simples (metrics/summary.py)."""
+    return load_summary(db, current_user.id)
 
 
 @router.get("/heatmap", response_model=list[HeatmapDay])

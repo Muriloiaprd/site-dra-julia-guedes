@@ -1,7 +1,7 @@
 # Kactus — Planejamento: nome, Duni mais simples, dados do Garmin, Carga e equipamentos (2026-09-27, _2)
 
 **Criado em**: 2026-09-27
-**Status**: ABERTO. Fases 0 a 2 concluídas (ver "Registro de execução" no fim).
+**Status**: ABERTO. Fases 0 a 4 concluídas (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md) · [`PLANEJAMENTO_2026-09-27.md`](./PLANEJAMENTO_2026-09-27.md)
 
 ## Como retomar
@@ -308,3 +308,16 @@ Criar `Kactus/docs/PLANEJAMENTO_2026-09-27_2.md` com este plano. Commit, push e 
 - Achado: o chat usava `scrollIntoView`, que rolava a página inteira até o chat ao abrir a aba (o resumo ficava fora da tela). Agora rola só a caixa do chat.
 - `training_recommendation` e `assess_injury_risk` sem siglas no texto (CTL/TSB/ACWR).
 - 211 testes passando (3 novos).
+
+### Fase 3 (2026-09-27)
+- Parser FIT lê por número de campo o que o `fitparse` não conhece (150 temp. mínima, 178 suor, 188 benefício, 192/193 autoavaliação, 196 calorias em repouso, 202 FC de recuperação), mais melhor ritmo, potência normalizada, efeito de treino, dinâmica de corrida (resumo e por ponto) e a cadência com a fração (171, não 170). Elevação mín/máx e temperatura saem dos pontos (média 28,6 °C como no Garmin, não os 29 inteiros do resumo). Tempo andando estimado pela cadência (< 140 ppm).
+- Migration `018_garmin_fields` (16 colunas em `activities`, 4 em `activity_points`), aplicada no banco principal. Rótulos do benefício em `metrics/garmin.py` (0 nenhum … 5 VO2 máx … 7 sprint), conferidos contra 70 arquivos.
+- **Desvio do plano:** a autoavaliação do relógio **não** vira check-in sozinha. Em ~40% dos arquivos ela é "Muito fraco + 10/10" até em treino leve (resposta padrão quando a tela é só confirmada). Fica guardada (`watch_feel`/`watch_rpe`) e o check-in mostra "O relógio registrou … [Usar no check-in]", com aviso quando é esse par.
+- Web: painel "Mais do relógio" no detalhe (efeito de treino, dinâmica com "o que é bom", intensidade estimada pelas zonas, corrida × caminhada, temperatura, calorias e suor, melhor ritmo, FC de recuperação) e gráfico "Dinâmica de corrida" com seletor. Duni recebe efeito de treino, dinâmica, temperatura e suor no comentário do treino.
+- Sem FIT real no repositório (tem nome, peso e rota do atleta): testes com mensagens simuladas.
+- Backfill `scripts/backfill_garmin_fields.py`: a primeira versão carregava todos os pontos de cada atividade e levaria horas; a versão final manda os pontos do arquivo num `UPDATE … FROM (VALUES …)` e só o banco casa pelo `elapsed_time_s`. Rodado nas duas contas: 600 atividades, 425 com efeito de treino, 386 com dinâmica de corrida, 408.281 pontos com dinâmica, 176 com FC de recuperação. Benefícios: 0 (6), 1 (46), 2 (70), 3 (122), 4 (132), 5 (39), 6 (4), 7 (6) — todos com rótulo.
+- Conferido no navegador com a corrida do print (5,01 km, 26/09): efeito 3,9/0,0 VO2 máx, cadência 171, passada 1,04 m, oscilação 8,8 cm, proporção 8,5%, contato 260 ms, suor 466 ml, 40/343 kcal, FC de recuperação 37, melhor ritmo 4:31, elevação 173/184, temperatura 27/31 (média 28,7 × 28,6 do Garmin), minutos de intensidade 53 (igual ao Garmin). Tempo andando estimado 20 s × 9 s do Garmin.
+
+### Fase 4 (2026-09-27)
+- `GET /metrics/summary` (`metrics/summary.py`): recomendação de hoje, últimos 7 dias × média semanal do mês anterior, faixa segura de km de corrida nos próximos 7 dias (carga entre 0,8× e 1,3× a média de 4 semanas, descontando os outros esportes; sem faixa quando a base é baixa), intensidade de 28 dias, efeito de treino de 7 dias e volume de 16 semanas.
+- Página `/metrics` refeita: "Hoje" e "Corrida nos próximos 7 dias" no topo, Forma / Risco de lesão / Condicionamento com frase simples, últimos 7 dias × média, volume por semana, leve × moderado × forte, efeito de treino, condicionamento × cansaço e constância; siglas e gráficos técnicos no "Modo avançado". Dashboard (`AthleteStatus`) sem TSB/ACWR no texto (siglas só no `title`).
