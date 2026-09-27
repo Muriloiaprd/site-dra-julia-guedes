@@ -1,7 +1,7 @@
 # Kactus — Planejamento: nome, Duni mais simples, dados do Garmin, Carga e equipamentos (2026-09-27, _2)
 
 **Criado em**: 2026-09-27
-**Status**: ABERTO. Fases 0 a 5 concluídas (ver "Registro de execução" no fim).
+**Status**: FECHADO em 2026-09-27. Todas as fases concluídas (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md) · [`PLANEJAMENTO_2026-09-27.md`](./PLANEJAMENTO_2026-09-27.md)
 
 ## Como retomar
@@ -327,3 +327,6 @@ Criar `Kactus/docs/PLANEJAMENTO_2026-09-27_2.md` com este plano. Commit, push e 
 - `GET /equipment/recommendations` (`services/equipment_recommendations.py`): esportes pelo volume de 90 dias (os praticados primeiro), destaques pelo uso (km/semana, ritmo < 5:30/km puxa o tênis de prova, trilha feita, relógio que já usa) e alerta de tênis ativo ≥ 500 km (atenção) e ≥ 600 km (trocar).
 - Web: alertas no topo de `/equipment`; "Recomendados para você" no fim, com abas por esporte, "Pesquisar ↗" (busca neutra, sem afiliado) e "Já tenho" (abre o cadastro preenchido). Conferido no navegador na conta principal (Corrida e Ciclismo).
 - 227 testes passando (4 novos nesta fase).
+
+### Fase 6 (2026-09-27)
+- `ESTADO_DO_PROJETO.md` com a sessão e a migration 018; `BACKLOG.md` ganhou a seção **"Ideias"** (11 ideias priorizadas por valor × esforço, custo zero) e a linha no "Concluído". Planejamento fechado.

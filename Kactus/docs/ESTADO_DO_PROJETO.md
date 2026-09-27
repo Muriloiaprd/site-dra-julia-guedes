@@ -1,6 +1,6 @@
 # Kactus — Estado do Projeto
 
-**Última atualização deste doc**: 2026-09-27 (logos, tempo em movimento e etiquetas do check-in — ver a última sessão abaixo)
+**Última atualização deste doc**: 2026-09-27 (Duni mais simples, dados do Garmin, Carga e equipamentos — ver a última sessão abaixo)
 **Nome**: o projeto se chamava **Ondilow** até 2026-09-26; os documentos anteriores a essa data (planejamentos, resumos) mantêm o nome antigo de propósito.
 **Branch**: master
 **Backlog priorizado do que falta melhorar**: ver [`BACKLOG.md`](./BACKLOG.md)
@@ -112,6 +112,14 @@ Detalhes em [`PLANEJAMENTO_2026-09-27.md`](./PLANEJAMENTO_2026-09-27.md).
 - **Tempo em movimento em tudo**: `compute_moving_time_s` (`parsers/base.py`) calcula no import de FIT/GPX/TCX (pausas e paradas descontadas). Telas, Stories, carga (TSS) e Duni usam `moving_time_s`, com `duration_s` como "Tempo total". Histórico recalculado por `scripts/backfill_moving_time.py`. O `file_path` antigo (com `Ondilow/`) é reencontrado por `services/uploads.resolve_upload_path`.
 - **Etiquetas no check-in**: catálogo em `kactus_api/checkin_tags.py` (Clima, Corpo e rotina, Treino), coluna `activities.checkin_tags` (migration 017), `GET /activities/checkin-tags`; a Duni recebe os rótulos como `"contexto"`.
 
+### ✅ Sessão 2026-09-27 (parte 2) — Duni mais simples, dados do Garmin, Carga e equipamentos
+Detalhes em [`PLANEJAMENTO_2026-09-27_2.md`](./PLANEJAMENTO_2026-09-27_2.md).
+- **Nome**: o "Ondilow" que aparecia na Duni era um resumo antigo salvo no banco (apagado); caminhos `file_path` passaram para `Kactus\`. Varredura do banco e de 11 páginas × 2 contas: 0 ocorrências.
+- **Duni (prompt v4)**: seção ESCRITA (curto, sem siglas); resumo estruturado (`AnalysisLLM`, JSON em `coach_interactions.content`, cartão `SummaryCard`); plano com a semana em lista e a análise recolhida; comentário pós-treino em ~120 palavras.
+- **Garmin (migration 018)**: o parser FIT lê efeito de treino, benefício, dinâmica de corrida (resumo e por ponto), temperatura, suor, calorias em repouso, FC de recuperação e autoavaliação (campos novos lidos por número em `parsers/fit.py`; rótulos em `metrics/garmin.py`). Painel "Mais do relógio" no detalhe. A autoavaliação do relógio **não** vira check-in sozinha (o relógio grava "muito fraco + 10/10" quando a tela é só confirmada). Histórico preenchido por `scripts/backfill_garmin_fields.py`.
+- **Carga**: `GET /metrics/summary` (`metrics/summary.py`) com "hoje", faixa segura de km nos próximos 7 dias, volume de 16 semanas, intensidade e efeito de treino; siglas só no "Modo avançado".
+- **Equipamentos**: catálogo em `kactus_api/equipment_catalog.py` (set/2026, 36 itens, 3 faixas de preço), `GET /equipment/recommendations` personalizado pelo uso, alerta de troca de tênis.
+
 ---
 
 ## Para iniciar uma sessão de trabalho
@@ -146,7 +154,7 @@ Todo o levantamento de melhorias pendentes (tratamento de erro no perfil, featur
 ### Banco de dados:
 - Neon Postgres (`wispy-mountain-04630520`)
 - Migrations: `uv run alembic upgrade head` (rodar do diretório `apps/api`)
-- IDs de migration: `001_initial` → `017_checkin_tags`
+- IDs de migration: `001_initial` → `018_garmin_fields`
 
 ### Arquivos NÃO commitados:
 - `.env` (credenciais reais)

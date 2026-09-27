@@ -41,10 +41,27 @@ Consolidado em 2026-09-10 a partir de uma auditoria completa (histórico de comm
 
 **Descartados por decisão do usuário em 2026-09-15** (ver `PLANEJAMENTO.md`): infra de testes (buracos de teste em `metrics/load.py`, `metrics/records.py`, `metrics/predictions.py`, `import_service.py`), CI (GitHub Actions), feature de meta/prova-alvo, Strava OAuth direto. Não são pendências — foi escolha de escopo, não voltar a sugerir.
 
+## Ideias (levantadas em 2026-09-27, nada prometido)
+
+Todas de custo zero e para uso local. Ordem = valor × esforço (as primeiras rendem mais por menos trabalho). O usuário escolhe; nada é executado sem pedido.
+
+1. **Importar sozinho pela pasta do relógio.** O relógio Garmin ligado no USB tem a pasta `GARMIN/Activity` com os `.FIT`. Um botão (ou script agendado) que lê essa pasta e importa só o que é novo contorna o sync do Garmin bloqueado (item 17). *Esforço baixo.*
+2. **Tênis padrão por esporte.** Hoje cada corrida precisa ser ligada ao tênis na mão; com um "tênis padrão da corrida", toda importação já soma o km e o alerta de troca da Fase 5 fica sempre certo. *Esforço baixo.*
+3. **"Planejado × feito" no dia seguinte.** Um cartão no dashboard: "Ontem era rodagem leve de 6 km; você fez 8 km em ritmo moderado", com um toque para pedir o comentário da Duni. *Esforço baixo.*
+4. **Evolução da dinâmica de corrida.** Gráfico mensal de cadência, contato com o solo, oscilação e passada no mesmo ritmo (os dados chegaram na Fase 3). Mostra se a técnica melhora com o tempo. *Esforço médio.*
+5. **Ritmo × calor.** Com a temperatura de 425 treinos, mostrar quanto o calor custa no seu ritmo e na FC ("acima de 27 °C você corre ~12 s/km mais devagar com a mesma FC") e usar isso na previsão de prova e na Duni. *Esforço médio.*
+6. **Metas de volume semanal.** Meta de km/semana com barra de progresso, sugerida pela faixa segura da aba Carga. *Esforço baixo.*
+7. **Resumo do mês.** Um cartão por mês com km, horas, recordes, efeito de treino médio e uma frase da Duni; dá para virar Story. *Esforço médio.*
+8. **Comparar dois treinos lado a lado.** Mesmo percurso ou mesma distância: ritmo, FC, deriva e dinâmica, km a km. *Esforço médio.*
+9. **Calendário de provas com contagem regressiva.** As provas já salvas nas memórias da Duni viram um calendário com "faltam N semanas" e a fase do treino (base, específico, polimento). *Esforço médio.*
+10. **Backup e conta.** Exportar tudo (JSON/CSV + arquivos originais), trocar senha e excluir conta (item 14). *Esforço médio.*
+11. **Acessibilidade.** A passada de contraste AA e o teclado nos gráficos (item 16). *Esforço médio.*
+
 ---
 
 ## ✅ Concluído
 
+- **2026-09-27**: nome Ondilow varrido do banco e do site, Duni com textos curtos e resumo estruturado, dados completos do FIT do Garmin, aba Carga em linguagem simples, equipamentos recomendados. Ver [`PLANEJAMENTO_2026-09-27_2.md`](./PLANEJAMENTO_2026-09-27_2.md).
 - **2026-09-23**: Duni, a treinadora de IA (dados derivados, check-in, motor de análise, memórias, persona v2, plano da semana, comentário pós-treino), verificada ao vivo com o Gemini. Ver [`PLANEJAMENTO_2026-09-21.md`](./PLANEJAMENTO_2026-09-21.md).
 - **2026-09-15** — Equipamento com km real: `equipment_id` em `activities`, soma real de distância por equipamento, seletor no formulário de edição da atividade (ver `PLANEJAMENTO.md`, Fase 5).
 - **2026-09-15** — Editar e excluir atividade individual (`PATCH`/`DELETE /activities/{id}`), incluindo um fix de performance real em `recompute_all_records()` (ver `PLANEJAMENTO.md`, Fase 4).
