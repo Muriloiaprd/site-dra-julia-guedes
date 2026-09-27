@@ -83,7 +83,26 @@ class Activity(Base):
     max_power_w: Mapped[int | None] = mapped_column(SmallInteger)
     normalized_power_w: Mapped[int | None] = mapped_column(SmallInteger)
     avg_temperature_c: Mapped[float | None] = mapped_column(Numeric(4, 1))
+    min_temperature_c: Mapped[float | None] = mapped_column(Numeric(4, 1))
+    max_temperature_c: Mapped[float | None] = mapped_column(Numeric(4, 1))
     calories: Mapped[int | None] = mapped_column(Integer)
+    # So o FIT do Garmin traz (migration 018). primary_benefit: metrics/garmin.py
+    training_effect_aerobic: Mapped[float | None] = mapped_column(Numeric(3, 1))
+    training_effect_anaerobic: Mapped[float | None] = mapped_column(Numeric(3, 1))
+    primary_benefit: Mapped[int | None] = mapped_column(SmallInteger)
+    hr_recovery: Mapped[int | None] = mapped_column(SmallInteger)
+    sweat_loss_ml: Mapped[int | None] = mapped_column(Integer)
+    resting_calories: Mapped[int | None] = mapped_column(Integer)
+    avg_vertical_oscillation_mm: Mapped[float | None] = mapped_column(Numeric(5, 1))
+    avg_stance_time_ms: Mapped[float | None] = mapped_column(Numeric(5, 1))
+    avg_vertical_ratio_pct: Mapped[float | None] = mapped_column(Numeric(4, 2))
+    avg_step_length_m: Mapped[float | None] = mapped_column(Numeric(4, 2))
+    total_strides: Mapped[int | None] = mapped_column(Integer)
+    walk_time_s: Mapped[int | None] = mapped_column(Integer)  # estimado pela cadencia
+    # autoavaliacao do relogio (0-100); nao vira check-in sozinha: o relogio grava
+    # "muito fraco + 10/10" quando o atleta so confirma a tela
+    watch_feel: Mapped[int | None] = mapped_column(SmallInteger)
+    watch_rpe: Mapped[int | None] = mapped_column(SmallInteger)
     tss: Mapped[float | None] = mapped_column(Numeric(6, 2))
     intensity_factor: Mapped[float | None] = mapped_column(Numeric(4, 3))
     variability_index: Mapped[float | None] = mapped_column(Numeric(4, 3))
@@ -115,6 +134,12 @@ class Activity(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+
+    @property
+    def primary_benefit_label(self) -> str | None:
+        from kactus_api.metrics.garmin import benefit_label
+
+        return benefit_label(self.primary_benefit)
 
     @property
     def srpe(self) -> float | None:
@@ -154,6 +179,10 @@ class ActivityPoint(Base):
     power_w: Mapped[int | None] = mapped_column(SmallInteger)
     speed_ms: Mapped[float | None] = mapped_column(Numeric(6, 3))
     temperature_c: Mapped[float | None] = mapped_column(Numeric(4, 1))
+    vertical_oscillation_mm: Mapped[float | None] = mapped_column(Numeric(5, 1))
+    stance_time_ms: Mapped[int | None] = mapped_column(SmallInteger)
+    vertical_ratio_pct: Mapped[float | None] = mapped_column(Numeric(4, 2))
+    step_length_mm: Mapped[int | None] = mapped_column(SmallInteger)
 
     activity: Mapped[Activity] = relationship("Activity", back_populates="points")
 

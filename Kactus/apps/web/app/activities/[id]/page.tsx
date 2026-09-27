@@ -18,10 +18,11 @@ import {
 
 import { CheckinPanel } from "@/components/activity/CheckinPanel";
 import { DuniComment } from "@/components/activity/DuniComment";
+import { WatchPanel } from "@/components/activity/WatchPanel";
 import { SportTile } from "@/components/SportIcon";
 import { StoryGenerator } from "@/components/share/StoryGenerator";
 import { ChartTooltipBox, LegendDot } from "@/components/ui/charts";
-import { Alert, Metric, PageContainer, Panel, Skeleton } from "@/components/ui/primitives";
+import { Alert, Metric, PageContainer, Panel, Segmented, Skeleton } from "@/components/ui/primitives";
 import {
   deleteActivity,
   fetchActivity,
@@ -69,6 +70,16 @@ const ZONE_NAMES: Record<number, string> = {
   5: "VO2 máx",
 };
 
+/** Series de dinamica de corrida do grafico (so as que a atividade tiver). */
+const DYNAMICS = [
+  { key: "cad", label: "Cadência", unit: "ppm", color: "#FF8A3D" },
+  { key: "step", label: "Passada", unit: "m", color: "#5B8CFF" },
+  { key: "vo", label: "Oscilação", unit: "cm", color: "#C6FF00" },
+  { key: "vr", label: "Proporção vertical", unit: "%", color: "#E040FB" },
+  { key: "gct", label: "Contato com o solo", unit: "ms", color: "#00BFFF" },
+] as const;
+type DynamicsKey = (typeof DYNAMICS)[number]["key"];
+
 const SPORTS = [
   "run", "trail_run", "treadmill", "bike", "mtb", "gravel",
   "indoor_bike", "swim", "open_water_swim", "multisport", "walk", "strength", "pilates", "other",
@@ -91,6 +102,7 @@ export default function ActivityPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [dynKey, setDynKey] = useState<DynamicsKey>("cad");
 
   useEffect(() => {
     if (!id) return;
@@ -158,7 +170,14 @@ export default function ActivityPage() {
         p.speed_ms != null && p.speed_ms > 0
           ? +(1000 / p.speed_ms / 60).toFixed(2)
           : null,
+      cad: p.cadence || null,
+      step: p.step_length_mm ? +(p.step_length_mm / 1000).toFixed(2) : null,
+      vo: p.vertical_oscillation_mm ? +(p.vertical_oscillation_mm / 10).toFixed(1) : null,
+      vr: p.vertical_ratio_pct || null,
+      gct: p.stance_time_ms || null,
     }));
+  const dynOptions = DYNAMICS.filter((d) => chartData.some((row) => row[d.key] != null));
+  const dyn = dynOptions.find((d) => d.key === dynKey) ?? dynOptions[0];
 
   const hasPace = activity.avg_pace_s_per_km != null;
   const hasHr = activity.avg_hr != null;
@@ -377,6 +396,11 @@ export default function ActivityPage() {
         <DuniComment activity={activity} />
       </div>
 
+      {/* o que o relogio grava alem do basico (efeito de treino, dinamica...) */}
+      <div className="mb-4">
+        <WatchPanel activity={activity} zones={zones} />
+      </div>
+
       <div className="od-stagger grid gap-4 xl:grid-cols-12">
         {/* mapa */}
         <Panel className={zones.some((z) => z.seconds > 0) ? "xl:col-span-8" : "xl:col-span-12"}>
@@ -483,6 +507,30 @@ export default function ActivityPage() {
                 {hasHr && (
                   <Line yAxisId="right" type="monotone" dataKey="hr" name="FC (bpm)" stroke={C.danger} strokeOpacity={0.85} dot={false} strokeWidth={1.4} connectNulls activeDot={{ r: 4, fill: C.danger }} />
                 )}
+              </ComposedChart>
+            </ResponsiveContainer>
+          </Panel>
+        )}
+
+        {/* dinamica de corrida: uma serie por vez */}
+        {isStepSport(activity.sport) && dyn && dynOptions.length > 1 && (
+          <Panel className="xl:col-span-12">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="od-label">Dinâmica de corrida</h2>
+              <Segmented options={dynOptions.map((d) => ({ value: d.key, label: d.label }))} value={dyn.key} onChange={setDynKey} ariaLabel="Métrica" />
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <ComposedChart accessibilityLayer data={chartData} margin={{ top: 8, right: 4, left: -8, bottom: 0 }}>
+                <CartesianGrid {...gridProps} />
+                <XAxis {...axisProps} dataKey="distKm" tickFormatter={(v) => `${v}km`} minTickGap={40} />
+                <YAxis {...axisProps} width={46} domain={["auto", "auto"]} />
+                <Tooltip
+                  cursor={{ stroke: "rgba(255,255,255,0.2)", strokeDasharray: "3 4" }}
+                  content={({ active, payload, label }) => active && payload?.length && payload[0].value != null
+                    ? <ChartTooltipBox title={`${label} km`} rows={[{ label: dyn.label, value: `${payload[0].value} ${dyn.unit}`, color: dyn.color }]} />
+                    : null}
+                />
+                <Line type="monotone" dataKey={dyn.key} stroke={dyn.color} dot={false} strokeWidth={1.5} connectNulls activeDot={{ r: 4, fill: dyn.color }} />
               </ComposedChart>
             </ResponsiveContainer>
           </Panel>

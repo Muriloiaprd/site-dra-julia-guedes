@@ -13,6 +13,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from kactus_api.config import settings
+from kactus_api.metrics.derived import RUN_SPORTS
+from kactus_api.metrics.garmin import compute_walk_time_s
 from kactus_api.metrics.load import update_daily_metrics
 from kactus_api.metrics.records import update_records
 from kactus_api.models import Activity, ActivityLap, ActivityPoint
@@ -66,6 +68,7 @@ def import_activity(
         calories=norm.calories,
         avg_pace_s_per_km=_avg_pace(norm),
         avg_speed_kmh=_avg_speed(norm),
+        **garmin_fields(norm),
         source=norm.source,
         source_activity_id=norm.source_activity_id,
         file_hash=file_hash,
@@ -90,6 +93,7 @@ def import_activity(
             power_w=p.power_w,
             speed_ms=p.speed_ms,
             temperature_c=p.temperature_c,
+            **point_dynamics(p),
         )
         for p in kept
     ]
@@ -194,6 +198,58 @@ def _derive_summary(norm: NormalizedActivity) -> None:
 
     if norm.elevation_gain_m is None and any(p.altitude_m is not None for p in norm.points):
         norm.elevation_gain_m, norm.elevation_loss_m = _elevation_from_points(norm.points)
+
+    derive_extremes(norm)
+
+
+def derive_extremes(norm: NormalizedActivity) -> None:
+    """Elevacao minima/maxima e temperatura pelos pontos. A media de temperatura
+    dos pontos vale mais que a do resumo do FIT, que e inteira (29 x 28,6)."""
+    alts = [p.altitude_m for p in norm.points if p.altitude_m is not None]
+    if alts:
+        norm.elevation_min_m = round(min(alts), 1)
+        norm.elevation_max_m = round(max(alts), 1)
+    temps = [p.temperature_c for p in norm.points if p.temperature_c is not None]
+    if temps:
+        norm.avg_temperature_c = round(sum(temps) / len(temps), 1)
+        norm.min_temperature_c = min(temps) if norm.min_temperature_c is None else norm.min_temperature_c
+        norm.max_temperature_c = max(temps) if norm.max_temperature_c is None else norm.max_temperature_c
+
+
+def garmin_fields(norm: NormalizedActivity) -> dict:
+    """Colunas da Activity que so o FIT preenche (as outras fontes deixam nulo)."""
+    walk = compute_walk_time_s(norm.points, norm.sport, norm.avg_cadence) if norm.sport in RUN_SPORTS else None
+    return {
+        "max_speed_kmh": round(norm.max_speed_ms * 3.6, 2) if norm.max_speed_ms else None,
+        "normalized_power_w": norm.normalized_power_w,
+        "elevation_min_m": norm.elevation_min_m,
+        "elevation_max_m": norm.elevation_max_m,
+        "min_temperature_c": norm.min_temperature_c,
+        "max_temperature_c": norm.max_temperature_c,
+        "training_effect_aerobic": norm.training_effect_aerobic,
+        "training_effect_anaerobic": norm.training_effect_anaerobic,
+        "primary_benefit": norm.primary_benefit,
+        "hr_recovery": norm.hr_recovery,
+        "sweat_loss_ml": norm.sweat_loss_ml,
+        "resting_calories": norm.resting_calories,
+        "avg_vertical_oscillation_mm": norm.avg_vertical_oscillation_mm,
+        "avg_stance_time_ms": norm.avg_stance_time_ms,
+        "avg_vertical_ratio_pct": norm.avg_vertical_ratio_pct,
+        "avg_step_length_m": round(norm.avg_step_length_mm / 1000, 2) if norm.avg_step_length_mm else None,
+        "total_strides": norm.total_strides,
+        "walk_time_s": walk,
+        "watch_feel": norm.watch_feel,
+        "watch_rpe": norm.watch_rpe,
+    }
+
+
+def point_dynamics(p) -> dict:
+    return {
+        "vertical_oscillation_mm": p.vertical_oscillation_mm,
+        "stance_time_ms": round(p.stance_time_ms) if p.stance_time_ms else None,
+        "vertical_ratio_pct": p.vertical_ratio_pct,
+        "step_length_mm": round(p.step_length_mm) if p.step_length_mm else None,
+    }
 
 
 def resolve_moving_time(norm: NormalizedActivity) -> None:

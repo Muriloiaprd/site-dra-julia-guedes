@@ -19,6 +19,7 @@ from kactus_api.ai.athlete_analysis import build_analysis, effective_kind
 from kactus_api.checkin_tags import tag_labels
 from kactus_api.config import settings
 from kactus_api.metrics.basic import PointLike, hr_zone_distribution, resolve_hr_zones
+from kactus_api.metrics.garmin import benefit_label
 from kactus_api.metrics.predictions import predict_race_times, training_recommendation
 from kactus_api.models.activity import Activity, ActivityLap, ActivityPoint
 from kactus_api.models.coach import AthleteMemory, CoachInteraction, PlannedWorkout, WeeklyPlan
@@ -107,6 +108,9 @@ DADOS (o campo "analise" do contexto já traz os cálculos feitos pelo código)
   treino, recorde ou métrica que não esteja no contexto.
 - "contexto" no check-in são marcações rápidas do próprio atleta (calor, dormi mal,
   ritmo travou, esteira...): use para explicar o desempenho daquele treino.
+- Dados do relógio, quando houver: "efeito_treino" (aeróbico e anaeróbico de 0 a 5 e
+  o benefício principal) mostra se um treino fácil foi mesmo fácil; calor
+  ("temperatura_c" alta) sobe a FC, então considere antes de falar em queda de forma.
 - Olhe o histórico, não só a última semana: compare 7, 14 e 28 dias com a tendência
   de 8 semanas para ver como o atleta RESPONDE ao treino.
 - Leia "cobertura_de_dados" antes de concluir. Se houver aviso de dias sem
@@ -407,8 +411,37 @@ def _activity_detail(act: Activity) -> dict:
         "local_dor": act.pain_location,
         "observacoes": act.checkin_notes,
         "contexto": tag_labels(act.checkin_tags),
+        "efeito_aerobico": float(act.training_effect_aerobic) if act.training_effect_aerobic is not None else None,
+        "beneficio": benefit_label(act.primary_benefit),
     }
     return {k: v for k, v in item.items() if v is not None}
+
+
+def _watch_detail(act: Activity) -> dict:
+    """O que o relogio mediu alem do basico (so atividades de FIT do Garmin)."""
+    def f(v):
+        return float(v) if v is not None else None
+
+    effect = {
+        "aerobico": f(act.training_effect_aerobic),
+        "anaerobico": f(act.training_effect_anaerobic),
+        "beneficio": benefit_label(act.primary_benefit),
+    }
+    dynamics = {
+        "passada_m": f(act.avg_step_length_m),
+        "oscilacao_vertical_cm": round(float(act.avg_vertical_oscillation_mm) / 10, 1) if act.avg_vertical_oscillation_mm else None,
+        "proporcao_vertical_pct": f(act.avg_vertical_ratio_pct),
+        "contato_com_solo_ms": f(act.avg_stance_time_ms),
+    }
+    out = {
+        "efeito_treino": {k: v for k, v in effect.items() if v is not None} or None,
+        "dinamica_de_corrida": {k: v for k, v in dynamics.items() if v is not None} or None,
+        "temperatura_min_max_c": [f(act.min_temperature_c), f(act.max_temperature_c)] if act.max_temperature_c is not None else None,
+        "fc_recuperacao_bpm": act.hr_recovery,
+        "suor_estimado_ml": act.sweat_loss_ml,
+        "minutos_andando": round(act.walk_time_s / 60, 1) if act.walk_time_s else None,
+    }
+    return {k: v for k, v in out.items() if v is not None}
 
 
 def adherence_context(db: Session, user_id: uuid.UUID, today: date | None = None) -> dict:
@@ -1191,7 +1224,7 @@ def activity_context(db: Session, user_id: uuid.UUID, act: Activity) -> dict:
         .order_by(PlannedWorkout.date)
     ).scalars().all()
 
-    detail = _activity_detail(act)
+    detail = {**_activity_detail(act), **_watch_detail(act)}
     if act.tss:
         detail["tss"] = round(float(act.tss))
     if act.avg_temperature_c is not None:

@@ -26,6 +26,11 @@ class NormalizedPoint:
     power_w: int | None = None
     speed_ms: float | None = None
     temperature_c: float | None = None
+    # dinamica de corrida (relogio com sensor de pulso ou cinta): so FIT
+    vertical_oscillation_mm: float | None = None
+    stance_time_ms: float | None = None
+    vertical_ratio_pct: float | None = None
+    step_length_mm: float | None = None
 
 
 @dataclass(slots=True)
@@ -63,6 +68,28 @@ class NormalizedActivity:
     avg_temperature_c: float | None = None
     title: str | None = None
     source_activity_id: str | None = None
+
+    # o que so o FIT (Garmin) traz; tudo opcional
+    max_speed_ms: float | None = None
+    normalized_power_w: int | None = None
+    min_temperature_c: float | None = None
+    max_temperature_c: float | None = None
+    elevation_min_m: float | None = None
+    elevation_max_m: float | None = None
+    training_effect_aerobic: float | None = None  # 0-5
+    training_effect_anaerobic: float | None = None  # 0-5
+    primary_benefit: int | None = None  # codigo do Garmin, ver PRIMARY_BENEFIT
+    hr_recovery: int | None = None  # bpm que a FC caiu depois de parar
+    sweat_loss_ml: int | None = None
+    resting_calories: int | None = None
+    avg_vertical_oscillation_mm: float | None = None
+    avg_stance_time_ms: float | None = None
+    avg_vertical_ratio_pct: float | None = None
+    avg_step_length_mm: float | None = None
+    total_strides: int | None = None
+    # autoavaliacao feita no relogio, 0-100 (sensacao: 0 = muito fraco, 100 = muito forte)
+    watch_feel: int | None = None
+    watch_rpe: int | None = None
 
 
 # ---------- tempo em movimento ----------

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { watchFeelLabel } from "@/components/activity/WatchPanel";
 import { Alert, Panel } from "@/components/ui/primitives";
 import { getCheckinTags, putCheckin, type ActivityDetail, type CheckinInput, type CheckinTagGroup, type Feeling } from "@/lib/api";
 
@@ -38,6 +39,13 @@ function levelColor(n: number): string {
   if (n <= 6) return "#FFC145";
   if (n <= 8) return "#FF8A3D";
   return "#f85149";
+}
+
+/** Sensacao do relogio (0-100) -> sensacao do check-in (igual a metrics/garmin.py). */
+function feelingFromWatch(v: number | null): Feeling | null {
+  if (v == null) return null;
+  const steps: [number, Feeling][] = [[100, "otimo"], [75, "bem"], [50, "normal"], [25, "cansado"], [0, "sem_energia"]];
+  return steps.reduce((best, cur) => (Math.abs(cur[0] - v) < Math.abs(best[0] - v) ? cur : best))[1];
 }
 
 function feelingLabel(f: Feeling | null): string | null {
@@ -126,6 +134,14 @@ export function CheckinPanel({ activity, onSaved }: { activity: ActivityDetail; 
 
   const empty: CheckinInput = { rpe: null, pain_level: null, pain_location: null, feeling: null, notes: null, tags: [] };
   const rpeInfo = form.rpe != null ? RPE_SCALE[form.rpe] : null;
+  const watchFeel = watchFeelLabel(activity.watch_feel);
+  const watchRpe = activity.watch_rpe != null ? Math.round(activity.watch_rpe / 10) : null;
+  const showWatch = !hasCheckin && (watchFeel != null || watchRpe != null);
+  // o relogio grava "muito fraco + 10/10" quando a tela e so confirmada
+  const watchLooksDefault = activity.watch_feel === 0 && activity.watch_rpe === 100;
+  function applyWatch() {
+    setForm((f) => ({ ...f, rpe: watchRpe ?? f.rpe, feeling: feelingFromWatch(activity.watch_feel) ?? f.feeling }));
+  }
   const hurts = (form.pain_level ?? 0) > 0;
 
   return (
@@ -149,6 +165,19 @@ export function CheckinPanel({ activity, onSaved }: { activity: ActivityDetail; 
           <CheckinSummary activity={activity} tagGroups={tagGroups} />
         ) : (
           <div className="space-y-5">
+            {showWatch && (
+              <div className="flex flex-col gap-2 rounded-xl bg-white/[0.03] px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <span className="text-brand-muted">O relógio registrou: </span>
+                  {[watchFeel && `sensação "${watchFeel}"`, watchRpe != null && `esforço ${watchRpe}/10`].filter(Boolean).join(" · ")}
+                  {watchLooksDefault && (
+                    <p className="mt-0.5 text-[0.72rem] text-brand-warning">Confira: o relógio grava isso quando a tela de avaliação é só confirmada.</p>
+                  )}
+                </div>
+                <button type="button" onClick={applyWatch} className="od-btn od-btn-secondary od-btn-sm shrink-0">Usar no check-in</button>
+              </div>
+            )}
+
             {/* PSE */}
             <fieldset>
               <legend className="od-metric-label mb-2">Esforço percebido (PSE) · 0 a 10</legend>

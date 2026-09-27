@@ -84,6 +84,11 @@ export interface ActivityPoint {
   cadence: number | null;
   power_w: number | null;
   speed_ms: number | null;
+  /** Dinamica de corrida (so FIT do Garmin). */
+  vertical_oscillation_mm?: number | null;
+  stance_time_ms?: number | null;
+  vertical_ratio_pct?: number | null;
+  step_length_mm?: number | null;
 }
 
 export interface ActivityLap {
@@ -119,6 +124,33 @@ export interface ActivityDetail extends ActivitySummary {
   checkin_tags: string[] | null;
   checkin_at: string | null;
   calories: number | null;
+  /** O que so o FIT do Garmin traz (nulo nas outras fontes). */
+  max_speed_kmh: number | null;
+  normalized_power_w: number | null;
+  elevation_min_m: number | null;
+  elevation_max_m: number | null;
+  avg_temperature_c: number | null;
+  min_temperature_c: number | null;
+  max_temperature_c: number | null;
+  /** Efeito de treino, 0 a 5. */
+  training_effect_aerobic: number | null;
+  training_effect_anaerobic: number | null;
+  primary_benefit: number | null;
+  primary_benefit_label: string | null;
+  /** Quanto a FC caiu logo depois de parar (bpm). */
+  hr_recovery: number | null;
+  sweat_loss_ml: number | null;
+  resting_calories: number | null;
+  avg_vertical_oscillation_mm: number | null;
+  avg_stance_time_ms: number | null;
+  avg_vertical_ratio_pct: number | null;
+  avg_step_length_m: number | null;
+  total_strides: number | null;
+  /** Tempo andando dentro da corrida (estimado pela cadencia). */
+  walk_time_s: number | null;
+  /** Autoavaliacao do relogio, 0-100. Nao e o check-in. */
+  watch_feel: number | null;
+  watch_rpe: number | null;
   location_start_lat: number | null;
   location_start_lon: number | null;
   laps: ActivityLap[];
@@ -130,6 +162,26 @@ export interface ActivityUpdate {
   description?: string | null;
   sport?: string;
   equipment_id?: string | null;
+}
+
+/** A aba Carga em linguagem simples (GET /metrics/summary). */
+export interface LoadSummary {
+  hoje: { type: string; label: string; color: string; detail: string };
+  semana: { corrida_km: number; horas: number; treinos: number };
+  media_4_semanas: { corrida_km: number; horas: number; treinos: number };
+  faixa_segura:
+    | { disponivel: true; min_km: number; max_km: number; feito_7d_km: number }
+    | { disponivel: false; motivo: "base_baixa" | "sem_corrida"; feito_7d_km: number };
+  intensidade_28d:
+    | { disponivel: true; percentual: { leve_z1_z2: number; moderado_z3: number; forte_z4_z5: number } }
+    | { disponivel: false }
+    | null;
+  efeito_treino_7d: { media_aerobico: number; treinos: number; beneficios: Record<string, number> } | null;
+  semanas: { semana: string; em_andamento: boolean; corrida_km: number; bike_km: number; caminhada_km: number; horas: number; treinos: number }[];
+}
+
+export async function fetchLoadSummary(): Promise<LoadSummary> {
+  return apiFetch<LoadSummary>("/metrics/summary");
 }
 
 export interface Split {
@@ -484,6 +536,33 @@ export interface EquipmentUpdate {
 
 export async function fetchEquipment(): Promise<EquipmentItem[]> {
   return apiFetch<EquipmentItem[]>("/equipment");
+}
+
+export interface RecommendedItem {
+  sport: string;
+  category: string;
+  tier: "entrada" | "intermediario" | "topo";
+  brand: string;
+  model: string;
+  why: string;
+  price_brl: string;
+  equipment_type: string;
+}
+
+export interface EquipmentRecommendations {
+  atualizado_em: string;
+  alertas: { nivel: "trocar" | "atencao"; equipamento: string; km: number; texto: string }[];
+  esportes: {
+    sport: string;
+    label: string;
+    praticado: boolean;
+    horas_90d: number;
+    categorias: { id: string; label: string; destaque: string | null; itens: RecommendedItem[] }[];
+  }[];
+}
+
+export async function fetchEquipmentRecommendations(): Promise<EquipmentRecommendations> {
+  return apiFetch<EquipmentRecommendations>("/equipment/recommendations");
 }
 
 export async function createEquipment(data: EquipmentCreate): Promise<EquipmentItem> {

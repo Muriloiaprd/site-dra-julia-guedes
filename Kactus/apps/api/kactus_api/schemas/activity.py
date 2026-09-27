@@ -76,6 +76,10 @@ class ActivityPointOut(BaseModel):
     cadence: int | None = None
     power_w: int | None = None
     speed_ms: float | None = None
+    vertical_oscillation_mm: float | None = None
+    stance_time_ms: int | None = None
+    vertical_ratio_pct: float | None = None
+    step_length_mm: int | None = None
 
 
 class ActivityLapOut(BaseModel):
@@ -108,6 +112,29 @@ class ActivityDetail(ActivitySummary):
     checkin_tags: list[str] | None = None
     checkin_at: datetime | None = None
     calories: int | None = None
+    # do FIT do Garmin (migration 018)
+    max_speed_kmh: float | None = None
+    normalized_power_w: int | None = None
+    elevation_min_m: float | None = None
+    elevation_max_m: float | None = None
+    avg_temperature_c: float | None = None
+    min_temperature_c: float | None = None
+    max_temperature_c: float | None = None
+    training_effect_aerobic: float | None = None
+    training_effect_anaerobic: float | None = None
+    primary_benefit: int | None = None
+    primary_benefit_label: str | None = None
+    hr_recovery: int | None = None
+    sweat_loss_ml: int | None = None
+    resting_calories: int | None = None
+    avg_vertical_oscillation_mm: float | None = None
+    avg_stance_time_ms: float | None = None
+    avg_vertical_ratio_pct: float | None = None
+    avg_step_length_m: float | None = None
+    total_strides: int | None = None
+    walk_time_s: int | None = None
+    watch_feel: int | None = None
+    watch_rpe: int | None = None
     location_start_lat: float | None = None
     location_start_lon: float | None = None
     laps: list[ActivityLapOut] = []
