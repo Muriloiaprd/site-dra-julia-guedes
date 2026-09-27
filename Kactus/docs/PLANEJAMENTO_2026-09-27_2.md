@@ -1,7 +1,7 @@
 # Kactus — Planejamento: nome, Duni mais simples, dados do Garmin, Carga e equipamentos (2026-09-27, _2)
 
 **Criado em**: 2026-09-27
-**Status**: ABERTO. Fase 0 concluída (ver "Registro de execução" no fim).
+**Status**: ABERTO. Fases 0 e 1 concluídas (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md) · [`PLANEJAMENTO_2026-09-27.md`](./PLANEJAMENTO_2026-09-27.md)
 
 ## Como retomar
@@ -294,3 +294,9 @@ Criar `Kactus/docs/PLANEJAMENTO_2026-09-27_2.md` com este plano. Commit, push e 
 
 ### Fase 0 (2026-09-27)
 - Documento criado.
+
+### Fase 1 (2026-09-27)
+- Apagado o resumo antigo da Duni (`coach_interactions` 99c89454, 21/09, conta principal) — era o único registro com "ondilow" no conteúdo.
+- `activities.file_path`: 596 caminhos `\Ondilow\` → `\Kactus\` (com `position()`: o `LIKE` do Postgres trata `\` como escape). Depois disso, os 600 caminhos gravados apontam para arquivos que existem.
+- Varredura do banco (toda coluna de texto, JSON e array): 0 ocorrências. Varredura no navegador, 11 páginas × 2 contas (título, texto e HTML, via iframe): 0 ocorrências.
+- Equipamentos: "Tênis", "Relógio", "Distância inicial".

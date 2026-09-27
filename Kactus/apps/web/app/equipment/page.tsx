@@ -15,11 +15,11 @@ import {
 } from "@/lib/api";
 
 const EQUIPMENT_TYPES = [
-  { value: "shoe", label: "Tenis" },
+  { value: "shoe", label: "Tênis" },
   { value: "bike", label: "Bicicleta" },
   { value: "swimsuit", label: "Roupa de nado" },
   { value: "wetsuit", label: "Wetsuit" },
-  { value: "watch", label: "Relogio" },
+  { value: "watch", label: "Relógio" },
   { value: "other", label: "Outro" },
 ];
 
@@ -33,11 +33,11 @@ const TYPE_ICON: Record<string, string> = {
 };
 
 const TYPE_LABEL: Record<string, string> = {
-  shoe: "Tenis",
+  shoe: "Tênis",
   bike: "Bicicleta",
   swimsuit: "Roupa de nado",
   wetsuit: "Wetsuit",
-  watch: "Relogio",
+  watch: "Relógio",
   other: "Outro",
 };
 
@@ -232,7 +232,7 @@ export default function EquipmentPage() {
               />
             </label>
             <label>
-              <span className="od-field-label">Distancia inicial (km)</span>
+              <span className="od-field-label">Distância inicial (km)</span>
               <input
                 type="number"
                 min="0"
