@@ -1,7 +1,7 @@
 # Kactus — Planejamento: nome, Duni mais simples, dados do Garmin, Carga e equipamentos (2026-09-27, _2)
 
 **Criado em**: 2026-09-27
-**Status**: ABERTO. Fases 0 a 4 concluídas (ver "Registro de execução" no fim).
+**Status**: ABERTO. Fases 0 a 5 concluídas (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md) · [`PLANEJAMENTO_2026-09-27.md`](./PLANEJAMENTO_2026-09-27.md)
 
 ## Como retomar
@@ -321,3 +321,9 @@ Criar `Kactus/docs/PLANEJAMENTO_2026-09-27_2.md` com este plano. Commit, push e 
 ### Fase 4 (2026-09-27)
 - `GET /metrics/summary` (`metrics/summary.py`): recomendação de hoje, últimos 7 dias × média semanal do mês anterior, faixa segura de km de corrida nos próximos 7 dias (carga entre 0,8× e 1,3× a média de 4 semanas, descontando os outros esportes; sem faixa quando a base é baixa), intensidade de 28 dias, efeito de treino de 7 dias e volume de 16 semanas.
 - Página `/metrics` refeita: "Hoje" e "Corrida nos próximos 7 dias" no topo, Forma / Risco de lesão / Condicionamento com frase simples, últimos 7 dias × média, volume por semana, leve × moderado × forte, efeito de treino, condicionamento × cansaço e constância; siglas e gráficos técnicos no "Modo avançado". Dashboard (`AthleteStatus`) sem TSB/ACWR no texto (siglas só no `title`).
+
+### Fase 5 (2026-09-27)
+- Catálogo `kactus_api/equipment_catalog.py` (set/2026): 36 itens, corrida (tênis dia a dia, rápido, prova, trilha, relógio, cinta), ciclismo (capacete, ciclocomputador, sensor) e natação (óculos, roupa, wetsuit), cada categoria com entrada / intermediário / topo e faixa de preço aproximada em R$. Fontes: RunRepeat, The Run Testers, iRunFar, Cyclingnews, PE Running e lojas brasileiras (preços conferidos em loja: Forerunner 265 e linha Olympikus; os outros são faixas estimadas — a tela manda conferir).
+- `GET /equipment/recommendations` (`services/equipment_recommendations.py`): esportes pelo volume de 90 dias (os praticados primeiro), destaques pelo uso (km/semana, ritmo < 5:30/km puxa o tênis de prova, trilha feita, relógio que já usa) e alerta de tênis ativo ≥ 500 km (atenção) e ≥ 600 km (trocar).
+- Web: alertas no topo de `/equipment`; "Recomendados para você" no fim, com abas por esporte, "Pesquisar ↗" (busca neutra, sem afiliado) e "Já tenho" (abre o cadastro preenchido). Conferido no navegador na conta principal (Corrida e Ciclismo).
+- 227 testes passando (4 novos nesta fase).

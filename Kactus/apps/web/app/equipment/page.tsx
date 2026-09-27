@@ -3,15 +3,19 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { Recommendations, ShoeAlerts } from "@/components/equipment/Recommendations";
 import { Alert, EmptyState, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
 import {
   createEquipment,
   deleteEquipment,
   fetchEquipment,
+  fetchEquipmentRecommendations,
   fetchMe,
   updateEquipment,
   type EquipmentCreate,
   type EquipmentItem,
+  type EquipmentRecommendations,
+  type RecommendedItem,
 } from "@/lib/api";
 
 const EQUIPMENT_TYPES = [
@@ -62,6 +66,11 @@ export default function EquipmentPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showRetired, setShowRetired] = useState(false);
+  const [recs, setRecs] = useState<EquipmentRecommendations | null>(null);
+
+  useEffect(() => {
+    fetchEquipmentRecommendations().then(setRecs).catch(() => {});
+  }, [items.length]);
 
   useEffect(() => {
     fetchMe().then((u) => {
@@ -77,6 +86,14 @@ export default function EquipmentPage() {
     setEditId(null);
     setForm(INITIAL_FORM);
     setShowForm(true);
+  }
+
+  /** "Ja tenho": abre o formulario com o item recomendado preenchido. */
+  function openFromRecommendation(it: RecommendedItem) {
+    setEditId(null);
+    setForm({ ...INITIAL_FORM, name: `${it.brand} ${it.model}`, type: it.equipment_type, brand: it.brand, model: it.model });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function openEdit(item: EquipmentItem) {
@@ -174,6 +191,8 @@ export default function EquipmentPage() {
           </Panel>
         ))}
       </div>
+
+      {recs && <ShoeAlerts data={recs} />}
 
       {/* formulario */}
       {showForm && (
@@ -330,6 +349,8 @@ export default function EquipmentPage() {
           )}
         </>
       )}
+
+      {recs && <Recommendations data={recs} onAdd={openFromRecommendation} />}
     </PageContainer>
   );
 }

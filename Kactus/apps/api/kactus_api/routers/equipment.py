@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from kactus_api.deps import CurrentUser, DbSession
 from kactus_api.models import Activity, Equipment
 from kactus_api.schemas.equipment import EquipmentCreate, EquipmentOut, EquipmentUpdate
+from kactus_api.services.equipment_recommendations import recommendations
 
 router = APIRouter(prefix="/equipment", tags=["equipment"])
 
@@ -48,6 +49,12 @@ def list_equipment(current_user: CurrentUser, db: DbSession) -> list[EquipmentOu
         .order_by(Equipment.created_at.desc())
     ).scalars().all()
     return [_to_out(db, r) for r in rows]
+
+
+@router.get("/recommendations")
+def get_recommendations(current_user: CurrentUser, db: DbSession) -> dict:
+    """Equipamentos recomendados para os esportes que o atleta pratica."""
+    return recommendations(db, current_user.id)
 
 
 @router.post("", response_model=EquipmentOut, status_code=status.HTTP_201_CREATED)
