@@ -72,6 +72,7 @@ class InsufficientDataError(CoachError):
 # Versao do prompt: settings.coach_prompt_version. v2 = Duni (Anexo A do
 # PLANEJAMENTO_2026-09-21, com os ajustes da secao "Onde eu discordo do prompt").
 # v3 (2026-09-23) = sem se apresentar, tratamento pelo perfil, status mede cansaco.
+# v4 (2026-09-27) = secao ESCRITA (curto, sem siglas), resumo estruturado, limites no plano.
 SYSTEM_PROMPT = """Você é a Duni, treinadora de corrida de rua do Kactus. Domina
 fisiologia do exercício, biomecânica da corrida e periodização, e treina um atleta
 amador sério. Fale sempre em português do Brasil, referindo-se a si mesma no feminino.
@@ -88,6 +89,16 @@ TOM
 - Linguagem simples, sem jargão. Quando usar um termo técnico, explique na prática na
   primeira vez: "PSE 3/10 = leve, dá para conversar sem perder o fôlego"; "GAP = o
   ritmo equivalente no plano, descontando subidas e descidas".
+
+ESCRITA (o atleta lê rápido, muitas vezes no celular)
+- Curto e claro: frases de até ~15 palavras, uma ideia por frase, listas de no
+  máximo 3 itens. Diga só o que muda o que ele vai fazer.
+- Só os números que pesam na decisão (km da semana, FC de um treino, dor). Não
+  despeje métricas.
+- Sem siglas soltas: "disposição" (não TSB), "salto de carga" (não ACWR),
+  "condicionamento" (não CTL), "cansaço recente" (não ATL), "carga do treino" (não
+  TSS nem sRPE). VDOT, GAP e PSE só com a explicação curta na primeira vez.
+- Na conversa, responda em até ~100 palavras, a não ser que o atleta peça detalhes.
 
 DADOS (o campo "analise" do contexto já traz os cálculos feitos pelo código)
 - Quem calcula é o código; você interpreta. Use os números de "analise" (janelas de
@@ -156,24 +167,24 @@ Os 7 dias da semana sao: {days}.
 Preencha o JSON pedido:
 - status (verde = recuperado, amarelo = atencao, laranja = fadiga acumulada,
   vermelho = recuperacao prioritaria) e status_justificativa citando os dados.
-- resumo: 2 a 4 frases com a leitura geral da semana que passou e o plano.
+- resumo: 1 a 2 frases curtas com a leitura da semana que passou e o plano.
 - avaliacao: pontos positivos, sinais de fadiga (diga se isolado ou tendencia),
-  riscos e evolucao (use as sessoes equivalentes, se houver). Listas curtas; lista
-  vazia quando nao houver nada.
+  riscos e evolucao (use as sessoes equivalentes, se houver). No maximo 2 itens
+  curtos por lista; lista vazia quando nao houver nada.
 - proxima_semana: km previsto, numero de sessoes, estimulo principal e objetivo.
 - treinos: SO os dias com treino. Dia de descanso fica SEM item (1 a 2 por semana,
   no minimo 1). Um treino por dia, no maximo. Datas AAAA-MM-DD dentro da semana.
   Para cada treino: esporte (run, trail_run ou treadmill), tipo (ex.: rodagem leve,
   longao, intervalado, limiar, progressivo, regenerativo), titulo curto, objetivo
-  (a finalidade fisiologica), motivo (por que ESTE treino NESTA semana, ligado aos
-  dados), intensidade (leve, moderado ou forte), distancia e duracao, ritmo, GAP,
+  (a finalidade, em 1 frase curta), motivo (por que ESTE treino NESTA semana, ligado
+  aos dados, em 1 frase curta), intensidade (leve, moderado ou forte), distancia e duracao, ritmo, GAP,
   zona de FC, PSE com a explicacao pratica, cadencia (a partir da habitual do
   atleta, nunca 180 como regra), terreno, qual metrica priorizar se ritmo, FC e PSE
   discordarem, observacoes e os passos (aquecimento, principal, desaquecimento;
   no principal, repeticoes e recuperacao quando for intervalado). Use null no que
   nao se aplica.
 - criterios_ajuste: quando manter, reduzir, acelerar e interromper, com sinais
-  concretos (FC, PSE, dor, ritmo).
+  concretos (FC, PSE, dor, ritmo). No maximo 2 itens curtos por lista.
 - proximas_4_semanas: 4 itens so com km aproximado e foco de cada semana, sem
   treinos diarios. E uma direcao, nao um compromisso.
 
@@ -208,17 +219,12 @@ Contexto do atleta (JSON):
 _WEEKDAYS_PT = ("segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo")
 WEEKLY_STATUS_EMOJI = {"verde": "🟢", "amarelo": "🟡", "laranja": "🟠", "vermelho": "🔴"}
 
-_ANALYSIS_INSTRUCTION = """Escreva o resumo da semana do atleta em markdown, curto e
-direto, nesta ordem:
-1. **Status** (🟢/🟡/🟠/🔴) com os dados que levaram a ele.
-2. **Semana anterior**: km, tempo, treinos, longao, intensidade e complementares
-   (use a janela de 7 dias e compare com 28 dias e a tendencia).
-3. **Avaliacao**: pontos positivos, sinais de fadiga (isolado ou tendencia), riscos
-   e evolucao (sessoes equivalentes, se houver).
-4. **Aderencia** ao plano nas ultimas 4 semanas, se houver plano.
-5. **Proxima semana**: volume aproximado, numero de sessoes, estimulo principal e
-   objetivo. Sem objetivo cadastrado, diga isso e pergunte.
-6. **O que falta de dado** para uma analise melhor (so o que faria diferenca).
+_ANALYSIS_INSTRUCTION = """Faca o resumo da semana do atleta para ele ler em 20
+segundos. Preencha o JSON pedido.
+Olhe a janela de 7 dias contra a de 28 dias e a tendencia, os sinais de fadiga, a
+aderencia ao plano (se houver) e as memorias. Escolha so o que mais importa agora:
+os pontos e as acoes sao os 3 mais relevantes, nao uma lista de tudo.
+Sem objetivo cadastrado, a pergunta e qual e o objetivo dele.
 
 Contexto (JSON):
 {context}"""
@@ -235,6 +241,35 @@ Por isso, em reply, nunca diga que anotou, guardou ou registrou algo. Se sugerir
 diga no maximo que ele pode guardar abaixo."""
 
 
+class AnalysisPoint(BaseModel):
+    tipo: Literal["bom", "atencao", "risco"]
+    texto: str = Field(description="1 frase curta (ate ~15 palavras), sem siglas.")
+
+
+class AnalysisLLM(BaseModel):
+    """Resumo da semana em pedacos pequenos: a tela monta um cartao com eles."""
+
+    status: Literal["verde", "amarelo", "laranja", "vermelho"]
+    status_frase: str = Field(
+        description="1 frase (ate ~20 palavras): o status e o dado principal que levou a ele."
+    )
+    semana: str = Field(
+        description="1 frase (ate ~25 palavras) com o que ele fez nos ultimos 7 dias "
+        "(km, tempo, treinos) comparado com o normal dele."
+    )
+    pontos: list[AnalysisPoint] = Field(
+        description="Os ate 3 pontos que mais importam agora: bom, atencao ou risco."
+    )
+    acoes: list[str] = Field(
+        description="Ate 3 acoes praticas para os proximos dias, cada uma com ate ~15 "
+        "palavras, comecando por verbo."
+    )
+    pergunta: str | None = Field(
+        description="Uma pergunta curta ao atleta so se faltar algo importante (objetivo, "
+        "atividade que parece nao importada). Senao, null."
+    )
+
+
 class ChatMemorySuggestion(BaseModel):
     kind: Literal["objetivo", "prova", "lesao", "disponibilidade", "preferencia", "outro"]
     content: str
@@ -244,8 +279,9 @@ class ChatMemorySuggestion(BaseModel):
 class ChatReply(BaseModel):
     # A descricao vai no schema para o Gemini; o flash-lite ignorava a regra so no texto.
     reply: str = Field(
-        description="Resposta ao atleta. Nunca diga que anotou, guardou, registrou ou salvou algo: "
-        "quem guarda e o atleta, clicando nas sugestoes."
+        description="Resposta ao atleta, curta (ate ~100 palavras, salvo se ele pedir detalhes). "
+        "Nunca diga que anotou, guardou, registrou ou salvou algo: quem guarda e o atleta, "
+        "clicando nas sugestoes."
     )
     memory_suggestions: list[ChatMemorySuggestion] = []
 
@@ -271,28 +307,31 @@ class PlanWorkout(BaseModel):
     data: str
     esporte: Literal["run", "trail_run", "treadmill"]
     tipo: str
-    titulo: str
-    objetivo: str
-    motivo: str
+    titulo: str = Field(description="Curto, ate ~5 palavras.")
+    objetivo: str = Field(description="1 frase curta (ate ~12 palavras): a finalidade do treino.")
+    motivo: str = Field(description="1 frase curta (ate ~15 palavras): por que este treino nesta semana.")
     intensidade: Literal["leve", "moderado", "forte"]
     distancia_km: float | None
     duracao_min: float | None
     ritmo: str | None
     gap: str | None
     zona_fc: str | None
-    pse: str | None
+    pse: str | None = Field(description='Curto, ex.: "3/10 (leve, da para conversar)".')
     cadencia: str | None
     terreno: str | None
     metrica_prioritaria: str | None
-    observacoes: str | None
+    observacoes: str | None = Field(description="1 frase curta ou null.")
     passos: list[PlanStep]
 
 
+_SHORT_LIST = "No maximo 2 itens, cada um com 1 frase curta. Lista vazia se nao houver."
+
+
 class PlanEvaluation(BaseModel):
-    positivos: list[str]
-    fadiga: list[str]
-    riscos: list[str]
-    evolucao: list[str]
+    positivos: list[str] = Field(description=_SHORT_LIST)
+    fadiga: list[str] = Field(description=_SHORT_LIST)
+    riscos: list[str] = Field(description=_SHORT_LIST)
+    evolucao: list[str] = Field(description=_SHORT_LIST)
 
 
 class PlanNextWeek(BaseModel):
@@ -303,10 +342,10 @@ class PlanNextWeek(BaseModel):
 
 
 class PlanAdjustCriteria(BaseModel):
-    manter: list[str]
-    reduzir: list[str]
-    acelerar: list[str]
-    interromper: list[str]
+    manter: list[str] = Field(description=_SHORT_LIST)
+    reduzir: list[str] = Field(description=_SHORT_LIST)
+    acelerar: list[str] = Field(description=_SHORT_LIST)
+    interromper: list[str] = Field(description=_SHORT_LIST)
 
 
 class PlanWeekOutlook(BaseModel):
@@ -317,8 +356,8 @@ class PlanWeekOutlook(BaseModel):
 
 class WeeklyPlanLLM(BaseModel):
     status: Literal["verde", "amarelo", "laranja", "vermelho"]
-    status_justificativa: str
-    resumo: str
+    status_justificativa: str = Field(description="1 frase (ate ~20 palavras) com os dados que levaram ao status.")
+    resumo: str = Field(description="1 a 2 frases curtas: a leitura da semana e o plano.")
     avaliacao: PlanEvaluation
     proxima_semana: PlanNextWeek
     treinos: list[PlanWorkout]
@@ -772,16 +811,33 @@ def clean_memory_suggestions(suggestions: list[ChatMemorySuggestion], existing: 
     return out
 
 
-def generate_analysis(db: Session, user_id: uuid.UUID) -> tuple[str, str]:
+def generate_analysis(db: Session, user_id: uuid.UUID) -> tuple[dict, str]:
+    """Resumo da semana estruturado. Fica salvo como JSON no content do
+    CoachInteraction (os resumos antigos, em markdown, continuam la)."""
     context = build_context(db, user_id)
     _require_sufficient_data(context)
 
     user_content = _ANALYSIS_INSTRUCTION.format(context=json.dumps(context, ensure_ascii=False))
-    report, model_used = call_llm(SYSTEM_PROMPT, user_content)
+    parsed, model_used = call_llm(SYSTEM_PROMPT, user_content, response_model=AnalysisLLM)
+    summary = parsed.model_dump()
+    summary["pontos"] = summary["pontos"][:3]
+    summary["acoes"] = summary["acoes"][:3]
 
-    db.add(CoachInteraction(user_id=user_id, kind="analysis", role=None, content=report, model_used=model_used))
+    content = json.dumps(summary, ensure_ascii=False)
+    db.add(CoachInteraction(user_id=user_id, kind="analysis", role=None, content=content, model_used=model_used))
     db.commit()
-    return report, model_used
+    return summary, model_used
+
+
+def parse_analysis(content: str) -> tuple[dict | None, str | None]:
+    """(summary, report): resumo novo (JSON) ou antigo (markdown)."""
+    try:
+        data = json.loads(content)
+    except ValueError:
+        return None, content
+    if isinstance(data, dict) and "status_frase" in data:
+        return data, None
+    return None, content
 
 
 class PlanEditError(CoachError):
@@ -915,9 +971,9 @@ def generate_weekly_plan(db: Session, user_id: uuid.UUID) -> tuple[WeeklyPlan, l
         report={
             "resumo": parsed.resumo,
             "carga_semana_anterior": previous_week_load(context["analise"]),
-            "avaliacao": parsed.avaliacao.model_dump(),
+            "avaliacao": {k: v[:3] for k, v in parsed.avaliacao.model_dump().items()},
             "proxima_semana": parsed.proxima_semana.model_dump(),
-            "criterios_ajuste": parsed.criterios_ajuste.model_dump(),
+            "criterios_ajuste": {k: v[:3] for k, v in parsed.criterios_ajuste.model_dump().items()},
             "proximas_4_semanas": [w.model_dump() for w in parsed.proximas_4_semanas[:4]],
         },
         model_used=model_used,
@@ -1051,20 +1107,16 @@ def move_workout(
 
 # ── comentario pos-treino (Fase 8) ──────────────────────────────────────────
 
-_ACTIVITY_INSTRUCTION = """Comente este treino do atleta, em markdown, curto e
-direto (ate ~250 palavras), nesta ordem e pulando o que nao tiver dado:
-1. **O que foi feito**: uma frase com distancia, tempo, ritmo e FC.
-2. **Planejado x feito**: se havia treino planejado para o dia, compare com o
-   que ele fez (volume, intensidade, zona). Sem plano, diga so que nao havia.
-3. **Execucao**: leia as voltas (ritmo e GAP constantes ou caindo, FC subindo,
-   deriva cardiaca, cadencia contra a habitual dele para o mesmo ritmo, tempo por
-   zona). Em subida, julgue pelo GAP, nao pelo ritmo.
-4. **Esforco e corpo**: use o check-in (PSE, sensacao, dor, contexto). Se nao houver
-   check-in, peca para ele preencher. Dor que persiste ou piora: avaliacao
-   profissional.
-5. **Evolucao**: se houver sessao equivalente, diga se melhorou, ficou estavel
-   ou custou mais, com os numeros.
-6. **Para os proximos dias**: 1 ou 2 recomendacoes praticas.
+_ACTIVITY_INSTRUCTION = """Comente este treino do atleta em markdown, em ate ~120
+palavras, com 3 blocos curtos (pule o que nao tiver dado):
+**Como foi**: 1 ou 2 frases com distancia, tempo, ritmo e FC; se havia treino
+planejado para o dia, diga se bateu com ele.
+**O que chamou atencao**: ate 2 pontos. Olhe as voltas (ritmo e GAP constantes
+ou caindo, FC subindo, deriva, cadencia contra a habitual), o tempo por zona, a
+sessao equivalente (melhorou ou custou mais) e o check-in (PSE, sensacao, dor,
+contexto). Em subida, julgue pelo GAP. Sem check-in, peca para ele preencher. Dor
+que persiste ou piora: avaliacao profissional.
+**Proximo passo**: 1 ou 2 recomendacoes praticas para os proximos dias.
 
 Nao invente numero. Use so os dados abaixo.
 

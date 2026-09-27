@@ -71,17 +71,15 @@ function stepDetail(s: WorkoutStep) {
   return parts.join(" · ");
 }
 
+/** Lista curta; vazia nao aparece (a tela so mostra o que tem conteudo). */
 function BulletList({ title, items, color }: { title: string; items: string[]; color?: string }) {
+  if (items.length === 0) return null;
   return (
     <div>
       <div className="od-metric-label mb-1.5" style={color ? { color } : undefined}>{title}</div>
-      {items.length === 0 ? (
-        <p className="text-xs text-brand-textTertiary">—</p>
-      ) : (
-        <ul className="space-y-1 text-[0.8rem] leading-snug text-brand-textSecondary">
-          {items.map((it, i) => <li key={i} className="flex gap-1.5"><span className="text-brand-muted">•</span><span>{it}</span></li>)}
-        </ul>
-      )}
+      <ul className="space-y-1 text-[0.8rem] leading-snug text-brand-textSecondary">
+        {items.map((it, i) => <li key={i} className="flex gap-1.5"><span className="text-brand-muted">•</span><span>{it}</span></li>)}
+      </ul>
     </div>
   );
 }
@@ -198,23 +196,37 @@ function WorkoutActions({ w, onDone }: { w: PlannedWorkout; onDone: (notice?: st
   );
 }
 
-function WorkoutCard({ w, onDone }: { w: PlannedWorkout; onDone: (notice?: string) => Promise<void> }) {
+function WorkoutCard({
+  w, onDone, next = false,
+}: {
+  w: PlannedWorkout;
+  onDone: (notice?: string) => Promise<void>;
+  /** O proximo treino da semana: destacado e ja aberto. */
+  next?: boolean;
+}) {
   const t = w.targets ?? {};
   const intensity = w.target_intensity ? INTENSITY[w.target_intensity] : undefined;
   const editable = w.status === "planned" && w.date >= toISODate(new Date());
   const targets = [
     ["Ritmo", t.ritmo],
-    ["GAP", t.gap],
     ["Zona de FC", t.zona_fc],
-    ["PSE", t.pse],
+    ["Esforço (PSE)", t.pse],
+    ["Ritmo no plano (GAP)", t.gap],
     ["Cadência", t.cadencia],
     ["Terreno", t.terreno],
   ].filter(([, v]) => v) as [string, string][];
 
   return (
-    <details className="od-tile group p-0 [&[open]_.chev]:rotate-90">
+    <details
+      open={next}
+      className="od-tile group p-0 [&[open]_.chev]:rotate-90"
+      style={next ? { boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.4)", background: "rgba(0,255,102,0.05)" } : undefined}
+    >
       <summary className="flex cursor-pointer list-none items-center gap-3 p-3">
-        <div className="w-12 shrink-0 text-[0.66rem] font-bold uppercase tracking-wider text-brand-muted">{dayShort(w.date)}</div>
+        <div className="w-12 shrink-0 text-[0.66rem] font-bold uppercase tracking-wider" style={{ color: next ? "#00FF66" : undefined }}>
+          <span className={next ? "" : "text-brand-muted"}>{dayShort(w.date)}</span>
+          {next && <div className="text-[0.56rem] tracking-[0.12em]">Próximo</div>}
+        </div>
         <SportTile sport={w.sport} size={30} radius={9} />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold">{w.title}</div>
@@ -225,8 +237,8 @@ function WorkoutCard({ w, onDone }: { w: PlannedWorkout; onDone: (notice?: strin
         <span className="chev text-brand-muted transition-transform" aria-hidden>›</span>
       </summary>
       <div className="space-y-3 px-3 pb-3 text-sm">
-        {w.objective && <p><span className="text-brand-muted">Objetivo: </span>{w.objective}</p>}
-        {w.reason && <p className="text-brand-textSecondary"><span className="text-brand-muted">Por que nesta semana: </span>{w.reason}</p>}
+        {w.objective && <p><span className="text-brand-muted">Para quê: </span>{w.objective}</p>}
+        {w.reason && <p className="text-brand-textSecondary"><span className="text-brand-muted">Por que agora: </span>{w.reason}</p>}
         {w.steps && w.steps.length > 0 && (
           <ol className="space-y-1.5">
             {w.steps.map((s, i) => (
@@ -289,13 +301,20 @@ export function WeeklyPlanPanel({
   const st = WEEKLY_STATUS[plan.status];
   const r = plan.report;
   const load = r.carga_semana_anterior;
-  const byDate = new Map(workouts.map((w) => [w.date, w]));
   const days = weekDays(plan.week_start, plan.week_end);
+  const byDate = new Map<string, PlannedWorkout[]>();
+  for (const w of workouts) byDate.set(w.date, [...(byDate.get(w.date) ?? []), w]);
+  // "Mudar de dia" pode levar um treino para fora da semana: ele continua na lista
+  const outside = workouts.filter((w) => !days.includes(w.date));
+  const today = toISODate(new Date());
+  const nextId = workouts.find((w) => w.status === "planned" && w.date >= today)?.id;
   const comp = Object.entries(load.complementar ?? {});
   // Km e sessoes saem dos treinos salvos, nao do relatorio: "Pedir outro treino" e
   // "Mudar de dia" mudam a semana e o relatorio fica como foi gerado.
   const plannedM = workouts.reduce((s, w) => s + (w.target_distance_m ?? 0), 0);
   const plannedKm = plannedM > 0 ? Math.round(plannedM / 100) / 10 : r.proxima_semana.km_previsto;
+  const hasEvaluation = Object.values(r.avaliacao).some((l) => l.length > 0);
+  const hasCriteria = Object.values(r.criterios_ajuste).some((l) => l.length > 0);
   const done = async (n?: string) => {
     if (n) setNotice(n);
     await onRefresh();
@@ -303,128 +322,112 @@ export function WeeklyPlanPanel({
 
   return (
     <Panel className="space-y-5">
-      {/* 1. resumo */}
+      {/* 1. o essencial: status, leitura e a semana em numeros */}
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="od-label od-label-accent">Plano da semana · {shortDate(plan.week_start)} a {shortDate(plan.week_end)}</h2>
           <span className="font-mono text-[0.62rem] tracking-wider text-brand-muted">
             gerado {new Date(plan.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-            {plan.model_used ? ` · ${plan.model_used}` : ""}
           </span>
         </div>
-        <div className="mt-3 flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-start" style={{ background: `${st.color}0d`, boxShadow: `inset 0 0 0 1px ${st.color}40` }}>
-          <div className="shrink-0">
-            <div className="text-[0.62rem] font-bold uppercase tracking-[0.16em] text-brand-muted">Status da Duni</div>
-            <div className="mt-1 font-display text-lg font-bold" style={{ color: st.color }}>{st.emoji} {st.label}</div>
-          </div>
+        <div className="mt-3 flex flex-col gap-2 rounded-xl p-4 sm:flex-row sm:items-center sm:gap-4" style={{ background: `${st.color}0d`, boxShadow: `inset 0 0 0 1px ${st.color}40` }}>
+          <div className="shrink-0 font-display text-lg font-bold" style={{ color: st.color }}>{st.emoji} {st.label}</div>
           <p className="text-sm text-brand-textSecondary sm:border-l sm:border-white/10 sm:pl-4">{plan.status_reason}</p>
         </div>
         <p className="mt-3 text-sm leading-relaxed">{r.resumo}</p>
+        <p className="mt-2 text-[0.78rem] text-brand-muted">
+          <span className="od-num text-white">{plannedKm != null ? `~${plannedKm} km` : "—"}</span>
+          {" · "}
+          <span className="od-num text-white">{workouts.length}</span> treino{workouts.length === 1 ? "" : "s"}
+          {r.proxima_semana.estimulo_principal ? ` · foco: ${r.proxima_semana.estimulo_principal}` : ""}
+        </p>
       </div>
 
       {notice && <Alert tone="accent" title="A Duni ajustou o plano">{notice}</Alert>}
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <div className="od-metric-label mb-2">Semana anterior (últimos 7 dias)</div>
-          <div className="grid grid-cols-2 gap-2">
-            <Stat label="Corrida" value={load.corrida_km != null ? `${load.corrida_km} km` : "—"} sub={load.corridas != null ? `${load.corridas} corrida${load.corridas === 1 ? "" : "s"}` : undefined} />
-            <Stat label="Tempo" value={load.corrida_minutos ? formatDuration(load.corrida_minutos * 60) : "—"} sub={load.ritmo_medio ?? undefined} />
-            <Stat label="Longão" value={load.longao_km ? `${load.longao_km} km` : "—"} />
-            <Stat label="PSE média" value={load.pse_media != null ? `${load.pse_media}` : "—"} sub={load.carga_interna_srpe != null ? `sRPE ${load.carga_interna_srpe}` : "sem check-in"} />
-          </div>
-          <p className="mt-2 text-[0.72rem] text-brand-muted">
-            {comp.length ? `Complementar: ${comp.map(([k, v]) => `${k} ${v.sessoes}× (${v.minutos} min)`).join(", ")}. ` : ""}
-            {load.intensidade_28d_pct
-              ? `Intensidade em 28 dias: ${load.intensidade_28d_pct.leve_z1_z2}% leve, ${load.intensidade_28d_pct.moderado_z3}% moderado, ${load.intensidade_28d_pct.forte_z4_z5}% forte.`
-              : ""}
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-4 lg:col-span-2">
-          <BulletList title="Pontos positivos" items={r.avaliacao.positivos} color="#00FF66" />
-          <BulletList title="Sinais de fadiga" items={r.avaliacao.fadiga} color="#FFC145" />
-          <BulletList title="Riscos" items={r.avaliacao.riscos} color="#F85149" />
-          <BulletList title="Evolução" items={r.avaliacao.evolucao} />
-        </div>
-      </div>
-
-      <div className="od-tile grid gap-3 p-3 text-sm sm:grid-cols-4">
-        <div><div className="od-metric-label">Próxima semana</div><div className="od-num mt-1">{plannedKm != null ? `~${plannedKm} km` : "—"}</div></div>
-        <div><div className="od-metric-label">Sessões</div><div className="od-num mt-1">{workouts.length}</div></div>
-        <div><div className="od-metric-label">Estímulo principal</div><div className="mt-1 text-[0.82rem]">{r.proxima_semana.estimulo_principal}</div></div>
-        <div><div className="od-metric-label">Objetivo</div><div className="mt-1 text-[0.82rem]">{r.proxima_semana.objetivo}</div></div>
-      </div>
-
-      {/* 2. tabela */}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-left text-[0.78rem]">
-          <thead className="text-[0.62rem] uppercase tracking-wider text-brand-muted">
-            <tr className="border-b border-white/5">
-              {["Dia", "Treino", "Distância", "Ritmo/GAP", "FC", "PSE", "Cadência", "Objetivo"].map((h) => <th key={h} className="px-2 py-2 font-semibold">{h}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {days.map((d) => {
-              const w = byDate.get(d);
-              const t = w?.targets ?? {};
-              return (
-                <tr key={d} className="border-b border-white/5 align-top">
-                  <td className="whitespace-nowrap px-2 py-2 font-semibold text-brand-muted">{dayShort(d)}</td>
-                  {w ? (
-                    <>
-                      <td className="px-2 py-2 font-semibold">{w.title}</td>
-                      <td className="whitespace-nowrap px-2 py-2">{volume(w)}</td>
-                      <td className="px-2 py-2">{[t.ritmo, t.gap && `GAP ${t.gap}`].filter(Boolean).join(" · ") || "—"}</td>
-                      <td className="px-2 py-2">{t.zona_fc || "—"}</td>
-                      <td className="max-w-[140px] px-2 py-2" title={t.pse ?? undefined}><span className="line-clamp-2">{t.pse || "—"}</span></td>
-                      <td className="px-2 py-2">{t.cadencia || "—"}</td>
-                      <td className="max-w-[220px] px-2 py-2 text-brand-textSecondary"><span className="line-clamp-2">{w.objective || w.description || "—"}</span></td>
-                    </>
-                  ) : (
-                    <td colSpan={7} className="px-2 py-2 text-brand-muted">Descanso</td>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* 3. cada treino */}
+      {/* 2. a semana, um dia por linha (o proximo treino ja aberto) */}
       <div>
-        <div className="od-metric-label mb-2">Treinos, um por um</div>
+        <div className="od-metric-label mb-2">A semana</div>
         <div className="space-y-2">
-          {workouts.length === 0 ? (
-            <p className="text-sm text-brand-muted">Nenhum treino neste plano.</p>
-          ) : workouts.map((w) => <WorkoutCard key={w.id} w={w} onDone={done} />)}
+          {days.map((d) => {
+            const list = byDate.get(d);
+            if (!list) {
+              return (
+                <div key={d} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-brand-muted" style={{ background: "rgba(255,255,255,0.015)" }}>
+                  <div className="w-12 shrink-0 text-[0.66rem] font-bold uppercase tracking-wider">{dayShort(d)}</div>
+                  <span>Descanso</span>
+                </div>
+              );
+            }
+            return list.map((w) => <WorkoutCard key={w.id} w={w} onDone={done} next={w.id === nextId} />);
+          })}
+          {outside.map((w) => <WorkoutCard key={w.id} w={w} onDone={done} next={w.id === nextId} />)}
         </div>
+        <p className="mt-2 text-[0.72rem] text-brand-muted">Toque num treino para ver os passos, trocar ou mudar de dia.</p>
       </div>
 
-      {/* 4. criterios */}
-      <div>
-        <div className="od-label mb-3">Critérios para ajustar o treino</div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <BulletList title="Manter" items={r.criterios_ajuste.manter} color="#00FF66" />
-          <BulletList title="Reduzir" items={r.criterios_ajuste.reduzir} color="#FFC145" />
-          <BulletList title="Acelerar" items={r.criterios_ajuste.acelerar} color="#C6FF00" />
-          <BulletList title="Interromper" items={r.criterios_ajuste.interromper} color="#F85149" />
-        </div>
-      </div>
-
-      {r.proximas_4_semanas.length > 0 && (
-        <details className="text-sm">
-          <summary className="cursor-pointer text-[0.78rem] text-brand-muted hover:text-white">Direção das próximas 4 semanas (só volume e foco)</summary>
-          <div className="mt-2 grid gap-2 sm:grid-cols-4">
-            {r.proximas_4_semanas.map((s) => (
-              <div key={s.semana} className="od-tile px-3 py-2">
-                <div className="od-metric-label">Semana {s.semana}</div>
-                <div className="od-num mt-1">{s.km_aproximado != null ? `~${s.km_aproximado} km` : "—"}</div>
-                <div className="mt-0.5 text-[0.72rem] text-brand-muted">{s.foco}</div>
-              </div>
-            ))}
+      {/* 3. o resto fica recolhido */}
+      <details className="group rounded-xl bg-white/[0.02]">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-[0.82rem] text-brand-textSecondary hover:text-white">
+          Ver análise completa
+          <span className="transition-transform group-open:rotate-180" aria-hidden>▾</span>
+        </summary>
+        <div className="space-y-5 px-4 pb-4">
+          <div>
+            <div className="od-metric-label mb-2">Semana anterior (últimos 7 dias)</div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Stat label="Corrida" value={load.corrida_km != null ? `${load.corrida_km} km` : "—"} sub={load.corridas != null ? `${load.corridas} corrida${load.corridas === 1 ? "" : "s"}` : undefined} />
+              <Stat label="Tempo" value={load.corrida_minutos ? formatDuration(load.corrida_minutos * 60) : "—"} sub={load.ritmo_medio ?? undefined} />
+              <Stat label="Longão" value={load.longao_km ? `${load.longao_km} km` : "—"} />
+              <Stat label="Esforço médio" value={load.pse_media != null ? `${load.pse_media}/10` : "—"} sub={load.pse_media == null ? "sem check-in" : undefined} />
+            </div>
+            {(comp.length > 0 || load.intensidade_28d_pct) && (
+              <p className="mt-2 text-[0.72rem] text-brand-muted">
+                {comp.length ? `Complementar: ${comp.map(([k, v]) => `${k} ${v.sessoes}× (${v.minutos} min)`).join(", ")}. ` : ""}
+                {load.intensidade_28d_pct
+                  ? `Últimos 28 dias: ${load.intensidade_28d_pct.leve_z1_z2}% leve, ${load.intensidade_28d_pct.moderado_z3}% moderado, ${load.intensidade_28d_pct.forte_z4_z5}% forte.`
+                  : ""}
+              </p>
+            )}
           </div>
-        </details>
-      )}
+
+          {hasEvaluation && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <BulletList title="Pontos positivos" items={r.avaliacao.positivos} color="#00FF66" />
+              <BulletList title="Sinais de cansaço" items={r.avaliacao.fadiga} color="#FFC145" />
+              <BulletList title="Riscos" items={r.avaliacao.riscos} color="#F85149" />
+              <BulletList title="Evolução" items={r.avaliacao.evolucao} />
+            </div>
+          )}
+
+          {hasCriteria && (
+            <div>
+              <div className="od-metric-label mb-2">Quando mudar o treino</div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <BulletList title="Manter" items={r.criterios_ajuste.manter} color="#00FF66" />
+                <BulletList title="Reduzir" items={r.criterios_ajuste.reduzir} color="#FFC145" />
+                <BulletList title="Pode acelerar" items={r.criterios_ajuste.acelerar} color="#C6FF00" />
+                <BulletList title="Parar" items={r.criterios_ajuste.interromper} color="#F85149" />
+              </div>
+            </div>
+          )}
+
+          {r.proximas_4_semanas.length > 0 && (
+            <div>
+              <div className="od-metric-label mb-2">Direção das próximas 4 semanas</div>
+              <div className="grid gap-2 sm:grid-cols-4">
+                {r.proximas_4_semanas.map((w4) => (
+                  <div key={w4.semana} className="od-tile px-3 py-2">
+                    <div className="od-metric-label">Semana {w4.semana}</div>
+                    <div className="od-num mt-1">{w4.km_aproximado != null ? `~${w4.km_aproximado} km` : "—"}</div>
+                    <div className="mt-0.5 text-[0.72rem] text-brand-muted">{w4.foco}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </details>
     </Panel>
   );
 }

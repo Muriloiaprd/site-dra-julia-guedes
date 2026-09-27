@@ -1,7 +1,7 @@
 # Kactus — Planejamento: nome, Duni mais simples, dados do Garmin, Carga e equipamentos (2026-09-27, _2)
 
 **Criado em**: 2026-09-27
-**Status**: ABERTO. Fases 0 e 1 concluídas (ver "Registro de execução" no fim).
+**Status**: ABERTO. Fases 0 a 2 concluídas (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md) · [`PLANEJAMENTO_2026-09-27.md`](./PLANEJAMENTO_2026-09-27.md)
 
 ## Como retomar
@@ -300,3 +300,11 @@ Criar `Kactus/docs/PLANEJAMENTO_2026-09-27_2.md` com este plano. Commit, push e 
 - `activities.file_path`: 596 caminhos `\Ondilow\` → `\Kactus\` (com `position()`: o `LIKE` do Postgres trata `\` como escape). Depois disso, os 600 caminhos gravados apontam para arquivos que existem.
 - Varredura do banco (toda coluna de texto, JSON e array): 0 ocorrências. Varredura no navegador, 11 páginas × 2 contas (título, texto e HTML, via iframe): 0 ocorrências.
 - Equipamentos: "Tênis", "Relógio", "Distância inicial".
+
+### Fase 2 (2026-09-27)
+- Prompt v4: seção ESCRITA no `SYSTEM_PROMPT` (frases curtas, até 3 itens, sem siglas, chat ~100 palavras). Resumo virou `AnalysisLLM` (status, frase, semana, até 3 pontos, até 3 ações, pergunta), salvo como JSON; `GET/POST /coach/analyze` devolvem `summary` (resumo antigo em markdown continua em `report`). Plano com limites por `Field(description)` e listas cortadas em 3; comentário pós-treino em ~120 palavras e 3 blocos.
+- Teste ao vivo (Gemini flash-lite, conta de teste): resumo com ~600 caracteres (antes 2.000–3.800); plano com 1 frase por campo e 1–2 itens por lista.
+- Web: `SummaryCard` (status, "O que eu vi", "O que fazer", pergunta com "Responder no chat"); cartões do topo em linguagem simples (`hint` em `formFromTsb`/`riskFromAcwr`/`ctlTrend`); painel "Plano ativo" removido; plano da semana virou lista dos 7 dias (próximo treino destacado e aberto), com "Ver análise completa" recolhido.
+- Achado: o chat usava `scrollIntoView`, que rolava a página inteira até o chat ao abrir a aba (o resumo ficava fora da tela). Agora rola só a caixa do chat.
+- `training_recommendation` e `assess_injury_risk` sem siglas no texto (CTL/TSB/ACWR).
+- 211 testes passando (3 novos).

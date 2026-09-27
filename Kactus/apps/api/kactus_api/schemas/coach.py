@@ -52,8 +52,25 @@ class MemoryOut(BaseModel):
     created_at: datetime
 
 
+class CoachSummaryPoint(BaseModel):
+    tipo: str
+    texto: str
+
+
+class CoachSummary(BaseModel):
+    status: str
+    status_frase: str
+    semana: str
+    pontos: list[CoachSummaryPoint] = []
+    acoes: list[str] = []
+    pergunta: str | None = None
+
+
 class AnalyzeResponse(BaseModel):
-    report: str
+    """Resumo novo em `summary`; resumo antigo (markdown) em `report`."""
+
+    summary: CoachSummary | None = None
+    report: str | None = None
     model_used: str
     generated_at: datetime
 

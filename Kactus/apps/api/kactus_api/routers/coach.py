@@ -16,6 +16,7 @@ from kactus_api.ai.coach_service import (
     PlanEditError,
     generate_analysis,
     generate_weekly_plan,
+    parse_analysis,
 )
 from kactus_api.deps import CurrentUser, DbSession
 from kactus_api.models.coach import AthleteMemory, CoachInteraction, PlannedWorkout
@@ -132,18 +133,21 @@ def get_last_analysis(current_user: CurrentUser, db: DbSession) -> dict | None:
     ).scalar_one_or_none()
     if row is None:
         return None
-    return {"report": row.content, "model_used": row.model_used or "", "generated_at": row.created_at}
+    summary, report = parse_analysis(row.content)
+    return {"summary": summary, "report": report, "model_used": row.model_used or "", "generated_at": row.created_at}
 
 
 @router.post("/analyze", response_model=AnalyzeResponse)
 def post_analyze(current_user: CurrentUser, db: DbSession) -> dict:
     try:
-        report, model_used = generate_analysis(db, current_user.id)
+        summary, model_used = generate_analysis(db, current_user.id)
     except InsufficientDataError as e:
         _raise_insufficient_data(e)
     except CoachUnavailableError as e:
         _raise_unavailable(e)
-    return {"report": report, "model_used": model_used, "generated_at": datetime.now(UTC)}
+    except CoachPlanParseError as e:
+        _raise_parse_error(e)
+    return {"summary": summary, "model_used": model_used, "generated_at": datetime.now(UTC)}
 
 
 @router.post("/plan/generate", response_model=WeeklyPlanResponse)

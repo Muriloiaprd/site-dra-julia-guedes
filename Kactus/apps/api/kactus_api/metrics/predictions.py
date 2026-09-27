@@ -113,13 +113,13 @@ def assess_injury_risk(metrics: list[DailyMetric]) -> dict:
     level = "low"
 
     if acwr_high >= 3:
-        reasons.append(f"ACWR > 1.5 por {acwr_high} dias consecutivos")
+        reasons.append(f"A carga subiu rápido demais em {acwr_high} dos últimos 14 dias")
         level = "high"
     if tsb_low >= 3:
-        reasons.append(f"TSB < −30 por {tsb_low} dias (acúmulo de fadiga)")
+        reasons.append(f"Cansaço acumulado alto em {tsb_low} dos últimos 14 dias")
         level = "high"
     if spike and level != "high":
-        reasons.append("Carga aumentou > 30% comparado à semana anterior")
+        reasons.append("A carga desta semana passou 30% da semana anterior")
         level = "moderate"
 
     if not reasons:
@@ -173,32 +173,32 @@ def training_recommendation(latest_metric: "DailyMetric | None") -> dict:
             "type": "easy",
             "label": "Retomada gradual",
             "color": "#00BFFF",
-            "detail": f"Pouco treino nas últimas semanas (CTL {ctl:.0f}) — volte com corridas leves antes de qualquer intensidade",
+            "detail": "Pouco treino nas últimas semanas: volte com corridas leves antes de qualquer intensidade",
         }
     if acwr > 1.5 or tsb < -30:
         return {
             "type": "rest",
-            "label": "Descanso / Recovery",
+            "label": "Descanso",
             "color": "#f85149",
-            "detail": f"Carga muito alta — priorize recuperação hoje (TSB {tsb:+.1f})",
+            "detail": "Cansaço alto ou carga subindo rápido demais: priorize recuperar hoje",
         }
     if tsb > 5:
         return {
             "type": "hard",
-            "label": "Treino Duro",
+            "label": "Pode treinar forte",
             "color": "#3fb950",
-            "detail": f"Forma em alta (TSB {tsb:+.1f}) — bom dia para intensidade ou prova",
+            "detail": "Cansaço baixo: bom dia para um treino de qualidade ou prova",
         }
     if tsb >= -10:
         return {
             "type": "moderate",
-            "label": "Treino Moderado",
+            "label": "Treino moderado",
             "color": "#e3b341",
-            "detail": f"Forma moderada (TSB {tsb:+.1f}) — manutenção ou volume leve",
+            "detail": "Cansaço sob controle: treino normal ou volume leve",
         }
     return {
         "type": "easy",
-        "label": "Treino Leve / Regenerativo",
+        "label": "Treino leve",
         "color": "#f0883e",
-        "detail": f"Fadiga elevada (TSB {tsb:+.1f}) — volume baixo, sem intensidade",
+        "detail": "Cansaço acumulado: pouco volume e sem intensidade",
     }

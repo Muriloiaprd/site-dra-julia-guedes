@@ -172,7 +172,8 @@ export function readinessColor(v: number | null): string {
   return C.danger;
 }
 
-export type Tone = { label: string; color: string };
+/** `hint` = a leitura em linguagem simples, para mostrar no lugar da sigla. */
+export type Tone = { label: string; color: string; hint?: string };
 
 /** TSB -> estado de recuperacao. */
 export function recoveryFromTsb(tsb: number | null): Tone {
@@ -182,22 +183,22 @@ export function recoveryFromTsb(tsb: number | null): Tone {
   return { label: "Baixa", color: C.danger };
 }
 
-/** TSB -> forma. */
+/** TSB (disposicao) -> forma. */
 export function formFromTsb(tsb: number | null): Tone {
-  if (tsb == null) return { label: "Sem dados", color: C.muted };
-  if (tsb > 5) return { label: "Descansado", color: C.accent };
-  if (tsb >= -10) return { label: "Equilibrada", color: C.accent };
-  if (tsb >= -30) return { label: "Em construção", color: C.warning };
-  return { label: "Sobrecarga", color: C.danger };
+  if (tsb == null) return { label: "Sem dados", color: C.muted, hint: "Importe treinos para calcular" };
+  if (tsb > 5) return { label: "Descansado", color: C.accent, hint: "Cansaço baixo: dá para treinar forte" };
+  if (tsb >= -10) return { label: "Equilibrada", color: C.accent, hint: "Cansaço sob controle" };
+  if (tsb >= -30) return { label: "Em construção", color: C.warning, hint: "Cansaço de treino acumulado, normal em semana forte" };
+  return { label: "Sobrecarga", color: C.danger, hint: "Cansaço alto: priorize descanso" };
 }
 
 /** ACWR -> risco (0.8–1.3 zona ideal). */
 export function riskFromAcwr(acwr: number | null): Tone & { zone: string } {
-  if (acwr == null) return { label: "Sem dados", zone: "—", color: C.muted };
-  if (acwr > 1.5) return { label: "Alto", zone: "Risco de lesão", color: C.danger };
-  if (acwr > 1.3) return { label: "Atenção", zone: "Acima do ideal", color: C.warning };
-  if (acwr >= 0.8) return { label: "Baixo", zone: "Zona ideal", color: C.accent };
-  return { label: "Baixo", zone: "Subcarga", color: C.warning };
+  if (acwr == null) return { label: "Sem dados", zone: "—", color: C.muted, hint: "Precisa de 4 semanas de treino" };
+  if (acwr > 1.5) return { label: "Alto", zone: "Risco de lesão", color: C.danger, hint: "A carga subiu rápido demais: risco de lesão" };
+  if (acwr > 1.3) return { label: "Atenção", zone: "Acima do ideal", color: C.warning, hint: "A carga está subindo rápido: segure o aumento" };
+  if (acwr >= 0.8) return { label: "Baixo", zone: "Zona ideal", color: C.accent, hint: "A carga está subindo no ritmo certo" };
+  return { label: "Baixo", zone: "Subcarga", color: C.warning, hint: "Treinando menos que o seu normal" };
 }
 
 /** Tendencia de fitness (CTL) nos ultimos N dias. */
@@ -206,9 +207,9 @@ export function ctlTrend(metrics: DailyMetric[], days = 14): Tone & { delta: num
   const past = metricDaysAgo(metrics, days);
   if (latest?.ctl == null || past?.ctl == null) return { label: "Sem dados", color: C.muted, delta: null };
   const delta = latest.ctl - past.ctl;
-  if (delta > 1.5) return { label: "Em alta", color: C.accent, delta };
-  if (delta < -1.5) return { label: "Em queda", color: C.warning, delta };
-  return { label: "Estável", color: C.textSecondary, delta };
+  if (delta > 1.5) return { label: "Em alta", color: C.accent, delta, hint: "Condicionamento subindo nas últimas 2 semanas" };
+  if (delta < -1.5) return { label: "Em queda", color: C.warning, delta, hint: "Condicionamento caindo nas últimas 2 semanas" };
+  return { label: "Estável", color: C.textSecondary, delta, hint: "Condicionamento estável nas últimas 2 semanas" };
 }
 
 /* ───────────── series de pontos ───────────── */

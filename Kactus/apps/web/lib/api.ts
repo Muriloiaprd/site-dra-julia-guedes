@@ -709,8 +709,20 @@ export async function moveWorkout(
   });
 }
 
+/** Resumo da semana (v4): pedacos curtos que a tela monta num cartao. */
+export interface CoachSummary {
+  status: WeeklyStatus;
+  status_frase: string;
+  semana: string;
+  pontos: { tipo: "bom" | "atencao" | "risco"; texto: string }[];
+  acoes: string[];
+  pergunta: string | null;
+}
+
+/** `summary` nos resumos novos; `report` (markdown) nos antigos. */
 export interface CoachReport {
-  report: string;
+  summary: CoachSummary | null;
+  report: string | null;
   model_used: string;
   generated_at: string;
 }
