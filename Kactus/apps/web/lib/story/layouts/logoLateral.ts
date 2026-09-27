@@ -4,16 +4,20 @@ import type { StoryLayout } from "../types";
 import { drawPhotoAndScrims, drawValueColumn, INTER_BOLD } from "./shared";
 
 /**
- * Modelo "4" do usuário: logo vertical num badge preto colado na borda
- * direita, 4 ícones pequenos na base à esquerda com os valores ao lado,
- * listras nos cantos. Sem rota.
+ * Modelo "4" do usuário: logo vertical colada na borda direita (sem a faixa
+ * preta da arte original, a pedido do usuário), 4 ícones pequenos na base à
+ * esquerda com os valores ao lado, listras nos cantos. Sem rota.
  */
 export const logoLateral: StoryLayout = {
   id: "logo-lateral",
   label: "Logo lateral",
   art: R.art,
   draw(ctx, data) {
-    drawPhotoAndScrims(ctx, data, [{ box: { x: 0, y: 1050, w: 1080, h: 870 }, direction: "bottom", strength: 0.75 }]);
+    drawPhotoAndScrims(ctx, data, [
+      { box: { x: 0, y: 1050, w: 1080, h: 870 }, direction: "bottom", strength: 0.75 },
+      // a logo branca fica direto na foto: escurece a borda direita pra ela ler em foto clara
+      { box: { x: 820, y: 0, w: 260, h: 700 }, direction: "right", strength: 0.6 },
+    ]);
 
     const base = buildArtLayer(data.art, R.art, { mode: "clear", rects: R.valueClears }, data.color, [R.badge]);
     ctx.drawImage(base, 0, 0);

@@ -10,7 +10,7 @@ const KEYS = ["duration", "pace", "distance"] as const;
 
 /**
  * Modelo "17" do usuário: título gigante em 2 linhas, listras no topo, 3
- * valores com rótulo embaixo, logo em badge preto e xadrez na base. Título e
+ * valores com rótulo embaixo, logo e xadrez na base. Título e
  * valores na cor do esporte, com o espaçamento aberto da arte.
  */
 export const desafio: StoryLayout = {

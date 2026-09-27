@@ -79,7 +79,7 @@ export const ROTA_MINIMAL = {
   logo: { x: 117, y: 1476, w: 865, h: 189 } satisfies Box,
 };
 
-/** Modelo 4: logo vertical num badge preto na lateral direita, 4 ícones na base à esquerda. Inter 700. */
+/** Modelo 4: logo vertical na lateral direita, 4 ícones na base à esquerda. Inter 700. */
 export const LOGO_LATERAL = {
   art: "/story-art/logo-lateral.png",
   maxW: 600,
@@ -95,7 +95,10 @@ export const LOGO_LATERAL = {
     { x: 202, y: 1552, w: 233, h: 56 },
     { x: 204, y: 1713, w: 194, h: 49 },
   ] satisfies Box[],
-  /** A logo aqui é girada 90° dentro do badge — fica a embutida, protegida do recolor. */
+  /**
+   * A logo aqui é girada 90° — fica a embutida, protegida do recolor. A faixa
+   * preta atrás dela foi tirada do PNG (preto → transparência) em 2026-09-27.
+   */
   badge: { x: 958, y: 106, w: 114, h: 464 } satisfies Box,
 };
 
@@ -318,7 +321,8 @@ export const MOLDURA_TRACEJADA = {
 
 /**
  * Modelo 17: título gigante em 2 linhas, listras no topo, 3 valores com
- * rótulo embaixo, logo num badge preto e xadrez na base. Título e valores em
+ * rótulo embaixo, logo (sem o badge preto, tirado do PNG em 2026-09-27) e
+ * xadrez na base. Título e valores em
  * Montserrat 900 com espaçamento aberto (5%); rótulos em Inter 400.
  */
 export const DESAFIO = {
@@ -347,7 +351,7 @@ export const DESAFIO = {
     { x: 412, y: 1630, w: 106, h: 36 },
     { x: 804, y: 1630, w: 190, h: 36 },
   ] satisfies Box[],
-  /** Wordmark branco sobre o badge preto — tudo protegido do recolor. */
+  /** Wordmark da marca — protegido do recolor. */
   logo: { x: 58, y: 1762, w: 370, h: 132 } satisfies Box,
 };
 

@@ -1,7 +1,7 @@
 # Kactus — Planejamento: logos, tempo em movimento e check-in (2026-09-27)
 
 **Criado em**: 2026-09-27
-**Status**: ABERTO. Nenhuma fase além da 0 foi executada.
+**Status**: ABERTO. Fases 0 e 1 concluídas (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md) · [`PLANEJAMENTO_2026-09-26.md`](./PLANEJAMENTO_2026-09-26.md) (rebrand, fechado)
 
 ## Como retomar
@@ -127,3 +127,11 @@ Atualizar `docs/ESTADO_DO_PROJETO.md` (sessão 2026-09-27), `docs/BACKLOG.md` se
   - Lista, dashboard e Stories mostram o mesmo tempo.
   - O backfill em `--dry-run` e depois de verdade mostra as contagens. A carga (CTL/ATL) muda de forma coerente.
 - **Check-in:** marcar só chips e salvar; editar; ver no resumo; pedir um comentário da Duni e conferir que ela considera as etiquetas.
+
+---
+
+## Registro de execução
+
+### Fase 1 (2026-09-27)
+- Preto → transparência só na caixa da logo de `desafio.png` e `logo-lateral.png` (0 pixel preto opaco depois; conferido sobre fundo escuro, médio e claro, sem halo).
+- `drawScrim` ganhou as direções `left`/`right`; o modelo 4 escurece a borda direita (x 820–1080, y 0–700) pra logo branca ler em foto clara. No 17 o escurecimento de baixo já cobre.

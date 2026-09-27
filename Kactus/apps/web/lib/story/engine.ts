@@ -172,15 +172,21 @@ export function drawRoute(
   ctx.restore();
 }
 
-/** Gradiente escuro atrás de texto, pra segurar contraste sobre qualquer foto. */
+/**
+ * Gradiente escuro atrás de texto, pra segurar contraste sobre qualquer foto.
+ * `direction` é o lado mais escuro.
+ */
 export function drawScrim(
   ctx: CanvasRenderingContext2D,
   region: Box,
-  direction: "top" | "bottom" = "bottom",
+  direction: "top" | "bottom" | "left" | "right" = "bottom",
   strength = 0.85
 ): void {
-  const grad = ctx.createLinearGradient(0, region.y, 0, region.y + region.h);
-  if (direction === "bottom") {
+  const horizontal = direction === "left" || direction === "right";
+  const grad = horizontal
+    ? ctx.createLinearGradient(region.x, 0, region.x + region.w, 0)
+    : ctx.createLinearGradient(0, region.y, 0, region.y + region.h);
+  if (direction === "bottom" || direction === "right") {
     grad.addColorStop(0, "rgba(6,6,6,0)");
     grad.addColorStop(1, `rgba(6,6,6,${strength})`);
   } else {

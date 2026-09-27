@@ -33,7 +33,7 @@ export const SERIF = "Georgia, 'Noto Serif', 'Times New Roman', serif";
  * (13, 15, 16), dois gradientes se encontrando no meio deixariam justamente
  * a linha do meio sem contraste.
  */
-export type Scrim = { box: Box; direction: "top" | "bottom" | "flat"; strength: number };
+export type Scrim = { box: Box; direction: "top" | "bottom" | "left" | "right" | "flat"; strength: number };
 
 /** Foto de fundo (se houver e o fundo não for transparente) e os escurecimentos que seguram o contraste do texto. */
 export function drawPhotoAndScrims(ctx: CanvasRenderingContext2D, data: StoryLayoutData, scrims: Scrim[]): void {
