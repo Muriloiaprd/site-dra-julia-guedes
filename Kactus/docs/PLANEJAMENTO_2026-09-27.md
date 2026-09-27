@@ -1,7 +1,7 @@
 # Kactus — Planejamento: logos, tempo em movimento e check-in (2026-09-27)
 
 **Criado em**: 2026-09-27
-**Status**: ABERTO. Fases 0 a 3 concluídas, falta a 4 (fechamento) (ver "Registro de execução" no fim).
+**Status**: FECHADO em 2026-09-27. Todas as fases concluídas (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md) · [`PLANEJAMENTO_2026-09-26.md`](./PLANEJAMENTO_2026-09-26.md) (rebrand, fechado)
 
 ## Como retomar
@@ -149,3 +149,6 @@ Atualizar `docs/ESTADO_DO_PROJETO.md` (sessão 2026-09-27), `docs/BACKLOG.md` se
 - Duni: `"contexto": [rótulos]` no detalhe da atividade (`coach_service`) e nos check-ins de 28 dias (`athlete_analysis`); SYSTEM_PROMPT explica o campo e o passo 4 do comentário pós-treino cita "contexto".
 - Web: três grupos de chips entre "Como o corpo respondeu" e "Dor"; placeholder "Algo fora do normal? (opcional)"; resumo mostra as etiquetas como chips. Conferido no navegador: salvar só etiquetas, editar (tirar uma, pôr PSE) e resumo.
 - 208 testes passando (4 novos + 2 ampliados).
+
+### Fase 4 (2026-09-27)
+- `ESTADO_DO_PROJETO.md` com a sessão 2026-09-27 e a lista de migrations até a 017. Nada sobrou para o `BACKLOG.md`. Planejamento fechado.

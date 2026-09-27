@@ -1,6 +1,6 @@
 # Kactus — Estado do Projeto
 
-**Última atualização deste doc**: 2026-09-26 (rebrand Ondilow → Kactus — ver a última sessão abaixo)
+**Última atualização deste doc**: 2026-09-27 (logos, tempo em movimento e etiquetas do check-in — ver a última sessão abaixo)
 **Nome**: o projeto se chamava **Ondilow** até 2026-09-26; os documentos anteriores a essa data (planejamentos, resumos) mantêm o nome antigo de propósito.
 **Branch**: master
 **Backlog priorizado do que falta melhorar**: ver [`BACKLOG.md`](./BACKLOG.md)
@@ -106,6 +106,12 @@ O projeto passou a se chamar **Kactus**; funcionalidades não mudaram. Detalhes 
 - **Stories**: 19 modelos (15 trocados + 4 novos), todas as coordenadas remedidas contra as artes; a logo fica a embutida na arte (sem camada de alta resolução). Ferramenta de dev `/story-calibrate` compara o desenho com a arte pixel a pixel.
 - **Nomes internos**: pasta `Kactus/`, pacote `kactus_api`, `kactus_token` (migra o `ondilow_token` sem deslogar), docker/`.env.example` com `kactus`.
 
+### ✅ Sessão 2026-09-27 — Logos, tempo em movimento e check-in
+Detalhes em [`PLANEJAMENTO_2026-09-27.md`](./PLANEJAMENTO_2026-09-27.md).
+- **Stories 4 e 17**: a logo fica direto sobre a foto (o fundo preto atrás dela virou transparência); o 4 ganhou um escurecimento na borda direita.
+- **Tempo em movimento em tudo**: `compute_moving_time_s` (`parsers/base.py`) calcula no import de FIT/GPX/TCX (pausas e paradas descontadas). Telas, Stories, carga (TSS) e Duni usam `moving_time_s`, com `duration_s` como "Tempo total". Histórico recalculado por `scripts/backfill_moving_time.py`. O `file_path` antigo (com `Ondilow/`) é reencontrado por `services/uploads.resolve_upload_path`.
+- **Etiquetas no check-in**: catálogo em `kactus_api/checkin_tags.py` (Clima, Corpo e rotina, Treino), coluna `activities.checkin_tags` (migration 017), `GET /activities/checkin-tags`; a Duni recebe os rótulos como `"contexto"`.
+
 ---
 
 ## Para iniciar uma sessão de trabalho
@@ -140,7 +146,7 @@ Todo o levantamento de melhorias pendentes (tratamento de erro no perfil, featur
 ### Banco de dados:
 - Neon Postgres (`wispy-mountain-04630520`)
 - Migrations: `uv run alembic upgrade head` (rodar do diretório `apps/api`)
-- IDs de migration: `001_initial` → `008_coach`
+- IDs de migration: `001_initial` → `017_checkin_tags`
 
 ### Arquivos NÃO commitados:
 - `.env` (credenciais reais)
