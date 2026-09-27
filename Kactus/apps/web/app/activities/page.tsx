@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { SportTile } from "@/components/SportIcon";
 import { Alert, EmptyState, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
 import { deleteActivity, fetchActivities, type ActivitySummary } from "@/lib/api";
-import { formatDistance, formatDuration, formatPace, formatPaceShort, isBikeSport, sportColor, sportLabel } from "@/lib/utils";
+import { activeSeconds, formatDistance, formatDuration, formatPace, formatPaceShort, isBikeSport, sportColor, sportLabel } from "@/lib/utils";
 
 const SPORTS = [
   "run", "trail_run", "treadmill", "bike", "mtb", "gravel",
@@ -175,7 +175,7 @@ export default function ActivitiesPage() {
       const distKm = a.distance_m != null ? a.distance_m / 1000 : null;
       if (!inRange(distKm, distance)) return false;
 
-      const durMin = a.duration_s / 60;
+      const durMin = activeSeconds(a) / 60;
       if (!inRange(durMin, duration)) return false;
 
       if (!inRange(a.avg_hr, hr)) return false;
@@ -191,7 +191,7 @@ export default function ActivitiesPage() {
 
   const totals = useMemo(() => {
     const distance_m = filtered.reduce((s, a) => s + (a.distance_m ?? 0), 0);
-    const duration_s = filtered.reduce((s, a) => s + a.duration_s, 0);
+    const duration_s = filtered.reduce((s, a) => s + activeSeconds(a), 0);
     const elevation_m = filtered.reduce((s, a) => s + (a.elevation_gain_m ?? 0), 0);
     return { count: filtered.length, distance_m, duration_s, elevation_m };
   }, [filtered]);
@@ -212,7 +212,7 @@ export default function ActivitiesPage() {
           // "+" = ainda ha paginas nao carregadas; totais refletem so o que esta carregado
           { k: "Atividades", v: loading ? null : `${totals.count}${hasMore ? "+" : ""}`, u: "" },
           { k: "Distância", v: loading ? null : (totals.distance_m / 1000).toFixed(0), u: "km" },
-          { k: "Tempo total", v: loading ? null : formatDuration(totals.duration_s), u: "" },
+          { k: "Tempo em movimento", v: loading ? null : formatDuration(totals.duration_s), u: "" },
           { k: "Elevação", v: loading ? null : Math.round(totals.elevation_m).toLocaleString("pt-BR"), u: "m" },
         ].map((t) => (
           <Panel key={t.k} className="!p-4">
@@ -365,7 +365,7 @@ export default function ActivitiesPage() {
                           {new Date(a.start_time).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
                         </td>
                         <td className="od-num text-right">{formatDistance(a.distance_m)}</td>
-                        <td className="text-right text-brand-textSecondary">{formatDuration(a.duration_s)}</td>
+                        <td className="text-right text-brand-textSecondary">{formatDuration(activeSeconds(a))}</td>
                         <td className="text-right text-brand-textSecondary">
                           {isBike
                             ? a.avg_speed_kmh != null ? `${a.avg_speed_kmh.toFixed(1)} km/h` : "–"
@@ -405,7 +405,7 @@ export default function ActivitiesPage() {
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold">{a.title ?? sportLabel(a.sport)}</div>
                       <div className="text-[0.7rem] text-brand-muted">
-                        {new Date(a.start_time).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })} · {formatDuration(a.duration_s)}
+                        {new Date(a.start_time).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })} · {formatDuration(activeSeconds(a))}
                       </div>
                     </div>
                     <div className="text-right">

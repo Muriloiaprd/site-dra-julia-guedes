@@ -9,7 +9,7 @@ import { EmptyState, Panel, Segmented, Skeleton, TrendBadge } from "@/components
 import { pctChange } from "@/lib/athlete";
 import type { ActivitySummary } from "@/lib/api";
 import { axisProps, C, gridProps } from "@/lib/theme";
-import { formatPace, formatPaceShort, sportLabel } from "@/lib/utils";
+import { activeSeconds, formatPace, formatPaceShort, sportLabel } from "@/lib/utils";
 
 type EvolMetric = "distance" | "pace" | "hr";
 const PERIODS = [
@@ -57,8 +57,8 @@ function aggregate(list: ActivitySummary[], m: EvolMetric): number | null {
     return w ? l.reduce((s, a) => s + a.avg_pace_s_per_km! * a.distance_m!, 0) / w : null;
   }
   const l = list.filter((a) => a.avg_hr);
-  const w = l.reduce((s, a) => s + a.duration_s, 0);
-  return w ? l.reduce((s, a) => s + a.avg_hr! * a.duration_s, 0) / w : null;
+  const w = l.reduce((s, a) => s + activeSeconds(a), 0);
+  return w ? l.reduce((s, a) => s + a.avg_hr! * activeSeconds(a), 0) / w : null;
 }
 
 function fmt(v: number | null, m: EvolMetric): string {

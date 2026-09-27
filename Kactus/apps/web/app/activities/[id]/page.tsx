@@ -38,6 +38,7 @@ import { axisProps, C, gridProps } from "@/lib/theme";
 import {
   distanceParts,
   formatDate,
+  activeSeconds,
   formatDuration,
   formatPace,
   formatPaceShort,
@@ -219,7 +220,8 @@ export default function ActivityPage() {
 
   const step = isStepSport(activity.sport);
   const secondary: { label: string; value: string | number; unit?: string; hint?: string }[] = [];
-  if (activity.moving_time_s != null) secondary.push({ label: "Em movimento", value: formatDuration(activity.moving_time_s) });
+  // o tempo principal e o em movimento; o total (com paradas) so aparece quando e diferente
+  if (activity.moving_time_s != null && activity.duration_s - activity.moving_time_s >= 5) secondary.push({ label: "Tempo total", value: formatDuration(activity.duration_s), hint: "Do início ao fim, contando paradas e pausas." });
   if (activity.max_hr != null) secondary.push({ label: "FC máx", value: activity.max_hr, unit: "bpm" });
   if (activity.elevation_gain_m != null) secondary.push({ label: "Elevação", value: `+${Math.round(activity.elevation_gain_m)}`, unit: "m" });
   if (activity.avg_speed_kmh != null && hasPace) secondary.push({ label: "Vel. média", value: activity.avg_speed_kmh.toFixed(1), unit: "km/h" });
@@ -263,7 +265,7 @@ export default function ActivityPage() {
                 <span className="text-xs capitalize text-brand-muted">{formatDate(activity.start_time)} · {formatTime(activity.start_time)}</span>
               </div>
               <h1 className="mt-2 font-display text-[1.6rem] font-extrabold leading-tight tracking-tight sm:text-[2rem]">
-                {activity.title ?? `${dist.value} ${dist.unit} — ${formatDuration(activity.duration_s)}`}
+                {activity.title ?? `${dist.value} ${dist.unit} — ${formatDuration(activeSeconds(activity))}`}
               </h1>
             </div>
           </div>
@@ -345,7 +347,7 @@ export default function ActivityPage() {
 
         <div className="relative mt-6 grid grid-cols-2 gap-5 border-t border-white/5 pt-5 sm:grid-cols-4">
           <Metric size="xl" value={dist.value} unit={dist.unit} label="Distância" />
-          <Metric size="lg" value={formatDuration(activity.duration_s)} label="Duração" />
+          <Metric size="lg" value={formatDuration(activeSeconds(activity))} label={activity.moving_time_s != null ? "Tempo em movimento" : "Duração"} />
           {hasPace
             ? <Metric size="lg" value={formatPaceShort(activity.avg_pace_s_per_km!)} unit="/km" label="Pace médio" />
             : activity.avg_speed_kmh != null

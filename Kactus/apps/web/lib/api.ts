@@ -61,7 +61,10 @@ export interface ActivitySummary {
   id: string;
   sport: string;
   start_time: string;
+  /** Tempo decorrido (do início ao fim, com paradas). Para exibir e somar, usar `activeSeconds`. */
   duration_s: number;
+  /** Tempo em movimento; nulo quando não dá pra calcular (ex.: musculação, natação em piscina). */
+  moving_time_s: number | null;
   distance_m: number | null;
   elevation_gain_m: number | null;
   avg_hr: number | null;
@@ -95,7 +98,6 @@ export interface ActivityLap {
 
 export interface ActivityDetail extends ActivitySummary {
   equipment_id: string | null;
-  moving_time_s: number | null;
   elevation_loss_m: number | null;
   max_hr: number | null;
   avg_power_w: number | null;

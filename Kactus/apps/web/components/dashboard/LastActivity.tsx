@@ -7,7 +7,7 @@ import { SportIcon, SportTile } from "@/components/SportIcon";
 import { compareWithRecent, paceSeries } from "@/lib/athlete";
 import type { ActivityDetail, ActivitySummary } from "@/lib/api";
 import { C } from "@/lib/theme";
-import { distanceParts, formatDuration, formatPaceShort, isBikeSport, relativeDay, sportColor, sportLabel } from "@/lib/utils";
+import { activeSeconds, distanceParts, formatDuration, formatPaceShort, isBikeSport, relativeDay, sportColor, sportLabel } from "@/lib/utils";
 
 const ActivityMiniMap = dynamic(
   () => import("@/components/ActivityMiniMap").then((m) => m.ActivityMiniMap),
@@ -78,7 +78,7 @@ export function LastActivity({
 
         <div className="mt-5 flex items-end justify-between gap-3">
           <Metric size="xl" value={dist.value} unit={dist.unit} label="Distância" />
-          <Metric size="md" value={formatDuration(activity.duration_s)} label="Tempo" align="right" />
+          <Metric size="md" value={formatDuration(activeSeconds(activity))} label="Tempo" align="right" />
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-2 border-t border-white/5 pt-4">

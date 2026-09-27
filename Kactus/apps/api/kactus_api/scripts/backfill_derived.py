@@ -16,9 +16,7 @@ Use --email para limitar a um usuario.
 """
 
 import argparse
-import os
 from collections import Counter
-from pathlib import Path
 
 from sqlalchemy import or_, select, update
 from sqlalchemy.orm import selectinload
@@ -32,13 +30,15 @@ from kactus_api.services.derived_metrics import (
     apply_derived_metrics,
     normalize_step_cadence,
 )
+from kactus_api.services.uploads import resolve_upload_path
 
 
-def _sport_from_file(path: str | None) -> str | None:
-    if not path or not os.path.exists(path):
+def _sport_from_file(stored: str | None) -> str | None:
+    path = resolve_upload_path(stored)
+    if path is None:
         return None
     try:
-        parsed = parse_file(os.path.basename(path), Path(path).read_bytes())
+        parsed = parse_file(path.name, path.read_bytes())
     except (ParserError, UnsupportedFormatError, OSError):
         return None
     return parsed[0].sport if len(parsed) == 1 else None

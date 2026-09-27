@@ -5,7 +5,7 @@ import { SportIcon } from "@/components/SportIcon";
 import { LegendDot } from "@/components/ui/charts";
 import { getMonday, pctChange, sameDay, toISODate, weekDates, WEEK_LABELS, type WeekAgg } from "@/lib/athlete";
 import type { ActivitySummary, PlannedWorkout } from "@/lib/api";
-import { formatDuration, sportLabel } from "@/lib/utils";
+import { activeSeconds, formatDuration, sportLabel } from "@/lib/utils";
 
 type DayState = "done" | "today" | "planned" | "rest" | "open";
 
@@ -39,7 +39,7 @@ export function WeekStrip({
     else if (planned) state = isRestWorkout(planned) ? "rest" : "planned";
     else state = "open";
 
-    const load = acts.length ? acts.reduce((s, a) => s + a.duration_s, 0) : planned?.target_duration_s ?? 0;
+    const load = acts.length ? acts.reduce((s, a) => s + activeSeconds(a), 0) : planned?.target_duration_s ?? 0;
     const dist = acts.length ? acts.reduce((s, a) => s + (a.distance_m ?? 0), 0) : planned?.target_distance_m ?? 0;
     const sport = acts[0]?.sport ?? planned?.sport ?? null;
     const label = acts.length

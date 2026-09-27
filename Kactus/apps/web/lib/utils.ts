@@ -6,6 +6,14 @@ export function formatDuration(seconds: number): string {
   return `${m}m${String(s).padStart(2, "0")}s`;
 }
 
+/**
+ * Tempo que conta da atividade: o tempo em movimento, e o decorrido só quando
+ * não há como calcular o outro. Paradas (semáforo, pausa) não entram.
+ */
+export function activeSeconds(a: { duration_s: number; moving_time_s?: number | null }): number {
+  return a.moving_time_s ?? a.duration_s;
+}
+
 /** Tempo em formato de relogio: 23:33 ou 1:45:20 (recordes, previsoes). */
 export function formatClock(seconds: number): string {
   const total = Math.round(seconds);

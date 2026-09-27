@@ -12,6 +12,7 @@ class ActivitySummary(BaseModel):
     sport: str
     start_time: datetime
     duration_s: int
+    moving_time_s: int | None = None
     distance_m: float | None = None
     elevation_gain_m: float | None = None
     avg_hr: int | None = None
@@ -70,7 +71,6 @@ class ActivityLapOut(BaseModel):
 
 class ActivityDetail(ActivitySummary):
     equipment_id: uuid.UUID | None = None
-    moving_time_s: int | None = None
     elevation_loss_m: float | None = None
     max_hr: int | None = None
     avg_power_w: int | None = None

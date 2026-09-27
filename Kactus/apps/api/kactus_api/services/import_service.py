@@ -16,7 +16,7 @@ from kactus_api.config import settings
 from kactus_api.metrics.load import update_daily_metrics
 from kactus_api.metrics.records import update_records
 from kactus_api.models import Activity, ActivityLap, ActivityPoint
-from kactus_api.parsers.base import NormalizedActivity
+from kactus_api.parsers.base import NormalizedActivity, compute_moving_time_s
 from kactus_api.services.derived_metrics import apply_derived_metrics, normalize_step_cadence
 
 
@@ -175,6 +175,8 @@ def _similar_distance(a: float | None, b: float | None) -> bool:
 
 
 def _derive_summary(norm: NormalizedActivity) -> None:
+    resolve_moving_time(norm)
+
     if norm.distance_m is None:
         for p in reversed(norm.points):
             if p.distance_m is not None:
@@ -192,6 +194,16 @@ def _derive_summary(norm: NormalizedActivity) -> None:
 
     if norm.elevation_gain_m is None and any(p.altitude_m is not None for p in norm.points):
         norm.elevation_gain_m, norm.elevation_loss_m = _elevation_from_points(norm.points)
+
+
+def resolve_moving_time(norm: NormalizedActivity) -> None:
+    """Tempo em movimento a partir dos pontos em resolucao total (antes do
+    downsample). O `total_timer_time` do FIT so desconta as pausas do relogio;
+    parada sem auto-pause continua contando, entao vale o menor dos dois."""
+    computed = compute_moving_time_s(norm.points, norm.sport)
+    if computed is None:
+        return
+    norm.moving_time_s = min(norm.moving_time_s, computed) if norm.moving_time_s else computed
 
 
 def _elevation_from_points(points) -> tuple[float, float]:
@@ -226,19 +238,25 @@ def _downsample(points, seconds: int):
 
 
 def _avg_speed(norm: NormalizedActivity) -> float | None:
-    base = norm.moving_time_s or norm.duration_s
-    if not norm.distance_m or not base:
-        return None
-    return round((norm.distance_m / base) * 3.6, 2)
+    return avg_speed_kmh(norm.distance_m, norm.moving_time_s or norm.duration_s)
 
 
 def _avg_pace(norm: NormalizedActivity) -> float | None:
-    if norm.sport in ("bike", "mtb", "gravel", "indoor_bike"):
+    return avg_pace_s_per_km(norm.sport, norm.distance_m, norm.moving_time_s or norm.duration_s)
+
+
+def avg_speed_kmh(distance_m: float | None, seconds: int | None) -> float | None:
+    if not distance_m or not seconds:
         return None
-    base = norm.moving_time_s or norm.duration_s
-    if not norm.distance_m or norm.distance_m < 1 or not base:
+    return round((float(distance_m) / seconds) * 3.6, 2)
+
+
+def avg_pace_s_per_km(sport: str, distance_m: float | None, seconds: int | None) -> float | None:
+    if sport in ("bike", "mtb", "gravel", "indoor_bike"):
         return None
-    return round(base / (norm.distance_m / 1000), 2)
+    if not distance_m or float(distance_m) < 1 or not seconds:
+        return None
+    return round(seconds / (float(distance_m) / 1000), 2)
 
 
 def _first_coord(norm: NormalizedActivity, attr: str) -> float | None:

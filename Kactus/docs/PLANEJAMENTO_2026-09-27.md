@@ -1,7 +1,7 @@
 # Kactus — Planejamento: logos, tempo em movimento e check-in (2026-09-27)
 
 **Criado em**: 2026-09-27
-**Status**: ABERTO. Fases 0 e 1 concluídas (ver "Registro de execução" no fim).
+**Status**: ABERTO. Fases 0, 1 e 2 concluídas (falta conferir a tela do detalhe no navegador) (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md) · [`PLANEJAMENTO_2026-09-26.md`](./PLANEJAMENTO_2026-09-26.md) (rebrand, fechado)
 
 ## Como retomar
@@ -135,3 +135,10 @@ Atualizar `docs/ESTADO_DO_PROJETO.md` (sessão 2026-09-27), `docs/BACKLOG.md` se
 ### Fase 1 (2026-09-27)
 - Preto → transparência só na caixa da logo de `desafio.png` e `logo-lateral.png` (0 pixel preto opaco depois; conferido sobre fundo escuro, médio e claro, sem halo).
 - `drawScrim` ganhou as direções `left`/`right`; o modelo 4 escurece a borda direita (x 820–1080, y 0–700) pra logo branca ler em foto clara. No 17 o escurecimento de baixo já cobre.
+
+### Fase 2 (2026-09-27)
+- `compute_moving_time_s` (`parsers/base.py`): pausa = buraco > 30 s **sem deslocamento** (buraco com deslocamento é gravação esparsa e conta); parado = < 0,5 m/s corrida, < 0,4 caminhada, < 1,0 bike, medido pela velocidade do relógio ou pelo deslocamento real numa janela de 10 s (o "tremor" do GPS parado não conta). Natação/força: `None`.
+- Aplicado no import (`resolve_moving_time` em `import_service._derive_summary`, menor entre timer do FIT e calculado). TSS usa o tempo em movimento. `moving_time_s` entrou no `ActivitySummary`; web usa `activeSeconds()` em lista, detalhe ("Tempo em movimento" grande, "Tempo total" secundário), dashboard, semana e Stories.
+- **Achado**: o `file_path` no banco é absoluto e ainda apontava para `Ondilow/`. Novo `services/uploads.resolve_upload_path` reencontra o arquivo pelo trecho depois de `data/uploads/` (usado nos dois backfills).
+- Backfill `scripts/backfill_moving_time.py` rodado nas duas contas: 600 atividades, 363 atualizadas (175 não tinham), 17h53m de paradas descontadas, carga diária recalculada. Segunda passada em dry-run confirmou nada pendente.
+- 204 testes passando (12 novos).

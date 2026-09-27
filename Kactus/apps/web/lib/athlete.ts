@@ -4,7 +4,7 @@
  */
 import type { ActivityPoint, ActivitySummary, DailyMetric, TrainingRecommendation, WeeklyStatus } from "@/lib/api";
 import { C } from "@/lib/theme";
-import { sportGroup } from "@/lib/utils";
+import { activeSeconds, sportGroup } from "@/lib/utils";
 
 export const WEEK_SESSION_GOAL = 5;
 export const WEEK_HOURS_GOAL = 8;
@@ -56,7 +56,7 @@ export interface WeekAgg {
 function agg(list: ActivitySummary[]): WeekAgg {
   return {
     distance: list.reduce((s, a) => s + (a.distance_m ?? 0), 0),
-    duration: list.reduce((s, a) => s + a.duration_s, 0),
+    duration: list.reduce((s, a) => s + activeSeconds(a), 0),
     elevation: Math.round(list.reduce((s, a) => s + (a.elevation_gain_m ?? 0), 0)),
     count: list.length,
   };

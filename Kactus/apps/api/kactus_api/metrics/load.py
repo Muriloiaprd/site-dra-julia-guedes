@@ -28,6 +28,7 @@ class TssInput(Protocol):
     start_time: datetime
     sport: str
     duration_s: int
+    moving_time_s: int | None
     avg_hr: int | None
     avg_power_w: int | None
 
@@ -41,7 +42,8 @@ _BIKE_SPORTS = {"bike", "mtb", "gravel", "indoor_bike"}
 
 def compute_tss(activity: TssInput, profile: "AthleteProfile | None" = None) -> float:
     """Retorna o TSS estimado da atividade (nunca None — fallback garantido)."""
-    duration_h = activity.duration_s / 3600
+    # carga e o tempo em movimento: parada (semaforo, pausa) nao e treino
+    duration_h = (activity.moving_time_s or activity.duration_s) / 3600
 
     # Ciclismo com potencia media e FTP configurado
     if (
@@ -99,6 +101,7 @@ def update_daily_metrics(db: Session, user_id, from_date: date | None = None) ->
             Activity.start_time,
             Activity.sport,
             Activity.duration_s,
+            Activity.moving_time_s,
             Activity.avg_hr,
             Activity.avg_power_w,
         )

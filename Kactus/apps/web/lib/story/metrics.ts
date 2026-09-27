@@ -1,5 +1,5 @@
 import type { ActivityDetail } from "@/lib/api";
-import { distanceParts, formatDuration, formatPaceShort, isBikeSport } from "@/lib/utils";
+import { activeSeconds, distanceParts, formatDuration, formatPaceShort, isBikeSport } from "@/lib/utils";
 
 export interface StoryMetric {
   key: "distance" | "duration" | "pace" | "hr" | "elevation";
@@ -17,7 +17,7 @@ export function resolveStoryMetrics(activity: ActivityDetail): StoryMetric[] {
   const metrics: StoryMetric[] = [];
   const dist = distanceParts(activity.distance_m);
   metrics.push({ key: "distance", label: "Distância", value: dist.value, unit: dist.unit });
-  metrics.push({ key: "duration", label: "Tempo", value: formatDuration(activity.duration_s) });
+  metrics.push({ key: "duration", label: "Tempo", value: formatDuration(activeSeconds(activity)) });
 
   if (isBikeSport(activity.sport)) {
     if (activity.avg_speed_kmh != null) {

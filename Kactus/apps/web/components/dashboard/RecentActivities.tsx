@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { EmptyState, LinkAction, Panel, Skeleton } from "@/components/ui/primitives";
 import { SportIcon, SportTile } from "@/components/SportIcon";
 import type { ActivityDetail, ActivitySummary, PersonalRecord } from "@/lib/api";
-import { distanceParts, formatDuration, formatPaceShort, isBikeSport, sportColor, sportLabel } from "@/lib/utils";
+import { activeSeconds, distanceParts, formatDuration, formatPaceShort, isBikeSport, sportColor, sportLabel } from "@/lib/utils";
 
 const ActivityMiniMap = dynamic(
   () => import("@/components/ActivityMiniMap").then((m) => m.ActivityMiniMap),
@@ -107,7 +107,7 @@ export function RecentActivities({
                     <div className="od-num text-[1.6rem] leading-none">
                       {dist.value}<span className="ml-1 font-sans text-xs font-semibold text-brand-muted">{dist.unit}</span>
                     </div>
-                    <div className="od-num text-[0.95rem] text-brand-textSecondary">{formatDuration(a.duration_s)}</div>
+                    <div className="od-num text-[0.95rem] text-brand-textSecondary">{formatDuration(activeSeconds(a))}</div>
                   </div>
 
                   <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/5 pt-3">

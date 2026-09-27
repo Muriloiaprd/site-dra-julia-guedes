@@ -10,7 +10,7 @@ import { pctChange } from "@/lib/athlete";
 import { fetchActivity, type ActivityDetail, type ActivitySummary } from "@/lib/api";
 import { C } from "@/lib/theme";
 import { useFocusTrap } from "@/lib/useFocusTrap";
-import { formatDistance, formatDuration, formatPace, sportLabel } from "@/lib/utils";
+import { activeSeconds, formatDistance, formatDuration, formatPace, sportLabel } from "@/lib/utils";
 
 const ActivityMap = dynamic(
   () => import("@/components/ActivityMap").then((m) => m.ActivityMap),
@@ -21,7 +21,7 @@ type SparkMetric = "distance" | "duration" | "hr" | "pace" | "elevation";
 
 function metricValue(a: ActivitySummary, metric: SparkMetric): number {
   if (metric === "distance") return (a.distance_m ?? 0) / 1000;
-  if (metric === "duration") return a.duration_s / 3600;
+  if (metric === "duration") return activeSeconds(a) / 3600;
   if (metric === "elevation") return a.elevation_gain_m ?? 0;
   if (metric === "hr") return a.avg_hr ?? 0;
   return a.avg_pace_s_per_km ?? 0;
@@ -64,7 +64,7 @@ export function ActivityModal({ activity, activities, detail, onClose }: {
 
   const metrics: { label: string; value: string; trend: number | null; spark: number[]; color: string; inv?: boolean }[] = [
     { label: "Distância", value: activity.distance_m != null ? formatDistance(activity.distance_m) : "—", trend: pctChange(activity.distance_m, prev?.distance_m), spark: series("distance"), color: C.accent },
-    { label: "Tempo", value: formatDuration(activity.duration_s), trend: pctChange(activity.duration_s, prev?.duration_s), spark: series("duration"), color: C.lime },
+    { label: "Tempo", value: formatDuration(activeSeconds(activity)), trend: pctChange(activeSeconds(activity), prev ? activeSeconds(prev) : undefined), spark: series("duration"), color: C.lime },
     { label: "Pace médio", value: activity.avg_pace_s_per_km != null ? formatPace(activity.avg_pace_s_per_km) : "—", trend: pctChange(activity.avg_pace_s_per_km, prev?.avg_pace_s_per_km), spark: series("pace"), color: C.info, inv: true },
     { label: "FC média", value: activity.avg_hr != null ? `${activity.avg_hr} bpm` : "—", trend: pctChange(activity.avg_hr, prev?.avg_hr), spark: series("hr"), color: "#FF6B35", inv: true },
     { label: "Elevação", value: activity.elevation_gain_m != null ? `${Math.round(activity.elevation_gain_m)} m` : "—", trend: pctChange(activity.elevation_gain_m, prev?.elevation_gain_m), spark: series("elevation"), color: "#A78BFA" },
