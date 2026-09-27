@@ -1,7 +1,7 @@
 # Kactus — Planejamento: logos, tempo em movimento e check-in (2026-09-27)
 
 **Criado em**: 2026-09-27
-**Status**: ABERTO. Fases 0, 1 e 2 concluídas (falta conferir a tela do detalhe no navegador) (ver "Registro de execução" no fim).
+**Status**: ABERTO. Fases 0 a 3 concluídas, falta a 4 (fechamento) (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md) · [`PLANEJAMENTO_2026-09-26.md`](./PLANEJAMENTO_2026-09-26.md) (rebrand, fechado)
 
 ## Como retomar
@@ -142,3 +142,10 @@ Atualizar `docs/ESTADO_DO_PROJETO.md` (sessão 2026-09-27), `docs/BACKLOG.md` se
 - **Achado**: o `file_path` no banco é absoluto e ainda apontava para `Ondilow/`. Novo `services/uploads.resolve_upload_path` reencontra o arquivo pelo trecho depois de `data/uploads/` (usado nos dois backfills).
 - Backfill `scripts/backfill_moving_time.py` rodado nas duas contas: 600 atividades, 363 atualizadas (175 não tinham), 17h53m de paradas descontadas, carga diária recalculada. Segunda passada em dry-run confirmou nada pendente.
 - 204 testes passando (12 novos).
+- Detalhe conferido no navegador (2026-09-27): corrida de 2,88 km mostra "Tempo em movimento" 29m29s grande, "Tempo total" 31m12s secundário, pace 10:15/km = distância ÷ tempo em movimento.
+
+### Fase 3 (2026-09-27)
+- Catálogo em `kactus_api/checkin_tags.py` (3 grupos, 18 etiquetas), migration `017_checkin_tags` (aplicada no banco principal), `CheckinIn.tags` validado (desconhecida → 422; repetidas somem; gravadas na ordem do catálogo), só etiquetas já contam como check-in, `GET /activities/checkin-tags`.
+- Duni: `"contexto": [rótulos]` no detalhe da atividade (`coach_service`) e nos check-ins de 28 dias (`athlete_analysis`); SYSTEM_PROMPT explica o campo e o passo 4 do comentário pós-treino cita "contexto".
+- Web: três grupos de chips entre "Como o corpo respondeu" e "Dor"; placeholder "Algo fora do normal? (opcional)"; resumo mostra as etiquetas como chips. Conferido no navegador: salvar só etiquetas, editar (tirar uma, pôr PSE) e resumo.
+- 208 testes passando (4 novos + 2 ampliados).

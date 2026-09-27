@@ -2,7 +2,9 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from kactus_api.checkin_tags import CHECKIN_TAGS
 
 
 class ActivitySummary(BaseModel):
@@ -41,6 +43,25 @@ class CheckinIn(BaseModel):
     pain_location: str | None = Field(default=None, max_length=100)
     feeling: Literal[FEELINGS] | None = None  # type: ignore[valid-type]
     notes: str | None = Field(default=None, max_length=2000)
+    tags: list[str] = Field(default_factory=list, max_length=len(CHECKIN_TAGS))
+
+    @field_validator("tags")
+    @classmethod
+    def _known_tags(cls, tags: list[str]) -> list[str]:
+        unknown = [t for t in tags if t not in CHECKIN_TAGS]
+        if unknown:
+            raise ValueError(f"Etiqueta desconhecida: {', '.join(unknown)}")
+        return [code for code in CHECKIN_TAGS if code in tags]  # sem repetidas, na ordem do catalogo
+
+
+class CheckinTagOut(BaseModel):
+    code: str
+    label: str
+
+
+class CheckinTagGroupOut(BaseModel):
+    group: str
+    tags: list[CheckinTagOut]
 
 
 class ActivityPointOut(BaseModel):
@@ -84,6 +105,7 @@ class ActivityDetail(ActivitySummary):
     pain_location: str | None = None
     feeling: str | None = None
     checkin_notes: str | None = None
+    checkin_tags: list[str] | None = None
     checkin_at: datetime | None = None
     calories: int | None = None
     location_start_lat: float | None = None

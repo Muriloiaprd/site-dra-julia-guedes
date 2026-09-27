@@ -121,7 +121,7 @@ def test_analysis_endpoint_reads_checkin(auth_client: tuple[TestClient, dict]) -
         },
     )
     activity_id = resp.json()["activity_id"]
-    client.put(f"/activities/{activity_id}/checkin", json={"rpe": 7, "pain_level": 4, "pain_location": "joelho"})
+    client.put(f"/activities/{activity_id}/checkin", json={"rpe": 7, "pain_level": 4, "pain_location": "joelho", "tags": ["esteira"]})
 
     body = client.get("/coach/analysis").json()
 
@@ -130,6 +130,7 @@ def test_analysis_endpoint_reads_checkin(auth_client: tuple[TestClient, dict]) -
     assert w7["carga_interna_srpe"] == 280  # 7 x 40 min
     (checkin,) = body["checkins_28d"]
     assert checkin["pse"] == 7 and checkin["local_dor"] == "joelho"
+    assert checkin["contexto"] == ["Esteira"]
     assert body["sinais_de_fadiga"][0]["codigo"] == "dor_relatada"
     assert body["cobertura_de_dados"]["dias_desde_a_ultima"] == 0
 
@@ -153,3 +154,43 @@ def test_checkin_other_users_activity_is_404(
     assert resp.status_code == 404
     no_auth = client.put(f"/activities/{activity_id}/checkin", json={"rpe": 5}, headers={"Authorization": ""})
     assert no_auth.status_code == 401
+
+
+def test_checkin_tags_are_saved_in_catalog_order(auth_client: tuple[TestClient, dict]) -> None:
+    client, _user = auth_client
+    activity_id = _create_activity(client)
+
+    body = client.put(
+        f"/activities/{activity_id}/checkin",
+        json={"rpe": 5, "tags": ["esteira", "calor", "dormi_mal", "calor"]},
+    ).json()
+
+    assert body["checkin_tags"] == ["calor", "dormi_mal", "esteira"]
+    assert client.get(f"/activities/{activity_id}").json()["checkin_tags"] == ["calor", "dormi_mal", "esteira"]
+    # mandar o formulario sem etiquetas apaga as anteriores
+    cleared = client.put(f"/activities/{activity_id}/checkin", json={"rpe": 5}).json()
+    assert cleared["checkin_tags"] is None
+
+
+def test_checkin_only_tags_counts_as_filled(auth_client: tuple[TestClient, dict]) -> None:
+    client, _user = auth_client
+    activity_id = _create_activity(client)
+    body = client.put(f"/activities/{activity_id}/checkin", json={"tags": ["vento"]}).json()
+    assert body["checkin_tags"] == ["vento"]
+    assert body["checkin_at"] is not None
+
+
+def test_checkin_unknown_tag_is_422(auth_client: tuple[TestClient, dict]) -> None:
+    client, _user = auth_client
+    activity_id = _create_activity(client)
+    resp = client.put(f"/activities/{activity_id}/checkin", json={"tags": ["calor", "neve"]})
+    assert resp.status_code == 422
+    assert "neve" in resp.text
+
+
+def test_checkin_tags_catalog(auth_client: tuple[TestClient, dict]) -> None:
+    client, _user = auth_client
+    body = client.get("/activities/checkin-tags").json()
+    assert [g["group"] for g in body] == ["Clima", "Corpo e rotina", "Treino"]
+    assert {"code": "dormi_mal", "label": "Dormi mal"} in body[1]["tags"]
+    assert client.get("/activities/checkin-tags", headers={"Authorization": ""}).status_code == 401

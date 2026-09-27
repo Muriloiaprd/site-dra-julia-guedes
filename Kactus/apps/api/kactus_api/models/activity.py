@@ -13,7 +13,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import ENUM, JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, ENUM, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from kactus_api.db import Base
@@ -100,6 +100,7 @@ class Activity(Base):
     pain_location: Mapped[str | None] = mapped_column(String(100))
     feeling: Mapped[str | None] = mapped_column(String(30))
     checkin_notes: Mapped[str | None] = mapped_column(Text)
+    checkin_tags: Mapped[list[str] | None] = mapped_column(ARRAY(String(40)))  # codigos de checkin_tags.py
     checkin_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     weather: Mapped[dict | None] = mapped_column(JSONB)
     location_start_lat: Mapped[float | None] = mapped_column(Numeric(10, 7))

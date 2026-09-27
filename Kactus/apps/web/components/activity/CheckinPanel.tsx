@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Alert, Panel } from "@/components/ui/primitives";
-import { putCheckin, type ActivityDetail, type CheckinInput, type Feeling } from "@/lib/api";
+import { getCheckinTags, putCheckin, type ActivityDetail, type CheckinInput, type CheckinTagGroup, type Feeling } from "@/lib/api";
 
 /** PSE (escala de Borg CR10) explicada na pratica, sem jargao. */
 export const RPE_SCALE: { label: string; hint: string }[] = [
@@ -51,6 +51,7 @@ function toForm(a: ActivityDetail): CheckinInput {
     pain_location: a.pain_location,
     feeling: a.feeling,
     notes: a.checkin_notes,
+    tags: a.checkin_tags ?? [],
   };
 }
 
@@ -97,6 +98,14 @@ export function CheckinPanel({ activity, onSaved }: { activity: ActivityDetail; 
   const [form, setForm] = useState<CheckinInput>(() => toForm(activity));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tagGroups, setTagGroups] = useState<CheckinTagGroup[]>([]);
+
+  useEffect(() => {
+    getCheckinTags().then(setTagGroups).catch(() => setTagGroups([]));
+  }, []);
+
+  const toggleTag = (code: string) =>
+    setForm((f) => ({ ...f, tags: f.tags.includes(code) ? f.tags.filter((t) => t !== code) : [...f.tags, code] }));
 
   const set = <K extends keyof CheckinInput>(k: K, v: CheckinInput[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -115,7 +124,7 @@ export function CheckinPanel({ activity, onSaved }: { activity: ActivityDetail; 
     }
   }
 
-  const empty: CheckinInput = { rpe: null, pain_level: null, pain_location: null, feeling: null, notes: null };
+  const empty: CheckinInput = { rpe: null, pain_level: null, pain_location: null, feeling: null, notes: null, tags: [] };
   const rpeInfo = form.rpe != null ? RPE_SCALE[form.rpe] : null;
   const hurts = (form.pain_level ?? 0) > 0;
 
@@ -137,7 +146,7 @@ export function CheckinPanel({ activity, onSaved }: { activity: ActivityDetail; 
         {error && <div className="mb-3"><Alert title="Não consegui salvar">{error}</Alert></div>}
 
         {!editing ? (
-          <CheckinSummary activity={activity} />
+          <CheckinSummary activity={activity} tagGroups={tagGroups} />
         ) : (
           <div className="space-y-5">
             {/* PSE */}
@@ -170,6 +179,29 @@ export function CheckinPanel({ activity, onSaved }: { activity: ActivityDetail; 
                 ))}
               </div>
             </fieldset>
+
+            {/* Etiquetas prontas */}
+            {tagGroups.map((g) => (
+              <fieldset key={g.group}>
+                <legend className="od-metric-label mb-2">{g.group}</legend>
+                <div className="flex flex-wrap gap-2">
+                  {g.tags.map((t) => {
+                    const on = form.tags.includes(t.code);
+                    return (
+                      <button
+                        key={t.code}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => toggleTag(t.code)}
+                        className={`od-chip ${on ? "is-active" : ""}`}
+                      >
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ))}
 
             {/* Dor */}
             <fieldset>
@@ -216,7 +248,7 @@ export function CheckinPanel({ activity, onSaved }: { activity: ActivityDetail; 
                 onChange={(e) => set("notes", e.target.value)}
                 maxLength={2000}
                 rows={2}
-                placeholder="Calor, dormiu mal, tênis novo, ritmo travou no km 6…"
+                placeholder="Algo fora do normal? (opcional)"
                 className="od-input resize-y text-sm"
               />
             </div>
@@ -243,7 +275,7 @@ export function CheckinPanel({ activity, onSaved }: { activity: ActivityDetail; 
   );
 }
 
-function CheckinSummary({ activity: a }: { activity: ActivityDetail }) {
+function CheckinSummary({ activity: a, tagGroups }: { activity: ActivityDetail; tagGroups: CheckinTagGroup[] }) {
   const items: { k: string; v: string; sub?: string; color?: string }[] = [];
   if (a.rpe != null) items.push({ k: "Esforço (PSE)", v: `${a.rpe}/10`, sub: RPE_SCALE[a.rpe].label, color: levelColor(a.rpe) });
   if (a.srpe != null) items.push({ k: "Carga interna", v: `${Math.round(a.srpe)}`, sub: "PSE × minutos" });
@@ -254,6 +286,9 @@ function CheckinSummary({ activity: a }: { activity: ActivityDetail }) {
       ? { k: "Dor", v: "Nenhuma", color: "#00FF66" }
       : { k: "Dor", v: `${a.pain_level}/10`, sub: a.pain_location ?? undefined, color: levelColor(a.pain_level) });
   }
+
+  const labels = new Map(tagGroups.flatMap((g) => g.tags.map((t) => [t.code, t.label] as const)));
+  const tags = (a.checkin_tags ?? []).map((code) => labels.get(code) ?? code);
 
   return (
     <div className="space-y-3">
@@ -266,6 +301,11 @@ function CheckinSummary({ activity: a }: { activity: ActivityDetail }) {
           </div>
         ))}
       </div>
+      {tags.length > 0 && (
+        <ul className="flex flex-wrap gap-1.5" aria-label="Contexto do treino">
+          {tags.map((t) => <li key={t} className="od-chip is-active !py-1 !text-[0.72rem] cursor-default">{t}</li>)}
+        </ul>
+      )}
       {a.checkin_notes && <p className="whitespace-pre-wrap text-sm text-brand-textSecondary">“{a.checkin_notes}”</p>}
     </div>
   );

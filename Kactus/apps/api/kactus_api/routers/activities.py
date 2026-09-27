@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import delete, select, update
 
+from kactus_api.checkin_tags import CHECKIN_TAG_GROUPS
 from kactus_api.config import settings
 from kactus_api.deps import CurrentUser, DbSession
 from kactus_api.metrics import compute_splits, hr_zone_distribution, resolve_hr_zones
@@ -23,6 +24,7 @@ from kactus_api.schemas.activity import (
     ActivitySummary,
     ActivityUpdate,
     CheckinIn,
+    CheckinTagGroupOut,
     NormalizedActivityIn,
     SplitOut,
     UploadItemResult,
@@ -224,6 +226,15 @@ def list_activities(
     return list(db.execute(stmt).scalars())
 
 
+@router.get("/checkin-tags", response_model=list[CheckinTagGroupOut])
+def get_checkin_tags(_current_user: CurrentUser) -> list[dict]:
+    """Catalogo das etiquetas do check-in, para a tela nao duplicar a lista."""
+    return [
+        {"group": group, "tags": [{"code": code, "label": label} for code, label in tags]}
+        for group, tags in CHECKIN_TAG_GROUPS
+    ]
+
+
 @router.delete("")
 def delete_all_activities(current_user: CurrentUser, db: DbSession) -> dict:
     """Apaga permanentemente TODAS as atividades do usuario (e dados derivados:
@@ -319,7 +330,8 @@ def put_checkin(
     activity.pain_location = location if body.pain_level else None
     activity.feeling = body.feeling
     activity.checkin_notes = notes
-    filled = any(v is not None for v in (body.rpe, body.pain_level, body.feeling, notes))
+    activity.checkin_tags = body.tags or None
+    filled = any(v is not None for v in (body.rpe, body.pain_level, body.feeling, notes)) or bool(body.tags)
     activity.checkin_at = datetime.now(UTC) if filled else None
     db.commit()
     db.refresh(activity)

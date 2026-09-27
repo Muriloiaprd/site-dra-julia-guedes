@@ -63,7 +63,7 @@ def test_comment_is_saved_and_uses_the_workout_context(
 ) -> None:
     client, user = auth_client
     activity_id = _import_run(client)
-    client.put(f"/activities/{activity_id}/checkin", json={"rpe": 6, "feeling": "pernas_pesadas"})
+    client.put(f"/activities/{activity_id}/checkin", json={"rpe": 6, "feeling": "pernas_pesadas", "tags": ["dormi_mal", "calor"]})
     db_session.add(PlannedWorkout(
         user_id=user["id"], date=_TODAY_NOON.date(), sport="run", title="Rodagem leve 6 km",
         target_intensity="leve", objective="Base aerobica", status="planned", plan_batch_id=uuid.uuid4(),
@@ -82,6 +82,7 @@ def test_comment_is_saved_and_uses_the_workout_context(
     ctx = json.loads(sent["user_content"].split("Dados do treino (JSON):\n", 1)[1])
     assert ctx["atividade"]["km"] == 5.0 and ctx["atividade"]["pse"] == 6
     assert ctx["atividade"]["sensacao"] == "pernas_pesadas"
+    assert ctx["atividade"]["contexto"] == ["Calor", "Dormi mal"]
     assert [v["volta"] for v in ctx["voltas"]] == [1, 2] and ctx["voltas"][1]["fc_media"] == 152
     [planned] = ctx["planejado_para_o_dia"]
     assert planned["titulo"] == "Rodagem leve 6 km" and planned["intensidade"] == "leve"

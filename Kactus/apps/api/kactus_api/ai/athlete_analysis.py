@@ -23,6 +23,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from kactus_api.checkin_tags import tag_labels
 from kactus_api.metrics.basic import PointLike, hr_zone_distribution, resolve_hr_zones
 from kactus_api.metrics.derived import RUN_SPORTS
 from kactus_api.metrics.load import ACWR_MIN_CHRONIC_DAILY_LOAD, compute_tss, update_daily_metrics
@@ -86,6 +87,7 @@ class ActSummary:
     pain_level: int | None = None
     pain_location: str | None = None
     notes: str | None = None
+    tags: list[str] | None = None  # rotulos das etiquetas do check-in
     # minutos por intensidade (so corridas recentes com FC e zonas)
     easy_min: float | None = None
     moderate_min: float | None = None
@@ -448,7 +450,7 @@ def _compare(cur: ActSummary, prev: ActSummary) -> tuple[str, str]:
 def _checkins(acts: list[ActSummary], today: date) -> list[dict]:
     out = []
     for a in _in_last(acts, today, 28):
-        if a.rpe is None and a.feeling is None and a.pain_level is None and not a.notes:
+        if a.rpe is None and a.feeling is None and a.pain_level is None and not a.notes and not a.tags:
             continue
         out.append({
             "data": a.day.isoformat(),
@@ -459,6 +461,7 @@ def _checkins(acts: list[ActSummary], today: date) -> list[dict]:
             "dor": a.pain_level,
             "local_dor": a.pain_location,
             "observacoes": a.notes,
+            "contexto": a.tags,
         })
     return out
 
@@ -554,6 +557,7 @@ def build_analysis(db: Session, user_id: uuid.UUID, today: date | None = None) -
             pain_level=r.pain_level,
             pain_location=r.pain_location,
             notes=r.checkin_notes,
+            tags=tag_labels(r.checkin_tags),
         )
         for r in rows
     ]

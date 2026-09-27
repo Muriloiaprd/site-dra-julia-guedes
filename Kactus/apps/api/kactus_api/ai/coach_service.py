@@ -16,6 +16,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from kactus_api.ai.athlete_analysis import build_analysis, effective_kind
+from kactus_api.checkin_tags import tag_labels
 from kactus_api.config import settings
 from kactus_api.metrics.basic import PointLike, hr_zone_distribution, resolve_hr_zones
 from kactus_api.metrics.predictions import predict_race_times, training_recommendation
@@ -93,6 +94,8 @@ DADOS (o campo "analise" do contexto já traz os cálculos feitos pelo código)
   7/14/28 dias, tendência semanal, carga, sinais de fadiga, sessões equivalentes,
   cadência habitual, check-ins) em vez de refazer contas. Nunca invente número,
   treino, recorde ou métrica que não esteja no contexto.
+- "contexto" no check-in são marcações rápidas do próprio atleta (calor, dormi mal,
+  ritmo travou, esteira...): use para explicar o desempenho daquele treino.
 - Olhe o histórico, não só a última semana: compare 7, 14 e 28 dias com a tendência
   de 8 semanas para ver como o atleta RESPONDE ao treino.
 - Leia "cobertura_de_dados" antes de concluir. Se houver aviso de dias sem
@@ -364,6 +367,7 @@ def _activity_detail(act: Activity) -> dict:
         "dor": act.pain_level,
         "local_dor": act.pain_location,
         "observacoes": act.checkin_notes,
+        "contexto": tag_labels(act.checkin_tags),
     }
     return {k: v for k, v in item.items() if v is not None}
 
@@ -1055,7 +1059,7 @@ direto (ate ~250 palavras), nesta ordem e pulando o que nao tiver dado:
 3. **Execucao**: leia as voltas (ritmo e GAP constantes ou caindo, FC subindo,
    deriva cardiaca, cadencia contra a habitual dele para o mesmo ritmo, tempo por
    zona). Em subida, julgue pelo GAP, nao pelo ritmo.
-4. **Esforco e corpo**: use o check-in (PSE, sensacao, dor). Se nao houver
+4. **Esforco e corpo**: use o check-in (PSE, sensacao, dor, contexto). Se nao houver
    check-in, peca para ele preencher. Dor que persiste ou piora: avaliacao
    profissional.
 5. **Evolucao**: se houver sessao equivalente, diga se melhorou, ficou estavel

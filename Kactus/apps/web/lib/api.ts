@@ -116,6 +116,7 @@ export interface ActivityDetail extends ActivitySummary {
   pain_location: string | null;
   feeling: Feeling | null;
   checkin_notes: string | null;
+  checkin_tags: string[] | null;
   checkin_at: string | null;
   calories: number | null;
   location_start_lat: number | null;
@@ -294,6 +295,23 @@ export interface CheckinInput {
   pain_location: string | null;
   feeling: Feeling | null;
   notes: string | null;
+  tags: string[];
+}
+
+export interface CheckinTagGroup {
+  group: string;
+  tags: { code: string; label: string }[];
+}
+
+let checkinTagsCache: Promise<CheckinTagGroup[]> | null = null;
+
+/** Catalogo das etiquetas do check-in (vem da API; muda so com deploy, entao fica em cache). */
+export function getCheckinTags(): Promise<CheckinTagGroup[]> {
+  checkinTagsCache ??= apiFetch<CheckinTagGroup[]>("/activities/checkin-tags").catch((e) => {
+    checkinTagsCache = null;
+    throw e;
+  });
+  return checkinTagsCache;
 }
 
 /** Grava o check-in pos-treino inteiro (campos nulos apagam o valor). */
