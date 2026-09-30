@@ -153,3 +153,9 @@ Criar `Kactus/docs/PLANEJAMENTO_2026-09-29_2.md` com este plano. Commit, push e 
 
 ### Fase 0 (2026-09-29)
 - Este documento criado.
+
+### Fase 1 (2026-09-29)
+- `StoryLayoutData` ganhou `splits`, `zones`, `hrZones` e `athleteName`; `StoryLayout` ganhou `available(input)` e `isNew`. O gerador recebe parciais e zonas da página da atividade e busca o perfil (zonas de FC e nome).
+- Simplificação em relação ao plano: em vez de tornar `art` opcional, os modelos de código usam a própria logo (`/brand/kactus-wordmark.png`) como "arte". O carregamento do gerador continua igual e os 19 modelos não mudam.
+- `lib/story/draw.ts`: fundo (foto + véu ou brilho da cor), logo, texto, ajuste de tamanho, média móvel, percentil, velocidade por ponto, parciais usáveis, código de barras, datas.
+- `DATA_LAYOUTS` (modelos de código) ficam fora de `STORY_LAYOUTS`, para o `/story-calibrate` seguir só com as artes; `availableLayouts` junta as duas listas, com os novos na frente.

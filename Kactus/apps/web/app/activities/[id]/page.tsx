@@ -601,7 +601,7 @@ export default function ActivityPage() {
         )}
       </div>
 
-      {sharing && <StoryGenerator activity={activity} onClose={() => setSharing(false)} />}
+      {sharing && <StoryGenerator activity={activity} splits={splits} zones={zones} onClose={() => setSharing(false)} />}
     </PageContainer>
   );
 }

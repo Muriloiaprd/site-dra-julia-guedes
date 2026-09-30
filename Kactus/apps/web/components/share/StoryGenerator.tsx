@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { ActivityDetail } from "@/lib/api";
+import { fetchProfile, type ActivityDetail, type HrZones, type Split, type ZoneBucket } from "@/lib/api";
 import { loadArt, storyColor } from "@/lib/story/art";
 import { loadStoryFonts, prepareCanvas, STORY_H, STORY_W } from "@/lib/story/engine";
 import { availableLayouts } from "@/lib/story/layouts";
@@ -18,7 +18,12 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-export function StoryGenerator({ activity, onClose }: { activity: ActivityDetail; onClose: () => void }) {
+export function StoryGenerator({ activity, splits, zones, onClose }: {
+  activity: ActivityDetail;
+  splits: Split[];
+  zones: ZoneBucket[];
+  onClose: () => void;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ x: number; y: number } | null>(null);
@@ -32,6 +37,11 @@ export function StoryGenerator({ activity, onClose }: { activity: ActivityDetail
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"share" | "save" | "copy" | null>(null);
   const [copied, setCopied] = useState(false);
+  const [profile, setProfile] = useState<{ hrZones: HrZones | null; name: string | null }>({ hrZones: null, name: null });
+
+  useEffect(() => {
+    fetchProfile().then((p) => setProfile({ hrZones: p.hr_zones, name: p.full_name })).catch(() => {});
+  }, []);
 
   const routePoints = useMemo(
     () =>
@@ -42,7 +52,7 @@ export function StoryGenerator({ activity, onClose }: { activity: ActivityDetail
   );
   const metrics = useMemo(() => resolveStoryMetrics(activity), [activity]);
   const color = storyColor(activity.sport);
-  const layouts = useMemo(() => availableLayouts(routePoints.length >= 2), [routePoints.length]);
+  const layouts = useMemo(() => availableLayouts({ activity, routePoints, splits }), [activity, routePoints, splits]);
   const layout = layouts[Math.min(layoutIndex, layouts.length - 1)];
   const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -93,8 +103,12 @@ export function StoryGenerator({ activity, onClose }: { activity: ActivityDetail
       art: artForLayout,
       transparent,
       color,
+      splits,
+      zones,
+      hrZones: profile.hrZones,
+      athleteName: profile.name,
     });
-  }, [layout, artForLayout, activity, metrics, routePoints, photo, transparent, color, fontsReady]);
+  }, [layout, artForLayout, activity, metrics, routePoints, photo, transparent, color, fontsReady, splits, zones, profile]);
 
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -239,7 +253,7 @@ export function StoryGenerator({ activity, onClose }: { activity: ActivityDetail
         {photoError && <p className="mt-2 text-center text-xs text-brand-danger">{photoError}</p>}
 
         {layouts.length > 1 && (
-          // 19 modelos não cabem numa linha: a fileira rola na horizontal e o escolhido vem pro centro
+          // os modelos não cabem numa linha: a fileira rola na horizontal e o escolhido vem pro centro
           <div className="mt-4 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Modelos">
             {layouts.map((l, i) => (
               <button
@@ -251,6 +265,7 @@ export function StoryGenerator({ activity, onClose }: { activity: ActivityDetail
                 style={i === layoutIndex ? { color: "#00FF66", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.4)" } : undefined}
               >
                 {l.label}
+                {l.isNew && <span className="ml-1.5 rounded-full px-1.5 text-[0.55rem] font-bold uppercase tracking-wider text-black" style={{ background: "#00FF66" }}>novo</span>}
               </button>
             ))}
           </div>

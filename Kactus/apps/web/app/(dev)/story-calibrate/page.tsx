@@ -85,6 +85,10 @@ export default function StoryCalibratePage() {
         art,
         transparent: true,
         color: color ?? ART_NATIVE_COLOR,
+        splits: [],
+        zones: [],
+        hrZones: null,
+        athleteName: null,
       });
 
       if (color) {

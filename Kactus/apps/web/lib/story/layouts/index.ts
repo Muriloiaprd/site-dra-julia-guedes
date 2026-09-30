@@ -1,4 +1,4 @@
-import type { StoryLayout } from "../types";
+import type { StoryAvailability, StoryLayout } from "../types";
 import { bandeiras } from "./bandeiras";
 import { desafio } from "./desafio";
 import { faixaListras } from "./faixaListras";
@@ -42,6 +42,16 @@ export const STORY_LAYOUTS: StoryLayout[] = [
   rotaGrande,
 ];
 
-export function availableLayouts(hasRoute: boolean): StoryLayout[] {
-  return STORY_LAYOUTS.filter((l) => hasRoute || !l.requiresRoute);
+/**
+ * Modelos desenhados em código, em que o dado do treino é a arte (planejamento 2026-09-29_2).
+ * Vêm primeiro no carrossel. Ficam fora de STORY_LAYOUTS porque não têm arte do Canva
+ * para comparar no /story-calibrate.
+ */
+export const DATA_LAYOUTS: StoryLayout[] = [];
+
+export function availableLayouts(input: StoryAvailability): StoryLayout[] {
+  const hasRoute = input.routePoints.length >= 2;
+  return [...DATA_LAYOUTS, ...STORY_LAYOUTS].filter(
+    (l) => (hasRoute || !l.requiresRoute) && (!l.available || l.available(input))
+  );
 }
