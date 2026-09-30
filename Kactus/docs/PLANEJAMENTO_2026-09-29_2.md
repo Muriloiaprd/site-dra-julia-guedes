@@ -165,3 +165,8 @@ Criar `Kactus/docs/PLANEJAMENTO_2026-09-29_2.md` com este plano. Commit, push e 
 - **Zonas iguais às da atividade:** `resolveHrZones` em `lib/athlete.ts` espelha o `resolve_hr_zones` do backend (zonas do perfil > Karvonen > %FCmax). Antes a curva usava a FC máx do treino e dava "zona 5" onde a faixa dizia "zona 3".
 - `layouts/parciais.ts`: km mais rápido gigante, régua branca, barras por km (a mais rápida na cor do esporte com brilho), linha tracejada da média, total grande, tempo e média. Bike mostra km/h.
 - Conferido em imagem inteira: longão de 34 km (01/05) e pedalada de 45 km (11/07).
+
+### Fase 3 (2026-09-29)
+- `layouts/montanha.ts`: subida acumulada gigante, sol listrado na cor do esporte atrás (preenche o céu em qualquer relevo), três camadas de relevo (as de trás espelhadas/deslocadas e esmaecidas), neblina, crista com curva suave e brilho, cume marcado, eixo 0 km → total.
+  - Primeira versão reprovada no próprio teste: num treino quase plano (+111 m em 34 km) a normalização transformava ruído em picos serrilhados. Agora suaviza duas vezes (~1,5% do percurso) e a altura é proporcional ao desnível real (cordilheira só com ~300 m de relevo; mínimo 45%).
+- `layouts/rotaRitmo.ts`: ritmo médio gigante, rota com gradiente de velocidade (azul lento → cor do esporte → laranja rápido, cortes nos percentis 10/90), halo, marcadores de km (1 em 1 até 15 km, depois de 5 em 5; o que cai em cima de outro na ida e volta é pulado), anéis de largada/chegada, legenda com os ritmos reais das pontas. Velocidade suavizada em janela larga (a cor piscava e parecia tracejado).
