@@ -135,6 +135,7 @@ Detalhes em [`PLANEJAMENTO_2026-09-29_2.md`](./PLANEJAMENTO_2026-09-29_2.md).
 - Cada modelo novo se esconde quando falta o dado (`available`): sem FC não há Batimento, treino plano não tem Montanha etc.
 - Código: `lib/story/draw.ts` (utilitários) e `lib/story/layouts/{batimento,parciais,montanha,rotaRitmo,recibo,bilhete}.ts`, em `DATA_LAYOUTS` (fora de `STORY_LAYOUTS`, que o `/story-calibrate` usa). A "arte" deles é a própria logo.
 - `resolveHrZones` (`lib/athlete.ts`) espelha as zonas de FC do backend.
+- **Vídeo da rota (2026-09-30)**: botão "Gravar vídeo da rota" no gerador. Desenha o "Rota pelo ritmo" quadro a quadro (`data.progress` de 0 a 1, `animated: true`): 5,5 s da rota se desenhando com ponto brilhante na ponta e distância/tempo correndo no rodapé + 2 s da imagem final. Gravado do próprio canvas (`captureStream(30)` + `MediaRecorder`) em **MP4 1080×1920** (~1,8 MB), com prévia, compartilhar e salvar. Sempre com fundo (vídeo não tem transparência). A geometria da rota fica em cache e o traço é acumulado numa camada, para aguentar 30 fps.
 
 ---
 

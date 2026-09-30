@@ -26,6 +26,8 @@ export interface StoryLayoutData {
   hrZones: HrZones | null;
   /** Primeiro nome do atleta ("passageiro" do bilhete). */
   athleteName: string | null;
+  /** Quadro do vídeo: 0 = começo, 1 = imagem final (padrão). Só os modelos `animated` usam. */
+  progress?: number;
 }
 
 /** O que decide se um modelo faz sentido para a atividade (ex.: "Batimento" precisa de FC). */
@@ -46,5 +48,7 @@ export interface StoryLayout {
   available?(input: StoryAvailability): boolean;
   /** Mostra o selo "novo" no chip do carrossel. */
   isNew?: boolean;
+  /** Sabe desenhar quadros intermediários (`data.progress`): pode virar vídeo. */
+  animated?: boolean;
   draw(ctx: CanvasRenderingContext2D, data: StoryLayoutData): void;
 }

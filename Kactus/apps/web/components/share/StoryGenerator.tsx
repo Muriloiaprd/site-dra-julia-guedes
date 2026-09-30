@@ -10,6 +10,12 @@ import { availableLayouts } from "@/lib/story/layouts";
 import { resolveStoryMetrics } from "@/lib/story/metrics";
 import type { StoryPhoto } from "@/lib/story/types";
 
+// MP4 primeiro: e o que o Instagram aceita. WebM so se o navegador nao gravar MP4.
+const VIDEO_TYPES = ["video/mp4;codecs=avc1.640028", "video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"];
+const VIDEO_DRAW_MS = 5500; // rota se desenhando
+const VIDEO_HOLD_MS = 2000; // imagem final parada
+const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -36,7 +42,12 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
   const [transparent, setTransparent] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"share" | "save" | "copy" | null>(null);
+  const [busy, setBusy] = useState<"share" | "save" | "copy" | "video" | null>(null);
+  // gravacao do video: o efeito de redesenho fica parado enquanto os quadros sao desenhados a mao
+  const recordingRef = useRef(false);
+  const [recording, setRecording] = useState<number | null>(null);
+  const [video, setVideo] = useState<{ blob: Blob; url: string; ext: string } | null>(null);
+  const [redrawTick, setRedrawTick] = useState(0);
   const [copied, setCopied] = useState(false);
   const [profile, setProfile] = useState<{ hrZones: HrZones | null; name: string | null }>({ hrZones: null, name: null });
 
@@ -55,6 +66,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
   const color = storyColor(activity.sport);
   const layouts = useMemo(() => availableLayouts({ activity, routePoints, splits }), [activity, routePoints, splits]);
   const layout = layouts[Math.min(layoutIndex, layouts.length - 1)];
+  const videoLayout = layouts.find((l) => l.animated);
   const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
@@ -92,7 +104,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
   // redesenha sempre que algo que afeta o visual muda
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !layout || !artForLayout) return;
+    if (!canvas || !layout || !artForLayout || recordingRef.current) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     prepareCanvas(ctx, transparent);
@@ -109,7 +121,92 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
       hrZones: profile.hrZones,
       athleteName: profile.name,
     });
-  }, [layout, artForLayout, activity, metrics, routePoints, photo, transparent, color, fontsReady, splits, zones, profile]);
+  }, [layout, artForLayout, activity, metrics, routePoints, photo, transparent, color, fontsReady, splits, zones, profile, redrawTick]);
+
+  useEffect(() => () => { if (video) URL.revokeObjectURL(video.url); }, [video]);
+
+  /** Grava a rota se desenhando direto do canvas do preview (30 fps), em MP4 quando o navegador deixa. */
+  async function handleRecord() {
+    const vl = videoLayout;
+    const canvas = canvasRef.current;
+    if (!vl || !canvas) return;
+    setActionError(null);
+    setVideo(null);
+    setBusy("video");
+    setLayoutIndex(layouts.indexOf(vl));
+    recordingRef.current = true;
+    try {
+      const mime = typeof MediaRecorder !== "undefined" ? VIDEO_TYPES.find((t) => MediaRecorder.isTypeSupported(t)) : undefined;
+      if (!mime) throw new Error("Este navegador não grava vídeo");
+      const [art] = await Promise.all([loadArt(vl.art), loadStoryFonts()]);
+      const ctx = canvas.getContext("2d")!;
+      const frame = (progress: number) => {
+        prepareCanvas(ctx, false);
+        // video nao tem canal alfa: sempre com fundo (foto ou o preto da marca)
+        vl.draw(ctx, {
+          activity, metrics, routePoints, photo: photo as StoryPhoto | null, art, transparent: false, color,
+          splits, zones, hrZones: profile.hrZones, athleteName: profile.name, progress,
+        });
+      };
+      frame(0);
+      const stream = canvas.captureStream(30);
+      const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 10_000_000 });
+      const chunks: Blob[] = [];
+      rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+      const stopped = new Promise<void>((resolve) => { rec.onstop = () => resolve(); });
+      rec.start();
+      const t0 = performance.now();
+      let lastUi = 0;
+      await new Promise<void>((resolve) => {
+        const tick = () => {
+          const t = performance.now() - t0;
+          frame(easeInOut(Math.min(1, t / VIDEO_DRAW_MS)));
+          if (t - lastUi > 100) { lastUi = t; setRecording(Math.min(1, t / (VIDEO_DRAW_MS + VIDEO_HOLD_MS))); }
+          if (t < VIDEO_DRAW_MS + VIDEO_HOLD_MS) requestAnimationFrame(tick);
+          else resolve();
+        };
+        requestAnimationFrame(tick);
+      });
+      rec.stop();
+      await stopped;
+      stream.getTracks().forEach((tr) => tr.stop());
+      const type = mime.split(";")[0];
+      const blob = new Blob(chunks, { type });
+      setVideo({ blob, url: URL.createObjectURL(blob), ext: type === "video/mp4" ? "mp4" : "webm" });
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Não foi possível gravar o vídeo");
+    } finally {
+      recordingRef.current = false;
+      setRecording(null);
+      setBusy(null);
+      setRedrawTick((n) => n + 1);
+    }
+  }
+
+  function videoFile(): File | null {
+    return video ? new File([video.blob], `kactus_rota_${activity.id}.${video.ext}`, { type: video.blob.type }) : null;
+  }
+
+  function handleSaveVideo() {
+    if (!video) return;
+    const a = document.createElement("a");
+    a.href = video.url;
+    a.download = `kactus_rota_${activity.id}.${video.ext}`;
+    a.click();
+  }
+
+  async function handleShareVideo() {
+    const file = videoFile();
+    if (!file) return;
+    setActionError(null);
+    try {
+      if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: "Kactus" });
+      else handleSaveVideo();
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return;
+      setActionError(e instanceof Error ? e.message : "Não foi possível compartilhar o vídeo");
+    }
+  }
 
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -307,6 +404,31 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
               onChange={(e) => setPhoto((p) => (p ? { ...p, zoom: Number(e.target.value) } : p))}
               className="w-full"
             />
+          </div>
+        )}
+
+        {videoLayout && (
+          <div className="mt-4 flex justify-center">
+            <button onClick={handleRecord} disabled={busy !== null} className="od-btn od-btn-secondary od-btn-sm relative overflow-hidden">
+              {recording !== null && (
+                <span className="absolute inset-y-0 left-0 bg-[rgba(0,255,102,0.18)]" style={{ width: `${recording * 100}%` }} aria-hidden />
+              )}
+              <span className="relative">{recording !== null ? `Gravando… ${Math.round(recording * 100)}%` : "🎬 Gravar vídeo da rota"}</span>
+            </button>
+          </div>
+        )}
+
+        {video && (
+          <div className="mt-4 flex items-center gap-3 rounded-xl p-2.5" style={{ background: "rgba(0,255,102,0.06)", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.2)" }}>
+            <video src={video.url} autoPlay loop muted playsInline className="h-24 w-auto rounded-md" aria-label="Prévia do vídeo" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">Vídeo pronto</p>
+              <p className="text-[0.7rem] text-brand-muted">{((VIDEO_DRAW_MS + VIDEO_HOLD_MS) / 1000).toLocaleString("pt-BR")} s · {video.ext.toUpperCase()} · {(video.blob.size / 1e6).toFixed(1)} MB</p>
+              <div className="mt-2 flex gap-2">
+                <button onClick={handleShareVideo} className="od-btn od-btn-primary od-btn-sm">Compartilhar vídeo</button>
+                <button onClick={handleSaveVideo} className="od-btn od-btn-ghost od-btn-sm">Salvar</button>
+              </div>
+            </div>
           </div>
         )}
 
