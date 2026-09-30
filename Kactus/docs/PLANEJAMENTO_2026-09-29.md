@@ -196,5 +196,11 @@ Sem mudança no backend.
 
 ### Fase 6 (2026-09-29)
 - `ESTADO_DO_PROJETO.md` com a sessão de hoje, modelos e onde fica cada coisa no front.
-- `BACKLOG.md` com as 4 ideias do "Meu kit" (kit do dia pelo clima, silhueta pelo Sexo, kit no Stories, checklist de prova).
+- `BACKLOG.md` com as 4 ideias do "Meu kit" (retiradas depois, junto com o boneco).
 - Plano FECHADO.
+
+### Depois do fechamento (2026-09-29): boneco retirado
+- O usuário viu o "Meu kit" e não gostou do visual ("ficou péssimo"): pediu para tirar.
+- Removidos `KitBuilder.tsx`, `kitShapes.tsx`, `services/equipment_kits.py`, as rotas `/equipment/kits`, o modelo `EquipmentKit`, os schemas e os testes do kit. Migration `020_drop_equipment_kits` apaga a tabela (aplicada na main e na branch test).
+- Ficaram: foto do equipamento, tipos de roupa, "Ver fotos ↗" e o `equipamento_id` nos alertas de tênis.
+- As ideias do kit saíram do BACKLOG. Suíte: 229 passando.

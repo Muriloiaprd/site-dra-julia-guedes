@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { KitBuilder } from "@/components/equipment/KitBuilder";
 import { Recommendations, ShoeAlerts } from "@/components/equipment/Recommendations";
 import { Alert, EmptyState, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
 import { resizePhotoToJpegDataUrl } from "@/lib/image";
@@ -20,8 +19,7 @@ import {
   type RecommendedItem,
 } from "@/lib/api";
 
-// As pecas de roupa (top, bottom, socks, cap, sunglasses, hr_strap, hydration) sao as que o
-// boneco do "Meu kit" liga aos encaixes. `type` e texto livre no banco: tipo novo nao pede migracao.
+// `type` e texto livre no banco: tipo novo nao pede migracao.
 const EQUIPMENT_TYPES = [
   { value: "shoe", label: "Tênis", icon: "👟" },
   { value: "top", label: "Camiseta / regata", icon: "👕" },
@@ -289,7 +287,7 @@ export default function EquipmentPage() {
                   <button type="button" onClick={() => setForm({ ...form, photo_data_url: null })} className="od-btn od-btn-ghost od-btn-sm">Remover</button>
                 )}
               </div>
-              <p className="mt-1.5 text-[0.7rem] text-brand-muted">Uma foto sua da peça. Ela aparece no card e no boneco do &quot;Meu kit&quot;.</p>
+              <p className="mt-1.5 text-[0.7rem] text-brand-muted">Uma foto sua da peça. Ela aparece no card.</p>
             </div>
             <label className="sm:col-span-2">
               <span className="od-field-label">Notas</span>
@@ -318,8 +316,6 @@ export default function EquipmentPage() {
           </div>
         </Panel>
       )}
-
-      {!loading && <KitBuilder items={items} alerts={recs?.alertas ?? []} />}
 
       {loading ? (
         <div className="grid gap-3 sm:grid-cols-2">

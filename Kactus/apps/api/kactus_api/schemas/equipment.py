@@ -61,20 +61,3 @@ class EquipmentOut(BaseModel):
 
     model_config = {"from_attributes": True}
 
-
-class KitSlot(BaseModel):
-    piece: str
-    color: str
-    equipment_id: uuid.UUID | None = None
-
-
-class KitUpdate(BaseModel):
-    slots: dict[str, KitSlot]
-
-
-class KitOut(BaseModel):
-    preset: str
-    label: str
-    slots: dict[str, KitSlot]
-    saved: bool
-    updated_at: datetime | None

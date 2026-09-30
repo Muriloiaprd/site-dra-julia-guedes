@@ -57,13 +57,6 @@ Todas de custo zero e para uso local. Ordem = valor × esforço (as primeiras re
 10. **Backup e conta.** Exportar tudo (JSON/CSV + arquivos originais), trocar senha e excluir conta (item 14). *Esforço médio.*
 11. **Acessibilidade.** A passada de contraste AA e o teclado nos gráficos (item 16). *Esforço médio.*
 
-## Ideias do "Meu kit" (levantadas em 2026-09-29, nada prometido)
-
-1. **Kit do dia pelo clima.** Com a previsão do tempo do dia (Open-Meteo: grátis, sem chave), o dashboard sugere o preset ("Hoje 29 °C às 6h: kit Calor") e avisa o que muda (manga longa, viseira). *Esforço baixo.*
-2. **Silhueta pelo campo Sexo do perfil.** Hoje o boneco é neutro; uma segunda silhueta usando o campo que já existe. *Esforço médio.*
-3. **Kit no gerador de Stories.** O boneco montado vira um layout de Story ("meu kit de prova"). *Esforço médio.*
-4. **Checklist de véspera de prova.** O kit Prova vira uma lista para marcar (tênis, gel, número de peito, chip), com lembrete no dia anterior à prova salva na Duni. *Esforço baixo.*
-
 ---
 
 ## ✅ Concluído

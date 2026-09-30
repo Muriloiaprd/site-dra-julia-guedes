@@ -539,36 +539,6 @@ export interface EquipmentUpdate {
   photo_data_url?: string | null;
 }
 
-// ---------- "Meu kit" (boneco por preset) ----------
-
-export type KitPreset = "corrida" | "prova" | "calor" | "frio";
-
-export interface KitSlot {
-  piece: string;
-  color: string;
-  equipment_id: string | null;
-}
-
-export interface EquipmentKit {
-  preset: KitPreset;
-  label: string;
-  slots: Record<string, KitSlot>;
-  saved: boolean;
-  updated_at: string | null;
-}
-
-export async function fetchKits(): Promise<EquipmentKit[]> {
-  return apiFetch<EquipmentKit[]>("/equipment/kits");
-}
-
-export async function saveKit(preset: KitPreset, slots: Record<string, KitSlot>): Promise<EquipmentKit> {
-  return apiFetch<EquipmentKit>(`/equipment/kits/${preset}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ slots }),
-  });
-}
-
 export async function fetchEquipment(): Promise<EquipmentItem[]> {
   return apiFetch<EquipmentItem[]>("/equipment");
 }

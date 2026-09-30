@@ -1,6 +1,6 @@
 # Kactus — Estado do Projeto
 
-**Última atualização deste doc**: 2026-09-29 (aba Desempenho, menu com logo grande, cabeçalho limpo, fotos e "Meu kit" — ver a última sessão abaixo)
+**Última atualização deste doc**: 2026-09-29 (aba Desempenho, menu com logo grande, cabeçalho limpo e fotos dos equipamentos — ver a última sessão abaixo)
 **Nome**: o projeto se chamava **Ondilow** até 2026-09-26; os documentos anteriores a essa data (planejamentos, resumos) mantêm o nome antigo de propósito.
 **Branch**: master
 **Backlog priorizado do que falta melhorar**: ver [`BACKLOG.md`](./BACKLOG.md)
@@ -120,14 +120,14 @@ Detalhes em [`PLANEJAMENTO_2026-09-27_2.md`](./PLANEJAMENTO_2026-09-27_2.md).
 - **Carga**: `GET /metrics/summary` (`metrics/summary.py`) com "hoje", faixa segura de km nos próximos 7 dias, volume de 16 semanas, intensidade e efeito de treino; siglas só no "Modo avançado".
 - **Equipamentos**: catálogo em `kactus_api/equipment_catalog.py` (set/2026, 36 itens, 3 faixas de preço), `GET /equipment/recommendations` personalizado pelo uso, alerta de troca de tênis.
 
-### ✅ Sessão 2026-09-29 — Desempenho, menu, cabeçalho e "Meu kit"
+### ✅ Sessão 2026-09-29 — Desempenho, menu, cabeçalho e fotos dos equipamentos
 Detalhes em [`PLANEJAMENTO_2026-09-29.md`](./PLANEJAMENTO_2026-09-29.md).
 - **Avisos**: landing e login mostram "Você já está conectado · Ir para o painel" quando há sessão válida (`components/SessionNotice.tsx`); o dashboard explica a espera se o carregamento passar de 2 s. A lentidão medida vinha da compilação do modo dev (`/` 13 s na primeira vez), do Neon acordando e do caminho landing → login → senha; a API aquecida responde o dashboard em ~0,9 s.
 - **Aba Desempenho** (`/performance`, componentes em `components/performance/`): junta as antigas Carga e Previsões, que repetiam a recomendação de hoje e o risco de lesão. O risco agora vem sempre de `overview.risk` (backend). `/metrics` e `/predictions` redirecionam (`next.config.mjs`). Todo o técnico fica num único "Modo avançado".
 - **Menu lateral**: logo empilhada de 110 px com brilho verde (`Logo stacked`), itens menores e sem títulos de grupo.
 - **Cabeçalho do dashboard**: só "Olá, {nome}" à esquerda; sincronização e data à direita; skeleton no nome até o perfil chegar.
 - **Equipamentos (migration 019)**: `equipment.photo_data_url` (foto redimensionada no navegador por `lib/image.ts`), tipos de roupa (camiseta, short, meia, boné, óculos, cinta, hidratação), botão "Ver fotos ↗" no catálogo. Corrigido o bug que multiplicava a distância inicial por 1000 ao editar.
-- **"Meu kit"**: tabela `equipment_kits` (um JSONB de encaixes por preset), `GET/PUT /equipment/kits`, `services/equipment_kits.py` e o boneco em SVG (`components/equipment/kitShapes.tsx` + `KitBuilder.tsx`). Encaixes e peças existem nos dois lados: mudou um, muda o outro.
+- **"Meu kit"** (boneco para montar o que veste): feito e **retirado no mesmo dia** porque o usuário não gostou do visual. Migration 020 apaga a tabela `equipment_kits`; fotos e tipos de roupa ficaram.
 
 ---
 
@@ -175,7 +175,7 @@ Todo o levantamento de melhorias pendentes (tratamento de erro no perfil, featur
 - `Activity`, `ActivityPoint`, `ActivityLap` → `models/activity.py`
 - `PersonalRecord` → `models/record.py`
 - `DailyMetric` → `models/daily_metric.py`
-- `Equipment`, `EquipmentKit` → `models/equipment.py`
+- `Equipment` → `models/equipment.py`
 - `PlannedWorkout`, `CoachInteraction` → `models/coach.py`
 
 ### Frontend — onde fica cada coisa:
@@ -183,7 +183,7 @@ Todo o levantamento de melhorias pendentes (tratamento de erro no perfil, featur
 - Primitivos de UI: `components/ui/`
 - Dashboard: `components/dashboard/` (a página `app/dashboard/page.tsx` só orquestra dados)
 - Desempenho (ex-Carga + Previsões): `components/performance/` (a página `app/performance/page.tsx` só orquestra dados)
-- Equipamentos e "Meu kit": `components/equipment/` (boneco em `kitShapes.tsx`, espelho de `services/equipment_kits.py`)
+- Equipamentos: `components/equipment/` (recomendações e alertas de tênis)
 - Interpretação de dados do atleta (prontidão, forma, risco, tendência, séries de pace): `lib/athlete.ts`
 - Mapas: `components/ActivityMap.tsx`, `components/ActivityMiniMap.tsx`, `lib/mapTiles.ts`
 
