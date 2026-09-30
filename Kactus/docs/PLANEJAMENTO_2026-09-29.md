@@ -186,3 +186,10 @@ Sem mudança no backend.
 - Equipamentos: campo "Foto da peça" (enviar, trocar, remover), foto no card, tipos novos (camiseta/regata, short/legging, meia, boné/viseira, óculos, cinta cardíaca, hidratação). Catálogo: cinta cardíaca com tipo `hr_strap` e botão "Ver fotos ↗" (busca de imagens; fotos oficiais não são copiadas).
 - **Bug antigo corrigido:** editar um equipamento carregava a distância inicial em metros num campo em km, e salvar multiplicava por 1000 de novo. O único equipamento do usuário (Vaporfly 3, 150 km) não tinha sido afetado.
 - Testes: `tests/test_equipment_photo.py` (salva, lista, apaga; recusa URL, SVG e arquivo grande).
+
+### Fase 5 (2026-09-29)
+- Backend: modelo `EquipmentKit`, `services/equipment_kits.py` (presets, encaixes/peças, padrões sugeridos, validação), `GET /equipment/kits` e `PUT /equipment/kits/{preset}` (upsert; encaixe não enviado fica com o padrão; peça/cor inválida, equipamento de outro usuário ou de tipo errado = 422; preset inexistente = 404; equipamento apagado sai do encaixe na leitura). Os alertas de tênis ganharam `equipamento_id`.
+- Front: `components/equipment/kitShapes.tsx` (encaixes, paleta e o SVG do boneco, espelho do backend) e `KitBuilder.tsx` no topo de Equipamentos: boneco neon, abas Corrida · Prova · Calor · Chuva/frio, lista de encaixes que abre peça + cor (10 cores + seletor livre) + "Qual é a sua?" (liga ao equipamento cadastrado, mostrando foto, km e o alerta de troca; o tênis a trocar pisca no boneco). Salva sozinho (700 ms) e salva na hora ao trocar de aba ou sair.
+- Clique no desenho é atalho de mouse; o caminho acessível é a lista de encaixes (botões com `aria-expanded`, grupos com `aria-pressed`).
+- Testes: `tests/test_equipment_kits.py` (padrões válidos, GET com 4 presets, PUT salva/mescla/liga, equipamento apagado, 5 casos de 422 e 404). Suíte completa: 233 passando.
+- Conferido no navegador: kit Calor montado, salvo, recarregado, tênis ligado com km; 375 px sem rolagem lateral. O kit de teste foi devolvido ao padrão depois.

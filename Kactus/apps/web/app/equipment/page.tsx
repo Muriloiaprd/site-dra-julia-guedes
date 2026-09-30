@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { KitBuilder } from "@/components/equipment/KitBuilder";
 import { Recommendations, ShoeAlerts } from "@/components/equipment/Recommendations";
 import { Alert, EmptyState, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
 import { resizePhotoToJpegDataUrl } from "@/lib/image";
@@ -317,6 +318,8 @@ export default function EquipmentPage() {
           </div>
         </Panel>
       )}
+
+      {!loading && <KitBuilder items={items} alerts={recs?.alertas ?? []} />}
 
       {loading ? (
         <div className="grid gap-3 sm:grid-cols-2">

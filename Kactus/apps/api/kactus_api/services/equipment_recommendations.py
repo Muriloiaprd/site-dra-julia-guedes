@@ -43,10 +43,10 @@ def _shoe_alerts(db: Session, user_id: uuid.UUID) -> list[dict]:
     for eq, linked in rows:
         km = round((float(eq.initial_distance_m or 0) + float(linked)) / 1000)
         if km >= SHOE_REPLACE_KM:
-            alerts.append({"nivel": "trocar", "equipamento": eq.name, "km": km,
+            alerts.append({"nivel": "trocar", "equipamento": eq.name, "equipamento_id": str(eq.id), "km": km,
                            "texto": f"{eq.name} já tem {km} km: o amortecimento costuma cansar entre 500 e 800 km. Hora de pensar no próximo."})
         elif km >= SHOE_WARN_KM:
-            alerts.append({"nivel": "atencao", "equipamento": eq.name, "km": km,
+            alerts.append({"nivel": "atencao", "equipamento": eq.name, "equipamento_id": str(eq.id), "km": km,
                            "texto": f"{eq.name} está com {km} km: fique de olho em dor nova ou no tênis \"batendo\" duro."})
     return alerts
 
