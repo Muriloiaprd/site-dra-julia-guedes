@@ -1,6 +1,7 @@
 'use client'
 import { useEffect } from 'react'
 import Link from 'next/link'
+import { SessionNotice } from '@/components/SessionNotice'
 
 export default function LandingPage() {
   useEffect(() => {
@@ -465,6 +466,7 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+      <SessionNotice />
     </div>
   )
 }

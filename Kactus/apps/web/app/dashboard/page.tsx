@@ -44,6 +44,13 @@ export default function DashboardPage() {
   const [modalActivity, setModalActivity] = useState<ActivitySummary | null>(null);
   const [recentDetails, setRecentDetails] = useState<Record<string, ActivityDetail>>({});
   const [authError, setAuthError] = useState(false);
+  // So explica a espera se ela passar de 2s — carregamento rapido nao pisca aviso.
+  const [slow, setSlow] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), 2000);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     fetchMe().then((u) => {
@@ -153,8 +160,11 @@ export default function DashboardPage() {
   );
 
   if (!user) return (
-    <div className="flex min-h-[70vh] items-center justify-center gap-3 text-brand-muted">
-      <span className="h-2 w-2 rounded-full bg-brand-accent animate-od-pulse" /> Carregando centro de comando…
+    <div className="flex min-h-[70vh] flex-col items-center justify-center gap-2 px-6 text-center text-brand-muted">
+      <span className="flex items-center gap-3">
+        <span className="h-2 w-2 rounded-full bg-brand-accent animate-od-pulse" /> Carregando centro de comando…
+      </span>
+      {slow && <span className="text-xs">Na primeira abertura do dia pode levar alguns segundos — o servidor está acordando.</span>}
     </div>
   );
 
@@ -171,6 +181,14 @@ export default function DashboardPage() {
         lastActivityIso={activities[0]?.start_time ?? null}
         alerts={alerts}
       />
+
+      {loading && slow && (
+        <div className="mb-4">
+          <Alert tone="accent" title="Carregando seus dados…">
+            Na primeira abertura do dia pode levar alguns segundos. O painel se completa sozinho.
+          </Alert>
+        </div>
+      )}
 
       {syncState === "error" && (
         <div className="mb-4">

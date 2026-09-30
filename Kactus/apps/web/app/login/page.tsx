@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { login, setToken } from "@/lib/api";
+import { SessionNotice } from "@/components/SessionNotice";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -248,6 +249,7 @@ export default function LoginPage() {
         </p>
       </div>
 
+      <SessionNotice />
     </main>
   );
 }
