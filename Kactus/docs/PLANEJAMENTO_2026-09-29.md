@@ -1,7 +1,7 @@
 # Kactus — Planejamento: Desempenho, menu com logo grande, cabeçalho limpo e "Meu kit" (2026-09-29)
 
 **Criado em**: 2026-09-29
-**Status**: EM ANDAMENTO. Ver "Registro de execução" no fim.
+**Status**: FECHADO em 2026-09-29. Todas as fases concluídas (ver "Registro de execução" no fim).
 **Relacionados**: [`BACKLOG.md`](./BACKLOG.md) · [`ESTADO_DO_PROJETO.md`](./ESTADO_DO_PROJETO.md) · [`PLANEJAMENTO_2026-09-27_2.md`](./PLANEJAMENTO_2026-09-27_2.md)
 
 ## Como retomar
@@ -193,3 +193,8 @@ Sem mudança no backend.
 - Clique no desenho é atalho de mouse; o caminho acessível é a lista de encaixes (botões com `aria-expanded`, grupos com `aria-pressed`).
 - Testes: `tests/test_equipment_kits.py` (padrões válidos, GET com 4 presets, PUT salva/mescla/liga, equipamento apagado, 5 casos de 422 e 404). Suíte completa: 233 passando.
 - Conferido no navegador: kit Calor montado, salvo, recarregado, tênis ligado com km; 375 px sem rolagem lateral. O kit de teste foi devolvido ao padrão depois.
+
+### Fase 6 (2026-09-29)
+- `ESTADO_DO_PROJETO.md` com a sessão de hoje, modelos e onde fica cada coisa no front.
+- `BACKLOG.md` com as 4 ideias do "Meu kit" (kit do dia pelo clima, silhueta pelo Sexo, kit no Stories, checklist de prova).
+- Plano FECHADO.
