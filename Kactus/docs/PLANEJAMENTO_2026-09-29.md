@@ -163,3 +163,8 @@ Sem mudança no backend.
 ### Fase 0 (2026-09-29)
 - Commit `ee1bcd0`: aviso de sessão ativa na landing/login e aviso de carregamento lento no dashboard.
 - Este documento criado.
+
+### Fase 1 (2026-09-29)
+- `DashboardHeader`: só "Olá, {nome}" à esquerda (sem ⚡ e sem a frase); sincronização e data à direita (no celular, linha pequena sob o "Olá").
+- Data com só a primeira letra maiúscula ("Terça-feira, 29 de setembro"; antes o `capitalize` deixava "29 De Setembro").
+- Nome com skeleton até o perfil chegar (`profileDone` em `dashboard/page.tsx`); antes piscava "Muriloiaprd".

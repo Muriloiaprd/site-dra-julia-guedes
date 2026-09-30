@@ -44,6 +44,7 @@ export default function DashboardPage() {
   const [modalActivity, setModalActivity] = useState<ActivitySummary | null>(null);
   const [recentDetails, setRecentDetails] = useState<Record<string, ActivityDetail>>({});
   const [authError, setAuthError] = useState(false);
+  const [profileDone, setProfileDone] = useState(false);
   // So explica a espera se ela passar de 2s — carregamento rapido nao pisca aviso.
   const [slow, setSlow] = useState(false);
 
@@ -61,7 +62,7 @@ export default function DashboardPage() {
       }
       setUser(u);
     });
-    fetchProfile().then(setProfile).catch(() => {});
+    fetchProfile().then(setProfile).catch(() => {}).finally(() => setProfileDone(true));
   }, [router]);
 
   const load = useCallback(async () => {
@@ -168,7 +169,8 @@ export default function DashboardPage() {
     </div>
   );
 
-  const name = profile?.full_name?.trim().split(/\s+/)[0] || nameFromEmail(user.email);
+  // ate o perfil chegar o cabecalho mostra skeleton (antes piscava o nome tirado do e-mail)
+  const name = profile?.full_name?.trim().split(/\s+/)[0] || (profileDone ? nameFromEmail(user.email) : null);
   const loading = syncState === "loading";
   const openById = (id: string) => { const a = activities.find((x) => x.id === id); if (a) setModalActivity(a); };
 
