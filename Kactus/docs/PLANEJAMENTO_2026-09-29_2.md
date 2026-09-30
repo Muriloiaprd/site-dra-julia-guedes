@@ -159,3 +159,9 @@ Criar `Kactus/docs/PLANEJAMENTO_2026-09-29_2.md` com este plano. Commit, push e 
 - Simplificação em relação ao plano: em vez de tornar `art` opcional, os modelos de código usam a própria logo (`/brand/kactus-wordmark.png`) como "arte". O carregamento do gerador continua igual e os 19 modelos não mudam.
 - `lib/story/draw.ts`: fundo (foto + véu ou brilho da cor), logo, texto, ajuste de tamanho, média móvel, percentil, velocidade por ponto, parciais usáveis, código de barras, datas.
 - `DATA_LAYOUTS` (modelos de código) ficam fora de `STORY_LAYOUTS`, para o `/story-calibrate` seguir só com as artes; `availableLayouts` junta as duas listas, com os novos na frente.
+
+### Fase 2 (2026-09-29)
+- `layouts/batimento.ts`: FC média gigante, curva de FC em papel de eletrocardiograma colorida por zona (brilho da cor da zona), faixa de tempo por zona e rodapé com distância, tempo, ritmo e data. Escala pelo percentil 2% (o aquecimento achatava a curva).
+- **Zonas iguais às da atividade:** `resolveHrZones` em `lib/athlete.ts` espelha o `resolve_hr_zones` do backend (zonas do perfil > Karvonen > %FCmax). Antes a curva usava a FC máx do treino e dava "zona 5" onde a faixa dizia "zona 3".
+- `layouts/parciais.ts`: km mais rápido gigante, régua branca, barras por km (a mais rápida na cor do esporte com brilho), linha tracejada da média, total grande, tempo e média. Bike mostra km/h.
+- Conferido em imagem inteira: longão de 34 km (01/05) e pedalada de 45 km (11/07).

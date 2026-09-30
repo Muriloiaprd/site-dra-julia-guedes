@@ -2,7 +2,7 @@
  * Interpretacao dos dados do atleta para a UI (dashboard, carga, coach).
  * Tudo aqui deriva de dados reais da API — nada de valores ficticios.
  */
-import type { ActivityPoint, ActivitySummary, DailyMetric, TrainingRecommendation, WeeklyStatus } from "@/lib/api";
+import type { ActivityPoint, ActivitySummary, DailyMetric, HrZones, TrainingRecommendation, WeeklyStatus } from "@/lib/api";
 import { C } from "@/lib/theme";
 import { activeSeconds, sportGroup } from "@/lib/utils";
 
@@ -255,4 +255,26 @@ export function compareWithRecent(activity: ActivitySummary, all: ActivitySummar
     pacePct: pctChange(activity.avg_pace_s_per_km, avgPace),
     distPct: pctChange(activity.distance_m, avgDist),
   };
+}
+
+/* ───────────── zonas de FC ───────────── */
+
+/**
+ * Espelho de `resolve_hr_zones` (apps/api/kactus_api/metrics/basic.py): zonas salvas
+ * no perfil > Karvonen (FC max + repouso) > %FCmax > null. Mesma regra das barras de
+ * zona da atividade, para quem desenha a curva colorida bater com elas.
+ */
+export function resolveHrZones(p: { hr_zones: HrZones | null; max_hr: number | null; resting_hr: number | null }): HrZones | null {
+  if (p.hr_zones) return p.hr_zones;
+  const edges = [0.6, 0.7, 0.8, 0.9];
+  let bounds: number[];
+  if (p.max_hr && p.resting_hr && p.max_hr > p.resting_hr) {
+    const reserve = p.max_hr - p.resting_hr;
+    bounds = [0, ...edges.map((e) => Math.round(p.resting_hr! + reserve * e)), p.max_hr + 1];
+  } else if (p.max_hr) {
+    bounds = [0, ...edges.map((e) => Math.round(p.max_hr! * e)), Math.round(p.max_hr * 1.01)];
+  } else {
+    return null;
+  }
+  return { z1: [bounds[0], bounds[1]], z2: [bounds[1], bounds[2]], z3: [bounds[2], bounds[3]], z4: [bounds[3], bounds[4]], z5: [bounds[4], bounds[5]] };
 }

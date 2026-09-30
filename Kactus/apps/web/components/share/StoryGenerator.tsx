@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { fetchProfile, type ActivityDetail, type HrZones, type Split, type ZoneBucket } from "@/lib/api";
+import { resolveHrZones } from "@/lib/athlete";
 import { loadArt, storyColor } from "@/lib/story/art";
 import { loadStoryFonts, prepareCanvas, STORY_H, STORY_W } from "@/lib/story/engine";
 import { availableLayouts } from "@/lib/story/layouts";
@@ -40,7 +41,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
   const [profile, setProfile] = useState<{ hrZones: HrZones | null; name: string | null }>({ hrZones: null, name: null });
 
   useEffect(() => {
-    fetchProfile().then((p) => setProfile({ hrZones: p.hr_zones, name: p.full_name })).catch(() => {});
+    fetchProfile().then((p) => setProfile({ hrZones: resolveHrZones(p), name: p.full_name })).catch(() => {});
   }, []);
 
   const routePoints = useMemo(
