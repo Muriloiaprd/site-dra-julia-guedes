@@ -132,6 +132,11 @@ export function usableSplits(splits: Split[]): Split[] {
 /** Código de barras feito das parciais: cada km vira um grupo de barras cuja espessura segue o ritmo. */
 export function drawBarcode(ctx: CanvasRenderingContext2D, values: number[], box: { x: number; y: number; w: number; h: number }, color: string): void {
   if (!values.length) return;
+  // treino curto: repete as parciais (com leve variacao) ate ter barras suficientes para parecer codigo
+  if (values.length < 14) {
+    const base = values;
+    values = Array.from({ length: 14 }, (_, i) => base[i % base.length] * (1 + (((i * 37) % 7) - 3) / 40));
+  }
   const min = Math.min(...values), max = Math.max(...values);
   const norm = values.map((v) => (max > min ? (v - min) / (max - min) : 0.5));
   // cada valor gera 3 barras (grossa, fina, media) para parecer código de verdade

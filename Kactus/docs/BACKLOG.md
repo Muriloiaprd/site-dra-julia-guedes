@@ -57,6 +57,15 @@ Todas de custo zero e para uso local. Ordem = valor × esforço (as primeiras re
 10. **Backup e conta.** Exportar tudo (JSON/CSV + arquivos originais), trocar senha e excluir conta (item 14). *Esforço médio.*
 11. **Acessibilidade.** A passada de contraste AA e o teclado nos gráficos (item 16). *Esforço médio.*
 
+## Ideias de imagens para compartilhar (levantadas em 2026-09-29, nada prometido)
+
+O usuário escolheu 6 modelos na primeira leva (feitos). Estas ficaram para depois:
+
+1. **Capa de revista.** Sua foto de capa com o masthead KACTUS, manchetes geradas dos dados ("34 KM SEM DESCULPAS"), edição nº = número do treino no ano. *Esforço médio.*
+2. **Frase da Duni.** O comentário da Duni sobre o treino vira um cartão de citação grande, assinado "Duni, treinadora IA". Mostra o diferencial de IA. *Esforço baixo.*
+3. **Feed 4:5.** Os modelos de código em 1080×1350 para post e carrossel (os 6 novos já são desenhados em código, então a adaptação é de layout, não de arte). *Esforço médio.*
+4. **Vídeo animado.** Story de 6–8 s gravado do próprio canvas (`canvas.captureStream` + `MediaRecorder`): rota se desenhando, números subindo, barras crescendo. Custo zero. *Esforço alto.*
+
 ---
 
 ## ✅ Concluído

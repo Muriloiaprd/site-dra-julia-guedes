@@ -1,6 +1,6 @@
 # Kactus — Estado do Projeto
 
-**Última atualização deste doc**: 2026-09-29 (aba Desempenho, menu com logo grande, cabeçalho limpo e fotos dos equipamentos — ver a última sessão abaixo)
+**Última atualização deste doc**: 2026-09-29 (aba Desempenho, menu, cabeçalho, fotos dos equipamentos e 6 modelos novos de Story — ver as últimas sessões abaixo)
 **Nome**: o projeto se chamava **Ondilow** até 2026-09-26; os documentos anteriores a essa data (planejamentos, resumos) mantêm o nome antigo de propósito.
 **Branch**: master
 **Backlog priorizado do que falta melhorar**: ver [`BACKLOG.md`](./BACKLOG.md)
@@ -128,6 +128,13 @@ Detalhes em [`PLANEJAMENTO_2026-09-29.md`](./PLANEJAMENTO_2026-09-29.md).
 - **Cabeçalho do dashboard**: só "Olá, {nome}" à esquerda; sincronização e data à direita; skeleton no nome até o perfil chegar.
 - **Equipamentos (migration 019)**: `equipment.photo_data_url` (foto redimensionada no navegador por `lib/image.ts`), tipos de roupa (camiseta, short, meia, boné, óculos, cinta, hidratação), botão "Ver fotos ↗" no catálogo. Corrigido o bug que multiplicava a distância inicial por 1000 ao editar.
 - **"Meu kit"** (boneco para montar o que veste): feito e **retirado no mesmo dia** porque o usuário não gostou do visual. Migration 020 apaga a tabela `equipment_kits`; fotos e tipos de roupa ficaram.
+
+### ✅ Sessão 2026-09-29 (parte 2) — 6 modelos novos de Story desenhados a partir dos dados
+Detalhes em [`PLANEJAMENTO_2026-09-29_2.md`](./PLANEJAMENTO_2026-09-29_2.md).
+- O gerador de Stories passou de 19 para **25 modelos**. Os 6 novos são desenhados 100% em código (sem arte do Canva) e vêm primeiro no carrossel, com selo "novo": **Batimento** (curva de FC por zona), **Parciais** (barra por km, o mais rápido estourado), **Montanha** (altimetria em camadas com sol listrado), **Rota pelo ritmo** (traçado com gradiente de velocidade), **Recibo** (cupom fiscal) e **Bilhete de embarque**.
+- Cada modelo novo se esconde quando falta o dado (`available`): sem FC não há Batimento, treino plano não tem Montanha etc.
+- Código: `lib/story/draw.ts` (utilitários) e `lib/story/layouts/{batimento,parciais,montanha,rotaRitmo,recibo,bilhete}.ts`, em `DATA_LAYOUTS` (fora de `STORY_LAYOUTS`, que o `/story-calibrate` usa). A "arte" deles é a própria logo.
+- `resolveHrZones` (`lib/athlete.ts`) espelha as zonas de FC do backend.
 
 ---
 

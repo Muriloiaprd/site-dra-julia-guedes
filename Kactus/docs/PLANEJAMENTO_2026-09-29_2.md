@@ -1,7 +1,7 @@
 # Kactus — Planejamento: 6 modelos novos de imagem para compartilhar a atividade (2026-09-29, _2)
 
 **Criado em**: 2026-09-29
-**Status**: EM ANDAMENTO. Ver "Registro de execução" no fim.
+**Status**: FECHADO em 2026-09-29. Todas as fases concluídas (ver "Registro de execução" no fim).
 **Relacionados**: [`PLANEJAMENTO_2026-09-29.md`](./PLANEJAMENTO_2026-09-29.md) · [`PLANEJAMENTO_2026-09-26.md`](./PLANEJAMENTO_2026-09-26.md) (as 19 artes do gerador) · [`BACKLOG.md`](./BACKLOG.md)
 
 ## Como retomar
@@ -176,3 +176,9 @@ Criar `Kactus/docs/PLANEJAMENTO_2026-09-29_2.md` com este plano. Commit, push e 
 - `layouts/bilhete.ts`: cartão de embarque com faixa na cor do esporte, KM 0 → KM N (encolhe com 3 dígitos), largada/chegada reais, passageiro, data, voo `KCT-DDMM`, portão = ritmo (ou km/h), assento = FC, classe (Longão ≥ 18 km, Tiro com 4+ voltas curtas, Rodagem; Pedal/Nado/Livre nos outros esportes), picote com meias-luas, canhoto com código de barras e mini rota. "EMBARQUE CONFIRMADO ✓" em cima, logo e "BOM VOO." embaixo.
 - Os dois são desenhados numa camada própria: serrilhado e picote saem transparentes de verdade (conferido: canto do Story com alfa 0 no modo transparente).
 - Conferido com foto de fundo (véu escuro por cima da foto).
+
+### Fase 5 (2026-09-29)
+- Disponibilidade conferida no gerador: corrida sem FC → sem Batimento; corrida curta (+2 m) → sem Montanha; os outros aparecem. Não há esteira no histórico para testar "sem GPS", mas a regra é a mesma do `requiresRoute` antigo (`routePoints ≥ 30`).
+- Ajustes achados no teste do treino curto: código de barras com poucas parciais agora repete os valores até ter barras suficientes; trecho final incompleto aparece como "KM 03 (0,77)".
+- Modelos antigos: nenhum arquivo deles, das artes, de `engine.ts`, `art.ts` ou `regions.ts` mudou (`git diff --stat`), e o `/story-calibrate` roda sem erro.
+- `ESTADO_DO_PROJETO.md` atualizado; `BACKLOG.md` com as 4 ideias não escolhidas (capa de revista, frase da Duni, feed 4:5, vídeo animado). Plano FECHADO.

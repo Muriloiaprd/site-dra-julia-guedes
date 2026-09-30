@@ -20,7 +20,11 @@ type Row =
 /** Itens do cupom: um por km; acima de 16, agrupa de 5 em 5 (e de 10 em 10 acima de 80). */
 function items(splits: Split[]): { label: string; value: string }[] {
   if (splits.length <= 16) {
-    return splits.map((s) => ({ label: `KM ${String(s.index).padStart(2, "0")}`, value: formatClock(s.duration_s) }));
+    // trecho final incompleto mostra a distancia, senao "KM 03 ... 8:49" parece um km lento
+    return splits.map((s) => ({
+      label: `KM ${String(s.index).padStart(2, "0")}${s.distance_m < 950 ? ` (${(s.distance_m / 1000).toFixed(2).replace(".", ",")})` : ""}`,
+      value: formatClock(s.duration_s),
+    }));
   }
   const size = splits.length > 80 ? 10 : 5;
   const out: { label: string; value: string }[] = [];
