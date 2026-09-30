@@ -10,7 +10,7 @@ import { useFocusTrap } from "@/lib/useFocusTrap";
 type NavItem = { href: string; label: string; short?: string; icon: ReactNode; ai?: boolean };
 
 const ico = (children: ReactNode) => (
-  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
     {children}
   </svg>
 );
@@ -120,20 +120,19 @@ export function Sidebar() {
           backdropFilter: "blur(16px)",
         }}
       >
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-40" style={{ background: "radial-gradient(ellipse 80% 100% at 30% 0%, rgba(0,255,102,0.07), transparent 70%)" }} />
+        {/* a logo e o destaque da sidebar: brilho verde centrado atras dela */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-64" style={{ background: "radial-gradient(ellipse 90% 70% at 50% 28%, rgba(0,255,102,0.13), transparent 70%)" }} />
 
-        <Link href="/dashboard" className="relative flex h-[72px] items-center justify-center px-5 lg:justify-start" aria-label="Kactus — Dashboard">
-          <Logo size={30} compactBelowLg />
+        <Link href="/dashboard" className="relative flex h-[88px] items-center justify-center px-4 lg:h-auto lg:pb-7 lg:pt-8" aria-label="Kactus — Dashboard">
+          <Logo size={110} stacked compactBelowLg />
         </Link>
 
         <nav className="relative flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4 pt-2" aria-label="Navegação lateral">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.label} className="mb-5">
-              <div className="mb-2 hidden px-3 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-brand-textTertiary lg:block">
-                {group.label}
-              </div>
-              <div className="mx-auto mb-2 h-px w-6 bg-white/5 lg:hidden" />
-              <ul className="space-y-1">
+          {/* sem titulo de grupo: so um divisor fino entre os grupos, pra menu discreto */}
+          {NAV_GROUPS.map((group, gi) => (
+            <div key={group.label} className="mb-3">
+              {gi > 0 && <div className="mx-auto mb-3 h-px w-6 bg-white/5 lg:mx-3 lg:w-auto" />}
+              <ul className="space-y-0.5" aria-label={group.label}>
                 {group.items.map((item) => {
                   const active = isActive(pathname, item.href);
                   return (
@@ -188,7 +187,7 @@ export function Sidebar() {
         className="sticky top-0 z-40 flex h-14 items-center justify-between px-4 md:hidden"
         style={{ background: "rgba(10,10,10,0.82)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
       >
-        <Link href="/dashboard" aria-label="Kactus — Dashboard"><Logo size={26} /></Link>
+        <Link href="/dashboard" aria-label="Kactus — Dashboard"><Logo size={30} /></Link>
         <Link href="/profile" aria-label="Perfil"><Avatar user={user} avatarUrl={avatarUrl} size={30} /></Link>
       </header>
 

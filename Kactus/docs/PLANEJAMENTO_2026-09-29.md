@@ -168,3 +168,8 @@ Sem mudança no backend.
 - `DashboardHeader`: só "Olá, {nome}" à esquerda (sem ⚡ e sem a frase); sincronização e data à direita (no celular, linha pequena sob o "Olá").
 - Data com só a primeira letra maiúscula ("Terça-feira, 29 de setembro"; antes o `capitalize` deixava "29 De Setembro").
 - Nome com skeleton até o perfil chegar (`profileDone` em `dashboard/page.tsx`); antes piscava "Muriloiaprd".
+
+### Fase 2 (2026-09-29)
+- `Logo` ganhou `stacked` (logo empilhada, `size` = altura). Sidebar `lg`: logo de 110 px centralizada, com brilho verde centrado atrás; rail `md`: símbolo de 40 px; topo do celular: 30 px.
+- Itens do menu menores (0.78rem, padding 0.5/0.7rem, ícones 17 px, indicador ativo 18 px) e sem títulos de grupo (só divisor fino; o nome do grupo ficou no `aria-label` da lista).
+- A troca Carga/Previsões → Desempenho no menu fica na Fase 3, junto com a rota nova.
