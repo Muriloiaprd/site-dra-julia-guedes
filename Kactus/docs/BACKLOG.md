@@ -64,7 +64,7 @@ O usuário escolheu 6 modelos na primeira leva (feitos). Estas ficaram para depo
 1. **Capa de revista.** Sua foto de capa com o masthead KACTUS, manchetes geradas dos dados ("34 KM SEM DESCULPAS"), edição nº = número do treino no ano. *Esforço médio.*
 2. **Frase da Duni.** O comentário da Duni sobre o treino vira um cartão de citação grande, assinado "Duni, treinadora IA". Mostra o diferencial de IA. *Esforço baixo.*
 3. **Feed 4:5.** Os modelos de código em 1080×1350 para post e carrossel (os 6 novos já são desenhados em código, então a adaptação é de layout, não de arte). *Esforço médio.*
-4. ~~**Vídeo animado.**~~ **Feito em 2026-09-30** para a rota ("Gravar vídeo da rota" no gerador). Falta, se quiser: animar os outros modelos (barras das Parciais crescendo, curva do Batimento correndo).
+4. ~~**Vídeo animado.**~~ **Feito em 2026-09-30** para a rota ("Gravar vídeo da rota" no gerador). **Combinado para 2026-10-01:** animar também as barras das Parciais (crescendo uma a uma) e a curva do Batimento (correndo da esquerda para a direita), no mesmo esquema do vídeo da rota (`animated: true` + `data.progress`).
 
 ---
 
