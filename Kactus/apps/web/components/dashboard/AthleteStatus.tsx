@@ -75,7 +75,7 @@ export function AthleteStatus({
 
       <div className="relative flex items-center justify-between gap-3">
         <h2 className="od-label od-label-accent">Status do atleta</h2>
-        <Link href="/predictions" className="od-link-action">Análise completa <span aria-hidden>→</span></Link>
+        <Link href="/performance" className="od-link-action">Análise completa <span aria-hidden>→</span></Link>
       </div>
 
       <div className="relative mt-5 flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:gap-8">

@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/AppShell";
 
-export default function MetricsLayout({ children }: { children: React.ReactNode }) {
+export default function PerformanceLayout({ children }: { children: React.ReactNode }) {
   return <AppShell>{children}</AppShell>;
 }

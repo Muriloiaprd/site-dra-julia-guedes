@@ -19,7 +19,6 @@ const ICONS = {
   dashboard: ico(<><rect x="3" y="3" width="8" height="10" rx="2" /><rect x="13" y="3" width="8" height="6" rx="2" /><rect x="13" y="11" width="8" height="10" rx="2" /><rect x="3" y="15" width="8" height="6" rx="2" /></>),
   activities: ico(<path d="M3 12h4l3 8 4-16 3 8h4" />),
   load: ico(<><path d="M3 20h18" /><path d="M6 16v-4" /><path d="M10 16V8" /><path d="M14 16v-6" /><path d="M18 16V5" /></>),
-  predictions: ico(<><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" /></>),
   coach: ico(<><path d="M12 3a3 3 0 0 0-3 3 3 3 0 0 0-3 3 3 3 0 0 0 0 6 3 3 0 0 0 3 3 3 3 0 0 0 3 3" /><path d="M12 3a3 3 0 0 1 3 3 3 3 0 0 1 3 3 3 3 0 0 1 0 6 3 3 0 0 1-3 3 3 3 0 0 1-3 3" /><path d="M12 3v18" /><path d="M9 9.5h1.5M13.5 14.5H15" /></>),
   equipment: ico(<><path d="M4 16c0-2 1-3 3-3.5l3-.8 2.5-4.2c.4-.7 1.4-.8 2-.2l1.2 1.2" /><path d="M4 16h14.5a1.5 1.5 0 0 1 1.5 1.5V18a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2Z" /><path d="M9.5 12.5 11 14M12 11.5l1.5 1.5" /></>),
   import: ico(<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>),
@@ -34,8 +33,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", short: "Início", icon: ICONS.dashboard },
       { href: "/activities", label: "Atividades", icon: ICONS.activities },
-      { href: "/metrics", label: "Carga", icon: ICONS.load },
-      { href: "/predictions", label: "Previsões", icon: ICONS.predictions },
+      { href: "/performance", label: "Desempenho", icon: ICONS.load },
     ],
   },
   {
@@ -53,7 +51,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 
 const PROFILE_ITEM: NavItem = { href: "/profile", label: "Perfil", icon: ICONS.profile };
 const ALL_ITEMS = [...NAV_GROUPS.flatMap((g) => g.items), PROFILE_ITEM];
-const MOBILE_PRIMARY = ["/dashboard", "/activities", "/coach", "/metrics"];
+const MOBILE_PRIMARY = ["/dashboard", "/activities", "/coach", "/performance"];
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");

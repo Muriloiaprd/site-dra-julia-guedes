@@ -173,3 +173,9 @@ Sem mudança no backend.
 - `Logo` ganhou `stacked` (logo empilhada, `size` = altura). Sidebar `lg`: logo de 110 px centralizada, com brilho verde centrado atrás; rail `md`: símbolo de 40 px; topo do celular: 30 px.
 - Itens do menu menores (0.78rem, padding 0.5/0.7rem, ícones 17 px, indicador ativo 18 px) e sem títulos de grupo (só divisor fino; o nome do grupo ficou no `aria-label` da lista).
 - A troca Carga/Previsões → Desempenho no menu fica na Fase 3, junto com a rota nova.
+
+### Fase 3 (2026-09-29)
+- Nova aba **Desempenho** (`app/performance`), com componentes em `components/performance/`: `TodayPanel` (hoje + faixa segura + últimos 7 dias × média num painel), `StatusTiles` (forma, risco pelo `overview.risk` do backend, condicionamento), `RacePredictions` (`#provas`, cards compactos), `EvolutionChart` (Volume semanal | Ritmo mensal), `TrainingQuality`, `ConsistencyHeatmap` e `AdvancedSection` (um único modo avançado com KPIs, condicionamento × cansaço, TSB, ACWR, simulador e todas as fórmulas, com a regra de risco escrita igual à do backend).
+- `app/metrics` e `app/predictions` removidos; `next.config.mjs` redireciona `/metrics` e `/predictions` para `/performance`.
+- Links: alertas do dashboard e `AthleteStatus` → `/performance`; `GoalCard` → `/performance#provas`. Menu: "Desempenho" no lugar de Carga e Previsões (desktop e barra do celular).
+- Conferido no navegador: redirects, todos os blocos carregando, seletor Volume/Ritmo, modo avançado (3 gráficos), simulador, âncora `#provas`, 375 px sem rolagem lateral.

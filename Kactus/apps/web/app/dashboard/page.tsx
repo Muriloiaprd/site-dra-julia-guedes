@@ -134,8 +134,8 @@ export default function DashboardPage() {
   const alerts = useMemo(() => {
     const out: HeaderAlert[] = [];
     const risk = overview?.risk;
-    if (risk?.level === "high") out.push({ id: "risk", tone: "danger", title: "Risco de lesão elevado", detail: risk.reasons[0] ?? risk.recommendation, href: "/predictions" });
-    else if (risk?.level === "moderate") out.push({ id: "risk", tone: "warning", title: "Atenção à carga de treino", detail: risk.reasons[0] ?? risk.recommendation, href: "/metrics" });
+    if (risk?.level === "high") out.push({ id: "risk", tone: "danger", title: "Risco de lesão elevado", detail: risk.reasons[0] ?? risk.recommendation, href: "/performance" });
+    else if (risk?.level === "moderate") out.push({ id: "risk", tone: "warning", title: "Atenção à carga de treino", detail: risk.reasons[0] ?? risk.recommendation, href: "/performance" });
     const todayPlan = plan.find((w) => w.date === toISODate(new Date()) && w.status === "planned");
     if (todayPlan) out.push({ id: "today", tone: "accent", title: `Treino de hoje: ${todayPlan.title}`, detail: todayPlan.description ?? undefined, href: "/coach" });
     if (syncState === "ok" && activities[0]) {

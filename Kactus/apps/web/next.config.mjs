@@ -9,6 +9,13 @@ const nextConfig = {
     // timeout da propria API (180s em coach_service._GEMINI_TIMEOUT_MS).
     proxyTimeout: 240_000,
   },
+  // Carga (/metrics) e Previsoes (/predictions) viraram uma aba so, Desempenho.
+  async redirects() {
+    return [
+      { source: "/metrics", destination: "/performance", permanent: false },
+      { source: "/predictions", destination: "/performance", permanent: false },
+    ];
+  },
   async rewrites() {
     const api = process.env.API_URL || "http://localhost:8000";
     return [{ source: "/api/:path*", destination: `${api}/:path*` }];

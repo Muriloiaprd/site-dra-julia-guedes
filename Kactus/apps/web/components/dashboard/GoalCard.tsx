@@ -55,7 +55,7 @@ export function GoalCard({ predictions, loading, className = "" }: { predictions
         )}
       </div>
 
-      <Link href="/predictions" className="od-btn od-btn-secondary relative mt-4 w-full">
+      <Link href="/performance#provas" className="od-btn od-btn-secondary relative mt-4 w-full">
         Ver previsões de prova <span aria-hidden>→</span>
       </Link>
     </Panel>
