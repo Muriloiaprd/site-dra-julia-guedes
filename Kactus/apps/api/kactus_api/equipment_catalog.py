@@ -21,7 +21,7 @@ class CatalogItem:
     model: str
     why: str
     price_brl: str
-    equipment_type: str  # tipo do cadastro de equipamento: shoe, watch, bike, swimsuit, wetsuit, other
+    equipment_type: str  # tipo do cadastro de equipamento: shoe, watch, bike, swimsuit, wetsuit, hr_strap, other
 
 
 SPORTS = {"run": "Corrida", "bike": "Ciclismo", "swim": "Natação"}
@@ -69,9 +69,9 @@ CATALOG: list[CatalogItem] = [
     CatalogItem("run", "relogio", "intermediario", "Garmin", "Forerunner 265", "O melhor equilíbrio de GPS, bateria e recursos de treino.", "R$ 3.100–3.900", "watch"),
     CatalogItem("run", "relogio", "topo", "Garmin", "Forerunner 970", "O mais completo para corrida, com mapa e lanterna.", "R$ 5.000–6.000", "watch"),
     # ── corrida: cinta ──
-    CatalogItem("run", "cinta", "entrada", "Coospo", "H808S", "FC do peito (mais precisa que o pulso) por pouco.", "R$ 150–250", "other"),
-    CatalogItem("run", "cinta", "intermediario", "Polar", "H10", "Referência de precisão, conecta em relógio e celular.", "R$ 500–700", "other"),
-    CatalogItem("run", "cinta", "topo", "Garmin", "HRM 600", "Precisão e dinâmica de corrida direto no Garmin.", "R$ 900–1.200", "other"),
+    CatalogItem("run", "cinta", "entrada", "Coospo", "H808S", "FC do peito (mais precisa que o pulso) por pouco.", "R$ 150–250", "hr_strap"),
+    CatalogItem("run", "cinta", "intermediario", "Polar", "H10", "Referência de precisão, conecta em relógio e celular.", "R$ 500–700", "hr_strap"),
+    CatalogItem("run", "cinta", "topo", "Garmin", "HRM 600", "Precisão e dinâmica de corrida direto no Garmin.", "R$ 900–1.200", "hr_strap"),
     # ── ciclismo ──
     CatalogItem("bike", "capacete", "entrada", "Specialized", "Align II MIPS", "Proteção MIPS com bom preço.", "R$ 450–600", "other"),
     CatalogItem("bike", "capacete", "intermediario", "Giro", "Syntax MIPS", "Leve e bem ventilado para treino longo.", "R$ 900–1.200", "other"),

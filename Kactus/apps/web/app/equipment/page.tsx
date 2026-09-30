@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { Recommendations, ShoeAlerts } from "@/components/equipment/Recommendations";
 import { Alert, EmptyState, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
+import { resizePhotoToJpegDataUrl } from "@/lib/image";
 import {
   createEquipment,
   deleteEquipment,
@@ -18,32 +19,26 @@ import {
   type RecommendedItem,
 } from "@/lib/api";
 
+// As pecas de roupa (top, bottom, socks, cap, sunglasses, hr_strap, hydration) sao as que o
+// boneco do "Meu kit" liga aos encaixes. `type` e texto livre no banco: tipo novo nao pede migracao.
 const EQUIPMENT_TYPES = [
-  { value: "shoe", label: "Tênis" },
-  { value: "bike", label: "Bicicleta" },
-  { value: "swimsuit", label: "Roupa de nado" },
-  { value: "wetsuit", label: "Wetsuit" },
-  { value: "watch", label: "Relógio" },
-  { value: "other", label: "Outro" },
+  { value: "shoe", label: "Tênis", icon: "👟" },
+  { value: "top", label: "Camiseta / regata", icon: "👕" },
+  { value: "bottom", label: "Short / legging", icon: "🩳" },
+  { value: "socks", label: "Meia", icon: "🧦" },
+  { value: "cap", label: "Boné / viseira", icon: "🧢" },
+  { value: "sunglasses", label: "Óculos", icon: "🕶️" },
+  { value: "watch", label: "Relógio", icon: "⌚" },
+  { value: "hr_strap", label: "Cinta cardíaca", icon: "💓" },
+  { value: "hydration", label: "Hidratação", icon: "💧" },
+  { value: "bike", label: "Bicicleta", icon: "🚴" },
+  { value: "swimsuit", label: "Roupa de nado", icon: "🩱" },
+  { value: "wetsuit", label: "Wetsuit", icon: "🤿" },
+  { value: "other", label: "Outro", icon: "🎽" },
 ];
 
-const TYPE_ICON: Record<string, string> = {
-  shoe: "👟",
-  bike: "🚴",
-  swimsuit: "🩱",
-  wetsuit: "🤿",
-  watch: "⌚",
-  other: "🎽",
-};
-
-const TYPE_LABEL: Record<string, string> = {
-  shoe: "Tênis",
-  bike: "Bicicleta",
-  swimsuit: "Roupa de nado",
-  wetsuit: "Wetsuit",
-  watch: "Relógio",
-  other: "Outro",
-};
+const TYPE_ICON: Record<string, string> = Object.fromEntries(EQUIPMENT_TYPES.map((t) => [t.value, t.icon]));
+const TYPE_LABEL: Record<string, string> = Object.fromEntries(EQUIPMENT_TYPES.map((t) => [t.value, t.label]));
 
 const INITIAL_FORM: EquipmentCreate = {
   name: "",
@@ -53,6 +48,7 @@ const INITIAL_FORM: EquipmentCreate = {
   purchase_date: null,
   initial_distance_m: 0,
   notes: "",
+  photo_data_url: null,
 };
 
 export default function EquipmentPage() {
@@ -67,6 +63,7 @@ export default function EquipmentPage() {
   const [error, setError] = useState<string | null>(null);
   const [showRetired, setShowRetired] = useState(false);
   const [recs, setRecs] = useState<EquipmentRecommendations | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   useEffect(() => {
     fetchEquipmentRecommendations().then(setRecs).catch(() => {});
@@ -104,8 +101,9 @@ export default function EquipmentPage() {
       brand: item.brand ?? "",
       model: item.model ?? "",
       purchase_date: item.purchase_date,
-      initial_distance_m: item.initial_distance_m,
+      initial_distance_m: item.initial_distance_m / 1000,
       notes: item.notes ?? "",
+      photo_data_url: item.photo_data_url,
     });
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -122,6 +120,8 @@ export default function EquipmentPage() {
         model: form.model || null,
         notes: form.notes || null,
         initial_distance_m: Number(form.initial_distance_m) * 1000,
+        // na edicao, "" apaga a foto que existia
+        photo_data_url: form.photo_data_url || (editId ? "" : null),
       };
       if (editId) {
         const updated = await updateEquipment(editId, payload);
@@ -135,6 +135,19 @@ export default function EquipmentPage() {
       setError(e instanceof Error ? e.message : "Erro ao salvar");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handlePhoto(file: File | undefined) {
+    if (!file) return;
+    setPhotoBusy(true);
+    try {
+      const dataUrl = await resizePhotoToJpegDataUrl(file, 480);
+      setForm((f) => ({ ...f, photo_data_url: dataUrl }));
+    } catch {
+      setError("Não foi possível ler essa imagem");
+    } finally {
+      setPhotoBusy(false);
     }
   }
 
@@ -261,6 +274,22 @@ export default function EquipmentPage() {
                 className="od-input"
               />
             </label>
+            <div className="sm:col-span-2">
+              <span className="od-field-label">Foto da peça</span>
+              <div className="flex items-center gap-3">
+                <div className="od-icon-tile !h-16 !w-16 overflow-hidden text-2xl" aria-hidden>
+                  {form.photo_data_url ? <img src={form.photo_data_url} alt="" className="h-full w-full object-cover" /> : (TYPE_ICON[form.type] ?? "🎽")}
+                </div>
+                <label className="od-btn od-btn-secondary od-btn-sm cursor-pointer">
+                  {photoBusy ? "Lendo…" : form.photo_data_url ? "Trocar foto" : "Enviar foto"}
+                  <input type="file" accept="image/*" className="sr-only" onChange={(e) => { handlePhoto(e.target.files?.[0]); e.target.value = ""; }} />
+                </label>
+                {form.photo_data_url && (
+                  <button type="button" onClick={() => setForm({ ...form, photo_data_url: null })} className="od-btn od-btn-ghost od-btn-sm">Remover</button>
+                )}
+              </div>
+              <p className="mt-1.5 text-[0.7rem] text-brand-muted">Uma foto sua da peça. Ela aparece no card e no boneco do &quot;Meu kit&quot;.</p>
+            </div>
             <label className="sm:col-span-2">
               <span className="od-field-label">Notas</span>
               <textarea
@@ -377,7 +406,9 @@ function EquipmentCard({
   return (
     <Panel className="flex flex-col !p-5">
       <div className="flex items-start gap-3.5">
-        <div className="od-icon-tile !h-12 !w-12 text-2xl" aria-hidden>{icon}</div>
+        <div className="od-icon-tile !h-14 !w-14 shrink-0 overflow-hidden text-2xl" aria-hidden>
+          {item.photo_data_url ? <img src={item.photo_data_url} alt="" className="h-full w-full object-cover" /> : icon}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="truncate font-semibold">{item.name}</span>

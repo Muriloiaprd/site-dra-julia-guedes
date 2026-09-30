@@ -77,6 +77,15 @@ export function Recommendations({ data, onAdd }: { data: EquipmentRecommendation
                       >
                         Pesquisar ↗
                       </a>
+                      {/* fotos oficiais tem direito autoral: nao copiamos, so abrimos a busca de imagens */}
+                      <a
+                        href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(`${it.brand} ${it.model}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="od-btn od-btn-ghost od-btn-sm !px-2 !py-1"
+                      >
+                        Ver fotos ↗
+                      </a>
                       <button type="button" onClick={() => onAdd(it)} className="od-btn od-btn-secondary od-btn-sm !px-2 !py-1">
                         Já tenho
                       </button>

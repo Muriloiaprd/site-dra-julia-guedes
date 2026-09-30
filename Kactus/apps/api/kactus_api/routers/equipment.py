@@ -37,6 +37,7 @@ def _to_out(db: Any, eq: Equipment) -> EquipmentOut:
         initial_distance_m=float(eq.initial_distance_m or 0),
         total_distance_m=_total_distance(db, eq),
         notes=eq.notes,
+        photo_data_url=eq.photo_data_url,
         created_at=eq.created_at,
     )
 
@@ -72,6 +73,7 @@ def create_equipment(
         purchase_date=body.purchase_date,
         initial_distance_m=body.initial_distance_m,
         notes=body.notes,
+        photo_data_url=body.photo_data_url,
     )
     db.add(eq)
     db.commit()

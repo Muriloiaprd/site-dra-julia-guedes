@@ -25,6 +25,8 @@ class Equipment(Base):
     retired_at: Mapped[date | None] = mapped_column(Date)
     initial_distance_m: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, server_default="0")
     notes: Mapped[str | None] = mapped_column(Text)
+    # foto real da peca, redimensionada no navegador (data URL JPEG/PNG, ~30 KB)
+    photo_data_url: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

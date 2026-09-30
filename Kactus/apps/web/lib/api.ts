@@ -510,6 +510,8 @@ export interface EquipmentItem {
   initial_distance_m: number;
   total_distance_m: number;
   notes: string | null;
+  /** Foto real da peca (data URL JPEG ~30 KB). */
+  photo_data_url: string | null;
   created_at: string;
 }
 
@@ -521,6 +523,7 @@ export interface EquipmentCreate {
   purchase_date?: string | null;
   initial_distance_m?: number;
   notes?: string | null;
+  photo_data_url?: string | null;
 }
 
 export interface EquipmentUpdate {
@@ -532,6 +535,8 @@ export interface EquipmentUpdate {
   retired_at?: string | null;
   initial_distance_m?: number;
   notes?: string | null;
+  /** "" ou null remove a foto. */
+  photo_data_url?: string | null;
 }
 
 export async function fetchEquipment(): Promise<EquipmentItem[]> {

@@ -17,6 +17,7 @@ import {
   type HrZones,
   type Profile,
 } from "@/lib/api";
+import { resizeImageToDataUrl, resizeLogoToPngDataUrl } from "@/lib/image";
 
 const DELETE_CONFIRM_WORD = "EXCLUIR";
 
@@ -46,52 +47,6 @@ function zonesFromUpperBounds(upper: number[]): HrZones {
     z4: [b[3], b[4]],
     z5: [b[4], b[5]],
   };
-}
-
-function resizeImageToDataUrl(file: File, size: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      const side = Math.min(img.width, img.height);
-      const sx = (img.width - side) / 2;
-      const sy = (img.height - side) / 2;
-      const canvas = document.createElement("canvas");
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) { reject(new Error("canvas indisponível")); return; }
-      ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
-      resolve(canvas.toDataURL("image/jpeg", 0.85));
-    };
-    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("falha ao carregar imagem")); };
-    img.src = objectUrl;
-  });
-}
-
-/** Igual ao avatar, mas sem recorte quadrado (mantém proporção) e em PNG,
- * pra preservar transparência — usada nos cards/stories compartilháveis. */
-function resizeLogoToPngDataUrl(file: File, max: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      const scale = Math.min(1, max / Math.max(img.width, img.height));
-      const w = Math.round(img.width * scale);
-      const h = Math.round(img.height * scale);
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) { reject(new Error("canvas indisponível")); return; }
-      ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL("image/png"));
-    };
-    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("falha ao carregar imagem")); };
-    img.src = objectUrl;
-  });
 }
 
 export default function ProfilePage() {

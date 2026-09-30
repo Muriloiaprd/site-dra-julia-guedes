@@ -179,3 +179,10 @@ Sem mudança no backend.
 - `app/metrics` e `app/predictions` removidos; `next.config.mjs` redireciona `/metrics` e `/predictions` para `/performance`.
 - Links: alertas do dashboard e `AthleteStatus` → `/performance`; `GoalCard` → `/performance#provas`. Menu: "Desempenho" no lugar de Carga e Previsões (desktop e barra do celular).
 - Conferido no navegador: redirects, todos os blocos carregando, seletor Volume/Ritmo, modo avançado (3 gráficos), simulador, âncora `#provas`, 375 px sem rolagem lateral.
+
+### Fase 4 (2026-09-29)
+- Migração `019_equipment_photo_kits` (aplicada na main e na branch test): `equipment.photo_data_url` e a tabela `equipment_kits` (usada na Fase 5). Validação: só `data:image/jpeg|png;base64,`, até ~300 KB; `""` apaga a foto.
+- `lib/image.ts` reúne o redimensionamento (avatar, logo e o novo `resizePhotoToJpegDataUrl`, 480 px mantendo a proporção). O perfil passou a importar de lá.
+- Equipamentos: campo "Foto da peça" (enviar, trocar, remover), foto no card, tipos novos (camiseta/regata, short/legging, meia, boné/viseira, óculos, cinta cardíaca, hidratação). Catálogo: cinta cardíaca com tipo `hr_strap` e botão "Ver fotos ↗" (busca de imagens; fotos oficiais não são copiadas).
+- **Bug antigo corrigido:** editar um equipamento carregava a distância inicial em metros num campo em km, e salvar multiplicava por 1000 de novo. O único equipamento do usuário (Vaporfly 3, 150 km) não tinha sido afetado.
+- Testes: `tests/test_equipment_photo.py` (salva, lista, apaga; recusa URL, SVG e arquivo grande).
