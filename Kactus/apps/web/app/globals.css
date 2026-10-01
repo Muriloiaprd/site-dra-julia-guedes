@@ -559,6 +559,14 @@ body {
     animation: od-shimmer 1.8s linear infinite;
   }
 
+  /* ───────────── Rolagem sem barra (trilhos de miniaturas) ───────────── */
+  .od-no-scrollbar {
+    scrollbar-width: none;
+  }
+  .od-no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* ───────────── Tooltip (charts) ───────────── */
   .od-tooltip {
     min-width: 150px;

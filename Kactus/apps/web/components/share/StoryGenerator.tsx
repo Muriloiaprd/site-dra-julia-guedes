@@ -6,9 +6,12 @@ import { fetchProfile, type ActivityDetail, type HrZones, type Split, type ZoneB
 import { resolveHrZones } from "@/lib/athlete";
 import { loadArt, storyColor } from "@/lib/story/art";
 import { loadStoryFonts, prepareCanvas, STORY_H, STORY_W } from "@/lib/story/engine";
-import { availableLayouts } from "@/lib/story/layouts";
+import { availableLayouts, DATA_LAYOUTS } from "@/lib/story/layouts";
 import { resolveStoryMetrics } from "@/lib/story/metrics";
 import type { StoryPhoto } from "@/lib/story/types";
+
+import { ModelGrid, ModelRail, type ModelGroup } from "./ModelGallery";
+import { useStoryThumbs, type ThumbData } from "./useStoryThumbs";
 
 // MP4 primeiro: e o que o Instagram aceita. WebM so se o navegador nao gravar MP4.
 const VIDEO_TYPES = ["video/mp4;codecs=avc1.640028", "video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"];
@@ -34,9 +37,12 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ x: number; y: number } | null>(null);
+  // sem foto, arrastar a previa para o lado troca de modelo
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
 
   const [fontsReady, setFontsReady] = useState(false);
-  const [layoutIndex, setLayoutIndex] = useState(0);
+  const [layoutId, setLayoutId] = useState<string | null>(null);
+  const [gallery, setGallery] = useState(false);
   const [photo, setPhoto] = useState<{ image: HTMLImageElement; offsetX: number; offsetY: number; zoom: number } | null>(null);
   const [art, setArt] = useState<{ layoutId: string; image: HTMLImageElement } | null>(null);
   const [transparent, setTransparent] = useState(false);
@@ -64,16 +70,41 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
   );
   const metrics = useMemo(() => resolveStoryMetrics(activity), [activity]);
   const color = storyColor(activity.sport);
-  const layouts = useMemo(() => availableLayouts({ activity, routePoints, splits }), [activity, routePoints, splits]);
-  const layout = layouts[Math.min(layoutIndex, layouts.length - 1)];
+  const available = useMemo(() => availableLayouts({ activity, routePoints, splits }), [activity, routePoints, splits]);
+  // grupos da galeria; o trilho e as setas seguem a mesma ordem
+  const groups = useMemo<ModelGroup[]>(() => [
+    { id: "video", title: "🎬 Viram vídeo", hint: "Imagem ou vídeo animado", items: available.filter((l) => l.animated) },
+    { id: "dados", title: "Feitos com seus dados", hint: "O treino vira a arte", items: available.filter((l) => !l.animated && DATA_LAYOUTS.includes(l)) },
+    { id: "artes", title: "Artes Kactus", hint: "Seus números na arte da marca", items: available.filter((l) => !l.animated && !DATA_LAYOUTS.includes(l)) },
+  ].filter((g) => g.items.length > 0), [available]);
+  const layouts = useMemo(() => groups.flatMap((g) => g.items), [groups]);
+  const layoutIndex = Math.max(0, layouts.findIndex((l) => l.id === layoutId));
+  const layout = layouts[layoutIndex];
+  const layoutGroup = groups.find((g) => g.items.includes(layout));
   // o video grava o modelo escolhido, quando ele sabe se animar
   const videoLayout = layout?.animated ? layout : null;
-  const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
+  function step(delta: number) {
+    if (busy === "video" || layouts.length < 2) return;
+    setLayoutId(layouts[(layoutIndex + delta + layouts.length) % layouts.length].id);
+  }
+
+  function pickFromGallery(id: string) {
+    setLayoutId(id);
+    setGallery(false);
+  }
+
+  // teclado: setas trocam de modelo, Esc fecha a galeria (ou o modal)
   useEffect(() => {
-    // "nearest" no eixo vertical: só a fileira rola, o painel do modal fica onde está
-    chipRefs.current[layoutIndex]?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
-  }, [layoutIndex]);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "Escape") { e.preventDefault(); if (gallery) setGallery(false); else onClose(); }
+      else if (!gallery && e.key === "ArrowRight") step(1);
+      else if (!gallery && e.key === "ArrowLeft") step(-1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   useEffect(() => {
     loadStoryFonts().then(() => setFontsReady(true));
@@ -83,6 +114,15 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
   }, []);
+
+  const thumbData = useMemo<ThumbData | null>(
+    () => (fontsReady ? {
+      activity, metrics, routePoints, photo: photo as StoryPhoto | null, transparent, color,
+      splits, zones, hrZones: profile.hrZones, athleteName: profile.name,
+    } : null),
+    [fontsReady, activity, metrics, routePoints, photo, transparent, color, splits, zones, profile]
+  );
+  const thumbs = useStoryThumbs(layouts, thumbData, busy === "video");
 
   // carrega a arte do layout ativo (pré-carrega os vizinhos ocioso, sem travar a troca)
   useEffect(() => {
@@ -229,7 +269,10 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
   }
 
   function handlePointerDown(e: React.PointerEvent) {
-    if (!photo) return;
+    if (!photo) {
+      swipeStart.current = { x: e.clientX, y: e.clientY };
+      return;
+    }
     (e.target as Element).setPointerCapture(e.pointerId);
     dragState.current = { x: e.clientX, y: e.clientY };
   }
@@ -244,8 +287,13 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
     setPhoto((p) => (p ? { ...p, offsetX: p.offsetX + dx, offsetY: p.offsetY + dy } : p));
   }
 
-  function handlePointerUp() {
+  function handlePointerUp(e: React.PointerEvent) {
     dragState.current = null;
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    if (!start || e.type === "pointercancel") return;
+    const dx = e.clientX - start.x;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(e.clientY - start.y)) step(dx < 0 ? 1 : -1);
   }
 
   function toBlob(): Promise<Blob | null> {
@@ -323,10 +371,24 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
         style={{ background: "#0e0e0e" }}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-display text-lg font-extrabold">Compartilhar</h3>
+          {gallery ? (
+            <div className="flex items-center gap-2">
+              <button onClick={() => setGallery(false)} className="od-icon-btn !h-8 !w-8 !rounded-full" aria-label="Voltar para a prévia">‹</button>
+              <h3 className="font-display text-lg font-extrabold">Modelos</h3>
+              <span className="rounded-full px-2 py-0.5 text-[0.65rem] font-bold text-brand-muted" style={{ background: "rgba(255,255,255,0.06)" }}>{layouts.length}</span>
+            </div>
+          ) : (
+            <h3 className="font-display text-lg font-extrabold">Compartilhar</h3>
+          )}
           <button onClick={onClose} className="od-icon-btn !h-8 !w-8 !rounded-full" aria-label="Fechar">✕</button>
         </div>
 
+        {gallery && (
+          <ModelGrid groups={groups} selectedId={layout.id} thumbs={thumbs} transparent={transparent} onSelect={pickFromGallery} />
+        )}
+
+        {/* editor: fica montado (escondido) durante a galeria para o canvas nao perder o desenho */}
+        <div className={gallery ? "hidden" : "contents"}>
         <div
           ref={previewRef}
           onPointerDown={handlePointerDown}
@@ -348,39 +410,46 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
           {!artForLayout && (
             <div className="od-skeleton absolute inset-0" aria-hidden />
           )}
+          {layouts.length > 1 && busy !== "video" && (
+            <>
+              {([[-1, "left-2", "‹", "Modelo anterior"], [1, "right-2", "›", "Próximo modelo"]] as const).map(([d, pos, icon, label]) => (
+                <button
+                  key={d}
+                  onClick={() => step(d)}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className={`absolute ${pos} top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-xl leading-none text-white transition hover:scale-110`}
+                  style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.15)" }}
+                  aria-label={label}
+                >
+                  <span className="-mt-0.5">{icon}</span>
+                </button>
+              ))}
+            </>
+          )}
         </div>
         {photo && <p className="mt-2 text-center text-[0.7rem] text-brand-textTertiary">Arraste a foto pra reposicionar</p>}
         {photoError && <p className="mt-2 text-center text-xs text-brand-danger">{photoError}</p>}
 
-        {layouts.length > 1 && (
-          // os modelos não cabem numa linha: a fileira rola na horizontal e o escolhido vem pro centro
-          <div className="mt-4 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Modelos">
-            {layouts.map((l, i) => (
-              <button
-                key={l.id}
-                ref={(el) => { chipRefs.current[i] = el; }}
-                onClick={() => setLayoutIndex(i)}
-                disabled={busy === "video"}
-                aria-pressed={i === layoutIndex}
-                className="od-btn od-btn-ghost od-btn-sm shrink-0 !px-3"
-                style={i === layoutIndex ? { color: "#00FF66", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.4)" } : undefined}
-              >
-                {l.label}
-                {l.animated && <span className="ml-1" title="Também vira vídeo" aria-label="(também vira vídeo)">🎬</span>}
-                {l.isNew && <span className="ml-1.5 rounded-full px-1.5 text-[0.55rem] font-bold uppercase tracking-wider text-black" style={{ background: "#00FF66" }}>novo</span>}
-              </button>
-            ))}
+        <div className="mt-4 flex items-center justify-between gap-3 px-1">
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 truncate font-display text-base font-extrabold">
+              {layout.label}
+              {layout.animated && <span className="rounded-full px-2 py-0.5 text-[0.6rem] font-bold" style={{ color: "#00FF66", background: "rgba(0,255,102,0.1)" }}>🎬 vira vídeo</span>}
+            </p>
+            <p className="text-[0.7rem] text-brand-muted">{layoutIndex + 1} de {layouts.length}{layoutGroup ? ` · ${layoutGroup.title.replace("🎬 ", "")}` : ""}</p>
           </div>
-        )}
-        <div className="mt-2 flex items-center justify-center gap-1.5">
-          {layouts.map((l, i) => (
-            <span
-              key={l.id}
-              className="h-1.5 w-1.5 rounded-full"
-              style={{ background: i === layoutIndex ? "#00FF66" : "rgba(255,255,255,0.2)" }}
-            />
-          ))}
+          {layouts.length > 1 && (
+            <button onClick={() => setGallery(true)} disabled={busy === "video"} className="od-btn od-btn-ghost od-btn-sm shrink-0 !px-3">
+              <span aria-hidden className="mr-1.5 grid grid-cols-2 gap-[2px]">
+                {[0, 1, 2, 3].map((i) => <span key={i} className="h-[5px] w-[5px] rounded-[1px] bg-current" />)}
+              </span>
+              Ver todos
+            </button>
+          )}
         </div>
+        {layouts.length > 1 && (
+          <ModelRail groups={groups} selectedId={layout.id} thumbs={thumbs} transparent={transparent} onSelect={setLayoutId} disabled={busy === "video"} />
+        )}
 
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
           <label className="od-btn od-btn-secondary od-btn-sm cursor-pointer">
@@ -448,6 +517,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
           <button onClick={handleCopy} disabled={busy !== null} className="od-btn od-btn-ghost od-btn-sm">
             {copied ? "Copiado!" : busy === "copy" ? "…" : "Copiar"}
           </button>
+        </div>
         </div>
       </div>
     </div>
