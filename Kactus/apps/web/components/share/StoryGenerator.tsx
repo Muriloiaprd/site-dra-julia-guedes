@@ -12,7 +12,7 @@ import type { StoryPhoto } from "@/lib/story/types";
 
 // MP4 primeiro: e o que o Instagram aceita. WebM so se o navegador nao gravar MP4.
 const VIDEO_TYPES = ["video/mp4;codecs=avc1.640028", "video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"];
-const VIDEO_DRAW_MS = 5500; // rota se desenhando
+const VIDEO_DRAW_MS = 5500; // modelo se desenhando (rota, barras, curva)
 const VIDEO_HOLD_MS = 2000; // imagem final parada
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
@@ -46,7 +46,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
   // gravacao do video: o efeito de redesenho fica parado enquanto os quadros sao desenhados a mao
   const recordingRef = useRef(false);
   const [recording, setRecording] = useState<number | null>(null);
-  const [video, setVideo] = useState<{ blob: Blob; url: string; ext: string } | null>(null);
+  const [video, setVideo] = useState<{ blob: Blob; url: string; ext: string; layoutId: string } | null>(null);
   const [redrawTick, setRedrawTick] = useState(0);
   const [copied, setCopied] = useState(false);
   const [profile, setProfile] = useState<{ hrZones: HrZones | null; name: string | null }>({ hrZones: null, name: null });
@@ -66,7 +66,8 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
   const color = storyColor(activity.sport);
   const layouts = useMemo(() => availableLayouts({ activity, routePoints, splits }), [activity, routePoints, splits]);
   const layout = layouts[Math.min(layoutIndex, layouts.length - 1)];
-  const videoLayout = layouts.find((l) => l.animated);
+  // o video grava o modelo escolhido, quando ele sabe se animar
+  const videoLayout = layout?.animated ? layout : null;
   const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
@@ -125,7 +126,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
 
   useEffect(() => () => { if (video) URL.revokeObjectURL(video.url); }, [video]);
 
-  /** Grava a rota se desenhando direto do canvas do preview (30 fps), em MP4 quando o navegador deixa. */
+  /** Grava o modelo escolhido se desenhando direto do canvas do preview (30 fps), em MP4 quando o navegador deixa. */
   async function handleRecord() {
     const vl = videoLayout;
     const canvas = canvasRef.current;
@@ -133,7 +134,6 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
     setActionError(null);
     setVideo(null);
     setBusy("video");
-    setLayoutIndex(layouts.indexOf(vl));
     recordingRef.current = true;
     try {
       const mime = typeof MediaRecorder !== "undefined" ? VIDEO_TYPES.find((t) => MediaRecorder.isTypeSupported(t)) : undefined;
@@ -172,7 +172,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
       stream.getTracks().forEach((tr) => tr.stop());
       const type = mime.split(";")[0];
       const blob = new Blob(chunks, { type });
-      setVideo({ blob, url: URL.createObjectURL(blob), ext: type === "video/mp4" ? "mp4" : "webm" });
+      setVideo({ blob, url: URL.createObjectURL(blob), ext: type === "video/mp4" ? "mp4" : "webm", layoutId: vl.id });
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Não foi possível gravar o vídeo");
     } finally {
@@ -183,15 +183,17 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
     }
   }
 
+  const videoName = video ? `kactus_${video.layoutId}_${activity.id}.${video.ext}` : "";
+
   function videoFile(): File | null {
-    return video ? new File([video.blob], `kactus_rota_${activity.id}.${video.ext}`, { type: video.blob.type }) : null;
+    return video ? new File([video.blob], videoName, { type: video.blob.type }) : null;
   }
 
   function handleSaveVideo() {
     if (!video) return;
     const a = document.createElement("a");
     a.href = video.url;
-    a.download = `kactus_rota_${activity.id}.${video.ext}`;
+    a.download = videoName;
     a.click();
   }
 
@@ -358,11 +360,13 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
                 key={l.id}
                 ref={(el) => { chipRefs.current[i] = el; }}
                 onClick={() => setLayoutIndex(i)}
+                disabled={busy === "video"}
                 aria-pressed={i === layoutIndex}
                 className="od-btn od-btn-ghost od-btn-sm shrink-0 !px-3"
                 style={i === layoutIndex ? { color: "#00FF66", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.4)" } : undefined}
               >
                 {l.label}
+                {l.animated && <span className="ml-1" title="Também vira vídeo" aria-label="(também vira vídeo)">🎬</span>}
                 {l.isNew && <span className="ml-1.5 rounded-full px-1.5 text-[0.55rem] font-bold uppercase tracking-wider text-black" style={{ background: "#00FF66" }}>novo</span>}
               </button>
             ))}
@@ -413,7 +417,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
               {recording !== null && (
                 <span className="absolute inset-y-0 left-0 bg-[rgba(0,255,102,0.18)]" style={{ width: `${recording * 100}%` }} aria-hidden />
               )}
-              <span className="relative">{recording !== null ? `Gravando… ${Math.round(recording * 100)}%` : "🎬 Gravar vídeo da rota"}</span>
+              <span className="relative">{recording !== null ? `Gravando… ${Math.round(recording * 100)}%` : "🎬 Gravar vídeo"}</span>
             </button>
           </div>
         )}
@@ -422,7 +426,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
           <div className="mt-4 flex items-center gap-3 rounded-xl p-2.5" style={{ background: "rgba(0,255,102,0.06)", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.2)" }}>
             <video src={video.url} autoPlay loop muted playsInline className="h-24 w-auto rounded-md" aria-label="Prévia do vídeo" />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold">Vídeo pronto</p>
+              <p className="text-sm font-semibold">Vídeo pronto · {layouts.find((l) => l.id === video.layoutId)?.label}</p>
               <p className="text-[0.7rem] text-brand-muted">{((VIDEO_DRAW_MS + VIDEO_HOLD_MS) / 1000).toLocaleString("pt-BR")} s · {video.ext.toUpperCase()} · {(video.blob.size / 1e6).toFixed(1)} MB</p>
               <div className="mt-2 flex gap-2">
                 <button onClick={handleShareVideo} className="od-btn od-btn-primary od-btn-sm">Compartilhar vídeo</button>
