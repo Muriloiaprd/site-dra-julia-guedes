@@ -1,4 +1,6 @@
-export function formatDuration(seconds: number): string {
+export function formatDuration(raw: number): string {
+  // segundos fracionados (ex.: tempo proporcional nos quadros do video) viravam "0m0.0004s"
+  const seconds = Math.round(raw);
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
