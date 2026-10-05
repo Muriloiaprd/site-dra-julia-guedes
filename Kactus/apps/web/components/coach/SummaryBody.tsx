@@ -1,6 +1,5 @@
 "use client";
 
-import { Panel } from "@/components/ui/primitives";
 import type { CoachSummary } from "@/lib/api";
 import { WEEKLY_STATUS } from "@/lib/athlete";
 
@@ -10,27 +9,20 @@ const POINT_STYLE: Record<CoachSummary["pontos"][number]["tipo"], { icon: string
   risco: { icon: "⚠", color: "#F85149", label: "Risco" },
 };
 
-/** Resumo da semana da Duni em pedacos curtos: status, o que ela viu e o que fazer. */
-export function SummaryCard({
-  summary, meta, onAnswer,
+/**
+ * Resumo da semana da Duni em pedacos curtos: status, o que ela viu e o que fazer.
+ * Sem moldura: fica dentro do quadro "Resumo da Duni" da pagina, abaixo dos indicadores.
+ */
+export function SummaryBody({
+  summary, onAnswer,
 }: {
   summary: CoachSummary;
-  meta: { model: string; at: string } | null;
   onAnswer: (question: string) => void;
 }) {
   const st = WEEKLY_STATUS[summary.status] ?? WEEKLY_STATUS.amarelo;
 
   return (
-    <Panel variant="accent" className="animate-od-fade-up space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="od-label od-label-accent">Resumo da Duni</h2>
-        {meta && (
-          <span className="font-mono text-[0.62rem] tracking-wider text-brand-muted">
-            {new Date(meta.at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-          </span>
-        )}
-      </div>
-
+    <div className="animate-od-fade-up space-y-4">
       <div className="flex flex-col gap-2 rounded-xl p-4 sm:flex-row sm:items-center sm:gap-4" style={{ background: `${st.color}0d`, boxShadow: `inset 0 0 0 1px ${st.color}40` }}>
         <div className="shrink-0 font-display text-lg font-bold" style={{ color: st.color }}>{st.emoji} {st.label}</div>
         <p className="text-sm sm:border-l sm:border-white/10 sm:pl-4">{summary.status_frase}</p>
@@ -84,6 +76,6 @@ export function SummaryCard({
           </button>
         </div>
       )}
-    </Panel>
+    </div>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 
 import { SportTile } from "@/components/SportIcon";
-import { Alert, Panel } from "@/components/ui/primitives";
+import { Alert, Panel, SegmentBar } from "@/components/ui/primitives";
 import {
   CoachApiError,
   moveWorkout,
@@ -13,7 +13,7 @@ import {
   type WorkoutStep,
 } from "@/lib/api";
 import { parseLocalDate, toISODate, WEEK_LABELS, WEEKLY_STATUS } from "@/lib/athlete";
-import { formatDuration } from "@/lib/utils";
+import { formatDuration, sportColor } from "@/lib/utils";
 
 const INTENSITY: Record<string, { label: string; color: string }> = {
   leve: { label: "Leve", color: "#00FF66" },
@@ -196,16 +196,65 @@ function WorkoutActions({ w, onDone }: { w: PlannedWorkout; onDone: (notice?: st
   );
 }
 
-function WorkoutCard({
-  w, onDone, next = false,
-}: {
-  w: PlannedWorkout;
-  onDone: (notice?: string) => Promise<void>;
-  /** O proximo treino da semana: destacado e ja aberto. */
-  next?: boolean;
-}) {
+const PHASE_COLOR: Record<WorkoutStep["fase"], string> = {
+  aquecimento: "#00BFFF",
+  principal: "#00FF66",
+  desaquecimento: "#7C8CFF",
+};
+
+function intensityOf(w: PlannedWorkout) {
+  return w.target_intensity ? INTENSITY[w.target_intensity] : undefined;
+}
+
+/** Cor do treino no quadro: a intensidade; sem ela, a cor do esporte. */
+function workoutColor(w: PlannedWorkout) {
+  return intensityOf(w)?.color ?? sportColor(w.sport);
+}
+
+/** Tamanho da barra do dia: km; sem distancia, 10 min contam como 1 km. */
+function workload(w: PlannedWorkout) {
+  if (w.target_distance_m) return w.target_distance_m / 1000;
+  if (w.target_duration_s) return w.target_duration_s / 600;
+  return 3;
+}
+
+function dayLong(iso: string) {
+  const s = parseLocalDate(iso).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function MoonIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+    </svg>
+  );
+}
+
+/** Barra com as fases do treino, do tamanho de cada uma (tempo; sem tempo, distancia). */
+function StepBar({ steps, main }: { steps: WorkoutStep[]; main: string }) {
+  const size = (s: WorkoutStep) => s.duracao_min ?? (s.distancia_km ? s.distancia_km * 6 : 0);
+  const sized = steps.every((s) => size(s) > 0);
+  return (
+    <div className="flex h-2.5 gap-1" aria-hidden>
+      {steps.map((s, i) => {
+        const c = s.fase === "principal" ? main : PHASE_COLOR[s.fase] ?? "#888";
+        return (
+          <div
+            key={i}
+            className="rounded-full"
+            style={{ flexGrow: sized ? size(s) : 1, flexBasis: 0, background: `linear-gradient(90deg, ${c}, ${c}aa)`, boxShadow: `0 0 10px ${c}55` }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function WorkoutDetail({ w, onDone, next }: { w: PlannedWorkout; onDone: (notice?: string) => Promise<void>; next: boolean }) {
   const t = w.targets ?? {};
-  const intensity = w.target_intensity ? INTENSITY[w.target_intensity] : undefined;
+  const intensity = intensityOf(w);
+  const color = workoutColor(w);
   const editable = w.status === "planned" && w.date >= toISODate(new Date());
   const targets = [
     ["Ritmo", t.ritmo],
@@ -215,59 +264,198 @@ function WorkoutCard({
     ["Cadência", t.cadencia],
     ["Terreno", t.terreno],
   ].filter(([, v]) => v) as [string, string][];
+  const steps = w.steps ?? [];
 
   return (
-    <details
-      open={next}
-      className="od-tile group p-0 [&[open]_.chev]:rotate-90"
-      style={next ? { boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.4)", background: "rgba(0,255,102,0.05)" } : undefined}
-    >
-      <summary className="flex cursor-pointer list-none items-center gap-3 p-3">
-        <div className="w-12 shrink-0 text-[0.66rem] font-bold uppercase tracking-wider" style={{ color: next ? "#00FF66" : undefined }}>
-          <span className={next ? "" : "text-brand-muted"}>{dayShort(w.date)}</span>
-          {next && <div className="text-[0.56rem] tracking-[0.12em]">Próximo</div>}
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+      <div className="min-w-0 space-y-4">
+        <div className="flex items-start gap-3">
+          <SportTile sport={w.sport} size={46} radius={14} />
+          <div className="min-w-0 flex-1">
+            <div className="text-[0.7rem] font-semibold uppercase tracking-wider text-brand-muted">
+              {dayLong(w.date)}{t.tipo ? ` · ${t.tipo}` : ""}
+            </div>
+            <h3 className="mt-0.5 font-display text-xl font-bold leading-tight">{w.title}</h3>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="od-badge od-badge-muted !normal-case !tracking-normal">{volume(w)}</span>
+              {intensity && (
+                <span className="od-badge !normal-case !tracking-normal" style={{ color: intensity.color, background: `${intensity.color}14`, boxShadow: `inset 0 0 0 1px ${intensity.color}40` }}>
+                  {intensity.label}
+                </span>
+              )}
+              {next && <span className="od-badge">Próximo treino</span>}
+              {w.status === "done" && <span className="od-badge">✓ Feito</span>}
+              {w.status === "skipped" && <span className="od-badge od-badge-muted">Pulado</span>}
+            </div>
+          </div>
         </div>
-        <SportTile sport={w.sport} size={30} radius={9} />
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold">{w.title}</div>
-          <div className="truncate text-[0.7rem] text-brand-muted">{t.tipo ? `${t.tipo} · ` : ""}{volume(w)}</div>
-        </div>
-        {intensity && <span className="od-badge od-badge-muted !normal-case !tracking-normal" style={{ color: intensity.color }}>{intensity.label}</span>}
-        {w.status !== "planned" && <span className="od-badge od-badge-muted">{w.status === "done" ? "Feito" : "Pulado"}</span>}
-        <span className="chev text-brand-muted transition-transform" aria-hidden>›</span>
-      </summary>
-      <div className="space-y-3 px-3 pb-3 text-sm">
-        {w.objective && <p><span className="text-brand-muted">Para quê: </span>{w.objective}</p>}
-        {w.reason && <p className="text-brand-textSecondary"><span className="text-brand-muted">Por que agora: </span>{w.reason}</p>}
-        {w.steps && w.steps.length > 0 && (
-          <ol className="space-y-1.5">
-            {w.steps.map((s, i) => (
-              <li key={i} className="rounded-lg px-3 py-2" style={{ background: "rgba(255,255,255,0.025)" }}>
-                <div className="text-[0.66rem] font-bold uppercase tracking-wider text-brand-accent">{STEP_LABEL[s.fase] ?? s.fase}</div>
-                <div className="text-[0.82rem]">{s.descricao}</div>
-                {stepDetail(s) && <div className="mt-0.5 text-[0.72rem] text-brand-muted">{stepDetail(s)}</div>}
-              </li>
-            ))}
-          </ol>
+
+        {(w.objective || w.reason) && (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {w.objective && (
+              <div className="rounded-xl px-3.5 py-3" style={{ background: `${color}0b`, boxShadow: `inset 0 0 0 1px ${color}26` }}>
+                <div className="od-metric-label mb-1" style={{ color }}>Para quê</div>
+                <p className="text-[0.84rem] leading-snug">{w.objective}</p>
+              </div>
+            )}
+            {w.reason && (
+              <div className="od-tile px-3.5 py-3">
+                <div className="od-metric-label mb-1">Por que agora</div>
+                <p className="text-[0.84rem] leading-snug text-brand-textSecondary">{w.reason}</p>
+              </div>
+            )}
+          </div>
         )}
+
+        {steps.length > 0 && (
+          <div>
+            <div className="od-metric-label mb-2">Como fazer</div>
+            <StepBar steps={steps} main={color} />
+            <ol className="mt-3">
+              {steps.map((s, i) => {
+                const c = s.fase === "principal" ? color : PHASE_COLOR[s.fase] ?? "#888";
+                return (
+                  <li key={i} className="relative flex gap-3 pb-3 last:pb-0">
+                    {i < steps.length - 1 && <span className="absolute left-[5px] top-4 h-full w-px bg-white/10" aria-hidden />}
+                    <span className="relative mt-1 h-[11px] w-[11px] shrink-0 rounded-full" style={{ background: c, boxShadow: `0 0 10px ${c}88` }} aria-hidden />
+                    <div className="min-w-0">
+                      <div className="text-[0.66rem] font-bold uppercase tracking-wider" style={{ color: c }}>{STEP_LABEL[s.fase] ?? s.fase}</div>
+                      <div className="text-[0.85rem]">{s.descricao}</div>
+                      {stepDetail(s) && <div className="mt-0.5 text-[0.72rem] text-brand-muted">{stepDetail(s)}</div>}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        )}
+        {!w.objective && !steps.length && w.description && <p className="text-sm text-brand-textSecondary">{w.description}</p>}
+      </div>
+
+      <div className="min-w-0 space-y-3">
         {targets.length > 0 && (
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[0.78rem] sm:grid-cols-3">
-            {targets.map(([k, v]) => (
-              <div key={k}><dt className="text-brand-muted">{k}</dt><dd>{v}</dd></div>
-            ))}
-          </dl>
+          <div>
+            <div className="od-metric-label mb-2">Alvos</div>
+            <dl className="grid grid-cols-2 gap-2">
+              {targets.map(([k, v]) => (
+                <div key={k} className="od-tile px-3 py-2">
+                  <dt className="text-[0.66rem] text-brand-muted">{k}</dt>
+                  <dd className="mt-0.5 text-[0.84rem] font-semibold">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         )}
         {t.metrica_prioritaria && (
-          <p className="text-[0.78rem] text-brand-textSecondary">
+          <p className="rounded-xl bg-white/[0.03] px-3 py-2 text-[0.78rem] text-brand-textSecondary">
             <span className="text-brand-muted">Se ritmo, FC e PSE não baterem, priorize: </span>{t.metrica_prioritaria}
           </p>
         )}
         {t.observacoes && <p className="text-[0.78rem] text-brand-textSecondary">{t.observacoes}</p>}
         {t.ajuste_pedido && <p className="text-[0.72rem] text-brand-muted">Trocado a seu pedido: &quot;{t.ajuste_pedido}&quot;</p>}
-        {!w.objective && w.description && <p className="text-brand-textSecondary">{w.description}</p>}
         {editable && <WorkoutActions w={w} onDone={onDone} />}
       </div>
-    </details>
+    </div>
+  );
+}
+
+/** Um dia no quadro da semana: a barra mostra o volume (altura) e a intensidade (cor). */
+function DayColumn({
+  date, list, maxLoad, today, selected, nextId, onSelect,
+}: {
+  date: string;
+  list: PlannedWorkout[];
+  maxLoad: number;
+  today: string;
+  selected: boolean;
+  nextId?: string;
+  onSelect: () => void;
+}) {
+  const d = parseLocalDate(date);
+  const isToday = date === today;
+  const isNext = list.some((w) => w.id === nextId);
+  const past = date < today;
+  const allDone = list.length > 0 && list.every((w) => w.status === "done");
+  const first = list[0];
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={`relative flex min-w-[128px] snap-start flex-col rounded-2xl p-3 text-left transition-all duration-200 hover:-translate-y-0.5 lg:min-w-0 ${past && !allDone && !selected ? "opacity-55" : ""}`}
+      style={{
+        background: selected
+          ? "linear-gradient(180deg, rgba(0,255,102,0.10), rgba(0,255,102,0.02))"
+          : list.length ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.012)",
+        boxShadow: selected
+          ? "inset 0 0 0 1.5px rgba(0,255,102,0.65), 0 10px 30px -14px rgba(0,255,102,0.6)"
+          : isToday ? "inset 0 0 0 1px rgba(255,255,255,0.22)" : "inset 0 0 0 1px rgba(255,255,255,0.05)",
+      }}
+    >
+      <div className="flex items-baseline justify-between gap-1">
+        <span className={`text-[0.66rem] font-bold uppercase tracking-[0.14em] ${selected || isToday ? "text-white" : "text-brand-muted"}`}>
+          {WEEK_LABELS[(d.getDay() + 6) % 7]}
+        </span>
+        <span className="od-num text-[1.35rem] leading-none" style={{ color: selected ? "#00FF66" : undefined }}>{d.getDate()}</span>
+      </div>
+      <div className="mt-1 h-4">
+        {isNext ? (
+          <span className="inline-flex items-center gap-1 text-[0.58rem] font-bold uppercase tracking-[0.14em] text-brand-accent">
+            <span className="h-1.5 w-1.5 animate-od-pulse rounded-full bg-brand-accent" />Próximo
+          </span>
+        ) : isToday ? (
+          <span className="text-[0.58rem] font-bold uppercase tracking-[0.14em] text-white/80">Hoje</span>
+        ) : null}
+      </div>
+
+      {/* barras: altura = volume; cor = intensidade */}
+      <div className="mt-2 flex h-20 items-end justify-center gap-1.5 rounded-xl px-1.5 pb-1.5" style={{ background: "rgba(0,0,0,0.25)" }}>
+        {list.length === 0 ? (
+          <div className="mb-0.5 w-full border-t border-dashed border-white/15" />
+        ) : (
+          list.map((w) => {
+            const c = workoutColor(w);
+            const h = Math.max(18, Math.round((workload(w) / maxLoad) * 100));
+            return (
+              <div
+                key={w.id}
+                className="relative w-full max-w-[34px] rounded-t-lg rounded-b-md transition-all duration-500"
+                style={{
+                  height: `${h}%`,
+                  background: w.status === "skipped" ? "rgba(255,255,255,0.08)" : `linear-gradient(180deg, ${c}, ${c}33)`,
+                  boxShadow: w.status === "skipped" ? undefined : `0 0 16px -4px ${c}99`,
+                }}
+              >
+                {w.status === "done" && (
+                  <span className="absolute inset-x-0 top-1 text-center text-[0.7rem] font-bold text-black/70">✓</span>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="mt-2.5 min-h-[3.4rem]">
+        {first ? (
+          <>
+            <div className="flex items-center gap-1.5">
+              <SportTile sport={first.sport} size={20} radius={6} />
+              <span className="truncate text-[0.66rem] text-brand-muted">{volume(first)}</span>
+            </div>
+            <div className={`mt-1 line-clamp-2 text-[0.78rem] font-semibold leading-snug ${first.status === "skipped" ? "line-through decoration-white/30" : ""}`}>
+              {first.title}
+            </div>
+            {list.length > 1 && <div className="mt-0.5 text-[0.66rem] text-brand-accent">+{list.length - 1} treino</div>}
+          </>
+        ) : (
+          <div className="flex items-center gap-1.5 pt-0.5 text-[0.78rem] text-brand-muted">
+            <MoonIcon />
+            Descanso
+          </div>
+        )}
+      </div>
+    </button>
   );
 }
 
@@ -281,6 +469,7 @@ export function WeeklyPlanPanel({
   generating: boolean;
 }) {
   const [notice, setNotice] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
 
   if (!plan) {
     return (
@@ -301,13 +490,17 @@ export function WeeklyPlanPanel({
   const st = WEEKLY_STATUS[plan.status];
   const r = plan.report;
   const load = r.carga_semana_anterior;
-  const days = weekDays(plan.week_start, plan.week_end);
+  const today = toISODate(new Date());
   const byDate = new Map<string, PlannedWorkout[]>();
   for (const w of workouts) byDate.set(w.date, [...(byDate.get(w.date) ?? []), w]);
-  // "Mudar de dia" pode levar um treino para fora da semana: ele continua na lista
-  const outside = workouts.filter((w) => !days.includes(w.date));
-  const today = toISODate(new Date());
+  // "Mudar de dia" pode levar um treino para fora da semana: ele vira mais uma coluna
+  const days = [...new Set([...weekDays(plan.week_start, plan.week_end), ...workouts.map((w) => w.date)])].sort();
+  const maxLoad = Math.max(1, ...workouts.map(workload));
   const nextId = workouts.find((w) => w.status === "planned" && w.date >= today)?.id;
+  const nextDate = workouts.find((w) => w.id === nextId)?.date;
+  const selected = picked && days.includes(picked) ? picked : nextDate ?? (days.includes(today) ? today : days[0]);
+  const selectedList = byDate.get(selected) ?? [];
+  const doneCount = workouts.filter((w) => w.status === "done").length;
   const comp = Object.entries(load.complementar ?? {});
   // Km e sessoes saem dos treinos salvos, nao do relatorio: "Pedir outro treino" e
   // "Mudar de dia" mudam a semana e o relatorio fica como foi gerado.
@@ -322,51 +515,93 @@ export function WeeklyPlanPanel({
 
   return (
     <Panel className="space-y-5">
-      {/* 1. o essencial: status, leitura e a semana em numeros */}
-      <div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="od-label od-label-accent">Plano da semana · {shortDate(plan.week_start)} a {shortDate(plan.week_end)}</h2>
+      {/* 1. cabecalho: a semana, os numeros e o status */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 className="od-label od-label-accent">Plano da semana</h2>
+          <p className="mt-1.5 font-display text-2xl font-extrabold tracking-tight">
+            {shortDate(plan.week_start)} <span className="text-brand-muted">→</span> {shortDate(plan.week_end)}
+          </p>
           <span className="font-mono text-[0.62rem] tracking-wider text-brand-muted">
             gerado {new Date(plan.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
-        <div className="mt-3 flex flex-col gap-2 rounded-xl p-4 sm:flex-row sm:items-center sm:gap-4" style={{ background: `${st.color}0d`, boxShadow: `inset 0 0 0 1px ${st.color}40` }}>
-          <div className="shrink-0 font-display text-lg font-bold" style={{ color: st.color }}>{st.emoji} {st.label}</div>
-          <p className="text-sm text-brand-textSecondary sm:border-l sm:border-white/10 sm:pl-4">{plan.status_reason}</p>
+        <div className="grid grid-cols-3 gap-2 lg:w-[480px]">
+          <Stat label="Volume" value={plannedKm != null ? `~${plannedKm} km` : "—"} />
+          <Stat label="Treinos" value={`${workouts.length}`} sub={r.proxima_semana.estimulo_principal ? `foco: ${r.proxima_semana.estimulo_principal}` : undefined} />
+          <div className="od-tile px-3 py-2.5">
+            <div className="od-metric-label">Feitos</div>
+            <div className="od-num mt-1 text-[1.05rem] leading-tight">{doneCount}<span className="text-brand-muted">/{workouts.length}</span></div>
+            <div className="mt-1.5"><SegmentBar total={Math.max(workouts.length, 1)} filled={doneCount} height={4} /></div>
+          </div>
         </div>
-        <p className="mt-3 text-sm leading-relaxed">{r.resumo}</p>
-        <p className="mt-2 text-[0.78rem] text-brand-muted">
-          <span className="od-num text-white">{plannedKm != null ? `~${plannedKm} km` : "—"}</span>
-          {" · "}
-          <span className="od-num text-white">{workouts.length}</span> treino{workouts.length === 1 ? "" : "s"}
-          {r.proxima_semana.estimulo_principal ? ` · foco: ${r.proxima_semana.estimulo_principal}` : ""}
-        </p>
+      </div>
+
+      <div className="flex flex-col gap-2 rounded-xl p-4 sm:flex-row sm:items-center sm:gap-4" style={{ background: `${st.color}0d`, boxShadow: `inset 0 0 0 1px ${st.color}40` }}>
+        <div className="shrink-0 font-display text-lg font-bold" style={{ color: st.color }}>{st.emoji} {st.label}</div>
+        <div className="space-y-1 text-sm sm:border-l sm:border-white/10 sm:pl-4">
+          <p className="text-brand-textSecondary">{plan.status_reason}</p>
+          <p>{r.resumo}</p>
+        </div>
       </div>
 
       {notice && <Alert tone="accent" title="A Duni ajustou o plano">{notice}</Alert>}
 
-      {/* 2. a semana, um dia por linha (o proximo treino ja aberto) */}
+      {/* 2. o quadro da semana: um dia por coluna */}
       <div>
-        <div className="od-metric-label mb-2">A semana</div>
-        <div className="space-y-2">
-          {days.map((d) => {
-            const list = byDate.get(d);
-            if (!list) {
-              return (
-                <div key={d} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-brand-muted" style={{ background: "rgba(255,255,255,0.015)" }}>
-                  <div className="w-12 shrink-0 text-[0.66rem] font-bold uppercase tracking-wider">{dayShort(d)}</div>
-                  <span>Descanso</span>
-                </div>
-              );
-            }
-            return list.map((w) => <WorkoutCard key={w.id} w={w} onDone={done} next={w.id === nextId} />);
-          })}
-          {outside.map((w) => <WorkoutCard key={w.id} w={w} onDone={done} next={w.id === nextId} />)}
+        <div
+          className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2 lg:grid lg:overflow-visible lg:[grid-template-columns:repeat(var(--cols),minmax(0,1fr))]"
+          style={{ "--cols": days.length } as CSSProperties}
+          role="group"
+          aria-label="Dias da semana"
+        >
+          {days.map((d) => (
+            <DayColumn
+              key={d}
+              date={d}
+              list={byDate.get(d) ?? []}
+              maxLoad={maxLoad}
+              today={today}
+              selected={d === selected}
+              nextId={nextId}
+              onSelect={() => setPicked(d)}
+            />
+          ))}
         </div>
-        <p className="mt-2 text-[0.72rem] text-brand-muted">Toque num treino para ver os passos, trocar ou mudar de dia.</p>
+        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.68rem] text-brand-muted">
+          {Object.values(INTENSITY).map((it) => (
+            <span key={it.label} className="inline-flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-sm" style={{ background: it.color }} />{it.label}
+            </span>
+          ))}
+          <span>· altura da barra = volume do treino</span>
+        </div>
       </div>
 
-      {/* 3. o resto fica recolhido */}
+      {/* 3. o dia escolhido, aberto logo abaixo do quadro */}
+      <div key={selected} className="animate-od-fade-up rounded-2xl p-4 sm:p-5" style={{ background: "rgba(255,255,255,0.025)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)" }}>
+        {selectedList.length === 0 ? (
+          <div className="flex items-center gap-3 text-sm text-brand-textSecondary">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.04] text-brand-muted">
+              <MoonIcon size={20} />
+            </span>
+            <div>
+              <div className="text-[0.7rem] font-semibold uppercase tracking-wider text-brand-muted">{dayLong(selected)}</div>
+              <p className="mt-0.5">Dia de descanso. Recuperar também faz parte do treino.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {selectedList.map((w, i) => (
+              <div key={w.id} className={i > 0 ? "border-t border-white/5 pt-6" : ""}>
+                <WorkoutDetail w={w} onDone={done} next={w.id === nextId} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 4. o resto fica recolhido */}
       <details className="group rounded-xl bg-white/[0.02]">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-[0.82rem] text-brand-textSecondary hover:text-white">
           Ver análise completa

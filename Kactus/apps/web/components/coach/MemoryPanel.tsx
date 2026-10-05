@@ -40,7 +40,7 @@ export function whenLabel(iso: string): string {
 type Draft = { kind: MemoryKind; content: string; event_date: string };
 const EMPTY: Draft = { kind: "objetivo", content: "", event_date: "" };
 
-export function MemoryPanel({ memories, onChange }: { memories: AthleteMemory[]; onChange: (m: AthleteMemory[]) => void }) {
+export function MemoryPanel({ memories, onChange, className = "" }: { memories: AthleteMemory[]; onChange: (m: AthleteMemory[]) => void; className?: string }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -117,7 +117,7 @@ export function MemoryPanel({ memories, onChange }: { memories: AthleteMemory[];
   );
 
   return (
-    <Panel>
+    <Panel className={className}>
       <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="od-label">O que a Duni sabe de você</h2>

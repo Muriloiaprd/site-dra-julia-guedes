@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { kindLabel, MemoryPanel, whenLabel } from "@/components/coach/MemoryPanel";
-import { SummaryCard } from "@/components/coach/SummaryCard";
+import { SummaryBody } from "@/components/coach/SummaryBody";
 import { WeeklyPlanPanel } from "@/components/coach/WeeklyPlanPanel";
 import { AiOrb } from "@/components/dashboard/CoachCard";
 import { Markdown } from "@/components/ui/Markdown";
@@ -85,6 +85,92 @@ function ProcessingPanel({ title }: { title: string }) {
         })}
       </ul>
     </Panel>
+  );
+}
+
+/** "14:32" da mensagem. */
+function msgTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+/** Moldura de celular para a conversa: a Duni e lida como um app de mensagens. */
+function PhoneFrame({ children }: { children: ReactNode }) {
+  const [now, setNow] = useState("");
+  useEffect(() => {
+    const tick = () => setNow(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+    tick();
+    const t = setInterval(tick, 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div
+      className="relative mx-auto w-full max-w-[400px] rounded-[2.9rem] p-[11px]"
+      style={{
+        background: "linear-gradient(150deg, #2c2f2d, #121413 35%, #1d201e 70%, #0d0f0e)",
+        boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.09), 0 0 0 1px #000, 0 40px 90px -40px rgba(0,255,102,0.45)",
+      }}
+    >
+      {/* botoes laterais */}
+      <span className="absolute -left-[3px] top-28 h-8 w-[3px] rounded-l bg-[#2a2d2b]" aria-hidden />
+      <span className="absolute -left-[3px] top-40 h-14 w-[3px] rounded-l bg-[#2a2d2b]" aria-hidden />
+      <span className="absolute -right-[3px] top-36 h-20 w-[3px] rounded-r bg-[#2a2d2b]" aria-hidden />
+
+      <div className="relative flex h-[680px] flex-col overflow-hidden rounded-[2.25rem] bg-[#070807] sm:h-[720px]">
+        {/* barra de status + ilha */}
+        <div className="relative flex h-11 shrink-0 items-center justify-between px-7 text-[0.74rem] font-semibold">
+          <span className="od-num">{now}</span>
+          <span className="absolute left-1/2 top-2.5 h-[26px] w-[96px] -translate-x-1/2 rounded-full bg-black" aria-hidden />
+          <span className="flex items-center gap-1.5 text-white/90" aria-hidden>
+            <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1" /><rect x="4.3" y="5" width="3" height="6" rx="1" /><rect x="8.6" y="2.5" width="3" height="8.5" rx="1" /><rect x="12.9" y="0" width="3" height="11" rx="1" /></svg>
+            <svg width="22" height="11" viewBox="0 0 22 11" fill="none"><rect x="0.5" y="0.5" width="18" height="10" rx="3" stroke="currentColor" opacity="0.5" /><rect x="2" y="2" width="13" height="7" rx="1.6" fill="currentColor" /><rect x="19.5" y="3.5" width="1.6" height="4" rx="0.8" fill="currentColor" opacity="0.5" /></svg>
+          </span>
+        </div>
+        {children}
+        {/* barra de inicio */}
+        <div className="flex h-6 shrink-0 items-center justify-center" aria-hidden>
+          <span className="h-[5px] w-32 rounded-full bg-white/35" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Botao grande do topo: as duas acoes principais da Duni precisam saltar aos olhos. */
+function ActionButton({ onClick, disabled, color, title, text, icon }: {
+  onClick: () => void;
+  disabled: boolean;
+  color: string;
+  title: string;
+  text: string;
+  icon: ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="group relative overflow-hidden rounded-2xl p-4 text-left transition-all duration-200 enabled:hover:-translate-y-1 disabled:opacity-50 sm:p-5"
+      style={{
+        background: `radial-gradient(220px 120px at 0% 0%, ${color}30, transparent 70%), linear-gradient(160deg, ${color}1c, ${color}08)`,
+        boxShadow: `inset 0 0 0 1.5px ${color}70, 0 14px 40px -18px ${color}`,
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#041a0b] transition-transform duration-200 group-enabled:group-hover:scale-110"
+          style={{ background: `linear-gradient(135deg, ${color}, ${color}bb)`, boxShadow: `0 0 22px -4px ${color}` }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>{icon}</svg>
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-display text-[1.05rem] font-bold leading-tight text-white">{title}</span>
+            <span className="text-lg transition-transform duration-200 group-enabled:group-hover:translate-x-1" style={{ color }} aria-hidden>→</span>
+          </div>
+          <p className="mt-1 text-[0.78rem] leading-snug text-brand-textSecondary">{text}</p>
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -276,40 +362,28 @@ export default function CoachPage() {
             </div>
           </div>
 
-          <div className="grid shrink-0 gap-2 sm:grid-cols-2 lg:w-[420px]">
-            <button onClick={handleAnalyze} disabled={busy} className="od-tile group p-4 text-left transition-all duration-200 enabled:hover:-translate-y-0.5 enabled:hover:shadow-[inset_0_0_0_1px_rgba(0,255,102,0.35)] disabled:opacity-50">
-              <div className="flex items-center gap-2 text-brand-accent">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M3 3v18h18" /><path d="m7 15 4-4 3 3 6-6" /></svg>
-                <span className="text-sm font-bold text-white">{analyzing ? "Analisando…" : "Gerar relatório"}</span>
-              </div>
-              <p className="mt-1.5 text-xs leading-snug text-brand-muted">Como você está e o que fazer, em 20 segundos.</p>
-            </button>
-            <button onClick={handleGeneratePlan} disabled={busy} className="od-tile group p-4 text-left transition-all duration-200 enabled:hover:-translate-y-0.5 enabled:hover:shadow-[inset_0_0_0_1px_rgba(0,255,102,0.35)] disabled:opacity-50">
-              <div className="flex items-center gap-2 text-brand-lime">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="m9 16 2 2 4-4" /></svg>
-                <span className="text-sm font-bold text-white">{generating ? "Gerando…" : "Gerar plano da semana"}</span>
-              </div>
-              <p className="mt-1.5 text-xs leading-snug text-brand-muted">Os treinos dos próximos 7 dias, do seu jeito.</p>
-            </button>
+          <div className="grid shrink-0 gap-3 sm:grid-cols-2 lg:w-[540px]">
+            <ActionButton
+              onClick={handleAnalyze}
+              disabled={busy}
+              color="#00FF66"
+              title={analyzing ? "Analisando…" : "Gerar relatório"}
+              text="Como você está e o que fazer, em 20 segundos."
+              icon={<><path d="M3 3v18h18" /><path d="m7 15 4-4 3 3 6-6" /></>}
+            />
+            <ActionButton
+              onClick={handleGeneratePlan}
+              disabled={busy}
+              color="#C6FF00"
+              title={generating ? "Gerando…" : "Gerar plano da semana"}
+              text="Os treinos dos próximos 7 dias, do seu jeito."
+              icon={<><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="m9 16 2 2 4-4" /></>}
+            />
           </div>
         </div>
       </Panel>
 
       <div className="space-y-4">
-        {/* ───────── Insights ───────── */}
-        <div className="od-stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {insights.map((it) => (
-            <Panel key={it.k} className="!p-4">
-              <div className="flex items-center gap-2" title={it.t}>
-                <StatusDot color={it.c} size={6} />
-                <span className="od-metric-label">{it.k}</span>
-              </div>
-              <div className="od-num mt-2 truncate text-[1.25rem] leading-tight" style={{ color: it.c === "#888" || it.c === "#888888" ? "#fff" : it.c }}>{it.v}</div>
-              <p className="mt-1 line-clamp-2 text-[0.72rem] leading-snug text-brand-muted">{it.s}</p>
-            </Panel>
-          ))}
-        </div>
-
         {error && (
           <Alert tone="danger" title={error.title}>{error.detail}</Alert>
         )}
@@ -319,46 +393,78 @@ export default function CoachPage() {
 
         {planCount !== null && (
           <Alert tone="accent" title={`Plano da semana pronto: ${planCount} treino${planCount === 1 ? "" : "s"}`}>
-            Veja o status, a tabela e cada treino logo abaixo. Também aparece no card da Duni no <Link href="/dashboard" className="underline">dashboard</Link>.
+            Veja o status e cada treino no quadro logo abaixo. Também aparece no card da Duni no <Link href="/dashboard" className="underline">dashboard</Link>.
           </Alert>
         )}
 
-        {summary && <SummaryCard summary={summary} meta={reportMeta} onAnswer={answerInChat} />}
+        {/* ───────── Resumo + indicadores, no mesmo quadro ───────── */}
+        <Panel variant="accent" className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="od-label od-label-accent">Resumo da Duni</h2>
+            {reportMeta && (
+              <span className="font-mono text-[0.62rem] tracking-wider text-brand-muted">
+                {new Date(reportMeta.at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+          </div>
 
-        {!summary && report && (
-          <Panel variant="accent" className="animate-od-fade-up">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="od-label od-label-accent">Resumo da Duni</h2>
-              {reportMeta && (
-                <span className="font-mono text-[0.62rem] tracking-wider text-brand-muted">
-                  {new Date(reportMeta.at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })} · {reportMeta.model}
-                </span>
-              )}
+          <div className="od-stagger grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+            {insights.map((it) => (
+              <div key={it.k} className="od-tile px-4 py-3.5" style={{ boxShadow: `inset 0 0 0 1px ${it.c}2e` }}>
+                <div className="flex items-center gap-2" title={it.t}>
+                  <StatusDot color={it.c} size={6} />
+                  <span className="od-metric-label">{it.k}</span>
+                </div>
+                <div className="od-num mt-2 truncate text-[1.25rem] leading-tight" style={{ color: it.c === "#888" || it.c === "#888888" ? "#fff" : it.c }}>{it.v}</div>
+                <p className="mt-1 line-clamp-2 text-[0.72rem] leading-snug text-brand-muted">{it.s}</p>
+              </div>
+            ))}
+          </div>
+
+          {summary ? (
+            <SummaryBody summary={summary} onAnswer={answerInChat} />
+          ) : report ? (
+            <div className="animate-od-fade-up"><Markdown text={report} /></div>
+          ) : !analyzing && (
+            <div className="flex flex-col items-start gap-3 rounded-xl bg-white/[0.02] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-brand-muted">A Duni ainda não fez o resumo. Peça o relatório para ela dizer como você está e o que fazer.</p>
+              <button type="button" onClick={handleAnalyze} disabled={busy} className="od-btn od-btn-primary od-btn-sm shrink-0">Gerar relatório</button>
             </div>
-            <Markdown text={report} />
-          </Panel>
-        )}
+          )}
+        </Panel>
 
         {/* ───────── Plano da semana ───────── */}
         {week && (
           <WeeklyPlanPanel plan={week.plan} workouts={week.workouts} onRefresh={refreshPlans} onGenerate={handleGeneratePlan} generating={generating} />
         )}
 
-        {/* ───────── Chat ───────── */}
-        <Panel className="flex flex-col !p-0" style={{ height: 600 }}>
-            <div className="flex items-center justify-between border-b border-white/5 px-5 py-3.5">
-              <h2 className="od-label">Conversa com a Duni</h2>
-              <span className="text-[0.68rem] text-brand-muted">{messages.length} mensagens</span>
+        {/* ───────── Chat (formato celular) + o que a Duni sabe ───────── */}
+        <div className="grid gap-4 lg:grid-cols-[400px_minmax(0,1fr)]">
+          <PhoneFrame>
+            {/* cabecalho do app de mensagens */}
+            <div className="flex items-center gap-3 border-b border-white/[0.06] px-4 pb-3 pt-2">
+              <AiOrb size={38} active={!notConfigured} />
+              <div className="min-w-0 flex-1">
+                <div className="font-display text-[0.98rem] font-bold leading-tight">Duni</div>
+                <div className="flex items-center gap-1.5 text-[0.7rem]" style={{ color: sending ? "#00FF66" : "#888" }}>
+                  {sending ? "digitando…" : <><StatusDot color={notConfigured ? "#FFC145" : "#00FF66"} size={5} />{notConfigured ? "não configurada" : "online"}</>}
+                </div>
+              </div>
+              <span className="text-[0.66rem] text-brand-muted">{messages.length} msgs</span>
             </div>
 
-            <div ref={chatRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-5">
+            <div
+              ref={chatRef}
+              className="flex-1 space-y-2.5 overflow-y-auto px-3 py-4"
+              style={{ backgroundImage: "radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px)", backgroundSize: "18px 18px" }}
+            >
               {messages.length === 0 && (
-                <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+                <div className="flex h-full flex-col items-center justify-center gap-3 px-2 text-center">
                   <AiOrb size={52} />
-                  <p className="max-w-sm text-sm text-brand-muted">Pergunte à Duni sobre seus treinos, carga ou recuperação. Conte também seu objetivo e suas provas.</p>
-                  <div className="flex max-w-lg flex-wrap justify-center gap-2">
+                  <p className="text-[0.82rem] text-brand-muted">Pergunte sobre seus treinos, carga ou recuperação. Conte também seu objetivo e suas provas.</p>
+                  <div className="flex w-full flex-col gap-1.5">
                     {SUGGESTIONS.map((s) => (
-                      <button key={s} onClick={() => handleSend(s)} disabled={sending} className="od-chip">{s}</button>
+                      <button key={s} onClick={() => handleSend(s)} disabled={sending} className="od-chip !justify-center !text-[0.74rem]">{s}</button>
                     ))}
                   </div>
                 </div>
@@ -366,88 +472,86 @@ export default function CoachPage() {
               {messages.map((m, i) => (
                 m.role === "user" ? (
                   <div key={i} className="flex justify-end">
-                    <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md px-4 py-2.5 text-sm text-white" style={{ background: "linear-gradient(135deg, rgba(0,255,102,0.16), rgba(0,255,102,0.07))", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.22)" }}>
-                      {m.content}
+                    <div className="max-w-[82%] rounded-[1.15rem] rounded-br-[0.35rem] px-3.5 py-2 text-[0.86rem] text-white" style={{ background: "linear-gradient(135deg, rgba(0,255,102,0.24), rgba(0,255,102,0.11))", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.25)" }}>
+                      <span className="whitespace-pre-wrap">{m.content}</span>
+                      <span className="ml-2 inline-block translate-y-0.5 text-[0.6rem] text-white/50">{msgTime(m.created_at)} ✓✓</span>
                     </div>
                   </div>
                 ) : (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <div className="mt-0.5"><AiOrb size={26} active={false} /></div>
-                    <div className="max-w-[88%] space-y-2">
-                      <div className="od-tile rounded-2xl rounded-tl-md px-4 py-3">
-                        <Markdown text={m.content} />
-                      </div>
-                      {m.suggestions && m.suggestions.some((s) => s.state !== "dismissed") && (
-                        <div className="rounded-xl px-3 py-2.5" style={{ background: "rgba(0,255,102,0.04)", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.16)" }}>
-                          <p className="mb-1.5 text-[0.68rem] font-semibold uppercase tracking-wider text-brand-accent">Guardar para as próximas conversas?</p>
-                          <ul className="space-y-1.5">
-                            {m.suggestions.map((s, j) => s.state === "dismissed" ? null : (
-                              <li key={j} className="flex flex-wrap items-center gap-2 text-xs">
-                                <span className="od-badge od-badge-muted !normal-case !tracking-normal">{kindLabel(s.kind)}</span>
-                                <span className="min-w-0 flex-1 text-brand-textSecondary">
-                                  {s.content}{s.event_date && <span className="text-brand-muted"> · {whenLabel(s.event_date)}</span>}
-                                </span>
-                                {s.state === "saved" ? (
-                                  <span className="text-brand-accent">✓ Guardado</span>
-                                ) : (
-                                  <span className="flex gap-1">
-                                    <button type="button" onClick={() => acceptSuggestion(i, j, s)} className="od-btn od-btn-primary od-btn-sm !px-2 !py-1">Guardar</button>
-                                    <button type="button" onClick={() => setSuggestionState(i, j, "dismissed")} className="od-btn od-btn-ghost od-btn-sm !px-2 !py-1">Ignorar</button>
-                                  </span>
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                  <div key={i} className="flex flex-col items-start gap-1.5">
+                    <div className="max-w-[88%] rounded-[1.15rem] rounded-bl-[0.35rem] px-3.5 py-2.5 text-[0.86rem]" style={{ background: "#171a18", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)" }}>
+                      <Markdown text={m.content} />
+                      <div className="mt-1 text-right text-[0.6rem] text-white/40">{msgTime(m.created_at)}</div>
                     </div>
+                    {m.suggestions && m.suggestions.some((s) => s.state !== "dismissed") && (
+                      <div className="max-w-[88%] rounded-xl px-3 py-2.5" style={{ background: "rgba(0,255,102,0.04)", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.16)" }}>
+                        <p className="mb-1.5 text-[0.64rem] font-semibold uppercase tracking-wider text-brand-accent">Guardar para as próximas conversas?</p>
+                        <ul className="space-y-2">
+                          {m.suggestions.map((s, j) => s.state === "dismissed" ? null : (
+                            <li key={j} className="space-y-1.5 text-xs">
+                              <div>
+                                <span className="od-badge od-badge-muted mr-1.5 !normal-case !tracking-normal">{kindLabel(s.kind)}</span>
+                                <span className="text-brand-textSecondary">{s.content}</span>
+                                {s.event_date && <span className="text-brand-muted"> · {whenLabel(s.event_date)}</span>}
+                              </div>
+                              {s.state === "saved" ? (
+                                <span className="text-brand-accent">✓ Guardado</span>
+                              ) : (
+                                <span className="flex gap-1">
+                                  <button type="button" onClick={() => acceptSuggestion(i, j, s)} className="od-btn od-btn-primary od-btn-sm !px-2 !py-1">Guardar</button>
+                                  <button type="button" onClick={() => setSuggestionState(i, j, "dismissed")} className="od-btn od-btn-ghost od-btn-sm !px-2 !py-1">Ignorar</button>
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )
               ))}
               {sending && (
-                <div className="flex items-center gap-2.5">
-                  <AiOrb size={26} />
-                  <div className="od-tile flex items-center gap-1 rounded-2xl rounded-tl-md px-4 py-3" aria-label="Pensando">
-                    {[0, 1, 2].map((k) => (
-                      <span key={k} className="h-1.5 w-1.5 rounded-full bg-brand-accent" style={{ animation: `od-typing 1.2s ${k * 0.15}s infinite` }} />
-                    ))}
-                  </div>
+                <div className="flex w-fit items-center gap-1 rounded-[1.15rem] rounded-bl-[0.35rem] px-4 py-3" style={{ background: "#171a18" }} aria-label="Pensando">
+                  {[0, 1, 2].map((k) => (
+                    <span key={k} className="h-1.5 w-1.5 rounded-full bg-brand-accent" style={{ animation: `od-typing 1.2s ${k * 0.15}s infinite` }} />
+                  ))}
                 </div>
               )}
             </div>
 
-            <div className="border-t border-white/5 p-3">
+            {/* barra de digitar */}
+            <div className="border-t border-white/[0.06] px-3 pb-1 pt-2.5">
               {replyTo && (
-                <div className="mb-2 flex items-start justify-between gap-2 rounded-lg bg-white/[0.03] px-3 py-2 text-xs text-brand-textSecondary">
+                <div className="mb-2 flex items-start justify-between gap-2 rounded-lg border-l-2 border-brand-accent bg-white/[0.04] px-3 py-2 text-xs text-brand-textSecondary">
                   <span><span className="text-brand-muted">Respondendo: </span>{replyTo}</span>
                   <button type="button" onClick={() => setReplyTo(null)} className="text-brand-muted hover:text-white" aria-label="Cancelar resposta">✕</button>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <input
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") handleSend(replyTo && input.trim() ? `Sobre "${replyTo}": ${input.trim()}` : undefined); }}
-                  placeholder={replyTo ? "Sua resposta…" : "Pergunte à Duni…"}
-                  className="od-input flex-1"
+                  placeholder={replyTo ? "Sua resposta…" : "Mensagem"}
+                  className="min-w-0 flex-1 rounded-full bg-white/[0.06] px-4 py-2.5 text-[0.86rem] text-white outline-none ring-1 ring-white/[0.06] placeholder:text-brand-muted focus:ring-brand-accent/50"
                   aria-label="Mensagem para a Duni"
                 />
                 <button
                   onClick={() => handleSend(replyTo && input.trim() ? `Sobre "${replyTo}": ${input.trim()}` : undefined)}
                   disabled={sending || !input.trim()}
-                  className="od-btn od-btn-primary !px-4"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#041a0b] transition-transform enabled:hover:scale-105 disabled:opacity-40"
+                  style={{ background: "linear-gradient(135deg, #00ff66, #c6ff00)", boxShadow: "0 0 18px -4px rgba(0,255,102,0.7)" }}
                   aria-label="Enviar"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
-                  <span className="hidden sm:inline">Enviar</span>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
                 </button>
               </div>
             </div>
-        </Panel>
+          </PhoneFrame>
 
-        {/* ───────── Memorias ───────── */}
-        <MemoryPanel memories={memories} onChange={setMemories} />
+          <MemoryPanel memories={memories} onChange={setMemories} className="lg:h-full" />
+        </div>
       </div>
     </PageContainer>
   );
