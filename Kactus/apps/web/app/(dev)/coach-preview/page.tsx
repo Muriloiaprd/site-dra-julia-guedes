@@ -16,6 +16,8 @@ import type {
   CoachReport,
   DailyMetric,
   PlannedWorkout,
+  GoalPhase,
+  GoalPlanResponse,
   WeeklyPlanResponse,
 } from "@/lib/api";
 import { toISODate } from "@/lib/athlete";
@@ -136,9 +138,63 @@ const MEMORIES: AthleteMemory[] = [
   { id: "m3", kind: "disponibilidade", content: "Longão só no domingo de manhã", event_date: null, active: true, source: "manual", created_at: NOW },
 ];
 
+/** Plano do objetivo de exemplo: maratona no fim de maio de 2027, 3 dias por semana. */
+function goalExample(): GoalPlanResponse {
+  const race = new Date(2027, 4, 30);
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const total = Math.floor((race.getTime() - start.getTime()) / (7 * 86_400_000)) + 1;
+  const train = total - 3;
+  const phaseOf = (i: number): GoalPhase =>
+    i >= train ? "polimento" : i < Math.round(train * 0.4) ? "base" : i < Math.round(train * 0.75) ? "construcao" : "pico";
+  let top = 19;
+  const weeks = Array.from({ length: total }, (_, i) => {
+    const ini = new Date(start);
+    ini.setDate(ini.getDate() + 7 * i);
+    const fim = new Date(ini);
+    fim.setDate(fim.getDate() + 6);
+    const fase = phaseOf(i);
+    const alivio = fase !== "polimento" && i % 4 === 3;
+    if (i > 0 && !alivio && fase !== "polimento") top = Math.min(top * 1.1, 55);
+    const km = fase === "polimento" ? top * [0.75, 0.6, 0.4][i - train] : top * (alivio ? 0.75 : 1);
+    const longao = Math.min(32, Math.round(km * 0.55 * 2) / 2);
+    return { semana: i + 1, inicio: toISODate(ini), fim: toISODate(fim), fase, km: Math.round(km * 10) / 10, longao_km: longao, alivio };
+  });
+  const phases = (["base", "construcao", "pico", "polimento"] as GoalPhase[]).map((f) => {
+    const ws = weeks.filter((w) => w.fase === f);
+    const foco = { base: "Volume leve e constância, cuidando da lombar.", construcao: "Longões maiores e limiar.", pico: "Ritmo de prova e os longões de 32 km.", polimento: "Menos volume para chegar descansado." }[f];
+    return { fase: f, inicio: ws[0].inicio, fim: ws[ws.length - 1].fim, foco };
+  });
+  const workouts: PlannedWorkout[] = weeks.flatMap((w) => {
+    const ini = new Date(w.inicio + "T00:00:00");
+    const at = (wd: number) => {
+      const d = new Date(ini);
+      d.setDate(d.getDate() + ((wd - ((d.getDay() + 6) % 7)) + 7) % 7);
+      return toISODate(d);
+    };
+    const rest = w.km - w.longao_km;
+    return [
+      workout({ id: `g${w.semana}q`, date: at(1), title: w.fase === "base" ? "Progressivo" : "Limiar", target_intensity: w.fase === "base" ? "moderado" : "forte", target_distance_m: Math.round(rest * 0.55) * 1000, goal_plan_id: "gp", targets: { tipo: w.fase === "base" ? "progressivo" : "limiar", ritmo: w.fase === "base" ? "6:48 → 5:48/km" : "blocos a 5:25/km", zona_fc: "Z4 (155–170 bpm)" } }),
+      workout({ id: `g${w.semana}e`, date: at(3), title: "Rodagem leve", target_distance_m: Math.round(rest * 0.45) * 1000, goal_plan_id: "gp", targets: { tipo: "rodagem leve", ritmo: "6:13–6:48/km", zona_fc: "Z2 (128–142 bpm)" } }),
+      workout({ id: `g${w.semana}l`, date: at(6), title: "Longão", target_distance_m: w.longao_km * 1000, goal_plan_id: "gp", targets: { tipo: "longão", ritmo: "6:13–6:48/km", zona_fc: "Z2 (128–142 bpm)" } }),
+    ].filter((x) => x.date <= toISODate(race) && x.date >= toISODate(start));
+  });
+  return {
+    plan: {
+      id: "gp", race_name: "Maratona do Rio", race_date: toISODate(race), race_distance_km: 42.2, days_per_week: 3, vdot: 37,
+      summary: "Base longa e tranquila para a lombar, construção com limiar e pico com ritmo de prova e três longões de 32 km.",
+      phases, weeks, paces: { leve_rapido: 373, leve_lento: 408, limiar: 325, intervalo: 300, prova: 348 }, model_used: "exemplo", created_at: NOW,
+    },
+    workouts,
+  };
+}
+
+const GOAL = goalExample();
+
 const METRICS: DailyMetric[] = [{ date: toISODate(new Date()), daily_load: 40, ctl: 38, atl: 35, tsb: 3.2, acwr: 1.05 }];
 
 const ROUTES: [RegExp, unknown][] = [
+  [/\/coach\/goal-plan/, GOAL],
   [/\/auth\/me$/, { id: "preview", email: "preview@kactus" }],
   [/\/coach\/chat\/history/, HISTORY],
   [/\/coach\/memories/, MEMORIES],

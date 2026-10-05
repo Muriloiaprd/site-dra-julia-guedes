@@ -623,6 +623,7 @@ export interface PlannedWorkout {
   status: string;
   activity_id: string | null;
   weekly_plan_id?: string | null;
+  goal_plan_id?: string | null;
   /** Finalidade fisiologica do treino. */
   objective?: string | null;
   /** Por que este treino nesta semana, ligado aos dados. */
@@ -718,7 +719,9 @@ export interface CoachErrorDetail {
     | "not_editable"
     | "not_found"
     | "past_date"
-    | "not_swappable";
+    | "not_swappable"
+    | "no_goal_race"
+    | "race_too_close";
   weeks_available?: number;
   message?: string;
   conflict?: { id: string; title: string; status: string };
@@ -760,6 +763,40 @@ export async function postCoachGeneratePlan(): Promise<WeeklyPlanResponse> {
 
 export async function fetchWeekPlan(): Promise<WeeklyPlanResponse> {
   return coachFetch<WeeklyPlanResponse>("/coach/plan/week");
+}
+
+export type GoalPhase = "base" | "construcao" | "pico" | "polimento";
+
+/** Plano do objetivo: todas as semanas ate a prova. Paces em s/km. */
+export interface GoalPlan {
+  id: string;
+  race_name: string;
+  race_date: string;
+  race_distance_km: number;
+  days_per_week: number;
+  vdot: number | null;
+  summary: string;
+  phases: { fase: GoalPhase; inicio: string; fim: string; foco: string }[];
+  weeks: { semana: number; inicio: string; fim: string; fase: GoalPhase; km: number; longao_km: number; alivio: boolean }[];
+  paces: { leve_rapido: number; leve_lento: number; limiar: number; intervalo: number; prova: number };
+  model_used: string | null;
+  created_at: string;
+}
+
+export interface GoalPlanResponse {
+  plan: GoalPlan | null;
+  workouts: PlannedWorkout[];
+}
+
+export async function fetchGoalPlan(): Promise<GoalPlanResponse> {
+  return coachFetch<GoalPlanResponse>("/coach/goal-plan");
+}
+
+export async function postGoalPlanGenerate(daysPerWeek = 3): Promise<GoalPlanResponse> {
+  return coachFetch<GoalPlanResponse>("/coach/goal-plan/generate", {
+    method: "POST",
+    body: JSON.stringify({ days_per_week: daysPerWeek }),
+  });
 }
 
 export async function regenerateWorkout(

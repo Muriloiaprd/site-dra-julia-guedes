@@ -33,6 +33,13 @@ export function coachErrorMessage(e: unknown): { title: string; detail: string }
           title: "O plano veio fora das regras e foi recusado",
           detail: `${e.detail.message ? `${e.detail.message} ` : ""}Nada foi salvo. Tente gerar de novo.`,
         };
+      case "no_goal_race":
+        return {
+          title: "Falta a prova com data",
+          detail: e.detail.message ?? "Cadastre a prova com a data em \"O que a Duni sabe de você\" (ex.: Maratona do Rio, 30/05/2027).",
+        };
+      case "race_too_close":
+        return { title: "A prova está perto demais", detail: e.detail.message ?? "Menos de 2 semanas: use o plano da semana." };
       case "invalid_response":
         return { title: "A resposta veio num formato inválido", detail: "Acontece às vezes com o modelo grátis. Mande a mensagem de novo." };
     }

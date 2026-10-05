@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { kindLabel, MemoryPanel, whenLabel } from "@/components/coach/MemoryPanel";
 import { SummaryBody } from "@/components/coach/SummaryBody";
+import { GoalPlanPanel } from "@/components/coach/GoalPlanPanel";
 import { WeeklyPlanPanel } from "@/components/coach/WeeklyPlanPanel";
 import { AiOrb } from "@/components/dashboard/CoachCard";
 import { Markdown } from "@/components/ui/Markdown";
@@ -20,11 +21,13 @@ import {
   fetchLoadMetrics,
   fetchMe,
   fetchPredictionsOverview,
+  fetchGoalPlan,
   fetchWeekPlan,
   fetchLastCoachReport,
   postCoachAnalyze,
   postCoachChat,
   postCoachGeneratePlan,
+  postGoalPlanGenerate,
   type AthleteMemory,
   type CoachChatMessage,
   type CoachSummary,
@@ -32,6 +35,7 @@ import {
   type MemorySuggestion,
   type PlannedWorkout,
   type PredictionsOverview,
+  type GoalPlanResponse,
   type WeeklyPlanResponse,
 } from "@/lib/api";
 import { coachErrorMessage } from "@/lib/coachErrors";
@@ -189,6 +193,9 @@ export default function CoachPage() {
   const [reportMeta, setReportMeta] = useState<{ model: string; at: string } | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [goal, setGoal] = useState<GoalPlanResponse | null>(null);
+  const [generatingGoal, setGeneratingGoal] = useState(false);
+  const [goalCount, setGoalCount] = useState<number | null>(null);
   const [planCount, setPlanCount] = useState<number | null>(null);
   const [error, setError] = useState<{ title: string; detail: string } | null>(null);
   const [overview, setOverview] = useState<PredictionsOverview | null>(null);
@@ -211,6 +218,7 @@ export default function CoachPage() {
     fetchCoachPlan(14).then(setPlan).catch(() => setPlan([]));
     fetchMemories().then(setMemories).catch(() => {});
     fetchWeekPlan().then(setWeek).catch(() => setWeek({ plan: null, workouts: [] }));
+    fetchGoalPlan().then(setGoal).catch(() => setGoal({ plan: null, workouts: [] }));
     fetchLastCoachReport()
       .then((r) => {
         // nao sobrescreve um resumo pedido enquanto este carregava
@@ -307,6 +315,23 @@ export default function CoachPage() {
     }
   }
 
+  async function handleGenerateGoal(daysPerWeek: number) {
+    setGeneratingGoal(true);
+    setError(null);
+    setGoalCount(null);
+    try {
+      const res = await postGoalPlanGenerate(daysPerWeek);
+      setGoal(res);
+      setGoalCount(res.workouts.length);
+      // os treinos planejados de hoje em diante mudaram
+      await refreshPlans().catch(() => {});
+    } catch (e) {
+      handleError(e);
+    } finally {
+      setGeneratingGoal(false);
+    }
+  }
+
   async function handleGeneratePlan() {
     setGenerating(true);
     setError(null);
@@ -333,7 +358,7 @@ export default function CoachPage() {
   const form = formFromTsb(latest?.tsb ?? null);
   const risk = riskFromAcwr(latest?.acwr ?? null);
   const upcoming = (plan ?? []).filter((w) => w.date >= toISODate(new Date()));
-  const busy = analyzing || generating;
+  const busy = analyzing || generating || generatingGoal;
 
   const insights = [
     {
@@ -360,7 +385,7 @@ export default function CoachPage() {
             WebkitMaskImage: "radial-gradient(ellipse 45% 80% at 12% 50%, #000, transparent 75%)",
           }}
         />
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative flex flex-col gap-6">
           <div className="flex items-center gap-5">
             <AiOrb size={76} active={!notConfigured} />
             <div className="min-w-0">
@@ -380,7 +405,7 @@ export default function CoachPage() {
             </div>
           </div>
 
-          <div className="grid shrink-0 gap-3 sm:grid-cols-2 lg:w-[540px]">
+          <div className="grid gap-3 md:grid-cols-3">
             <ActionButton
               onClick={handleAnalyze}
               disabled={busy}
@@ -397,6 +422,14 @@ export default function CoachPage() {
               text="Os treinos dos próximos 7 dias, do seu jeito."
               icon={<><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="m9 16 2 2 4-4" /></>}
             />
+            <ActionButton
+              onClick={() => handleGenerateGoal(goal?.plan?.days_per_week ?? 3)}
+              disabled={busy}
+              color="#00BFFF"
+              title={generatingGoal ? "Montando…" : "Gerar plano do objetivo"}
+              text="Todos os treinos até a sua prova, em fases."
+              icon={<><path d="M4 22V4" /><path d="M4 4h12l-2 4 2 4H4" /></>}
+            />
           </div>
         </div>
       </Panel>
@@ -408,6 +441,13 @@ export default function CoachPage() {
 
         {analyzing && <ProcessingPanel title="Analisando sua semana…" />}
         {generating && <ProcessingPanel title="Montando o plano da semana…" />}
+        {generatingGoal && <ProcessingPanel title="Montando o plano até a prova…" />}
+
+        {goalCount !== null && goal?.plan && (
+          <Alert tone="accent" title={`Plano até a prova pronto: ${goalCount} treinos`}>
+            Veja as fases e as semanas no quadro &quot;Plano do objetivo&quot;. O passo a passo de cada semana sai no &quot;Gerar plano da semana&quot;.
+          </Alert>
+        )}
 
         {planCount !== null && (
           <Alert tone="accent" title={`Plano da semana pronto: ${planCount} treino${planCount === 1 ? "" : "s"}`}>
@@ -455,6 +495,9 @@ export default function CoachPage() {
             </div>
           </div>
         </Panel>
+
+        {/* ───────── Plano do objetivo (ate a prova) ───────── */}
+        {goal && <GoalPlanPanel goal={goal} onGenerate={handleGenerateGoal} generating={generatingGoal} />}
 
         {/* ───────── Plano da semana ───────── */}
         {week && (
