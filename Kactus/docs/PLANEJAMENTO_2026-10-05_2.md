@@ -44,3 +44,13 @@ Cada fase: `uv run pytest` + `ruff` nos arquivos tocados, `npx tsc --noEmit`, co
 
 - Detalhar a semana atual (mesmo caminho do botão) para os cards voltarem com o passo a
   passo, e conferir os dados.
+
+## Andamento — FECHADO em 2026-10-05
+
+- **Fase 1 — feita** (`2a0d2bc`): `week_workouts` (semana pela data, religa soltos),
+  `generate_goal_plan` liga os treinos novos da semana atual; 3 testes de regressão.
+- **Fase 2 — feita** (`0301f0f`): quadro sem plano da semana + faixa "Detalhar a semana";
+  conferido em `/coach-preview?sem-semana`.
+- **Fase 3 — feita**: semana de 05–11/10 do Murilo detalhada de novo (plano `5c2cee56…`,
+  amarelo): ter Fartlek de base 5 km, qui Rodagem leve 4 km, sáb Longão de base 10 km, cada um
+  com 3 passos e ligado ao plano da semana e ao do objetivo.
