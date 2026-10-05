@@ -133,10 +133,10 @@ function WorkoutActions({ w, onDone }: { w: PlannedWorkout; onDone: (notice?: st
   });
 
   return (
-    <div className="mt-3 border-t border-white/5 pt-3">
+    <div>
       {error && <p className="mb-2 text-xs text-brand-danger">{error}</p>}
       {mode === null && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 lg:justify-end">
           <button type="button" onClick={() => setMode("regen")} className="od-btn od-btn-secondary od-btn-sm">Pedir outro treino</button>
           <button type="button" onClick={() => setMode("move")} className="od-btn od-btn-ghost od-btn-sm">Mudar de dia</button>
         </div>
@@ -251,6 +251,124 @@ function StepBar({ steps, main }: { steps: WorkoutStep[]; main: string }) {
   );
 }
 
+/* ───────── km a km: as fases do treino distribuidas em cada quilometro ───────── */
+
+type Pace = [number, number]; // s/km no comeco e no fim do trecho (iguais se constante)
+type Segment = { fase: WorkoutStep["fase"]; km: number; pace: Pace | null };
+type KmRow = { label: string; partial: number | null; parts: { fase: WorkoutStep["fase"]; frac: number }[]; pace: number | null };
+
+/** "6:00/km" → [360,360]; "6:00 → 5:30/km" (progressivo) → [360,330]; "6:00–6:20/km" (faixa) → media. */
+function parsePace(text?: string | null): Pace | null {
+  const found = [...(text ?? "").matchAll(/(\d{1,2}):(\d{2})/g)].map((m) => Number(m[1]) * 60 + Number(m[2]));
+  if (found.length === 0) return null;
+  if (found.length === 1) return [found[0], found[0]];
+  if (/→|->/.test(text ?? "")) return [found[0], found[1]];
+  const avg = (found[0] + found[1]) / 2;
+  return [avg, avg];
+}
+
+function fmtPace(s: number) {
+  const r = Math.round(s);
+  return `${Math.floor(r / 60)}:${String(r % 60).padStart(2, "0")}`;
+}
+
+/** Trechos com distancia e ritmo. Sem distancia: tempo ÷ ritmo; o que faltar para o
+ * volume do treino vai para os passos sem medida. Sem passos: o treino inteiro no ritmo alvo. */
+function segmentsOf(w: PlannedWorkout): Segment[] {
+  const total = (w.target_distance_m ?? 0) / 1000;
+  const mainPace = parsePace(w.targets?.ritmo);
+  const steps = w.steps ?? [];
+  if (steps.length === 0) return total > 0 ? [{ fase: "principal", km: total, pace: mainPace }] : [];
+
+  const segs = steps.map((s): Segment => {
+    let pace = parsePace(s.ritmo);
+    if (!pace && s.distancia_km && s.duracao_min) {
+      const p = (s.duracao_min * 60) / s.distancia_km;
+      pace = [p, p];
+    }
+    if (!pace && s.fase === "principal") pace = mainPace;
+    let km = s.distancia_km ?? 0;
+    if (!km && s.duracao_min && pace) km = (s.duracao_min * 60) / ((pace[0] + pace[1]) / 2);
+    return { fase: s.fase, km, pace };
+  });
+  const known = segs.reduce((a, s) => a + s.km, 0);
+  const unknown = segs.filter((s) => s.km === 0);
+  if (total > known + 0.05 && unknown.length) {
+    for (const s of unknown) s.km = (total - known) / unknown.length;
+  }
+  return segs.filter((s) => s.km > 0);
+}
+
+function kmRows(segs: Segment[]): KmRow[] {
+  const total = segs.reduce((a, s) => a + s.km, 0);
+  const rows: KmRow[] = [];
+  for (let i = 0; i < total - 0.05; i++) {
+    const lo = i;
+    const hi = Math.min(i + 1, total);
+    const parts: KmRow["parts"] = [];
+    let paceSum = 0;
+    let paceW = 0;
+    let a = 0;
+    for (const s of segs) {
+      const b = a + s.km;
+      const o = Math.min(b, hi) - Math.max(a, lo);
+      if (o > 1e-6) {
+        parts.push({ fase: s.fase, frac: o / (hi - lo) });
+        if (s.pace) {
+          const mid = (Math.max(a, lo) + Math.min(b, hi)) / 2;
+          paceSum += (s.pace[0] + (s.pace[1] - s.pace[0]) * ((mid - a) / s.km)) * o;
+          paceW += o;
+        }
+      }
+      a = b;
+    }
+    const len = hi - lo;
+    rows.push({ label: `KM ${i + 1}`, partial: len < 0.95 ? len : null, parts, pace: paceW ? paceSum / paceW : null });
+  }
+  return rows;
+}
+
+function KmBreakdown({ w, color }: { w: PlannedWorkout; color: string }) {
+  const rows = kmRows(segmentsOf(w));
+  if (rows.length === 0) return null;
+  const phaseColor = (f: WorkoutStep["fase"]) => (f === "principal" ? color : PHASE_COLOR[f] ?? "#888");
+  const dense = rows.length > 12;
+
+  return (
+    <div>
+      <div className="mb-2 grid grid-cols-[3.2rem_minmax(0,1fr)_3.2rem] items-center gap-3">
+        <span className="od-metric-label col-span-2">Distância</span>
+        <span className="od-metric-label text-right">Pace</span>
+      </div>
+      <ol className={dense ? "space-y-1" : "space-y-2"}>
+        {rows.map((r) => (
+          <li key={r.label} className="grid grid-cols-[3.2rem_minmax(0,1fr)_3.2rem] items-center gap-3">
+            <span className="text-[0.74rem] font-semibold text-brand-textSecondary">
+              {r.label}
+              {r.partial != null && <span className="ml-1 text-[0.62rem] font-normal text-brand-muted">{r.partial.toFixed(1).replace(".", ",")}</span>}
+            </span>
+            <div className={`flex overflow-hidden rounded-full bg-white/[0.05] ${dense ? "h-1.5" : "h-2"}`} style={{ width: r.partial != null ? `${Math.max(r.partial * 100, 12)}%` : undefined }}>
+              {r.parts.map((p, j) => (
+                <div key={j} style={{ width: `${p.frac * 100}%`, background: phaseColor(p.fase), boxShadow: `0 0 8px ${phaseColor(p.fase)}66` }} />
+              ))}
+            </div>
+            {r.pace != null
+              ? <span className="od-num text-right text-[0.78rem]">{fmtPace(r.pace)}</span>
+              : <span className="text-right text-[0.68rem] text-brand-muted">livre</span>}
+          </li>
+        ))}
+      </ol>
+      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[0.64rem] text-brand-muted">
+        {(["aquecimento", "principal", "desaquecimento"] as const).map((f) => (
+          <span key={f} className="inline-flex items-center gap-1">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: phaseColor(f) }} />{STEP_LABEL[f]}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function WorkoutDetail({ w, onDone, next }: { w: PlannedWorkout; onDone: (notice?: string) => Promise<void>; next: boolean }) {
   const t = w.targets ?? {};
   const intensity = intensityOf(w);
@@ -258,103 +376,115 @@ function WorkoutDetail({ w, onDone, next }: { w: PlannedWorkout; onDone: (notice
   const editable = w.status === "planned" && w.date >= toISODate(new Date());
   const targets = [
     ["Ritmo", t.ritmo],
-    ["Zona de FC", t.zona_fc],
     ["Esforço (PSE)", t.pse],
-    ["Ritmo no plano (GAP)", t.gap],
     ["Cadência", t.cadencia],
+    ["Zona de FC", t.zona_fc],
+    ["Ritmo no plano (GAP)", t.gap],
     ["Terreno", t.terreno],
   ].filter(([, v]) => v) as [string, string][];
   const steps = w.steps ?? [];
+  const hasFooter = t.metrica_prioritaria || t.observacoes || t.ajuste_pedido || editable;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-      <div className="min-w-0 space-y-4">
-        <div className="flex items-start gap-3">
-          <SportTile sport={w.sport} size={46} radius={14} />
-          <div className="min-w-0 flex-1">
-            <div className="text-[0.7rem] font-semibold uppercase tracking-wider text-brand-muted">
-              {dayLong(w.date)}{t.tipo ? ` · ${t.tipo}` : ""}
-            </div>
-            <h3 className="mt-0.5 font-display text-xl font-bold leading-tight">{w.title}</h3>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              <span className="od-badge od-badge-muted !normal-case !tracking-normal">{volume(w)}</span>
-              {intensity && (
-                <span className="od-badge !normal-case !tracking-normal" style={{ color: intensity.color, background: `${intensity.color}14`, boxShadow: `inset 0 0 0 1px ${intensity.color}40` }}>
-                  {intensity.label}
-                </span>
-              )}
-              {next && <span className="od-badge">Próximo treino</span>}
-              {w.status === "done" && <span className="od-badge">✓ Feito</span>}
-              {w.status === "skipped" && <span className="od-badge od-badge-muted">Pulado</span>}
+    <div className="space-y-5">
+      {/* tres colunas lado a lado: como fazer · alvos · km a km */}
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.8fr)_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-4 md:col-span-2 xl:col-span-1">
+          <div className="flex items-start gap-3">
+            <SportTile sport={w.sport} size={46} radius={14} />
+            <div className="min-w-0 flex-1">
+              <div className="text-[0.7rem] font-semibold uppercase tracking-wider text-brand-muted">
+                {dayLong(w.date)}{t.tipo ? ` · ${t.tipo}` : ""}
+              </div>
+              <h3 className="mt-0.5 font-display text-xl font-bold leading-tight">{w.title}</h3>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="od-badge od-badge-muted !normal-case !tracking-normal">{volume(w)}</span>
+                {intensity && (
+                  <span className="od-badge !normal-case !tracking-normal" style={{ color: intensity.color, background: `${intensity.color}14`, boxShadow: `inset 0 0 0 1px ${intensity.color}40` }}>
+                    {intensity.label}
+                  </span>
+                )}
+                {next && <span className="od-badge">Próximo treino</span>}
+                {w.status === "done" && <span className="od-badge">✓ Feito</span>}
+                {w.status === "skipped" && <span className="od-badge od-badge-muted">Pulado</span>}
+              </div>
             </div>
           </div>
+
+          {(w.objective || w.reason) && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {w.objective && (
+                <div className="rounded-xl px-3.5 py-3" style={{ background: `${color}0b`, boxShadow: `inset 0 0 0 1px ${color}26` }}>
+                  <div className="od-metric-label mb-1" style={{ color }}>Para quê</div>
+                  <p className="text-[0.84rem] leading-snug">{w.objective}</p>
+                </div>
+              )}
+              {w.reason && (
+                <div className="od-tile px-3.5 py-3">
+                  <div className="od-metric-label mb-1">Por que agora</div>
+                  <p className="text-[0.84rem] leading-snug text-brand-textSecondary">{w.reason}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {steps.length > 0 && (
+            <div>
+              <div className="od-metric-label mb-2">Como fazer</div>
+              <StepBar steps={steps} main={color} />
+              <ol className="mt-3">
+                {steps.map((s, i) => {
+                  const c = s.fase === "principal" ? color : PHASE_COLOR[s.fase] ?? "#888";
+                  return (
+                    <li key={i} className="relative flex gap-3 pb-3 last:pb-0">
+                      {i < steps.length - 1 && <span className="absolute left-[5px] top-4 h-full w-px bg-white/10" aria-hidden />}
+                      <span className="relative mt-1 h-[11px] w-[11px] shrink-0 rounded-full" style={{ background: c, boxShadow: `0 0 10px ${c}88` }} aria-hidden />
+                      <div className="min-w-0">
+                        <div className="text-[0.66rem] font-bold uppercase tracking-wider" style={{ color: c }}>{STEP_LABEL[s.fase] ?? s.fase}</div>
+                        <div className="text-[0.85rem]">{s.descricao}</div>
+                        {stepDetail(s) && <div className="mt-0.5 text-[0.72rem] text-brand-muted">{stepDetail(s)}</div>}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          )}
+          {!w.objective && !steps.length && w.description && <p className="text-sm text-brand-textSecondary">{w.description}</p>}
         </div>
 
-        {(w.objective || w.reason) && (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {w.objective && (
-              <div className="rounded-xl px-3.5 py-3" style={{ background: `${color}0b`, boxShadow: `inset 0 0 0 1px ${color}26` }}>
-                <div className="od-metric-label mb-1" style={{ color }}>Para quê</div>
-                <p className="text-[0.84rem] leading-snug">{w.objective}</p>
-              </div>
-            )}
-            {w.reason && (
-              <div className="od-tile px-3.5 py-3">
-                <div className="od-metric-label mb-1">Por que agora</div>
-                <p className="text-[0.84rem] leading-snug text-brand-textSecondary">{w.reason}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {steps.length > 0 && (
-          <div>
-            <div className="od-metric-label mb-2">Como fazer</div>
-            <StepBar steps={steps} main={color} />
-            <ol className="mt-3">
-              {steps.map((s, i) => {
-                const c = s.fase === "principal" ? color : PHASE_COLOR[s.fase] ?? "#888";
-                return (
-                  <li key={i} className="relative flex gap-3 pb-3 last:pb-0">
-                    {i < steps.length - 1 && <span className="absolute left-[5px] top-4 h-full w-px bg-white/10" aria-hidden />}
-                    <span className="relative mt-1 h-[11px] w-[11px] shrink-0 rounded-full" style={{ background: c, boxShadow: `0 0 10px ${c}88` }} aria-hidden />
-                    <div className="min-w-0">
-                      <div className="text-[0.66rem] font-bold uppercase tracking-wider" style={{ color: c }}>{STEP_LABEL[s.fase] ?? s.fase}</div>
-                      <div className="text-[0.85rem]">{s.descricao}</div>
-                      {stepDetail(s) && <div className="mt-0.5 text-[0.72rem] text-brand-muted">{stepDetail(s)}</div>}
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-        )}
-        {!w.objective && !steps.length && w.description && <p className="text-sm text-brand-textSecondary">{w.description}</p>}
-      </div>
-
-      <div className="min-w-0 space-y-3">
         {targets.length > 0 && (
-          <div>
+          <div className="min-w-0">
             <div className="od-metric-label mb-2">Alvos</div>
-            <dl className="grid grid-cols-2 gap-2">
+            <dl className="grid grid-cols-2 gap-1.5">
               {targets.map(([k, v]) => (
-                <div key={k} className="od-tile px-3 py-2">
-                  <dt className="text-[0.66rem] text-brand-muted">{k}</dt>
-                  <dd className="mt-0.5 text-[0.84rem] font-semibold">{v}</dd>
+                <div key={k} className="rounded-lg bg-white/[0.03] px-2.5 py-1.5" style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04)" }}>
+                  <dt className="text-[0.6rem] uppercase tracking-wider text-brand-muted">{k}</dt>
+                  <dd className="mt-0.5 text-[0.78rem] font-semibold leading-snug">{v}</dd>
                 </div>
               ))}
             </dl>
           </div>
         )}
-        {t.metrica_prioritaria && (
-          <p className="rounded-xl bg-white/[0.03] px-3 py-2 text-[0.78rem] text-brand-textSecondary">
-            <span className="text-brand-muted">Se ritmo, FC e PSE não baterem, priorize: </span>{t.metrica_prioritaria}
-          </p>
-        )}
-        {t.observacoes && <p className="text-[0.78rem] text-brand-textSecondary">{t.observacoes}</p>}
-        {t.ajuste_pedido && <p className="text-[0.72rem] text-brand-muted">Trocado a seu pedido: &quot;{t.ajuste_pedido}&quot;</p>}
-        {editable && <WorkoutActions w={w} onDone={onDone} />}
+
+        <div className="min-w-0">
+          <KmBreakdown w={w} color={color} />
+        </div>
       </div>
+
+      {/* embaixo: o que priorizar, observacoes e as acoes */}
+      {hasFooter && (
+        <div className="flex flex-col gap-3 border-t border-white/5 pt-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 space-y-1.5 text-[0.78rem] text-brand-textSecondary">
+            {t.metrica_prioritaria && (
+              <p><span className="text-brand-muted">Se ritmo, FC e PSE não baterem, priorize: </span><span className="font-semibold text-white">{t.metrica_prioritaria}</span></p>
+            )}
+            {t.observacoes && <p>{t.observacoes}</p>}
+            {t.ajuste_pedido && <p className="text-[0.72rem] text-brand-muted">Trocado a seu pedido: &quot;{t.ajuste_pedido}&quot;</p>}
+          </div>
+          {editable && <div className="shrink-0 lg:w-[360px]"><WorkoutActions w={w} onDone={onDone} /></div>}
+        </div>
+      )}
     </div>
   );
 }

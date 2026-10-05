@@ -38,9 +38,17 @@ function workout(p: Partial<PlannedWorkout> & Pick<PlannedWorkout, "id" | "date"
 
 const WORKOUTS: PlannedWorkout[] = [
   workout({
-    id: "w1", date: day(0), title: "Rodagem leve", status: "done", target_distance_m: 6000, target_duration_s: 2160,
-    objective: "Manter o volume aeróbico sem cansar.", reason: "Você vem de um longão no domingo.",
-    targets: { tipo: "Rodagem", ritmo: "6:00–6:20/km", zona_fc: "Z2" },
+    id: "w1", date: day(0), title: "Rodagem leve de retomada", target_distance_m: 5000, target_duration_s: 1800,
+    objective: "Acostumar o corpo ao impacto com esforço baixo.", reason: "Voltar a correr após o longão cansativo e a dor lombar.",
+    steps: [
+      { fase: "aquecimento", descricao: "Caminhada leve e mobilidade", duracao_min: 5, distancia_km: 0.5, repeticoes: null, ritmo: null, zona_fc: null, pse: "1/10", recuperacao: null },
+      { fase: "principal", descricao: "Corrida contínua em ritmo leve", duracao_min: 25, distancia_km: 4.5, repeticoes: null, ritmo: "6:00/km", zona_fc: "Zona 2", pse: "3/10", recuperacao: null },
+      { fase: "desaquecimento", descricao: "Caminhada leve", duracao_min: null, distancia_km: null, repeticoes: null, ritmo: null, zona_fc: null, pse: null, recuperacao: null },
+    ],
+    targets: {
+      tipo: "Rodagem leve", ritmo: "6:00/km", pse: "3/10 (leve, dá para conversar)", cadencia: "173 ppm", zona_fc: "Zona 2",
+      gap: "6:00/km", terreno: "plano", metrica_prioritaria: "PSE", observacoes: "Se a lombar incomodar, interrompa o treino.",
+    },
   }),
   workout({
     id: "w2", date: day(2), title: "Intervalado 6×800 m", target_intensity: "forte", target_distance_m: 9000, target_duration_s: 3000,
