@@ -186,7 +186,9 @@ Preencha o JSON pedido:
   zona de FC, PSE com a explicacao pratica, cadencia (a partir da habitual do
   atleta, nunca 180 como regra), terreno, qual metrica priorizar se ritmo, FC e PSE
   discordarem, observacoes e os passos (aquecimento, principal, desaquecimento;
-  no principal, repeticoes e recuperacao quando for intervalado). Use null no que
+  no principal, repeticoes e recuperacao quando for intervalado). TODO passo,
+  inclusive aquecimento e desaquecimento, tem distancia, duracao e pace (m:ss/km);
+  a soma das distancias dos passos e a distancia do treino. Use null no que
   nao se aplica.
 - criterios_ajuste: quando manter, reduzir, acelerar e interromper, com sinais
   concretos (FC, PSE, dor, ritmo). No maximo 2 itens curtos por lista.
@@ -299,10 +301,16 @@ class ChatReply(BaseModel):
 class PlanStep(BaseModel):
     fase: Literal["aquecimento", "principal", "desaquecimento"]
     descricao: str
-    duracao_min: float | None
-    distancia_km: float | None
+    duracao_min: float | None = Field(description="Minutos deste passo. Preencha em TODOS os passos, inclusive aquecimento e desaquecimento.")
+    distancia_km: float | None = Field(
+        description="Km deste passo. Preencha em TODOS os passos, inclusive aquecimento e desaquecimento; "
+        "a soma dos passos e a distancia total do treino."
+    )
     repeticoes: int | None
-    ritmo: str | None
+    ritmo: str | None = Field(
+        description="Pace alvo do passo no formato m:ss/km (ex.: 6:00/km; caminhada ~10:00/km). Preencha em TODOS "
+        "os passos, inclusive aquecimento e desaquecimento. Progressivo: 6:00 → 5:30/km."
+    )
     zona_fc: str | None
     pse: str | None
     recuperacao: str | None
