@@ -107,3 +107,24 @@ espelho `kactus` via commit-ponte).
   semana e treinos da semana escolhida; conferido em `/coach-preview`.
 - **Fase 6 — pendente**: teste ao vivo com a conta do Murilo. Pré-requisito: a prova com data
   em "O que a Duni sabe de você" (tipo Prova, ex.: "Maratona do Rio", data de maio/2027).
+
+### Ajuste pedido no mesmo dia: o plano lê os últimos 6 meses (commit `d46cf1d`)
+
+"Analise os últimos 6 meses e monte o plano; se baseie mais no último mês, mas leve em
+conta o histórico." Feito em `ai/training_history.py` + `_goal_setup` (coach_service):
+
+- Volume de partida = maior entre a média ponderada das 4 últimas semanas (40/30/20/10%) e
+  85% da última semana; caminhada registrada como corrida (> 9:00/km) fica fora.
+- Teto pelo histórico (melhor bloco de 4 semanas × 1,1, nunca acima do pico da distância);
+  nível = 70% ritmo × FC do último mês + 30% recordes do último ano (−1% por semana de pausa,
+  até 12%). Dor recente ou lesão cadastrada → subida de 8%/semana; volta de pausa sem dor →
+  subida de 15% até 60% do volume antigo.
+- Dias de treino vêm das memórias de disponibilidade (longão no fim de semana).
+- Os fatores vão para a Duni e para a tela ("O que a Duni levou em conta"), em
+  `goal_plans.analysis` (migração 022, aplicada).
+
+Leitura real do Murilo (5/10): abr–mai 47–58 km/semana e longões de 30–36 km; jun–set quase
+parado (pausa de 8 semanas); retomada 8,6 → 17,8 km; dor lombar 3/10 e sacroilíaca;
+disponível ter/qui/sáb. Plano gerado: 34 semanas, 102 treinos ter/qui/sáb, ~19 km → 55 km
+(janeiro), longão até 32 km, VDOT 35,8 (maratona hoje ~4h11, ritmo de prova 5:58/km).
+Semana de 5/10 detalhada (status amarelo).
