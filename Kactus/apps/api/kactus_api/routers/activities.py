@@ -17,7 +17,7 @@ from kactus_api.metrics.records import recompute_all_records_background
 from kactus_api.models import Activity, DailyMetric, Equipment, PersonalRecord, PlannedWorkout
 from kactus_api.models.activity import SPORT_VALUES
 from kactus_api.parsers import ParserError, UnsupportedFormatError, parse_file
-from kactus_api.parsers.base import NormalizedActivity, NormalizedLap, NormalizedPoint
+from kactus_api.parsers.base import NormalizedActivity, NormalizedLap, NormalizedPoint, moving_clock
 from kactus_api.parsers.sports import normalize_sport
 from kactus_api.schemas.activity import (
     ActivityDetail,
@@ -265,7 +265,7 @@ def delete_all_activities(current_user: CurrentUser, db: DbSession) -> dict:
 
 
 @router.get("/{activity_id}", response_model=ActivityDetail)
-def get_activity(activity_id: uuid.UUID, current_user: CurrentUser, db: DbSession) -> Activity:
+def get_activity(activity_id: uuid.UUID, current_user: CurrentUser, db: DbSession) -> ActivityDetail:
     activity = db.execute(
         select(Activity).where(
             Activity.id == activity_id,
@@ -275,7 +275,7 @@ def get_activity(activity_id: uuid.UUID, current_user: CurrentUser, db: DbSessio
     ).scalar_one_or_none()
     if activity is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Atividade nao encontrada")
-    return activity
+    return _detail(activity)
 
 
 @router.patch("/{activity_id}", response_model=ActivityDetail)
@@ -285,7 +285,7 @@ def update_activity(
     current_user: CurrentUser,
     db: DbSession,
     background: BackgroundTasks,
-) -> Activity:
+) -> ActivityDetail:
     activity = _load_activity(db, activity_id, current_user.id)
     data = body.model_dump(exclude_unset=True)
     if "sport" in data and data["sport"] not in SPORT_VALUES:
@@ -312,13 +312,13 @@ def update_activity(
         background.add_task(recompute_all_records_background, current_user.id)
 
     db.refresh(activity)
-    return activity
+    return _detail(activity)
 
 
 @router.put("/{activity_id}/checkin", response_model=ActivityDetail)
 def put_checkin(
     activity_id: uuid.UUID, body: CheckinIn, current_user: CurrentUser, db: DbSession
-) -> Activity:
+) -> ActivityDetail:
     """Grava (ou apaga, com tudo nulo) o check-in pos-treino da atividade."""
     activity = _load_activity(db, activity_id, current_user.id)
     location = (body.pain_location or "").strip() or None
@@ -335,7 +335,7 @@ def put_checkin(
     activity.checkin_at = datetime.now(UTC) if filled else None
     db.commit()
     db.refresh(activity)
-    return activity
+    return _detail(activity)
 
 
 @router.delete("/{activity_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -362,9 +362,12 @@ def get_splits(
     split_m: Annotated[float, Query(ge=100, le=42195)] = 1000.0,
 ) -> list[SplitOut]:
     activity = _load_activity(db, activity_id, current_user.id)
+    # parcial medida no tempo corrido: o relogio de movimento no lugar do decorrido,
+    # pra pausa no meio do km nao inflar o tempo dele
+    clock = _moving_clock(activity) or [p.elapsed_time_s for p in activity.points]
     points = [
-        PointLike(elapsed_time_s=p.elapsed_time_s, distance_m=_f(p.distance_m), altitude_m=_f(p.altitude_m), hr=p.hr)
-        for p in activity.points
+        PointLike(elapsed_time_s=t, distance_m=_f(p.distance_m), altitude_m=_f(p.altitude_m), hr=p.hr)
+        for p, t in zip(activity.points, clock, strict=True)
     ]
     return [SplitOut(**asdict(s)) for s in compute_splits(points, split_m)]
 
@@ -393,6 +396,42 @@ def _load_activity(db: DbSession, activity_id: uuid.UUID, user_id: uuid.UUID) ->
     if activity is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Atividade nao encontrada")
     return activity
+
+
+def _detail(activity: Activity) -> ActivityDetail:
+    """Detalhe com o relogio de movimento em cada ponto (contadores dos videos de Story)."""
+    detail = ActivityDetail.model_validate(activity)
+    clock = _moving_clock(activity)
+    if clock:
+        for out, t in zip(detail.points, clock, strict=True):
+            out.moving_s = t
+    return detail
+
+
+def _moving_clock(activity: Activity) -> list[float] | None:
+    """Tempo em movimento acumulado ate cada ponto gravado, terminando exatamente no
+    `moving_time_s` da atividade. Os pontos gravados sao reduzidos, entao a conta neles
+    sai um pouco diferente da feita no import: a escala acerta o fim, e a soma das
+    parciais bate com o tempo mostrado na tela e nos Stories."""
+    if not activity.moving_time_s or not activity.points:
+        return None
+    clock = moving_clock(
+        [
+            NormalizedPoint(
+                elapsed_time_s=p.elapsed_time_s,
+                lat=_f(p.lat),
+                lon=_f(p.lon),
+                distance_m=_f(p.distance_m),
+                speed_ms=_f(p.speed_ms),
+            )
+            for p in activity.points
+        ],
+        activity.sport,
+    )
+    if not clock or clock[-1] <= 0:
+        return None
+    scale = activity.moving_time_s / clock[-1]
+    return [round(t * scale, 1) for t in clock]
 
 
 def _f(v) -> float | None:

@@ -128,6 +128,14 @@ def compute_moving_time_s(points: list[NormalizedPoint], sport: str) -> int | No
     Devolve None quando nao da pra saber: esporte sem limiar (natacao, forca...)
     ou arquivo sem velocidade, distancia nem GPS (ex.: esteira sem sensor).
     """
+    clock = moving_clock(points, sport)
+    return clock[-1] if clock else None
+
+
+def moving_clock(points: list[NormalizedPoint], sport: str) -> list[int] | None:
+    """Tempo em movimento acumulado ate cada ponto (mesma regra de
+    `compute_moving_time_s`): o "cronometro" que para nas pausas e paradas.
+    Serve pra medir parciais e contadores pelo tempo corrido, nao pelo do relogio."""
     threshold = _MIN_MOVING_SPEED_MS.get(sport)
     if threshold is None or len(points) < 2:
         return None
@@ -135,16 +143,19 @@ def compute_moving_time_s(points: list[NormalizedPoint], sport: str) -> int | No
         return None
 
     moving = 0
+    clock = [0]
     start = 0  # inicio da janela de velocidade
     for i in range(1, len(points)):
         dt = points[i].elapsed_time_s - points[i - 1].elapsed_time_s
         if dt <= 0:
+            clock.append(moving)
             continue
         if dt > _PAUSE_GAP_S:
             gap_speed = _window_speed(points[i - 1], points[i], use_device_speed=False)
             if gap_speed is not None and gap_speed >= threshold:
                 moving += dt
             start = i
+            clock.append(moving)
             continue
         t = points[i].elapsed_time_s
         while start < i - 1 and t - points[start + 1].elapsed_time_s >= _SPEED_WINDOW_S:
@@ -152,7 +163,8 @@ def compute_moving_time_s(points: list[NormalizedPoint], sport: str) -> int | No
         speed = _window_speed(points[start], points[i])
         if speed is None or speed >= threshold:
             moving += dt
-    return moving
+        clock.append(moving)
+    return clock
 
 
 def _window_speed(a: NormalizedPoint, b: NormalizedPoint, *, use_device_speed: bool = True) -> float | None:

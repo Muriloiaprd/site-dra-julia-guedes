@@ -2,7 +2,8 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 
 from kactus_api.metrics.load import compute_tss
-from kactus_api.parsers.base import NormalizedActivity, NormalizedPoint, compute_moving_time_s
+from kactus_api.metrics.basic import PointLike, compute_splits
+from kactus_api.parsers.base import NormalizedActivity, NormalizedPoint, compute_moving_time_s, moving_clock
 from kactus_api.services.import_service import resolve_moving_time
 
 
@@ -102,3 +103,22 @@ def test_tss_uses_moving_time():
     elapsed_only = SimpleNamespace(**base, duration_s=3600, moving_time_s=None)
     with_stops = SimpleNamespace(**base, duration_s=3600, moving_time_s=1800)
     assert compute_tss(with_stops) == compute_tss(elapsed_only) / 2
+
+
+def test_moving_clock_stops_during_pause():
+    points = _run((300, 3.0))
+    last = points[-1]
+    points.append(NormalizedPoint(elapsed_time_s=last.elapsed_time_s + 180, lat=last.lat, lon=last.lon, distance_m=last.distance_m))
+    clock = moving_clock(points, "run")
+    assert len(clock) == len(points)
+    assert clock[-1] == clock[-2] == 300  # a pausa de 3 min nao anda o relogio
+    assert clock == sorted(clock)
+
+
+def test_splits_on_moving_clock_ignore_the_pause():
+    # 1 km a 4 m/s (250 s), 6 min parado, mais 1 km a 4 m/s
+    points = _run((250, 4.0), (360, 0.0), (250, 4.0))
+    clock = moving_clock(points, "run")
+    splits = compute_splits([PointLike(elapsed_time_s=t, distance_m=p.distance_m) for p, t in zip(points, clock, strict=True)])
+    # a janela de 10 s arrasta alguns segundos nas bordas da parada
+    assert [abs(s.duration_s - 250) <= 12 for s in splits[:2]] == [True, True]

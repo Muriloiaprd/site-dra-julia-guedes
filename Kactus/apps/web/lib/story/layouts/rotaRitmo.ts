@@ -217,7 +217,7 @@ export const rotaRitmo: StoryLayout = {
       const head = geo.points[upto - 1];
       const last = geo.points[n - 1];
       meters = head.distance_m ?? (a.distance_m ?? 0) * progress;
-      seconds = activeSeconds(a) * (last.elapsed_time_s ? head.elapsed_time_s / last.elapsed_time_s : progress);
+      seconds = head.moving_s ?? activeSeconds(a) * (last.elapsed_time_s ? head.elapsed_time_s / last.elapsed_time_s : progress);
     }
     const dist = distanceParts(meters);
     txt(ctx, `${dist.value} ${dist.unit}  ·  ${formatDuration(seconds)}`, 540, 1720, { font: `700 44px ${SANS}`, color: "#fff", align: "center", shadow: true });

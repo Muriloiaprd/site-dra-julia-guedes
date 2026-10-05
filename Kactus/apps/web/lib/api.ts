@@ -76,6 +76,8 @@ export interface ActivitySummary {
 
 export interface ActivityPoint {
   elapsed_time_s: number;
+  /** Tempo em movimento acumulado ate o ponto (para nas pausas); ausente quando nao da pra saber. */
+  moving_s?: number | null;
   lat: number | null;
   lon: number | null;
   altitude_m: number | null;

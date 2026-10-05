@@ -17,7 +17,7 @@ function zoneOf(hr: number, zones: HrZones | null, maxSeen: number): number {
   return pct < 0.6 ? 0 : pct < 0.7 ? 1 : pct < 0.8 ? 2 : pct < 0.9 ? 3 : 4;
 }
 
-/** Ponto da curva: `t` = fração do tempo do treino (0 → 1), `d` = distância ali. */
+/** Ponto da curva: `t` = fração do tempo em movimento (0 → 1), `d` = distância ali. */
 type Sample = { x: number; hr: number; t: number; d: number | null };
 
 /**
@@ -29,16 +29,22 @@ function hrSeries(a: ActivityDetail): Sample[] {
   const hit = seriesCache.get(a);
   if (hit) return hit;
   const pts = a.points.filter((p) => p.hr != null);
-  const t0 = pts[0].elapsed_time_s;
-  const tN = pts[pts.length - 1].elapsed_time_s || 1;
-  const dt = Math.max(1, (tN - t0) / pts.length);
+  // eixo no tempo corrido: com o relogio de movimento a pausa some da curva
+  const clock = (p: (typeof pts)[number]) => p.moving_s ?? p.elapsed_time_s;
+  const t0 = clock(pts[0]);
+  const tN = clock(pts[pts.length - 1]) || 1;
+  const dt = Math.max(1, (pts[pts.length - 1].elapsed_time_s - pts[0].elapsed_time_s) / pts.length);
   const hrs = smooth(pts.map((p) => p.hr), Math.max(2, Math.round(15 / dt / 2)));
   const step = Math.max(1, Math.floor(pts.length / 700));
   const series: Sample[] = [];
+  let lastT = -1;
   for (let i = 0; i < pts.length; i += step) {
     const hr = hrs[i];
-    const t = (pts[i].elapsed_time_s - t0) / (tN - t0 || 1);
-    if (hr != null) series.push({ x: BAND.x + t * BAND.w, hr, t, d: pts[i].distance_m });
+    const t = (clock(pts[i]) - t0) / (tN - t0 || 1);
+    // parado o relogio nao anda: ponto no mesmo x viraria um risco vertical
+    if (hr == null || t <= lastT) continue;
+    lastT = t;
+    series.push({ x: BAND.x + t * BAND.w, hr, t, d: pts[i].distance_m });
   }
   seriesCache.set(a, series);
   return series;

@@ -68,6 +68,8 @@ class ActivityPointOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     elapsed_time_s: int
+    # tempo em movimento acumulado ate o ponto (para nas pausas); None quando nao da pra saber
+    moving_s: float | None = None
     lat: float | None = None
     lon: float | None = None
     altitude_m: float | None = None
