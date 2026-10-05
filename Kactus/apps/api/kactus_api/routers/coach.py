@@ -23,6 +23,7 @@ from kactus_api.models.coach import AthleteMemory, CoachInteraction, PlannedWork
 from kactus_api.schemas.coach import (
     ActivityCommentResponse,
     AnalyzeResponse,
+    ApplyReviewRequest,
     ChatHistoryItem,
     ChatRequest,
     ChatResponse,
@@ -37,6 +38,8 @@ from kactus_api.schemas.coach import (
     RegenerateWorkoutResponse,
     UpdateWorkoutStatusRequest,
     WeeklyPlanResponse,
+    WorkoutReviewRequest,
+    WorkoutReviewResponse,
 )
 
 router = APIRouter(prefix="/coach", tags=["coach"])
@@ -227,6 +230,35 @@ def post_regenerate_workout(
     except CoachPlanParseError as e:
         _raise_parse_error(e)
     return {"workout": workout, "explanation": explanation, "model_used": model_used}
+
+
+@router.post("/plan/{workout_id}/analyze", response_model=WorkoutReviewResponse)
+def post_review_workout(
+    workout_id: uuid.UUID, body: WorkoutReviewRequest, current_user: CurrentUser, db: DbSession
+) -> dict:
+    """A Duni analisa o treino do dia (nao muda nada)."""
+    try:
+        return coach_service.review_workout(db, current_user.id, workout_id, body.question)
+    except PlanEditError as e:
+        _raise_plan_edit(e)
+    except CoachUnavailableError as e:
+        _raise_unavailable(e)
+    except CoachPlanParseError as e:
+        _raise_parse_error(e)
+
+
+@router.post("/plan/{workout_id}/apply-review", response_model=RegenerateWorkoutResponse)
+def post_apply_review(
+    workout_id: uuid.UUID, body: ApplyReviewRequest, current_user: CurrentUser, db: DbSession
+) -> dict:
+    """Aplica a sugestao da analise: treino ajustado no mesmo dia, ou descanso."""
+    try:
+        workout = coach_service.apply_review(
+            db, current_user.id, workout_id, body.verdict, body.suggestion, body.explanation,
+        )
+    except PlanEditError as e:
+        _raise_plan_edit(e)
+    return {"workout": workout, "explanation": body.explanation, "model_used": "analise"}
 
 
 @router.post("/plan/{workout_id}/move", response_model=PlannedWorkoutOut)

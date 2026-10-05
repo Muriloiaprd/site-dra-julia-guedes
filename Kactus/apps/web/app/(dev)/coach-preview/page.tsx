@@ -202,6 +202,22 @@ const GOAL = goalExample();
 const METRICS: DailyMetric[] = [{ date: toISODate(new Date()), daily_load: 40, ctl: 38, atl: 35, tsb: 3.2, acwr: 1.05 }];
 
 const ROUTES: [RegExp, unknown][] = [
+  [/\/coach\/plan\/[^/]+\/analyze/, {
+    verdict: "ajustar",
+    explanation: "A lombar doeu no último treino (3/10): troque o progressivo por rodagem leve e mais curta.",
+    points: ["Dor lombar no sábado", "Semana de base: o importante é constância", "Volume da semana segue igual"],
+    suggestion: { titulo: "Rodagem leve sem dor" },
+    preview: {
+      title: "Rodagem leve sem dor", target_distance_m: 4000, target_duration_s: 1620, target_intensity: "leve",
+      targets: { tipo: "rodagem leve", ritmo: "6:30–7:00/km", zona_fc: "Z2 (136–150 bpm)" },
+      steps: [
+        { fase: "aquecimento", descricao: "Caminhada", distancia_km: 0.5, duracao_min: 5, ritmo: "9:30/km", zona_fc: "Z1", repeticoes: null, recuperacao: null },
+        { fase: "principal", descricao: "Rodagem leve", distancia_km: 3, duracao_min: 20, ritmo: "6:45/km", zona_fc: "Z2 (136–150 bpm)", repeticoes: null, recuperacao: null },
+        { fase: "desaquecimento", descricao: "Caminhada", distancia_km: 0.5, duracao_min: 5, ritmo: "9:30/km", zona_fc: "Z1", repeticoes: null, recuperacao: null },
+      ],
+    },
+    model_used: "exemplo",
+  }],
   [/\/coach\/goal-plan/, GOAL],
   [/\/auth\/me$/, { id: "preview", email: "preview@kactus" }],
   [/\/coach\/chat\/history/, HISTORY],

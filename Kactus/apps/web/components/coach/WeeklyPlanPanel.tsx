@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 
+import { WorkoutReview } from "@/components/coach/WorkoutReview";
 import { SportTile } from "@/components/SportIcon";
 import { Alert, Panel } from "@/components/ui/primitives";
 import {
@@ -94,7 +95,7 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
 }
 
 function WorkoutActions({ w, onDone }: { w: PlannedWorkout; onDone: (notice?: string) => Promise<void> }) {
-  const [mode, setMode] = useState<"regen" | "move" | null>(null);
+  const [mode, setMode] = useState<"review" | "regen" | "move" | null>(null);
   const [reason, setReason] = useState("");
   const [date, setDate] = useState(w.date);
   const [conflict, setConflict] = useState<{ title: string } | null>(null);
@@ -136,9 +137,17 @@ function WorkoutActions({ w, onDone }: { w: PlannedWorkout; onDone: (notice?: st
       {error && <p className="mb-2 text-xs text-brand-danger">{error}</p>}
       {mode === null && (
         <div className="flex flex-wrap gap-2 lg:justify-end">
+          <button type="button" onClick={() => setMode("review")} className="od-btn od-btn-primary od-btn-sm">Analisar este treino</button>
           <button type="button" onClick={() => setMode("regen")} className="od-btn od-btn-secondary od-btn-sm">Pedir outro treino</button>
           <button type="button" onClick={() => setMode("move")} className="od-btn od-btn-ghost od-btn-sm">Mudar de dia</button>
         </div>
+      )}
+      {mode === "review" && (
+        <WorkoutReview
+          w={w}
+          onClose={() => setMode(null)}
+          onDone={async (notice) => { setMode(null); await onDone(notice); }}
+        />
       )}
       {mode === "regen" && (
         <div className="space-y-2">

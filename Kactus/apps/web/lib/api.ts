@@ -721,7 +721,8 @@ export interface CoachErrorDetail {
     | "past_date"
     | "not_swappable"
     | "no_goal_race"
-    | "race_too_close";
+    | "race_too_close"
+    | "invalid_suggestion";
   weeks_available?: number;
   message?: string;
   conflict?: { id: string; title: string; status: string };
@@ -806,6 +807,32 @@ export async function regenerateWorkout(
   reason: string,
 ): Promise<{ workout: PlannedWorkout | null; explanation: string; model_used: string }> {
   return coachFetch(`/coach/plan/${id}/regenerate`, { method: "POST", body: JSON.stringify({ reason }) });
+}
+
+/** Analise do treino do dia pela Duni. suggestion volta no apply; preview e para mostrar. */
+export interface WorkoutReview {
+  verdict: "manter" | "ajustar" | "descanso";
+  explanation: string;
+  points: string[];
+  suggestion: Record<string, unknown> | null;
+  preview: Partial<PlannedWorkout> | null;
+  model_used: string;
+}
+
+export async function reviewWorkout(id: string, question?: string): Promise<WorkoutReview> {
+  return coachFetch(`/coach/plan/${id}/analyze`, { method: "POST", body: JSON.stringify({ question: question ?? null }) });
+}
+
+export async function applyWorkoutReview(
+  id: string,
+  verdict: "ajustar" | "descanso",
+  suggestion: Record<string, unknown> | null,
+  explanation: string,
+): Promise<{ workout: PlannedWorkout | null; explanation: string }> {
+  return coachFetch(`/coach/plan/${id}/apply-review`, {
+    method: "POST",
+    body: JSON.stringify({ verdict, suggestion, explanation }),
+  });
 }
 
 export interface ActivityComment {

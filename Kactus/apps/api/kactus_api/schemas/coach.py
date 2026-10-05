@@ -153,6 +153,28 @@ class RegenerateWorkoutRequest(BaseModel):
     reason: str = Field(min_length=3, max_length=300)
 
 
+class WorkoutReviewRequest(BaseModel):
+    question: str | None = Field(default=None, max_length=300)
+
+
+class WorkoutReviewResponse(BaseModel):
+    """Analise do treino do dia. suggestion (formato da IA) volta no apply-review;
+    preview e o mesmo treino nos campos de planned_workouts, para mostrar."""
+
+    verdict: Literal["manter", "ajustar", "descanso"]
+    explanation: str
+    points: list[str]
+    suggestion: dict | None
+    preview: dict | None
+    model_used: str
+
+
+class ApplyReviewRequest(BaseModel):
+    verdict: Literal["ajustar", "descanso"]
+    suggestion: dict | None = None
+    explanation: str = Field(default="", max_length=600)
+
+
 class RegenerateWorkoutResponse(BaseModel):
     workout: PlannedWorkoutOut | None  # None = a Duni trocou por descanso
     explanation: str

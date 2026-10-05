@@ -240,6 +240,26 @@ descanso=true.
 Contexto do atleta (JSON):
 {context}"""
 
+_REVIEW_INSTRUCTION = """O atleta quer uma analise do treino de {day} antes de fazer.
+{question}
+Treino planejado desse dia (JSON): {current}
+Resto da semana (JSON): {week}
+Status da semana: {status}
+{goal}
+
+Analise se ESTE treino faz sentido para o atleta AGORA: carga recente (7 x 28 dias),
+dor e check-ins recentes, o que ele fez nos ultimos dias, a fase do plano do objetivo
+e o que vem no resto da semana. Seja honesta e direta:
+- adequado: veredito "manter" e sugestao null;
+- precisa mudar volume, intensidade ou tipo: veredito "ajustar" e a sugestao
+  completa para o MESMO dia, mantendo a finalidade da fase quando der;
+- o certo e nao treinar (dor forte, cansaco acumulado): veredito "descanso" e
+  sugestao null.
+Se o atleta discordou de algo, responda a duvida dele na explicacao.
+
+Contexto do atleta (JSON):
+{context}"""
+
 _WEEKDAYS_PT = ("segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo")
 WEEKLY_STATUS_EMOJI = {"verde": "🟢", "amarelo": "🟡", "laranja": "🟠", "vermelho": "🔴"}
 
@@ -1221,6 +1241,104 @@ def regenerate_workout(
     workout.updated_at = datetime.now(UTC)
     db.commit()
     return workout, parsed.explicacao, model_used
+
+
+class WorkoutReviewLLM(BaseModel):
+    # mesma pergunta sobre o mesmo treino: mesma analise
+    stable_output: ClassVar[bool] = True
+
+    veredito: Literal["manter", "ajustar", "descanso"]
+    explicacao: str = Field(description="1 a 2 frases curtas: por que manter, ajustar ou descansar, citando os dados.")
+    pontos: list[str] = Field(description="Ate 3 pontos curtos que pesaram (carga, dor, fase do plano). Lista vazia se nada.")
+    sugestao: PlanWorkout | None = Field(
+        description="So com veredito ajustar: o treino ajustado para o MESMO dia, com todos os campos e passos. Senao null."
+    )
+
+
+def _review_inputs(db: Session, user_id: uuid.UUID, workout: PlannedWorkout) -> tuple[str, list[PlannedWorkout], str]:
+    plan = db.get(WeeklyPlan, workout.weekly_plan_id) if workout.weekly_plan_id else None
+    week = db.execute(
+        select(PlannedWorkout)
+        .where(
+            PlannedWorkout.user_id == user_id,
+            PlannedWorkout.id != workout.id,
+            PlannedWorkout.date >= workout.date - timedelta(days=3),
+            PlannedWorkout.date <= workout.date + timedelta(days=3),
+        )
+        .order_by(PlannedWorkout.date)
+    ).scalars().all()
+    goal = db.get(GoalPlan, workout.goal_plan_id) if workout.goal_plan_id else None
+    goal_line = ""
+    if goal:
+        wk = next((w for w in goal.weeks if w["inicio"] <= workout.date.isoformat() <= w["fim"]), None)
+        if wk:
+            goal_line = (
+                f"Plano do objetivo: {goal.race_name} em {goal.race_date.isoformat()}; esta e a semana "
+                f"{wk['semana']} ({goal_plan.PHASE_LABEL.get(wk['fase'], wk['fase'])}"
+                f"{', alivio' if wk['alivio'] else ''}), {wk['km']} km na semana."
+            )
+    return (plan.status if plan else "sem plano semanal"), list(week), goal_line
+
+
+def review_workout(db: Session, user_id: uuid.UUID, workout_id: uuid.UUID, question: str | None = None) -> dict:
+    """A Duni analisa o treino do dia contra os dados de agora. Nao muda nada: a
+    sugestao so vale se o atleta aplicar (apply_review)."""
+    workout = _editable_workout(db, user_id, workout_id)
+    status, week, goal_line = _review_inputs(db, user_id, workout)
+    asked = (question or "").strip()
+    user_content = _REVIEW_INSTRUCTION.format(
+        day=f"{_WEEKDAYS_PT[workout.date.weekday()]} {workout.date.isoformat()}",
+        question=f'O atleta discorda ou tem duvida: "{asked}"' if asked else "",
+        current=json.dumps(_workout_brief(workout), ensure_ascii=False),
+        week=json.dumps([_workout_brief(w) for w in week], ensure_ascii=False),
+        status=status,
+        goal=goal_line,
+        context=json.dumps(build_context(db, user_id), ensure_ascii=False),
+    )
+    parsed, model_used = call_llm(SYSTEM_PROMPT, user_content, response_model=WorkoutReviewLLM)
+
+    suggestion = None
+    if parsed.veredito == "ajustar" and parsed.sugestao is not None:
+        suggestion = parsed.sugestao.model_copy(update={"data": workout.date.isoformat()})  # o dia nao muda
+        _check_workout(suggestion, status)
+    preview = None
+    if suggestion is not None:
+        preview = {k: (v.isoformat() if isinstance(v, date) else v) for k, v in _workout_fields(suggestion).items()}
+    return {
+        "verdict": parsed.veredito,
+        "explanation": parsed.explicacao,
+        "points": [p for p in parsed.pontos if p.strip()][:3],
+        "suggestion": suggestion.model_dump() if suggestion else None,
+        "preview": preview,
+        "model_used": model_used,
+    }
+
+
+def apply_review(
+    db: Session, user_id: uuid.UUID, workout_id: uuid.UUID, verdict: str, suggestion: dict | None, explanation: str,
+) -> PlannedWorkout | None:
+    """Aplica o que a analise sugeriu: troca o treino (mesmo dia) ou vira descanso."""
+    workout = _editable_workout(db, user_id, workout_id)
+    if verdict == "descanso":
+        db.delete(workout)
+        db.commit()
+        return None
+    try:
+        new = PlanWorkout.model_validate(suggestion or {})
+    except ValueError as e:
+        raise PlanEditError("invalid_suggestion", "A sugestão veio incompleta. Peça a análise de novo.", 422) from e
+    new = new.model_copy(update={"data": workout.date.isoformat()})
+    plan = db.get(WeeklyPlan, workout.weekly_plan_id) if workout.weekly_plan_id else None
+    try:
+        _check_workout(new, plan.status if plan else "")
+    except CoachPlanParseError as e:
+        raise PlanEditError("invalid_suggestion", str(e), 422) from e
+    for name, value in _workout_fields(new).items():
+        setattr(workout, name, value)
+    workout.targets = {**(workout.targets or {}), "ajuste_analise": explanation.strip()[:300]}
+    workout.updated_at = datetime.now(UTC)
+    db.commit()
+    return workout
 
 
 def move_workout(
