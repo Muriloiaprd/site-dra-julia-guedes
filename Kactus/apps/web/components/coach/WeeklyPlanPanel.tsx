@@ -637,7 +637,7 @@ function DayColumn({
 
 export function WeeklyPlanPanel({
   plan, workouts, onRefresh, onGenerate, generating,
-  title = "Plano da semana", note, emptyText, generateLabel = "Gerar plano da semana",
+  title = "Plano da semana", note, emptyText, generateLabel = "Gerar plano da semana", detailable = true,
 }: {
   plan: WeeklyPlan | null;
   workouts: PlannedWorkout[];
@@ -649,11 +649,13 @@ export function WeeklyPlanPanel({
   note?: ReactNode;
   emptyText?: string;
   generateLabel?: string;
+  /** Mostra "Detalhar a semana" quando ha treino sem passo a passo (so no plano que vale). */
+  detailable?: boolean;
 }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
 
-  if (!plan) {
+  if (!plan && workouts.length === 0) {
     return (
       <Panel>
         <h2 className="od-label">{title}</h2>
@@ -669,26 +671,31 @@ export function WeeklyPlanPanel({
     );
   }
 
-  const r = plan.report;
-  const load = r.carga_semana_anterior;
   const today = toISODate(new Date());
+  // Sem o plano da semana (ainda nao detalhado), o quadro mostra os treinos do objetivo
+  // dos proximos 7 dias; status e analise so aparecem depois de detalhar.
+  const r = plan?.report ?? null;
+  const load = r?.carga_semana_anterior ?? null;
+  const weekStart = plan?.week_start ?? today;
+  const weekEnd = plan?.week_end ?? toISODate(new Date(parseLocalDate(today).getTime() + 6 * 86_400_000));
+  const undetailed = workouts.filter((w) => w.status === "planned" && w.date >= today && !(w.steps && w.steps.length));
   const byDate = new Map<string, PlannedWorkout[]>();
   for (const w of workouts) byDate.set(w.date, [...(byDate.get(w.date) ?? []), w]);
   // "Mudar de dia" pode levar um treino para fora da semana: ele vira mais uma coluna
-  const days = [...new Set([...weekDays(plan.week_start, plan.week_end), ...workouts.map((w) => w.date)])].sort();
+  const days = [...new Set([...weekDays(weekStart, weekEnd), ...workouts.map((w) => w.date)])].sort();
   const maxLoad = Math.max(1, ...workouts.map(workload));
   const nextId = workouts.find((w) => w.status === "planned" && w.date >= today)?.id;
   const nextDate = workouts.find((w) => w.id === nextId)?.date;
   const selected = picked && days.includes(picked) ? picked : days.includes(today) ? today : nextDate ?? days[0];
   const selectedList = byDate.get(selected) ?? [];
   const doneCount = workouts.filter((w) => w.status === "done").length;
-  const comp = Object.entries(load.complementar ?? {});
+  const comp = Object.entries(load?.complementar ?? {});
   // Km e sessoes saem dos treinos salvos, nao do relatorio: "Pedir outro treino" e
   // "Mudar de dia" mudam a semana e o relatorio fica como foi gerado.
   const plannedM = workouts.reduce((s, w) => s + (w.target_distance_m ?? 0), 0);
-  const plannedKm = plannedM > 0 ? Math.round(plannedM / 100) / 10 : r.proxima_semana.km_previsto;
-  const hasEvaluation = Object.values(r.avaliacao).some((l) => l.length > 0);
-  const hasCriteria = Object.values(r.criterios_ajuste).some((l) => l.length > 0);
+  const plannedKm = plannedM > 0 ? Math.round(plannedM / 100) / 10 : r?.proxima_semana.km_previsto ?? null;
+  const hasEvaluation = r ? Object.values(r.avaliacao).some((l) => l.length > 0) : false;
+  const hasCriteria = r ? Object.values(r.criterios_ajuste).some((l) => l.length > 0) : false;
   const done = async (n?: string) => {
     if (n) setNotice(n);
     await onRefresh();
@@ -701,8 +708,9 @@ export function WeeklyPlanPanel({
         <div>
           <h2 className="od-label od-label-accent">{title}</h2>
           <p className="mt-1.5 font-display text-2xl font-extrabold tracking-tight">
-            {shortDate(plan.week_start)} <span className="text-brand-muted">→</span> {shortDate(plan.week_end)}
+            {shortDate(weekStart)} <span className="text-brand-muted">→</span> {shortDate(weekEnd)}
           </p>
+          {!plan && <p className="mt-0.5 text-[0.74rem] text-brand-muted">Treinos do plano do objetivo nestes 7 dias</p>}
         </div>
         <div className="flex flex-wrap items-center gap-1.5 text-[0.74rem]">
           <span className="rounded-full bg-white/[0.04] px-2.5 py-1 text-brand-textSecondary">
@@ -718,6 +726,19 @@ export function WeeklyPlanPanel({
       </div>
 
       {note}
+      {detailable && undetailed.length > 0 && (
+        <div className="flex flex-col gap-2 rounded-xl px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between" style={{ background: "rgba(0,191,255,0.06)", boxShadow: "inset 0 0 0 1px rgba(0,191,255,0.25)" }}>
+          <p className="text-[0.82rem] text-brand-textSecondary">
+            {undetailed.length === workouts.filter((w) => w.status === "planned" && w.date >= today).length
+              ? "Estes treinos ainda não têm o passo a passo (aquecimento, ritmos, desaquecimento)."
+              : `${undetailed.length} treino${undetailed.length === 1 ? "" : "s"} desta semana ainda sem o passo a passo.`}
+            {" "}A Duni detalha seguindo o plano do objetivo, sem mudar dia nem distância.
+          </p>
+          <button type="button" onClick={onGenerate} disabled={generating} className="od-btn od-btn-primary od-btn-sm shrink-0">
+            {generating ? "Detalhando…" : "Detalhar a semana"}
+          </button>
+        </div>
+      )}
       {notice && <Alert tone="accent" title="A Duni ajustou o plano">{notice}</Alert>}
 
       {/* 2. o quadro da semana: um dia por coluna */}
@@ -774,7 +795,8 @@ export function WeeklyPlanPanel({
         )}
       </div>
 
-      {/* 4. o resto fica recolhido */}
+      {/* 4. o resto fica recolhido (so com a semana detalhada) */}
+      {r && load && (
       <details className="group rounded-xl bg-white/[0.02]">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-[0.82rem] text-brand-textSecondary hover:text-white">
           Ver análise completa
@@ -836,6 +858,7 @@ export function WeeklyPlanPanel({
           )}
         </div>
       </details>
+      )}
     </Panel>
   );
 }

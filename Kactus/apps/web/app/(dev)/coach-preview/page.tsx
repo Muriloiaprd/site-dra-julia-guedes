@@ -265,6 +265,12 @@ function install() {
   window.fetch = async (input, init) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     if (url.includes("/api/")) {
+      // ?sem-semana: plano do objetivo sem a semana detalhada (cards so com os treinos do objetivo)
+      if (/\/coach\/plan\/week/.test(url) && window.location.search.includes("sem-semana")) {
+        const end = day(6);
+        const body = { plan: null, workouts: GOAL.workouts.filter((w) => w.date <= end) };
+        return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
       const hit = ROUTES.find(([re]) => re.test(url));
       return new Response(JSON.stringify(hit ? hit[1] : {}), { status: 200, headers: { "Content-Type": "application/json" } });
     }

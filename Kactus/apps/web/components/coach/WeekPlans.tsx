@@ -217,8 +217,8 @@ export function WeekPlans({
   );
   if (!hasGoal) return main;
 
-  // sem a semana principal detalhada, compara com os treinos do objetivo nestes dias
-  const goalList = week.plan ? week.workouts : goalWorkouts;
+  // a semana vem pela data (com ou sem plano da semana); sem nada, os treinos do objetivo
+  const goalList = week.workouts.length ? week.workouts : goalWorkouts;
 
   return (
     <div className="space-y-3">
@@ -248,6 +248,7 @@ export function WeekPlans({
           onGenerate={onGenerateFree}
           generating={generatingFree}
           title="Plano da semana · pelo estado de agora"
+          detailable={false}
           emptyText="A Duni monta a semana só pelo seu estado de agora (último mês, dor, cansaço), sem seguir o plano do objetivo. É uma proposta: não muda a sua agenda."
           note={
             <p className="rounded-xl bg-white/[0.03] px-3.5 py-2.5 text-[0.78rem] text-brand-textSecondary">
