@@ -722,7 +722,8 @@ export interface CoachErrorDetail {
     | "not_swappable"
     | "no_goal_race"
     | "race_too_close"
-    | "invalid_suggestion";
+    | "invalid_suggestion"
+    | "no_free_week";
   weeks_available?: number;
   message?: string;
   conflict?: { id: string; title: string; status: string };
@@ -807,6 +808,32 @@ export async function regenerateWorkout(
   reason: string,
 ): Promise<{ workout: PlannedWorkout | null; explanation: string; model_used: string }> {
   return coachFetch(`/coach/plan/${id}/regenerate`, { method: "POST", body: JSON.stringify({ reason }) });
+}
+
+export interface WeekComparison {
+  recomenda: "objetivo" | "semana" | "misturar";
+  explicacao: string;
+  dias: { data: string; escolha: "objetivo" | "semana"; motivo: string }[];
+}
+
+/** O plano da semana pelo estado de agora (proposta, nao muda a agenda) + comparacao. */
+export interface FreeWeekResponse {
+  plan: WeeklyPlan | null;
+  workouts: PlannedWorkout[];
+  comparison: WeekComparison | null;
+}
+
+export async function fetchFreeWeek(): Promise<FreeWeekResponse> {
+  return coachFetch<FreeWeekResponse>("/coach/plan/free");
+}
+
+export async function postFreeWeekGenerate(): Promise<FreeWeekResponse> {
+  return coachFetch<FreeWeekResponse>("/coach/plan/free/generate", { method: "POST" });
+}
+
+/** Leva dias do plano livre para a agenda (sem datas = a semana toda). */
+export async function applyFreeWeek(dates?: string[]): Promise<WeeklyPlanResponse> {
+  return coachFetch<WeeklyPlanResponse>("/coach/plan/free/use", { method: "POST", body: JSON.stringify({ dates: dates ?? null }) });
 }
 
 /** Analise do treino do dia pela Duni. suggestion volta no apply; preview e para mostrar. */

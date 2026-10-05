@@ -22,6 +22,9 @@ class WeeklyPlan(Base):
     week_end: Mapped[dt.date] = mapped_column(Date(), nullable=False)
     status: Mapped[str] = mapped_column(String(10), nullable=False)
     status_reason: Mapped[str] = mapped_column(Text(), nullable=False)
+    # principal: o plano que vale (treinos em planned_workouts). livre: a semana pelo
+    # estado de agora, so para comparar; os treinos ficam em report["treinos"].
+    kind: Mapped[str] = mapped_column(String(10), nullable=False, default="principal")
     report: Mapped[dict] = mapped_column(JSONB(), nullable=False)
     model_used: Mapped[str | None] = mapped_column(String(50), nullable=True)
     prompt_version: Mapped[str | None] = mapped_column(String(10), nullable=True)

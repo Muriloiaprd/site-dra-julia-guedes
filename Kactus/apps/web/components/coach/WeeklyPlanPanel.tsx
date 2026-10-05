@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 
 import { WorkoutReview } from "@/components/coach/WorkoutReview";
 import { SportTile } from "@/components/SportIcon";
@@ -637,12 +637,18 @@ function DayColumn({
 
 export function WeeklyPlanPanel({
   plan, workouts, onRefresh, onGenerate, generating,
+  title = "Plano da semana", note, emptyText, generateLabel = "Gerar plano da semana",
 }: {
   plan: WeeklyPlan | null;
   workouts: PlannedWorkout[];
   onRefresh: () => Promise<void>;
   onGenerate: () => void;
   generating: boolean;
+  /** Para separar o plano do objetivo do plano "pelo estado de agora". */
+  title?: string;
+  note?: ReactNode;
+  emptyText?: string;
+  generateLabel?: string;
 }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
@@ -650,13 +656,13 @@ export function WeeklyPlanPanel({
   if (!plan) {
     return (
       <Panel>
-        <h2 className="od-label">Plano da semana</h2>
+        <h2 className="od-label">{title}</h2>
         <div className="mt-3 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-brand-muted">
-            A Duni ainda não montou o plano desta semana. Ela analisa seu histórico, diz o status e explica cada treino.
+            {emptyText ?? "A Duni ainda não montou o plano desta semana. Ela analisa seu histórico, diz o status e explica cada treino."}
           </p>
           <button type="button" onClick={onGenerate} disabled={generating} className="od-btn od-btn-primary shrink-0">
-            {generating ? "Montando…" : "Gerar plano da semana"}
+            {generating ? "Montando…" : generateLabel}
           </button>
         </div>
       </Panel>
@@ -693,7 +699,7 @@ export function WeeklyPlanPanel({
       {/* 1. cabecalho: a semana e um resumo curto em numeros */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="od-label od-label-accent">Plano da semana</h2>
+          <h2 className="od-label od-label-accent">{title}</h2>
           <p className="mt-1.5 font-display text-2xl font-extrabold tracking-tight">
             {shortDate(plan.week_start)} <span className="text-brand-muted">→</span> {shortDate(plan.week_end)}
           </p>
@@ -711,6 +717,7 @@ export function WeeklyPlanPanel({
         </div>
       </div>
 
+      {note}
       {notice && <Alert tone="accent" title="A Duni ajustou o plano">{notice}</Alert>}
 
       {/* 2. o quadro da semana: um dia por coluna */}

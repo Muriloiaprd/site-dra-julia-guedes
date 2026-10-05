@@ -153,6 +153,19 @@ class RegenerateWorkoutRequest(BaseModel):
     reason: str = Field(min_length=3, max_length=300)
 
 
+class FreeWeekResponse(BaseModel):
+    """O plano da semana pelo estado de agora (proposta) e a comparacao com o objetivo.
+    workouts tem o formato de PlannedWorkoutOut, com id "livre-AAAA-MM-DD"."""
+
+    plan: WeeklyPlanOut | None
+    workouts: list[dict]
+    comparison: dict | None
+
+
+class UseFreeWeekRequest(BaseModel):
+    dates: list[date] | None = None  # None = a semana toda
+
+
 class WorkoutReviewRequest(BaseModel):
     question: str | None = Field(default=None, max_length=300)
 

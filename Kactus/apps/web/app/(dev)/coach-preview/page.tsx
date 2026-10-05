@@ -16,6 +16,7 @@ import type {
   CoachReport,
   DailyMetric,
   PlannedWorkout,
+  FreeWeekResponse,
   GoalPhase,
   GoalPlanResponse,
   WeeklyPlanResponse,
@@ -106,6 +107,27 @@ const WEEK: WeeklyPlanResponse = {
     },
   },
   workouts: WORKOUTS,
+};
+
+/** Plano da semana pelo estado de agora (exemplo): mais leve que o objetivo no começo. */
+const FREE: FreeWeekResponse = {
+  plan: { ...WEEK.plan!, id: "livre", status: "amarelo", status_reason: "Lombar doeu no sábado: começo mais leve." },
+  workouts: [
+    workout({ id: "livre-0", date: day(0), title: "Rodagem curta", target_distance_m: 4000, targets: { tipo: "rodagem leve", ritmo: "6:30–7:00/km", zona_fc: "Z2 (136–150 bpm)" } }),
+    workout({ id: "livre-2", date: day(2), title: "Fartlek leve", target_intensity: "moderado", target_distance_m: 6000, targets: { tipo: "fartlek", ritmo: "6:30/km com estímulos a 5:30/km", zona_fc: "Z2–Z4" } }),
+    workout({ id: "livre-4", date: day(4), title: "Fortalecimento", sport: "strength", target_duration_s: 2400, targets: { tipo: "Força" } }),
+    workout({ id: "livre-5", date: day(5), title: "Rodagem leve", target_distance_m: 5000, targets: { tipo: "rodagem leve", ritmo: "6:30–7:00/km", zona_fc: "Z2 (136–150 bpm)" } }),
+    workout({ id: "livre-6", date: day(6), title: "Longão controlado", target_intensity: "leve", target_distance_m: 12000, targets: { tipo: "longão", ritmo: "6:30–7:00/km", zona_fc: "Z2 (136–150 bpm)" } }),
+  ].map((w) => ({ ...w, status: "proposta" })),
+  comparison: {
+    recomenda: "misturar",
+    explicacao: "A lombar ainda incomoda: comece a semana pelo plano de agora e volte ao objetivo no fim de semana.",
+    dias: [
+      { data: day(0), escolha: "semana", motivo: "Menos volume enquanto a lombar se acalma." },
+      { data: day(2), escolha: "semana", motivo: "Fartlek no lugar dos tiros: mesmo estímulo, menos impacto." },
+      { data: day(6), escolha: "objetivo", motivo: "O longão de 14 km cabe se a dor sumir até sábado." },
+    ],
+  },
 };
 
 const REPORT: CoachReport = {
@@ -202,6 +224,8 @@ const GOAL = goalExample();
 const METRICS: DailyMetric[] = [{ date: toISODate(new Date()), daily_load: 40, ctl: 38, atl: 35, tsb: 3.2, acwr: 1.05 }];
 
 const ROUTES: [RegExp, unknown][] = [
+  [/\/coach\/plan\/free\/use/, WEEK],
+  [/\/coach\/plan\/free/, FREE],
   [/\/coach\/plan\/[^/]+\/analyze/, {
     verdict: "ajustar",
     explanation: "A lombar doeu no último treino (3/10): troque o progressivo por rodagem leve e mais curta.",

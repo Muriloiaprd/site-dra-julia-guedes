@@ -27,6 +27,7 @@ from kactus_api.schemas.coach import (
     ChatHistoryItem,
     ChatRequest,
     ChatResponse,
+    FreeWeekResponse,
     GoalPlanRequest,
     GoalPlanResponse,
     MemoryIn,
@@ -37,6 +38,7 @@ from kactus_api.schemas.coach import (
     RegenerateWorkoutRequest,
     RegenerateWorkoutResponse,
     UpdateWorkoutStatusRequest,
+    UseFreeWeekRequest,
     WeeklyPlanResponse,
     WorkoutReviewRequest,
     WorkoutReviewResponse,
@@ -230,6 +232,45 @@ def post_regenerate_workout(
     except CoachPlanParseError as e:
         _raise_parse_error(e)
     return {"workout": workout, "explanation": explanation, "model_used": model_used}
+
+
+@router.post("/plan/free/generate", response_model=FreeWeekResponse)
+def post_generate_free_week(current_user: CurrentUser, db: DbSession) -> dict:
+    """A semana pelo estado de agora, comparada com o plano do objetivo (nao muda a agenda)."""
+    try:
+        plan, _model_used = coach_service.generate_free_week(db, current_user.id)
+    except InsufficientDataError as e:
+        _raise_insufficient_data(e)
+    except CoachUnavailableError as e:
+        _raise_unavailable(e)
+    except CoachPlanParseError as e:
+        _raise_parse_error(e)
+    return _free_week_body(plan)
+
+
+@router.get("/plan/free", response_model=FreeWeekResponse)
+def get_free_week(current_user: CurrentUser, db: DbSession) -> dict:
+    return _free_week_body(coach_service.current_free_week(db, current_user.id))
+
+
+def _free_week_body(plan) -> dict:
+    if plan is None:
+        return {"plan": None, "workouts": [], "comparison": None}
+    return {
+        "plan": plan,
+        "workouts": [coach_service._free_preview(w) for w in coach_service.free_week_workouts(plan)],
+        "comparison": (plan.report or {}).get("comparacao"),
+    }
+
+
+@router.post("/plan/free/use", response_model=WeeklyPlanResponse)
+def post_use_free_week(body: UseFreeWeekRequest, current_user: CurrentUser, db: DbSession) -> dict:
+    """Leva dias do plano da semana (livre) para a agenda; devolve a semana principal."""
+    try:
+        coach_service.use_free_week(db, current_user.id, body.dates)
+    except PlanEditError as e:
+        _raise_plan_edit(e)
+    return get_plan_week(current_user, db)
 
 
 @router.post("/plan/{workout_id}/analyze", response_model=WorkoutReviewResponse)

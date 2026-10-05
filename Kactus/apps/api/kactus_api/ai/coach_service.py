@@ -1170,7 +1170,7 @@ def current_weekly_plan(db: Session, user_id: uuid.UUID, today: date | None = No
     today = today or date.today()
     return db.execute(
         select(WeeklyPlan)
-        .where(WeeklyPlan.user_id == user_id, WeeklyPlan.week_end >= today)
+        .where(WeeklyPlan.user_id == user_id, WeeklyPlan.kind == "principal", WeeklyPlan.week_end >= today)
         .order_by(WeeklyPlan.created_at.desc())
         .limit(1)
     ).scalar_one_or_none()
@@ -1876,3 +1876,149 @@ def generate_goal_plan(
     db.add_all(rows)
     db.commit()
     return plan, rows, model_used
+
+
+# ── plano da semana "livre": o que a Duni faria AGORA, para comparar com o objetivo ──
+
+
+class WeekComparisonDay(BaseModel):
+    data: str
+    escolha: Literal["objetivo", "semana"]
+    motivo: str = Field(description="1 frase curta (ate ~12 palavras).")
+
+
+class WeekComparison(BaseModel):
+    recomenda: Literal["objetivo", "semana", "misturar"]
+    explicacao: str = Field(description="1 a 2 frases curtas: qual seguir nesta semana e por que, citando os dados.")
+    dias: list[WeekComparisonDay] = Field(description="Um item por dia em que os dois planos diferem.")
+
+
+class FreeWeekLLM(WeeklyPlanLLM):
+    comparacao: WeekComparison
+
+
+_FREE_WEEK_INSTRUCTION = """PLANO DA SEMANA PELO ESTADO DE AGORA. Esqueca por um momento o plano
+do objetivo: monte a semana que voce faria para este atleta HOJE, so pelo estado
+atual (carga e treinos do ultimo mes, dor, check-ins, cansaco, dias disponiveis).
+Pode coincidir ou nao com o objetivo.
+
+Depois compare com o que o plano do objetivo manda para estes mesmos dias (abaixo)
+e preencha "comparacao": qual voce recomenda seguir nesta semana (objetivo, semana
+ou misturar), por que, e para cada dia em que os dois diferem, qual escolher.
+
+Plano do objetivo para estes dias (JSON): {goal_week}
+
+{base}"""
+
+
+def _free_preview(w: PlanWorkout) -> dict:
+    fields = _workout_fields(w)
+    return {
+        "id": f"livre-{w.data}", "status": "proposta", "activity_id": None, "target_tss": None,
+        "description": fields.pop("description"),
+        **{k: (v.isoformat() if isinstance(v, date) else v) for k, v in fields.items()},
+    }
+
+
+def current_free_week(db: Session, user_id: uuid.UUID, today: date | None = None) -> WeeklyPlan | None:
+    today = today or date.today()
+    return db.execute(
+        select(WeeklyPlan)
+        .where(WeeklyPlan.user_id == user_id, WeeklyPlan.kind == "livre", WeeklyPlan.week_end >= today)
+        .order_by(WeeklyPlan.created_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+
+def free_week_workouts(plan: WeeklyPlan) -> list[PlanWorkout]:
+    return [PlanWorkout.model_validate(t) for t in (plan.report or {}).get("treinos", [])]
+
+
+def generate_free_week(db: Session, user_id: uuid.UUID) -> tuple[WeeklyPlan, str]:
+    """A semana pelo estado de agora + a comparacao com o objetivo. Nao mexe na agenda:
+    os treinos ficam no proprio plano (kind=livre) ate o atleta usar algum dia."""
+    context = build_context(db, user_id)
+    _require_sufficient_data(context)
+    start, end = week_range()
+    days = ", ".join(
+        f"{_WEEKDAYS_PT[d.weekday()]} {d.isoformat()}" for d in (start + timedelta(days=i) for i in range(7))
+    )
+    goal_week = db.execute(
+        select(PlannedWorkout)
+        .where(PlannedWorkout.user_id == user_id, PlannedWorkout.date >= start, PlannedWorkout.date <= end)
+        .order_by(PlannedWorkout.date)
+    ).scalars().all()
+    base = _WEEK_PLAN_INSTRUCTION.format(days=days, context=json.dumps(context, ensure_ascii=False))
+    user_content = _FREE_WEEK_INSTRUCTION.format(
+        goal_week=json.dumps([_workout_brief(w) for w in goal_week], ensure_ascii=False), base=base,
+    )
+    parsed, model_used = call_llm(SYSTEM_PROMPT, user_content, response_model=FreeWeekLLM)
+    workouts = validate_weekly_plan(parsed, start, end)
+
+    db.execute(delete(WeeklyPlan).where(WeeklyPlan.user_id == user_id, WeeklyPlan.kind == "livre"))
+    plan = WeeklyPlan(
+        user_id=user_id,
+        kind="livre",
+        week_start=start,
+        week_end=end,
+        status=parsed.status,
+        status_reason=parsed.status_justificativa,
+        report={
+            "resumo": parsed.resumo,
+            "carga_semana_anterior": previous_week_load(context["analise"]),
+            "avaliacao": {k: v[:3] for k, v in parsed.avaliacao.model_dump().items()},
+            "proxima_semana": parsed.proxima_semana.model_dump(),
+            "criterios_ajuste": {k: v[:3] for k, v in parsed.criterios_ajuste.model_dump().items()},
+            "proximas_4_semanas": [w.model_dump() for w in parsed.proximas_4_semanas[:4]],
+            "treinos": [w.model_dump() for w in workouts],
+            "comparacao": parsed.comparacao.model_dump(),
+        },
+        model_used=model_used,
+        prompt_version=settings.coach_prompt_version,
+    )
+    db.add(plan)
+    db.commit()
+    return plan, model_used
+
+
+def use_free_week(db: Session, user_id: uuid.UUID, dates: list[date] | None = None) -> int:
+    """Leva para a agenda os dias escolhidos do plano livre (None = a semana toda, de
+    hoje em diante). Dia com treino no livre troca (ou cria) o da agenda; dia de
+    descanso no livre apaga o planejado. Feito/pulado nao muda. Devolve quantos dias mudaram."""
+    free = current_free_week(db, user_id)
+    if free is None:
+        raise PlanEditError("no_free_week", "Gere o plano da semana pelo estado de agora antes.", 404)
+    today = date.today()
+    by_date = {date.fromisoformat(w.data): w for w in free_week_workouts(free)}
+    week_days = [free.week_start + timedelta(days=i) for i in range((free.week_end - free.week_start).days + 1)]
+    chosen = [d for d in (dates or week_days) if d in week_days and d >= today]
+    main = current_weekly_plan(db, user_id)
+    goal = current_goal_plan(db, user_id)
+    changed = 0
+    for d in chosen:
+        rows = db.execute(
+            select(PlannedWorkout).where(PlannedWorkout.user_id == user_id, PlannedWorkout.date == d)
+        ).scalars().all()
+        if any(r.status != "planned" for r in rows):
+            continue  # ja feito ou pulado
+        fw = by_date.get(d)
+        if fw is None:
+            for r in rows:
+                db.delete(r)
+            changed += bool(rows)
+            continue
+        row = rows[0] if rows else PlannedWorkout(
+            user_id=user_id, plan_batch_id=uuid.uuid4(),
+            weekly_plan_id=main.id if main else None, goal_plan_id=goal.id if goal else None,
+        )
+        for name, value in _workout_fields(fw).items():
+            setattr(row, name, value)
+        row.targets = {**(row.targets or {}), "origem": "plano da semana"}
+        row.updated_at = datetime.now(UTC)
+        if not rows:
+            db.add(row)
+        for extra in rows[1:]:
+            db.delete(extra)
+        changed += 1
+    db.commit()
+    return changed

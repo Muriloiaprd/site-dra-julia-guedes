@@ -7,11 +7,12 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { kindLabel, MemoryPanel, whenLabel } from "@/components/coach/MemoryPanel";
 import { SummaryBody } from "@/components/coach/SummaryBody";
 import { GoalPlanPanel } from "@/components/coach/GoalPlanPanel";
-import { WeeklyPlanPanel } from "@/components/coach/WeeklyPlanPanel";
+import { WeekPlans } from "@/components/coach/WeekPlans";
 import { AiOrb } from "@/components/dashboard/CoachCard";
 import { Markdown } from "@/components/ui/Markdown";
 import { Alert, PageContainer, Panel, StatusDot } from "@/components/ui/primitives";
 import {
+  applyFreeWeek,
   CoachApiError,
   clearCoachHistory,
   createMemory,
@@ -21,12 +22,14 @@ import {
   fetchLoadMetrics,
   fetchMe,
   fetchPredictionsOverview,
+  fetchFreeWeek,
   fetchGoalPlan,
   fetchWeekPlan,
   fetchLastCoachReport,
   postCoachAnalyze,
   postCoachChat,
   postCoachGeneratePlan,
+  postFreeWeekGenerate,
   postGoalPlanGenerate,
   type AthleteMemory,
   type CoachChatMessage,
@@ -35,6 +38,7 @@ import {
   type MemorySuggestion,
   type PlannedWorkout,
   type PredictionsOverview,
+  type FreeWeekResponse,
   type GoalPlanResponse,
   type WeeklyPlanResponse,
 } from "@/lib/api";
@@ -196,6 +200,9 @@ export default function CoachPage() {
   const [goal, setGoal] = useState<GoalPlanResponse | null>(null);
   const [generatingGoal, setGeneratingGoal] = useState(false);
   const [goalCount, setGoalCount] = useState<number | null>(null);
+  const [free, setFree] = useState<FreeWeekResponse | null>(null);
+  const [generatingFree, setGeneratingFree] = useState(false);
+  const [usingFree, setUsingFree] = useState<string | null>(null);
   const [planCount, setPlanCount] = useState<number | null>(null);
   const [error, setError] = useState<{ title: string; detail: string } | null>(null);
   const [overview, setOverview] = useState<PredictionsOverview | null>(null);
@@ -219,6 +226,7 @@ export default function CoachPage() {
     fetchMemories().then(setMemories).catch(() => {});
     fetchWeekPlan().then(setWeek).catch(() => setWeek({ plan: null, workouts: [] }));
     fetchGoalPlan().then(setGoal).catch(() => setGoal({ plan: null, workouts: [] }));
+    fetchFreeWeek().then(setFree).catch(() => setFree({ plan: null, workouts: [], comparison: null }));
     fetchLastCoachReport()
       .then((r) => {
         // nao sobrescreve um resumo pedido enquanto este carregava
@@ -332,6 +340,32 @@ export default function CoachPage() {
     }
   }
 
+  async function handleGenerateFree() {
+    setGeneratingFree(true);
+    setError(null);
+    try {
+      setFree(await postFreeWeekGenerate());
+    } catch (e) {
+      handleError(e);
+    } finally {
+      setGeneratingFree(false);
+    }
+  }
+
+  async function handleUseFree(dates?: string[]) {
+    setUsingFree(dates?.length === 1 ? dates[0] : "all");
+    setError(null);
+    try {
+      setWeek(await applyFreeWeek(dates));
+      fetchCoachPlan(14).then(setPlan).catch(() => {});
+      fetchGoalPlan().then(setGoal).catch(() => {});
+    } catch (e) {
+      handleError(e);
+    } finally {
+      setUsingFree(null);
+    }
+  }
+
   async function handleGeneratePlan() {
     setGenerating(true);
     setError(null);
@@ -358,7 +392,7 @@ export default function CoachPage() {
   const form = formFromTsb(latest?.tsb ?? null);
   const risk = riskFromAcwr(latest?.acwr ?? null);
   const upcoming = (plan ?? []).filter((w) => w.date >= toISODate(new Date()));
-  const busy = analyzing || generating || generatingGoal;
+  const busy = analyzing || generating || generatingGoal || generatingFree;
 
   const insights = [
     {
@@ -501,7 +535,19 @@ export default function CoachPage() {
 
         {/* ───────── Plano da semana ───────── */}
         {week && (
-          <WeeklyPlanPanel plan={week.plan} workouts={week.workouts} onRefresh={refreshPlans} onGenerate={handleGeneratePlan} generating={generating} />
+          <WeekPlans
+            week={week}
+            goalWorkouts={(goal?.workouts ?? []).filter((w) => w.date >= toISODate(new Date()) && w.date <= toISODate(new Date(Date.now() + 6 * 86_400_000)))}
+            hasGoal={!!goal?.plan}
+            free={free}
+            onRefresh={refreshPlans}
+            onGenerate={handleGeneratePlan}
+            generating={generating}
+            onGenerateFree={handleGenerateFree}
+            generatingFree={generatingFree}
+            onUseFree={handleUseFree}
+            usingFree={usingFree}
+          />
         )}
 
         {/* ───────── Chat (formato celular) + o que a Duni sabe ───────── */}
