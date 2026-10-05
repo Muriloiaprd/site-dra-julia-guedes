@@ -206,6 +206,23 @@ def _round_half(x: float) -> float:
     return max(0.0, round(x * 2) / 2)
 
 
+def layout_from_days(days: list[int], days_per_week: int) -> dict[int, str] | None:
+    """Papel de cada dia a partir dos dias que o atleta tem: longao no fim de semana
+    (ou no ultimo dia), qualidade no dia mais longe do longao, o resto leve.
+    None se os dias nao bastam (usa o padrao)."""
+    days = sorted(set(days))
+    if len(days) < days_per_week:
+        return None
+    weekend = [d for d in days if d >= 5]
+    long_day = weekend[0] if weekend else days[-1]  # sabado antes de domingo
+    gap = lambda d: min((d - long_day) % 7, (long_day - d) % 7)  # noqa: E731
+    others = sorted((d for d in days if d != long_day), key=lambda d: (-gap(d), d))
+    chosen = others[: days_per_week - 1]
+    layout = {long_day: "longao", chosen[0]: "qualidade"}
+    layout.update({d: "leve" for d in chosen[1:]})
+    return dict(sorted(layout.items()))
+
+
 def _phase_for(i: int, train_weeks: int) -> str:
     base_n = max(1, round(train_weeks * 0.40))
     build_n = max(1, round(train_weeks * 0.35))
@@ -223,15 +240,28 @@ def build_skeleton(
     days_per_week: int,
     base_km: float,
     base_long_km: float,
+    *,
+    ramp: float = 0.10,
+    comeback_km: float | None = None,
+    comeback_ramp: float = 0.15,
+    long_step: float = 2.0,
+    peak_km: float | None = None,
+    layout: dict[int, str] | None = None,
 ) -> list[Week]:
-    """Semanas de 7 dias a partir de hoje ate a semana da prova (inclusive)."""
+    """Semanas de 7 dias a partir de hoje ate a semana da prova (inclusive).
+
+    ramp: subida semanal do volume. comeback_km: abaixo desse volume (o atleta ja
+    treinou bem mais antes de uma pausa) a subida pode ser comeback_ramp. peak_km:
+    teto vindo do historico (nunca acima do pico da distancia). layout: dia → papel."""
     if days_per_week not in DAY_LAYOUT:
         raise ValueError("days_per_week deve ser 3, 4 ou 5")
     dist = min(_PEAK_KM, key=lambda d: abs(d - race_km))
     total_weeks = (race_date - today).days // 7 + 1
     taper_n = min(_TAPER_WEEKS[dist], total_weeks)
     train_n = total_weeks - taper_n
-    peak_km = max(_PEAK_KM[dist][days_per_week], base_km)
+    table_peak = _PEAK_KM[dist][days_per_week]
+    peak_km = max(min(table_peak, peak_km) if peak_km else table_peak, base_km)
+    layout = layout or DAY_LAYOUT[days_per_week]
     long_cap = _LONG_CAP[dist]
     share = _LONG_SHARE[days_per_week]
 
@@ -244,10 +274,11 @@ def build_skeleton(
             phase = _phase_for(i, train_n)
             cutback = i % 4 == 3
             if i > 0 and not cutback:
-                # sobe ate 10% por semana ate o pico (e segura la)
-                top_km = min(top_km * 1.10, max(peak_km, top_km))
+                # sobe ate `ramp` por semana ate o pico (e segura la); na volta de pausa, mais rapido
+                step = comeback_ramp if comeback_km and top_km < comeback_km else ramp
+                top_km = min(top_km * (1 + step), max(peak_km, top_km))
                 cap = long_cap * _LONG_PHASE_CAP[phase]
-                top_long = min(top_long + 2.0, cap, max(top_km * share, top_long))
+                top_long = min(top_long + long_step, cap, max(top_km * share, top_long))
             km = top_km * (0.75 if cutback else 1.0)
             long_km = top_long * (0.75 if cutback else 1.0)
             if phase == "pico" and not cutback and i % 2 == 1:
@@ -257,14 +288,13 @@ def build_skeleton(
             km = top_km * _TAPER_FACTORS[taper_n][i - train_n]
             long_km = min(top_long, km * share)
         w = Week(i + 1, start, start + timedelta(days=6), phase, 0.0, _round_half(long_km), cutback)
-        w.slots = _week_slots(w, days_per_week, race_date, race_km, km)
+        w.slots = _week_slots(w, layout, race_date, race_km, km)
         w.km = round(sum(s.km for s in w.slots), 1)
         weeks.append(w)
     return weeks
 
 
-def _week_slots(w: Week, days_per_week: int, race_date: date, race_km: float, target: float) -> list[Slot]:
-    layout = DAY_LAYOUT[days_per_week]
+def _week_slots(w: Week, layout: dict[int, str], race_date: date, race_km: float, target: float) -> list[Slot]:
     options = CUTBACK_OPTIONS if w.cutback else TYPE_OPTIONS[w.phase]
     days = [w.start + timedelta(days=k) for k in range(7)]
     race_week = w.start <= race_date <= w.end
@@ -283,7 +313,7 @@ def _week_slots(w: Week, days_per_week: int, race_date: date, race_km: float, ta
 
     others = [d for d in days if layout.get(d.weekday()) in ("qualidade", "leve")]
     remaining = max(target - w.long_km, 0.0)
-    q_share = 0.55 if days_per_week == 3 else 0.4
+    q_share = 0.55 if len(layout) == 3 else 0.4
     leves = [d for d in others if layout[d.weekday()] == "leve"]
     for d in days:
         role = layout.get(d.weekday())

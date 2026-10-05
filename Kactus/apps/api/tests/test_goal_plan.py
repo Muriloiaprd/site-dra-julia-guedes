@@ -216,3 +216,21 @@ def test_week_plan_details_goal_workouts_without_changing_them(auth_client: tupl
     assert got["weekly_plan_id"] == body["plan"]["id"] and got["goal_plan_id"] == goal["plan"]["id"]
     week = client.get("/coach/plan/week").json()
     assert {w["id"] for w in week["workouts"]} == {w["id"] for w in in_week}
+
+
+def test_goal_plan_reads_six_months_and_follows_available_days(auth_client: tuple[TestClient, dict], fake_llm) -> None:
+    client, _user = auth_client
+    _with_history(client)
+    _race(client, days_ahead=90)
+    assert client.post("/coach/memories", json={"kind": "disponibilidade", "content": "Treina nas terças, quintas e sábados"}).status_code == 201
+    sent = fake_llm(_llm("2026-01-01", "2026-01-02"))
+
+    body = client.post("/coach/goal-plan/generate", json={}).json()
+
+    temas = [f["tema"] for f in body["plan"]["analysis"]]
+    assert temas[0] == "Último mês" and "Dias" in temas and "Nível" in temas
+    assert "Semanas dos ultimos 6 meses" in sent["user_content"] and "Último mês" in sent["user_content"]
+    weekdays = {date.fromisoformat(w["date"]).weekday() for w in body["workouts"][:-1]}
+    assert weekdays <= {1, 3, 5}  # terca, quinta e sabado (a prova pode cair em outro dia)
+    longs = [w for w in body["workouts"] if w["targets"]["tipo"].startswith("longão")]
+    assert longs and all(date.fromisoformat(w["date"]).weekday() == 5 for w in longs)

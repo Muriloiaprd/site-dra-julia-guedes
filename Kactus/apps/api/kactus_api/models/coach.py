@@ -49,6 +49,7 @@ class GoalPlan(Base):
     phases: Mapped[list] = mapped_column(JSONB(), nullable=False)  # [{fase, inicio, fim, foco}]
     weeks: Mapped[list] = mapped_column(JSONB(), nullable=False)  # [{semana, inicio, fim, fase, km, longao_km, alivio}]
     paces: Mapped[dict] = mapped_column(JSONB(), nullable=False)  # s/km: leve, limiar, intervalo, prova
+    analysis: Mapped[list | None] = mapped_column(JSONB(), nullable=True)  # [{tema, texto}] dos 6 meses
     active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
     model_used: Mapped[str | None] = mapped_column(String(50), nullable=True)
     prompt_version: Mapped[str | None] = mapped_column(String(10), nullable=True)

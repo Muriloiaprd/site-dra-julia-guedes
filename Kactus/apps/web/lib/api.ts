@@ -779,6 +779,8 @@ export interface GoalPlan {
   phases: { fase: GoalPhase; inicio: string; fim: string; foco: string }[];
   weeks: { semana: number; inicio: string; fim: string; fase: GoalPhase; km: number; longao_km: number; alivio: boolean }[];
   paces: { leve_rapido: number; leve_lento: number; limiar: number; intervalo: number; prova: number };
+  /** O que a Duni levou em conta dos ultimos 6 meses. */
+  analysis?: { tema: string; texto: string }[] | null;
   model_used: string | null;
   created_at: string;
 }

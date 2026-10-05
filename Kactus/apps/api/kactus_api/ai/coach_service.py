@@ -6,6 +6,8 @@ from __future__ import annotations
 import json
 import time
 import uuid
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from datetime import UTC, date, datetime, timedelta
 from typing import ClassVar, Literal
 from zoneinfo import ZoneInfo
@@ -15,14 +17,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
-from kactus_api.ai import goal_plan
+from kactus_api.ai import goal_plan, training_history
 from kactus_api.ai.athlete_analysis import build_analysis, effective_kind
 from kactus_api.checkin_tags import tag_labels
 from kactus_api.config import settings
 from kactus_api.metrics.basic import PointLike, hr_zone_distribution, resolve_hr_zones
 from kactus_api.metrics.garmin import benefit_label
 from kactus_api.metrics.predictions import (
-    estimate_vdot,
     predict_race_times,
     training_recommendation,
 )
@@ -1406,7 +1407,6 @@ def latest_activity_comment(db: Session, user_id: uuid.UUID, activity_id: uuid.U
 # ── plano do objetivo ──────────────────────────────────────────────────────
 
 _GOAL_MIN_DAYS = 14  # menos que isso nao da para periodizar
-_RECORD_MAX_AGE_DAYS = 365  # recorde mais velho que isso nao diz o nivel de hoje
 _VDOT_RECORDS = {"fastest_5k": 5000, "fastest_10k": 10000, "fastest_21k": 21097, "fastest_42k": 42195}
 _DEFAULT_VDOT = 33.0
 
@@ -1463,6 +1463,13 @@ Sua parte, para CADA linha do esqueleto (mesma data):
 Depois: resumo do plano (1 a 2 frases) e o foco de cada fase presente (1 frase).
 Nao escreva ritmo, FC nem distancia: o sistema calcula.
 
+O que o sistema leu dos ultimos 6 meses (o ultimo mes pesa mais; use isto nas
+escolhas e no resumo, sem repetir numeros que nao estejam aqui):
+{factors}
+
+Semanas dos ultimos 6 meses (corrida; caminhada fora):
+{history}
+
 Paces do atleta (calculados pelo sistema): {paces}
 
 Esqueleto (data | semana | fase | papel | km | opcoes de tipo):
@@ -1496,40 +1503,131 @@ def _goal_race(db: Session, user_id: uuid.UUID, today: date) -> tuple[AthleteMem
     return memory, km
 
 
-def _recent_running(db: Session, user_id: uuid.UUID, today: date) -> tuple[float, float, float | None]:
-    """Km por semana (media de 4 semanas), maior corrida e pace medio dos ultimos 28 dias."""
-    since = datetime.combine(today - timedelta(days=28), datetime.min.time(), tzinfo=UTC)
-    runs = db.execute(
-        select(Activity.distance_m, Activity.moving_time_s, Activity.duration_s).where(
+@dataclass
+class _GoalSetup:
+    """Tudo o que os 6 meses decidem no plano, e por que (factors vai para a tela)."""
+
+    base_km: float
+    base_long_km: float
+    ramp: float
+    comeback_km: float | None
+    long_step: float
+    peak_km: float | None
+    vdot: float
+    layout: dict[int, str] | None
+    history: training_history.History
+    factors: list[dict] = dc_field(default_factory=list)
+
+
+_MONTHS_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+
+
+def _num(x: float) -> str:
+    return f"{x:.0f}" if abs(x - round(x)) < 0.05 else f"{x:.1f}".replace(".", ",")
+
+
+def _goal_setup(db: Session, user_id: uuid.UUID, today: date, race_km: float, days_per_week: int) -> _GoalSetup:
+    """Le os ultimos 6 meses: o ultimo mes decide de onde o plano parte; o historico
+    decide ate onde sobe, o nivel e o cuidado (pausas, dor)."""
+    profile = db.execute(select(AthleteProfile).where(AthleteProfile.user_id == user_id)).scalar_one_or_none()
+    since = datetime.combine(today - timedelta(weeks=training_history.HISTORY_WEEKS + 1), datetime.min.time(), tzinfo=UTC)
+    acts = db.execute(
+        select(Activity).where(
             Activity.user_id == user_id,
             Activity.deleted_at.is_(None),
             Activity.sport.in_([s for s, g in _SPORT_GROUPS.items() if g == "run"]),
             Activity.start_time >= since,
         )
-    ).all()
-    dist = [float(d) / 1000 for d, _m, _t in runs if d]
-    total_km = sum(dist)
-    total_s = sum((m or t) for d, m, t in runs if d)
-    pace = total_s / total_km if total_km >= 3 else None
-    return total_km / 4, max(dist, default=0.0), pace
+    ).scalars().all()
+    runs = [
+        training_history.Run(
+            day=a.start_time.date(),
+            km=float(a.distance_m) / 1000,
+            seconds=float(a.moving_time_s or a.duration_s),
+            avg_hr=a.avg_hr,
+            pain_level=a.pain_level,
+            pain_location=a.pain_location,
+        )
+        for a in acts
+        if a.distance_m
+    ]
+    hist = training_history.summarize(runs, today, profile.max_hr if profile else None, profile.resting_hr if profile else None)
 
+    memories = db.execute(
+        select(AthleteMemory).where(AthleteMemory.user_id == user_id, AthleteMemory.active.is_(True))
+    ).scalars().all()
+    injuries = [m.content for m in memories if m.kind == "lesao"]
+    pain = bool(hist.pain) or bool(injuries)
 
-def _current_vdot(db: Session, user_id: uuid.UUID, today: date, easy_pace: float | None) -> float:
-    """Pelo melhor recorde do ultimo ano; sem recorde, pelo pace dos treinos recentes."""
-    since = datetime.combine(today - timedelta(days=_RECORD_MAX_AGE_DAYS), datetime.min.time(), tzinfo=UTC)
-    records = db.execute(
-        select(PersonalRecord.record_type, PersonalRecord.value).where(
-            PersonalRecord.user_id == user_id,
-            PersonalRecord.record_type.in_(list(_VDOT_RECORDS)),
-            PersonalRecord.achieved_at >= since,
+    base_km = max(hist.recent_km, 0.85 * hist.last_week_km, 8.0)
+    comeback = hist.peak_block_km >= 1.8 * base_km and hist.longest_pause >= 4
+    comeback_km = round(0.6 * hist.peak_block_km, 1) if comeback and not pain else None
+    ramp = 0.08 if pain else 0.10
+    long_step = 2.5 if comeback and not pain else 2.0
+    peak_cap = hist.peak_block_km * 1.1 if hist.peak_block_km >= 20 else None
+
+    record_rows = db.execute(
+        select(PersonalRecord.record_type, PersonalRecord.value, PersonalRecord.achieved_at).where(
+            PersonalRecord.user_id == user_id, PersonalRecord.record_type.in_(list(_VDOT_RECORDS)),
         )
     ).all()
-    vdots = [estimate_vdot(float(v), _VDOT_RECORDS[t]) for t, v in records]
-    if vdots:
-        return round(max(vdots), 1)
-    if easy_pace:
-        return round(goal_plan.vdot_from_easy_pace(easy_pace), 1)
-    return _DEFAULT_VDOT
+    records = [(float(v), _VDOT_RECORDS[t], at.date()) for t, v, at in record_rows]
+    vdot = training_history.blended_vdot(hist.vdot_recent, records, hist, today)
+    if vdot is None:
+        recent = [w for w in hist.weeks[-4:] if w.km]
+        pace = sum(w.seconds for w in recent) / sum(w.km for w in recent) if recent else None
+        vdot = round(goal_plan.vdot_from_easy_pace(pace), 1) if pace else _DEFAULT_VDOT
+
+    days = training_history.preferred_days([m.content for m in memories if m.kind == "disponibilidade"])
+    layout = goal_plan.layout_from_days(days, days_per_week)
+
+    f: list[dict] = []
+    f.append({"tema": "Último mês", "texto": (
+        f"Média de {_num(hist.recent_km)} km por semana (a última com {_num(hist.last_week_km)} km), "
+        f"{_num(hist.runs_per_week)} corridas por semana e longão de {_num(hist.recent_longest)} km. O plano parte daqui."
+    )})
+    if hist.peak_block_km >= 15 and hist.peak_block_start:
+        m = hist.peak_block_start
+        f.append({"tema": "Histórico de 6 meses", "texto": (
+            f"Você já sustentou {_num(hist.peak_block_km)} km por semana ({_MONTHS_PT[m.month - 1]}/{m.year % 100}) e fez "
+            f"longão de {_num(hist.longest_6m)} km. Isso define até onde o plano sobe, sem passar disso por muito."
+        )})
+    if hist.longest_pause >= 3:
+        f.append({"tema": "Pausa", "texto": (
+            f"{hist.longest_pause} semanas seguidas quase parado. "
+            + (f"Como o corpo já conhece volume alto, a volta sobe mais rápido até ~{_num(comeback_km)} km por semana."
+               if comeback_km else "A volta é gradual, sem tentar recuperar o volume antigo de uma vez.")
+        )})
+    if pain:
+        places = sorted({loc for _d, _lv, loc in hist.pain if loc} | set(injuries))
+        worst = max((lv for _d, lv, _loc in hist.pain), default=None)
+        f.append({"tema": "Dor", "texto": (
+            f"Dor recente{': ' + ', '.join(places) if places else ''}{f' (até {worst}/10)' if worst else ''}. "
+            "O volume sobe no máximo 8% por semana e os treinos fortes só entram depois da base. "
+            "Se a dor passar de 3/10 ou piorar, reduza e procure um fisioterapeuta."
+        )})
+    else:
+        f.append({"tema": "Subida", "texto": f"Volume sobe até {round(ramp * 100)}% por semana, com alívio a cada 4 semanas."})
+    level = "pelo seu ritmo e FC no último mês" if hist.vdot_recent else "pelos seus treinos recentes"
+    if hist.vdot_recent and records:
+        level = "70% pelo seu ritmo e FC no último mês e 30% pelos recordes (descontando a pausa)"
+    f.append({"tema": "Nível", "texto": (
+        f"VDOT {_num(vdot)}, {level}. Maratona prevista hoje: "
+        f"{_fmt_duration(goal_plan.race_time_s(vdot, 42.195))}; o plano mira melhorar até a prova."
+        if race_km > 40 else f"VDOT {_num(vdot)}, {level}."
+    )})
+    if layout:
+        names = [training_history.WEEKDAY_NAMES[d] for d in layout]
+        long_day = training_history.WEEKDAY_NAMES[next(d for d, r in layout.items() if r == "longao")]
+        f.append({"tema": "Dias", "texto": f"Treinos de {', '.join(names[:-1])} e {names[-1]}, como você contou; longão no {long_day}."})
+    prefs = [m.content for m in memories if m.kind == "preferencia"]
+    if prefs:
+        f.append({"tema": "Preferências", "texto": "; ".join(prefs) + ". Entram nas escolhas de treino, respeitando a fase e a dor."})
+
+    return _GoalSetup(
+        base_km=base_km, base_long_km=max(hist.recent_longest, 5.0), ramp=ramp, comeback_km=comeback_km,
+        long_step=long_step, peak_km=peak_cap, vdot=vdot, layout=layout, history=hist, factors=f,
+    )
 
 
 def current_goal_plan(db: Session, user_id: uuid.UUID, today: date | None = None) -> GoalPlan | None:
@@ -1552,11 +1650,15 @@ def generate_goal_plan(
     context = build_context(db, user_id)
     _require_sufficient_data(context)
 
-    base_km, longest, easy_pace = _recent_running(db, user_id, today)
-    vdot = _current_vdot(db, user_id, today, easy_pace)
+    setup = _goal_setup(db, user_id, today, race_km, days_per_week)
+    vdot = setup.vdot
     p = goal_plan.paces(vdot, race_km)
     zones = resolve_hr_zones(db.execute(select(AthleteProfile).where(AthleteProfile.user_id == user_id)).scalar_one_or_none())
-    weeks = goal_plan.build_skeleton(today, memory.event_date, race_km, days_per_week, base_km, longest)
+    weeks = goal_plan.build_skeleton(
+        today, memory.event_date, race_km, days_per_week, setup.base_km, setup.base_long_km,
+        ramp=setup.ramp, comeback_km=setup.comeback_km, long_step=setup.long_step,
+        peak_km=setup.peak_km, layout=setup.layout,
+    )
     slots = [(w, s) for w in weeks for s in w.slots if s.date >= today]
 
     lines = "\n".join(
@@ -1565,8 +1667,16 @@ def generate_goal_plan(
         for w, s in slots
     )
     paces_txt = ", ".join(f"{k}: {goal_plan.fmt_pace(v)}/km" for k, v in p.items())
+    history_txt = "\n".join(
+        f"{w.start.isoformat()}: {w.km:.1f} km, {w.runs} corridas, maior {w.longest:.1f} km"
+        + (f", pace {goal_plan.fmt_pace(w.pace)}/km" if w.pace else "")
+        + (f", FC {w.avg_hr}" if w.avg_hr else "")
+        for w in setup.history.weeks
+    )
     user_content = _GOAL_PLAN_INSTRUCTION.format(
         race=f"{memory.content} em {memory.event_date.isoformat()} ({race_km:g} km)",
+        factors="\n".join(f"- {x['tema']}: {x['texto']}" for x in setup.factors),
+        history=history_txt,
         paces=paces_txt,
         slots=lines,
         context=json.dumps(context, ensure_ascii=False),
@@ -1614,6 +1724,7 @@ def generate_goal_plan(
             for w in weeks
         ],
         paces={k: round(v) for k, v in p.items()},
+        analysis=setup.factors,
         model_used=model_used,
         prompt_version=settings.coach_prompt_version,
     )

@@ -139,6 +139,7 @@ class GoalPlanOut(BaseModel):
     phases: list[dict]
     weeks: list[dict]
     paces: dict
+    analysis: list[dict] | None = None  # o que a Duni levou em conta: [{tema, texto}]
     model_used: str | None
     created_at: datetime
 

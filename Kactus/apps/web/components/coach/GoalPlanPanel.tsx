@@ -237,6 +237,23 @@ export function GoalPlanPanel({
         </div>
       </div>
 
+      {plan.analysis && plan.analysis.length > 0 && (
+        <details className="group rounded-2xl bg-white/[0.02]" open>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3">
+            <span className="od-metric-label">O que a Duni levou em conta · últimos 6 meses</span>
+            <span className="text-brand-muted transition-transform group-open:rotate-180" aria-hidden>▾</span>
+          </summary>
+          <ul className="grid gap-2 px-4 pb-4 md:grid-cols-2">
+            {plan.analysis.map((a) => (
+              <li key={a.tema} className="od-tile px-3.5 py-2.5">
+                <div className="text-[0.64rem] font-bold uppercase tracking-wider text-brand-accent">{a.tema}</div>
+                <p className="mt-0.5 text-[0.8rem] leading-snug text-brand-textSecondary">{a.texto}</p>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
       <PhaseStrip plan={plan} currentIndex={currentIndex} />
 
       <div>

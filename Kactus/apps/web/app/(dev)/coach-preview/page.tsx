@@ -183,7 +183,15 @@ function goalExample(): GoalPlanResponse {
     plan: {
       id: "gp", race_name: "Maratona do Rio", race_date: toISODate(race), race_distance_km: 42.2, days_per_week: 3, vdot: 37,
       summary: "Base longa e tranquila para a lombar, construção com limiar e pico com ritmo de prova e três longões de 32 km.",
-      phases, weeks, paces: { leve_rapido: 373, leve_lento: 408, limiar: 325, intervalo: 300, prova: 348 }, model_used: "exemplo", created_at: NOW,
+      phases, weeks, paces: { leve_rapido: 383, leve_lento: 419, limiar: 334, intervalo: 308, prova: 358 }, model_used: "exemplo", created_at: NOW,
+      analysis: [
+        { tema: "Último mês", texto: "Média de 9,8 km por semana (a última com 17,8 km), 1,8 corridas por semana e longão de 10 km. O plano parte daqui." },
+        { tema: "Histórico de 6 meses", texto: "Você já sustentou 52,8 km por semana (abr/26) e fez longão de 36 km. Isso define até onde o plano sobe." },
+        { tema: "Pausa", texto: "8 semanas seguidas quase parado. A volta é gradual, sem tentar recuperar o volume antigo de uma vez." },
+        { tema: "Dor", texto: "Dor recente: lombar, sacroilíaca (até 3/10). O volume sobe no máximo 8% por semana." },
+        { tema: "Nível", texto: "VDOT 35,8, 70% pelo seu ritmo e FC no último mês e 30% pelos recordes. Maratona prevista hoje: 4:11:27." },
+        { tema: "Dias", texto: "Treinos de terça, quinta e sábado, como você contou; longão no sábado." },
+      ],
     },
     workouts,
   };
