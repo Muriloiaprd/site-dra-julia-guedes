@@ -1873,9 +1873,40 @@ def generate_goal_plan(
             reason=f"Semana {w.index} · {goal_plan.PHASE_LABEL[w.phase]}{' (alívio)' if w.cutback else ''}",
             targets={"tipo": kind, "ritmo": t["ritmo"], "zona_fc": t["zona_fc"], "metrica_prioritaria": "FC"},
         ))
+    # Os treinos novos da semana atual ficam no quadro da semana (refazer o objetivo
+    # esvaziava os cards: os antigos saiam e os novos vinham sem o vinculo).
+    main = current_weekly_plan(db, user_id, today)
+    if main is not None:
+        for r in rows:
+            if main.week_start <= r.date <= main.week_end:
+                r.weekly_plan_id = main.id
     db.add_all(rows)
     db.commit()
     return plan, rows, model_used
+
+
+def week_workouts(db: Session, user_id: uuid.UUID, plan: WeeklyPlan | None) -> list[PlannedWorkout]:
+    """Os treinos do quadro da semana, pela DATA: com plano principal, a janela dele (e
+    liga ao plano os planejados que estavam soltos); sem plano, mas com plano do
+    objetivo, os proximos 7 dias da agenda. Sem nenhum dos dois, nada."""
+    if plan is not None:
+        start, end = plan.week_start, plan.week_end
+    elif current_goal_plan(db, user_id) is not None:
+        start, end = week_range()
+    else:
+        return []
+    rows = list(db.execute(
+        select(PlannedWorkout)
+        .where(PlannedWorkout.user_id == user_id, PlannedWorkout.date >= start, PlannedWorkout.date <= end)
+        .order_by(PlannedWorkout.date.asc())
+    ).scalars())
+    if plan is not None:
+        loose = [r for r in rows if r.weekly_plan_id is None]
+        for r in loose:
+            r.weekly_plan_id = plan.id
+        if loose:
+            db.commit()
+    return rows
 
 
 # ── plano da semana "livre": o que a Duni faria AGORA, para comparar com o objetivo ──

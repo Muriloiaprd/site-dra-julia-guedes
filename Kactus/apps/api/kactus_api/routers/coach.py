@@ -202,17 +202,11 @@ def get_goal_plan(current_user: CurrentUser, db: DbSession) -> dict:
 
 @router.get("/plan/week", response_model=WeeklyPlanResponse)
 def get_plan_week(current_user: CurrentUser, db: DbSession) -> dict:
-    """O plano semanal que ainda nao terminou (ou nada) e os treinos dele."""
+    """O plano semanal que ainda nao terminou (ou nada) e os treinos da semana pela
+    data. Sem plano da semana, mas com plano do objetivo, os treinos dos proximos 7 dias."""
     coach_service.reconcile_plan(db, current_user.id)
     plan = coach_service.current_weekly_plan(db, current_user.id)
-    if plan is None:
-        return {"plan": None, "workouts": []}
-    rows = db.execute(
-        select(PlannedWorkout)
-        .where(PlannedWorkout.user_id == current_user.id, PlannedWorkout.weekly_plan_id == plan.id)
-        .order_by(PlannedWorkout.date.asc())
-    ).scalars().all()
-    return {"plan": plan, "workouts": list(rows)}
+    return {"plan": plan, "workouts": coach_service.week_workouts(db, current_user.id, plan)}
 
 
 def _raise_plan_edit(e: PlanEditError) -> None:

@@ -234,3 +234,48 @@ def test_goal_plan_reads_six_months_and_follows_available_days(auth_client: tupl
     assert weekdays <= {1, 3, 5}  # terca, quinta e sabado (a prova pode cair em outro dia)
     longs = [w for w in body["workouts"] if w["targets"]["tipo"].startswith("longão")]
     assert longs and all(date.fromisoformat(w["date"]).weekday() == 5 for w in longs)
+
+
+# ── cards da semana nao esvaziam (PLANEJAMENTO_2026-10-05_2) ──────────────
+
+
+def test_regenerating_goal_keeps_the_week_cards_filled(auth_client: tuple[TestClient, dict], fake_llm) -> None:
+    from test_weekly_plan import _plan, _workout
+
+    client, _user = auth_client
+    _with_history(client)
+    _race(client, days_ahead=60)
+    fake_llm(_llm("2026-01-01", "2026-01-02"))
+    goal = client.post("/coach/goal-plan/generate", json={}).json()
+    end = (date.today() + timedelta(days=6)).isoformat()
+    in_week = [w for w in goal["workouts"] if w["date"] <= end]
+    fake_llm(_plan([_workout(date.fromisoformat(w["date"])) for w in in_week]))
+    main = client.post("/coach/plan/generate").json()
+
+    # o que aconteceu de verdade: refazer o objetivo depois de detalhar a semana
+    fake_llm(_llm("2026-01-01", "2026-01-02"))
+    client.post("/coach/goal-plan/generate", json={})
+    week = client.get("/coach/plan/week").json()
+
+    assert week["plan"]["id"] == main["plan"]["id"]
+    assert sorted(w["date"] for w in week["workouts"]) == sorted(w["date"] for w in in_week)
+    assert all(w["weekly_plan_id"] == main["plan"]["id"] for w in week["workouts"])
+
+
+def test_week_without_weekly_plan_shows_the_goal_workouts(auth_client: tuple[TestClient, dict], fake_llm) -> None:
+    client, _user = auth_client
+    _with_history(client)
+    _race(client, days_ahead=60)
+    fake_llm(_llm("2026-01-01", "2026-01-02"))
+    goal = client.post("/coach/goal-plan/generate", json={}).json()
+    end = (date.today() + timedelta(days=6)).isoformat()
+
+    week = client.get("/coach/plan/week").json()
+
+    assert week["plan"] is None
+    assert [w["id"] for w in week["workouts"]] == [w["id"] for w in goal["workouts"] if w["date"] <= end]
+
+
+def test_week_is_empty_without_any_plan(auth_client: tuple[TestClient, dict]) -> None:
+    client, _user = auth_client
+    assert client.get("/coach/plan/week").json() == {"plan": None, "workouts": []}
