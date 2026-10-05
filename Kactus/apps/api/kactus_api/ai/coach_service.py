@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 import anthropic
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from kactus_api.ai.athlete_analysis import build_analysis, effective_kind
@@ -166,7 +166,8 @@ MEMÓRIAS E OBJETIVO
   pesar numa decisão, vale confirmar se essa FC máxima foi medida de verdade."""
 
 _WEEK_PLAN_INSTRUCTION = """Analise o atleta e monte o plano da proxima semana.
-Os 7 dias da semana sao: {days}.
+Os 7 dias da semana sao: {days}. O primeiro e HOJE: se o atleta ja treinou
+hoje (veja as atividades recentes), deixe hoje sem treino.
 
 Preencha o JSON pedido:
 - status (verde = recuperado, amarelo = atencao, laranja = fadiga acumulada,
@@ -891,8 +892,8 @@ class PlanConflictError(CoachError):
 
 
 def week_range(today: date | None = None) -> tuple[date, date]:
-    """A "proxima semana" do plano: os 7 dias a partir de amanha."""
-    start = (today or date.today()) + timedelta(days=1)
+    """A semana do plano: os 7 dias a partir de hoje (gerou na segunda, comeca na segunda)."""
+    start = today or date.today()
     return start, start + timedelta(days=6)
 
 
@@ -986,6 +987,16 @@ def generate_weekly_plan(db: Session, user_id: uuid.UUID) -> tuple[WeeklyPlan, l
     user_content = _WEEK_PLAN_INSTRUCTION.format(days=days, context=json.dumps(context, ensure_ascii=False))
     parsed, model_used = call_llm(SYSTEM_PROMPT, user_content, response_model=WeeklyPlanLLM)
     workouts = validate_weekly_plan(parsed, start, end)
+    # Dia que ja tem treino feito ou pulado nesta semana nao ganha outro (regerar no meio da semana).
+    taken = set(db.execute(
+        select(PlannedWorkout.date).where(
+            PlannedWorkout.user_id == user_id,
+            PlannedWorkout.status != "planned",
+            PlannedWorkout.date >= start,
+            PlannedWorkout.date <= end,
+        )
+    ).scalars())
+    workouts = [w for w in workouts if date.fromisoformat(w.data) not in taken]
 
     db.execute(
         delete(PlannedWorkout).where(
@@ -1014,6 +1025,17 @@ def generate_weekly_plan(db: Session, user_id: uuid.UUID) -> tuple[WeeklyPlan, l
     )
     db.add(plan)
     db.flush()
+    # O que ja foi feito ou pulado nesta semana passa para o plano novo (conta nos "feitos").
+    db.execute(
+        update(PlannedWorkout)
+        .where(
+            PlannedWorkout.user_id == user_id,
+            PlannedWorkout.status != "planned",
+            PlannedWorkout.date >= start,
+            PlannedWorkout.date <= end,
+        )
+        .values(weekly_plan_id=plan.id)
+    )
 
     batch_id = uuid.uuid4()
     rows = [

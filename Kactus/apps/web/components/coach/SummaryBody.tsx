@@ -23,11 +23,6 @@ export function SummaryBody({
 
   return (
     <div className="animate-od-fade-up space-y-4">
-      <div className="flex flex-col gap-2 rounded-xl p-4 sm:flex-row sm:items-center sm:gap-4" style={{ background: `${st.color}0d`, boxShadow: `inset 0 0 0 1px ${st.color}40` }}>
-        <div className="shrink-0 font-display text-lg font-bold" style={{ color: st.color }}>{st.emoji} {st.label}</div>
-        <p className="text-sm sm:border-l sm:border-white/10 sm:pl-4">{summary.status_frase}</p>
-      </div>
-
       <p className="text-sm text-brand-textSecondary">{summary.semana}</p>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -66,6 +61,11 @@ export function SummaryBody({
             </ol>
           </div>
         )}
+      </div>
+
+      <div className="flex flex-col gap-2 rounded-xl p-4 sm:flex-row sm:items-center sm:gap-4" style={{ background: `${st.color}0d`, boxShadow: `inset 0 0 0 1px ${st.color}40` }}>
+        <div className="shrink-0 font-display text-lg font-bold" style={{ color: st.color }}>{st.emoji} {st.label}</div>
+        <p className="text-sm sm:border-l sm:border-white/10 sm:pl-4">{summary.status_frase}</p>
       </div>
 
       {summary.pergunta && (

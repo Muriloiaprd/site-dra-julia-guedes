@@ -280,3 +280,24 @@ def test_move_refuses_past_date(auth_client: tuple[TestClient, dict], fake_llm) 
     resp = client.post(f"/coach/plan/{a['id']}/move", json={"date": yesterday})
 
     assert resp.status_code == 400 and resp.json()["detail"]["error"] == "past_date"
+
+
+def test_week_starts_today() -> None:
+    assert week_range(date(2026, 10, 5)) == (date(2026, 10, 5), date(2026, 10, 11))
+
+
+def test_regenerating_keeps_done_day_without_a_second_workout(auth_client: tuple[TestClient, dict], fake_llm) -> None:
+    client, _user = auth_client
+    _with_history(client)
+    today = _generate(client, fake_llm, (0, 2))["workouts"][0]
+    assert today["date"] == date.today().isoformat()
+    assert client.patch(f"/coach/plan/{today['id']}", json={"status": "done"}).status_code == 200
+
+    second = _generate(client, fake_llm, (0, 3))
+
+    assert [w["date"] for w in second["workouts"]] == [(date.today() + timedelta(days=3)).isoformat()]
+    week = client.get("/coach/plan/week").json()["workouts"]
+    assert sorted((w["date"], w["status"]) for w in week) == [
+        (date.today().isoformat(), "done"),
+        ((date.today() + timedelta(days=3)).isoformat(), "planned"),
+    ]

@@ -18,10 +18,11 @@ import type {
   PlannedWorkout,
   WeeklyPlanResponse,
 } from "@/lib/api";
-import { getMonday, toISODate } from "@/lib/athlete";
+import { toISODate } from "@/lib/athlete";
 
+/** A semana do plano comeca hoje (coach_service.week_range). */
 function day(offset: number) {
-  const d = getMonday();
+  const d = new Date();
   d.setDate(d.getDate() + offset);
   return toISODate(d);
 }

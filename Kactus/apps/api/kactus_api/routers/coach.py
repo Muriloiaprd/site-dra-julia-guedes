@@ -152,7 +152,7 @@ def post_analyze(current_user: CurrentUser, db: DbSession) -> dict:
 
 @router.post("/plan/generate", response_model=WeeklyPlanResponse)
 def post_generate_plan(current_user: CurrentUser, db: DbSession) -> dict:
-    """Plano da proxima semana (7 dias a partir de amanha), com status e relatorio."""
+    """Plano da semana (7 dias a partir de hoje), com status e relatorio."""
     try:
         plan, rows, _model_used = generate_weekly_plan(db, current_user.id)
     except InsufficientDataError as e:

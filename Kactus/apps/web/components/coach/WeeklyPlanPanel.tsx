@@ -3,7 +3,7 @@
 import { useState, type CSSProperties } from "react";
 
 import { SportTile } from "@/components/SportIcon";
-import { Alert, Panel, SegmentBar } from "@/components/ui/primitives";
+import { Alert, Panel } from "@/components/ui/primitives";
 import {
   CoachApiError,
   moveWorkout,
@@ -12,7 +12,7 @@ import {
   type WeeklyPlan,
   type WorkoutStep,
 } from "@/lib/api";
-import { parseLocalDate, toISODate, WEEK_LABELS, WEEKLY_STATUS } from "@/lib/athlete";
+import { parseLocalDate, toISODate, WEEK_LABELS } from "@/lib/athlete";
 import { formatDuration, sportColor } from "@/lib/utils";
 
 const INTENSITY: Record<string, { label: string; color: string }> = {
@@ -385,27 +385,26 @@ function DayColumn({
       aria-pressed={selected}
       className={`relative flex min-w-[128px] snap-start flex-col rounded-2xl p-3 text-left transition-all duration-200 hover:-translate-y-0.5 lg:min-w-0 ${past && !allDone && !selected ? "opacity-55" : ""}`}
       style={{
-        background: selected
-          ? "linear-gradient(180deg, rgba(0,255,102,0.10), rgba(0,255,102,0.02))"
-          : list.length ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.012)",
+        background: isToday
+          ? "linear-gradient(180deg, #11402a, #0b2a1b)"
+          : selected ? "rgba(255,255,255,0.06)" : list.length ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.012)",
         boxShadow: selected
-          ? "inset 0 0 0 1.5px rgba(0,255,102,0.65), 0 10px 30px -14px rgba(0,255,102,0.6)"
-          : isToday ? "inset 0 0 0 1px rgba(255,255,255,0.22)" : "inset 0 0 0 1px rgba(255,255,255,0.05)",
+          ? `inset 0 0 0 1.5px ${isToday ? "#2f9e62" : "rgba(255,255,255,0.35)"}, 0 10px 28px -16px rgba(0,0,0,0.9)`
+          : isToday ? "inset 0 0 0 1px #1f6e44" : "inset 0 0 0 1px rgba(255,255,255,0.05)",
       }}
     >
       <div className="flex items-baseline justify-between gap-1">
         <span className={`text-[0.66rem] font-bold uppercase tracking-[0.14em] ${selected || isToday ? "text-white" : "text-brand-muted"}`}>
           {WEEK_LABELS[(d.getDay() + 6) % 7]}
         </span>
-        <span className="od-num text-[1.35rem] leading-none" style={{ color: selected ? "#00FF66" : undefined }}>{d.getDate()}</span>
+        <span className="od-num text-[1.35rem] leading-none">{d.getDate()}</span>
       </div>
-      <div className="mt-1 h-4">
+      <div className="mt-1 flex h-4 items-center gap-2">
+        {isToday && <span className="rounded bg-[#1f6e44] px-1.5 text-[0.58rem] font-bold uppercase tracking-[0.14em] text-white">Hoje</span>}
         {isNext ? (
           <span className="inline-flex items-center gap-1 text-[0.58rem] font-bold uppercase tracking-[0.14em] text-brand-accent">
             <span className="h-1.5 w-1.5 animate-od-pulse rounded-full bg-brand-accent" />Próximo
           </span>
-        ) : isToday ? (
-          <span className="text-[0.58rem] font-bold uppercase tracking-[0.14em] text-white/80">Hoje</span>
         ) : null}
       </div>
 
@@ -487,7 +486,6 @@ export function WeeklyPlanPanel({
     );
   }
 
-  const st = WEEKLY_STATUS[plan.status];
   const r = plan.report;
   const load = r.carga_semana_anterior;
   const today = toISODate(new Date());
@@ -498,7 +496,7 @@ export function WeeklyPlanPanel({
   const maxLoad = Math.max(1, ...workouts.map(workload));
   const nextId = workouts.find((w) => w.status === "planned" && w.date >= today)?.id;
   const nextDate = workouts.find((w) => w.id === nextId)?.date;
-  const selected = picked && days.includes(picked) ? picked : nextDate ?? (days.includes(today) ? today : days[0]);
+  const selected = picked && days.includes(picked) ? picked : days.includes(today) ? today : nextDate ?? days[0];
   const selectedList = byDate.get(selected) ?? [];
   const doneCount = workouts.filter((w) => w.status === "done").length;
   const comp = Object.entries(load.complementar ?? {});
@@ -515,33 +513,24 @@ export function WeeklyPlanPanel({
 
   return (
     <Panel className="space-y-5">
-      {/* 1. cabecalho: a semana, os numeros e o status */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      {/* 1. cabecalho: a semana e um resumo curto em numeros */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="od-label od-label-accent">Plano da semana</h2>
           <p className="mt-1.5 font-display text-2xl font-extrabold tracking-tight">
             {shortDate(plan.week_start)} <span className="text-brand-muted">→</span> {shortDate(plan.week_end)}
           </p>
-          <span className="font-mono text-[0.62rem] tracking-wider text-brand-muted">
-            gerado {new Date(plan.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 text-[0.74rem]">
+          <span className="rounded-full bg-white/[0.04] px-2.5 py-1 text-brand-textSecondary">
+            <span className="od-num text-white">{plannedKm != null ? `~${plannedKm} km` : "—"}</span>
           </span>
-        </div>
-        <div className="grid grid-cols-3 gap-2 lg:w-[480px]">
-          <Stat label="Volume" value={plannedKm != null ? `~${plannedKm} km` : "—"} />
-          <Stat label="Treinos" value={`${workouts.length}`} sub={r.proxima_semana.estimulo_principal ? `foco: ${r.proxima_semana.estimulo_principal}` : undefined} />
-          <div className="od-tile px-3 py-2.5">
-            <div className="od-metric-label">Feitos</div>
-            <div className="od-num mt-1 text-[1.05rem] leading-tight">{doneCount}<span className="text-brand-muted">/{workouts.length}</span></div>
-            <div className="mt-1.5"><SegmentBar total={Math.max(workouts.length, 1)} filled={doneCount} height={4} /></div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2 rounded-xl p-4 sm:flex-row sm:items-center sm:gap-4" style={{ background: `${st.color}0d`, boxShadow: `inset 0 0 0 1px ${st.color}40` }}>
-        <div className="shrink-0 font-display text-lg font-bold" style={{ color: st.color }}>{st.emoji} {st.label}</div>
-        <div className="space-y-1 text-sm sm:border-l sm:border-white/10 sm:pl-4">
-          <p className="text-brand-textSecondary">{plan.status_reason}</p>
-          <p>{r.resumo}</p>
+          <span className="rounded-full bg-white/[0.04] px-2.5 py-1 text-brand-textSecondary">
+            <span className="od-num text-white">{workouts.length}</span> treino{workouts.length === 1 ? "" : "s"}
+          </span>
+          <span className="rounded-full bg-white/[0.04] px-2.5 py-1 text-brand-textSecondary">
+            <span className="od-num text-white">{doneCount}/{workouts.length}</span> feitos
+          </span>
         </div>
       </div>
 
