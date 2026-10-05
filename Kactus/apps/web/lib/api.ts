@@ -851,6 +851,16 @@ export async function fetchCoachHistory(): Promise<CoachChatMessage[]> {
   return coachFetch<CoachChatMessage[]>("/coach/chat/history");
 }
 
+/** Apaga a conversa toda (as memorias e os resumos ficam). */
+export async function clearCoachHistory(): Promise<void> {
+  const token = getToken();
+  const res = await fetch("/api/coach/chat/history", {
+    method: "DELETE",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error(`Erro ${res.status}`);
+}
+
 export async function fetchMemories(includeArchived = false): Promise<AthleteMemory[]> {
   return coachFetch<AthleteMemory[]>(`/coach/memories${includeArchived ? "?include_archived=true" : ""}`);
 }

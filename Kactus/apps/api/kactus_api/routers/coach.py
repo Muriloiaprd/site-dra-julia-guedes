@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from kactus_api.ai import coach_service
 from kactus_api.ai.athlete_analysis import build_analysis
@@ -298,3 +298,13 @@ def get_chat_history(current_user: CurrentUser, db: DbSession, limit: int = Quer
         .limit(limit)
     ).scalars().all()
     return list(reversed(rows))
+
+
+@router.delete("/chat/history", status_code=status.HTTP_204_NO_CONTENT)
+def clear_chat_history(current_user: CurrentUser, db: DbSession) -> None:
+    """Limpa a conversa: a Duni comeca do zero. Resumos, comentarios das
+    atividades e memorias ficam (sao outros kinds / outra tabela)."""
+    db.execute(
+        delete(CoachInteraction).where(CoachInteraction.user_id == current_user.id, CoachInteraction.kind == "chat")
+    )
+    db.commit()

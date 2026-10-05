@@ -12,6 +12,7 @@ import { Markdown } from "@/components/ui/Markdown";
 import { Alert, PageContainer, Panel, StatusDot } from "@/components/ui/primitives";
 import {
   CoachApiError,
+  clearCoachHistory,
   createMemory,
   fetchCoachHistory,
   fetchMemories,
@@ -196,6 +197,8 @@ export default function CoachPage() {
   const [week, setWeek] = useState<WeeklyPlanResponse | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const analyzeRequested = useRef(false);
@@ -251,6 +254,21 @@ export default function CoachPage() {
   function handleError(e: unknown) {
     if (e instanceof CoachApiError && e.detail.error === "not_configured") setNotConfigured(true);
     setError(coachErrorMessage(e));
+  }
+
+  async function handleClear() {
+    setClearing(true);
+    setError(null);
+    try {
+      await clearCoachHistory();
+      setMessages([]);
+      setReplyTo(null);
+      setConfirmClear(false);
+    } catch {
+      setError({ title: "Não consegui limpar a conversa", detail: "Tente de novo em instantes." });
+    } finally {
+      setClearing(false);
+    }
   }
 
   async function handleSend(text?: string) {
@@ -408,29 +426,34 @@ export default function CoachPage() {
             )}
           </div>
 
-          <div className="od-stagger grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-            {insights.map((it) => (
-              <div key={it.k} className="od-tile px-4 py-3.5" style={{ boxShadow: `inset 0 0 0 1px ${it.c}2e` }}>
-                <div className="flex items-center gap-2" title={it.t}>
-                  <StatusDot color={it.c} size={6} />
-                  <span className="od-metric-label">{it.k}</span>
+          {/* resumo de um lado; os 4 indicadores, um embaixo do outro, do outro */}
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_270px]">
+            <div className="min-w-0">
+              {summary ? (
+                <SummaryBody summary={summary} onAnswer={answerInChat} />
+              ) : report ? (
+                <div className="animate-od-fade-up"><Markdown text={report} /></div>
+              ) : !analyzing && (
+                <div className="flex h-full flex-col items-start justify-center gap-3 rounded-xl bg-white/[0.02] px-4 py-3.5">
+                  <p className="text-sm text-brand-muted">A Duni ainda não fez o resumo. Peça o relatório para ela dizer como você está e o que fazer.</p>
+                  <button type="button" onClick={handleAnalyze} disabled={busy} className="od-btn od-btn-primary od-btn-sm">Gerar relatório</button>
                 </div>
-                <div className="od-num mt-2 truncate text-[1.25rem] leading-tight" style={{ color: it.c === "#888" || it.c === "#888888" ? "#fff" : it.c }}>{it.v}</div>
-                <p className="mt-1 line-clamp-2 text-[0.72rem] leading-snug text-brand-muted">{it.s}</p>
-              </div>
-            ))}
-          </div>
-
-          {summary ? (
-            <SummaryBody summary={summary} onAnswer={answerInChat} />
-          ) : report ? (
-            <div className="animate-od-fade-up"><Markdown text={report} /></div>
-          ) : !analyzing && (
-            <div className="flex flex-col items-start gap-3 rounded-xl bg-white/[0.02] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-brand-muted">A Duni ainda não fez o resumo. Peça o relatório para ela dizer como você está e o que fazer.</p>
-              <button type="button" onClick={handleAnalyze} disabled={busy} className="od-btn od-btn-primary od-btn-sm shrink-0">Gerar relatório</button>
+              )}
             </div>
-          )}
+
+            <div className="od-stagger grid content-start grid-cols-2 gap-2.5 lg:grid-cols-1">
+              {insights.map((it) => (
+                <div key={it.k} className="od-tile px-4 py-3" style={{ boxShadow: `inset 0 0 0 1px ${it.c}2e` }}>
+                  <div className="flex items-center gap-2" title={it.t}>
+                    <StatusDot color={it.c} size={6} />
+                    <span className="od-metric-label">{it.k}</span>
+                  </div>
+                  <div className="od-num mt-1.5 truncate text-[1.2rem] leading-tight" style={{ color: it.c === "#888" || it.c === "#888888" ? "#fff" : it.c }}>{it.v}</div>
+                  <p className="mt-0.5 line-clamp-2 text-[0.72rem] leading-snug text-brand-muted">{it.s}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </Panel>
 
         {/* ───────── Plano da semana ───────── */}
@@ -450,8 +473,31 @@ export default function CoachPage() {
                   {sending ? "digitando…" : <><StatusDot color={notConfigured ? "#FFC145" : "#00FF66"} size={5} />{notConfigured ? "não configurada" : "online"}</>}
                 </div>
               </div>
-              <span className="text-[0.66rem] text-brand-muted">{messages.length} msgs</span>
+              <button
+                type="button"
+                onClick={() => setConfirmClear(true)}
+                disabled={messages.length === 0 || sending || clearing}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-brand-muted transition-colors hover:bg-white/[0.06] hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
+                aria-label="Limpar conversa"
+                title="Limpar conversa"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /></svg>
+              </button>
             </div>
+
+            {/* confirmacao dentro do celular (o confirm() nativo nao combina com a tela) */}
+            {confirmClear && (
+              <div className="animate-od-fade-up border-b border-white/[0.06] px-4 py-3" style={{ background: "rgba(248,81,73,0.06)" }}>
+                <p className="text-[0.8rem]">Apagar toda a conversa?</p>
+                <p className="mt-0.5 text-[0.7rem] text-brand-muted">O que a Duni sabe de você continua guardado.</p>
+                <div className="mt-2 flex gap-2">
+                  <button type="button" onClick={handleClear} disabled={clearing} className="od-btn od-btn-sm !px-3 !py-1" style={{ color: "#fff", background: "#F85149" }}>
+                    {clearing ? "Limpando…" : "Limpar"}
+                  </button>
+                  <button type="button" onClick={() => setConfirmClear(false)} disabled={clearing} className="od-btn od-btn-ghost od-btn-sm !px-3 !py-1">Cancelar</button>
+                </div>
+              </div>
+            )}
 
             <div
               ref={chatRef}

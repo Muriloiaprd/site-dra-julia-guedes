@@ -156,3 +156,26 @@ def test_chat_invalid_structured_response_is_502(auth_client: tuple[TestClient, 
     assert resp.status_code == 502
     assert resp.json()["detail"]["error"] == "invalid_response"
     assert client.get("/coach/chat/history").json() == []
+
+
+def test_clear_chat_keeps_memories_and_other_users_chat(
+    auth_client: tuple[TestClient, dict], db_session: Session, fake_llm
+) -> None:
+    client, user = auth_client
+    _create(client, kind="lesao", content="Canelite na perna esquerda")
+    fake_llm(ChatReply(reply="Oi!", memory_suggestions=[]))
+    client.post("/coach/chat", json={"message": "Oi, Duni"})
+    db_session.add(CoachInteraction(user_id=user["id"], kind="analysis", content="{}", model_used="x"))
+    other = User(email=f"pytest-{uuid.uuid4().hex[:12]}@kactus.test", password_hash=hash_password("outra-senha-123"))
+    db_session.add(other)
+    db_session.commit()
+    db_session.add(CoachInteraction(user_id=other.id, kind="chat", role="user", content="Oi"))
+    db_session.commit()
+
+    assert client.delete("/coach/chat/history").status_code == 204
+
+    assert client.get("/coach/chat/history").json() == []
+    assert len(client.get("/coach/memories").json()) == 1
+    left = {(k, u) for k, u in db_session.query(CoachInteraction.kind, CoachInteraction.user_id).all()}
+    assert ("analysis", user["id"]) in left  # o resumo fica
+    assert ("chat", other.id) in left  # a conversa dos outros fica
