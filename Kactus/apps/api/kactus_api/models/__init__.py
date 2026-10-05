@@ -1,5 +1,11 @@
 from kactus_api.models.activity import Activity, ActivityLap, ActivityPoint
-from kactus_api.models.coach import AthleteMemory, CoachInteraction, PlannedWorkout, WeeklyPlan
+from kactus_api.models.coach import (
+    AthleteMemory,
+    CoachInteraction,
+    GoalPlan,
+    PlannedWorkout,
+    WeeklyPlan,
+)
 from kactus_api.models.daily_metric import DailyMetric
 from kactus_api.models.equipment import Equipment
 from kactus_api.models.record import PersonalRecord
@@ -19,4 +25,5 @@ __all__ = [
     "CoachInteraction",
     "AthleteMemory",
     "WeeklyPlan",
+    "GoalPlan",
 ]

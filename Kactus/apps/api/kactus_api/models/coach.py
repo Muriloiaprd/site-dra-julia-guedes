@@ -28,6 +28,33 @@ class WeeklyPlan(Base):
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=lambda: dt.datetime.now(dt.UTC))
 
 
+class GoalPlan(Base):
+    """Plano do objetivo: todas as semanas ate a prova (fases, km, longao, paces).
+    Os treinos ficam em planned_workouts com goal_plan_id; o passo a passo de cada
+    um vem no plano da semana. So um ativo por atleta."""
+
+    __tablename__ = "goal_plans"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    memory_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("athlete_memories.id", ondelete="SET NULL"), nullable=True
+    )
+    race_name: Mapped[str] = mapped_column(Text(), nullable=False)
+    race_date: Mapped[dt.date] = mapped_column(Date(), nullable=False)
+    race_distance_km: Mapped[float] = mapped_column(Numeric(5, 1), nullable=False)
+    days_per_week: Mapped[int] = mapped_column(nullable=False)
+    vdot: Mapped[float | None] = mapped_column(Numeric(4, 1), nullable=True)
+    summary: Mapped[str] = mapped_column(Text(), nullable=False)
+    phases: Mapped[list] = mapped_column(JSONB(), nullable=False)  # [{fase, inicio, fim, foco}]
+    weeks: Mapped[list] = mapped_column(JSONB(), nullable=False)  # [{semana, inicio, fim, fase, km, longao_km, alivio}]
+    paces: Mapped[dict] = mapped_column(JSONB(), nullable=False)  # s/km: leve, limiar, intervalo, prova
+    active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
+    model_used: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    prompt_version: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=lambda: dt.datetime.now(dt.UTC))
+
+
 class PlannedWorkout(Base):
     __tablename__ = "planned_workouts"
 
@@ -48,6 +75,9 @@ class PlannedWorkout(Base):
     plan_batch_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
     weekly_plan_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("weekly_plans.id", ondelete="SET NULL"), nullable=True
+    )
+    goal_plan_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("goal_plans.id", ondelete="SET NULL"), nullable=True
     )
     objective: Mapped[str | None] = mapped_column(Text(), nullable=True)  # finalidade fisiologica
     reason: Mapped[str | None] = mapped_column(Text(), nullable=True)  # por que esta semana (dados)

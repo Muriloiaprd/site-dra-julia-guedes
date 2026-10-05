@@ -15,14 +15,25 @@ from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
+from kactus_api.ai import goal_plan
 from kactus_api.ai.athlete_analysis import build_analysis, effective_kind
 from kactus_api.checkin_tags import tag_labels
 from kactus_api.config import settings
 from kactus_api.metrics.basic import PointLike, hr_zone_distribution, resolve_hr_zones
 from kactus_api.metrics.garmin import benefit_label
-from kactus_api.metrics.predictions import predict_race_times, training_recommendation
+from kactus_api.metrics.predictions import (
+    estimate_vdot,
+    predict_race_times,
+    training_recommendation,
+)
 from kactus_api.models.activity import Activity, ActivityLap, ActivityPoint
-from kactus_api.models.coach import AthleteMemory, CoachInteraction, PlannedWorkout, WeeklyPlan
+from kactus_api.models.coach import (
+    AthleteMemory,
+    CoachInteraction,
+    GoalPlan,
+    PlannedWorkout,
+    WeeklyPlan,
+)
 from kactus_api.models.daily_metric import DailyMetric
 from kactus_api.models.record import PersonalRecord
 from kactus_api.models.user import AthleteProfile
@@ -1327,3 +1338,249 @@ def latest_activity_comment(db: Session, user_id: uuid.UUID, activity_id: uuid.U
         .order_by(CoachInteraction.created_at.desc())
         .limit(1)
     ).scalar_one_or_none()
+
+
+# ── plano do objetivo ──────────────────────────────────────────────────────
+
+_GOAL_MIN_DAYS = 14  # menos que isso nao da para periodizar
+_RECORD_MAX_AGE_DAYS = 365  # recorde mais velho que isso nao diz o nivel de hoje
+_VDOT_RECORDS = {"fastest_5k": 5000, "fastest_10k": 10000, "fastest_21k": 21097, "fastest_42k": 42195}
+_DEFAULT_VDOT = 33.0
+
+_PHASE_FOCUS_DEFAULT = {
+    "base": "Volume leve e constância para o corpo aguentar o que vem.",
+    "construcao": "Longões maiores e treinos de limiar.",
+    "pico": "Ritmo de prova e os longões mais longos.",
+    "polimento": "Menos volume para chegar descansado na prova.",
+}
+_OBJECTIVE_DEFAULT = {
+    "rodagem leve": "Somar volume leve sem cansar.",
+    "regenerativo": "Soltar as pernas e recuperar.",
+    "longão": "Resistência para a distância da prova.",
+    "longão progressivo": "Resistência terminando mais forte.",
+    "longão com ritmo de prova": "Treinar o ritmo de prova cansado.",
+    "progressivo": "Acelerar aos poucos sem estourar.",
+    "fartlek": "Estímulos curtos de velocidade, sem pressão.",
+    "limiar": "Subir o ritmo que você sustenta por mais tempo.",
+    "intervalado": "Melhorar a velocidade e o fôlego.",
+    "ritmo de prova": "Acostumar o corpo ao ritmo da prova.",
+    "prova": "Dia da prova: correr o plano.",
+}
+
+
+class GoalPlanSlotLLM(BaseModel):
+    data: str
+    tipo: str = Field(description="Exatamente uma das opcoes listadas para esta data.")
+    titulo: str = Field(description="Curto, ate ~5 palavras.")
+    objetivo: str = Field(description="1 frase curta (ate ~12 palavras): a finalidade do treino.")
+
+
+class GoalPlanPhaseLLM(BaseModel):
+    fase: Literal["base", "construcao", "pico", "polimento"]
+    foco: str = Field(description="1 frase curta (ate ~15 palavras): o foco da fase para este atleta.")
+
+
+class GoalPlanLLM(BaseModel):
+    stable_output: ClassVar[bool] = True
+
+    resumo: str = Field(description="1 a 2 frases curtas: como o plano leva o atleta ate a prova.")
+    fases: list[GoalPlanPhaseLLM]
+    treinos: list[GoalPlanSlotLLM]
+
+
+_GOAL_PLAN_INSTRUCTION = """Monte o plano do atleta ate a prova {race}.
+O esqueleto abaixo foi calculado pelo sistema (volume seguro, semanas de alivio,
+polimento) e NAO muda: datas, papel e km de cada treino sao fixos.
+
+Sua parte, para CADA linha do esqueleto (mesma data):
+- tipo: escolha UMA das opcoes da linha. Varie os treinos de qualidade entre as
+  semanas. Considere lesoes, dores e o historico do contexto (com dor, prefira o
+  tipo mais leve).
+- titulo curto e objetivo em 1 frase.
+Depois: resumo do plano (1 a 2 frases) e o foco de cada fase presente (1 frase).
+Nao escreva ritmo, FC nem distancia: o sistema calcula.
+
+Paces do atleta (calculados pelo sistema): {paces}
+
+Esqueleto (data | semana | fase | papel | km | opcoes de tipo):
+{slots}
+
+Contexto do atleta:
+{context}"""
+
+
+def _goal_race(db: Session, user_id: uuid.UUID, today: date) -> tuple[AthleteMemory, float]:
+    """A prova alvo: a mais longa entre as provas futuras com data (empate: a mais proxima)."""
+    rows = db.execute(
+        select(AthleteMemory).where(
+            AthleteMemory.user_id == user_id,
+            AthleteMemory.active.is_(True),
+            AthleteMemory.kind == "prova",
+            AthleteMemory.event_date.is_not(None),
+            AthleteMemory.event_date >= today,
+        )
+    ).scalars().all()
+    races = [(m, km) for m in rows if (km := goal_plan.race_distance_km(m.content))]
+    if not races:
+        raise PlanEditError(
+            "no_goal_race",
+            "Cadastre a prova com a data em \"O que a Duni sabe de você\" (ex.: Maratona do Rio, 30/05/2027).",
+            422,
+        )
+    memory, km = sorted(races, key=lambda r: (-r[1], r[0].event_date))[0]
+    if (memory.event_date - today).days < _GOAL_MIN_DAYS:
+        raise PlanEditError("race_too_close", "A prova é em menos de 2 semanas: use o plano da semana.", 422)
+    return memory, km
+
+
+def _recent_running(db: Session, user_id: uuid.UUID, today: date) -> tuple[float, float, float | None]:
+    """Km por semana (media de 4 semanas), maior corrida e pace medio dos ultimos 28 dias."""
+    since = datetime.combine(today - timedelta(days=28), datetime.min.time(), tzinfo=UTC)
+    runs = db.execute(
+        select(Activity.distance_m, Activity.moving_time_s, Activity.duration_s).where(
+            Activity.user_id == user_id,
+            Activity.deleted_at.is_(None),
+            Activity.sport.in_([s for s, g in _SPORT_GROUPS.items() if g == "run"]),
+            Activity.start_time >= since,
+        )
+    ).all()
+    dist = [float(d) / 1000 for d, _m, _t in runs if d]
+    total_km = sum(dist)
+    total_s = sum((m or t) for d, m, t in runs if d)
+    pace = total_s / total_km if total_km >= 3 else None
+    return total_km / 4, max(dist, default=0.0), pace
+
+
+def _current_vdot(db: Session, user_id: uuid.UUID, today: date, easy_pace: float | None) -> float:
+    """Pelo melhor recorde do ultimo ano; sem recorde, pelo pace dos treinos recentes."""
+    since = datetime.combine(today - timedelta(days=_RECORD_MAX_AGE_DAYS), datetime.min.time(), tzinfo=UTC)
+    records = db.execute(
+        select(PersonalRecord.record_type, PersonalRecord.value).where(
+            PersonalRecord.user_id == user_id,
+            PersonalRecord.record_type.in_(list(_VDOT_RECORDS)),
+            PersonalRecord.achieved_at >= since,
+        )
+    ).all()
+    vdots = [estimate_vdot(float(v), _VDOT_RECORDS[t]) for t, v in records]
+    if vdots:
+        return round(max(vdots), 1)
+    if easy_pace:
+        return round(goal_plan.vdot_from_easy_pace(easy_pace), 1)
+    return _DEFAULT_VDOT
+
+
+def current_goal_plan(db: Session, user_id: uuid.UUID, today: date | None = None) -> GoalPlan | None:
+    today = today or date.today()
+    return db.execute(
+        select(GoalPlan)
+        .where(GoalPlan.user_id == user_id, GoalPlan.active.is_(True), GoalPlan.race_date >= today)
+        .order_by(GoalPlan.created_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+
+def generate_goal_plan(
+    db: Session, user_id: uuid.UUID, days_per_week: int = 3, today: date | None = None,
+) -> tuple[GoalPlan, list[PlannedWorkout], str]:
+    """Esqueleto pelo codigo + tipo/titulo/objetivo pela Duni. Refaz de hoje em diante:
+    treinos feitos ou pulados ficam; os planejados dai para frente sao trocados."""
+    today = today or date.today()
+    memory, race_km = _goal_race(db, user_id, today)
+    context = build_context(db, user_id)
+    _require_sufficient_data(context)
+
+    base_km, longest, easy_pace = _recent_running(db, user_id, today)
+    vdot = _current_vdot(db, user_id, today, easy_pace)
+    p = goal_plan.paces(vdot, race_km)
+    zones = resolve_hr_zones(db.execute(select(AthleteProfile).where(AthleteProfile.user_id == user_id)).scalar_one_or_none())
+    weeks = goal_plan.build_skeleton(today, memory.event_date, race_km, days_per_week, base_km, longest)
+    slots = [(w, s) for w in weeks for s in w.slots if s.date >= today]
+
+    lines = "\n".join(
+        f"{s.date.isoformat()} | {w.index} | {w.phase}{' (alivio)' if w.cutback else ''} | {s.role} | {s.km:g} km | "
+        + ", ".join(s.options)
+        for w, s in slots
+    )
+    paces_txt = ", ".join(f"{k}: {goal_plan.fmt_pace(v)}/km" for k, v in p.items())
+    user_content = _GOAL_PLAN_INSTRUCTION.format(
+        race=f"{memory.content} em {memory.event_date.isoformat()} ({race_km:g} km)",
+        paces=paces_txt,
+        slots=lines,
+        context=json.dumps(context, ensure_ascii=False),
+    )
+    parsed, model_used = call_llm(SYSTEM_PROMPT, user_content, response_model=GoalPlanLLM)
+    chosen = {t.data: t for t in parsed.treinos}
+    focus = {f.fase: f.foco for f in parsed.fases}
+
+    # dia que ja tem treino feito/pulado nao ganha outro; planejados de hoje em diante saem
+    taken = set(db.execute(
+        select(PlannedWorkout.date).where(
+            PlannedWorkout.user_id == user_id, PlannedWorkout.status != "planned", PlannedWorkout.date >= today,
+        )
+    ).scalars())
+    db.execute(
+        delete(PlannedWorkout).where(
+            PlannedWorkout.user_id == user_id, PlannedWorkout.status == "planned", PlannedWorkout.date >= today,
+        )
+    )
+    db.execute(update(GoalPlan).where(GoalPlan.user_id == user_id, GoalPlan.active.is_(True)).values(active=False))
+
+    phases = []
+    for name in goal_plan.PHASES:
+        ws = [w for w in weeks if w.phase == name]
+        if ws:
+            phases.append({
+                "fase": name,
+                "inicio": ws[0].start.isoformat(),
+                "fim": ws[-1].end.isoformat(),
+                "foco": focus.get(name) or _PHASE_FOCUS_DEFAULT[name],
+            })
+    plan = GoalPlan(
+        user_id=user_id,
+        memory_id=memory.id,
+        race_name=memory.content,
+        race_date=memory.event_date,
+        race_distance_km=race_km,
+        days_per_week=days_per_week,
+        vdot=vdot,
+        summary=parsed.resumo,
+        phases=phases,
+        weeks=[
+            {"semana": w.index, "inicio": w.start.isoformat(), "fim": w.end.isoformat(), "fase": w.phase,
+             "km": w.km, "longao_km": w.long_km, "alivio": w.cutback}
+            for w in weeks
+        ],
+        paces={k: round(v) for k, v in p.items()},
+        model_used=model_used,
+        prompt_version=settings.coach_prompt_version,
+    )
+    db.add(plan)
+    db.flush()
+
+    batch_id = uuid.uuid4()
+    rows = []
+    for w, s in slots:
+        if s.date in taken:
+            continue
+        pick = chosen.get(s.date.isoformat())
+        kind = pick.tipo.strip().lower() if pick and pick.tipo.strip().lower() in s.options else s.options[0]
+        if pick and pick.tipo.strip().lower() != kind:
+            pick = None  # tipo fora das opcoes: titulo e objetivo dela nao valem para o padrao
+        t = goal_plan.workout_targets(kind, s.km, p, zones)
+        rows.append(PlannedWorkout(
+            user_id=user_id,
+            plan_batch_id=batch_id,
+            goal_plan_id=plan.id,
+            date=s.date,
+            sport="run",
+            title=(pick.titulo.strip() if pick and pick.titulo.strip() else kind.capitalize())[:200],
+            target_distance_m=s.km * 1000,
+            target_duration_s=t["duracao_s"],
+            target_intensity=t["intensidade"],
+            objective=pick.objetivo.strip() if pick and pick.objetivo.strip() else _OBJECTIVE_DEFAULT.get(kind),
+            reason=f"Semana {w.index} · {goal_plan.PHASE_LABEL[w.phase]}{' (alívio)' if w.cutback else ''}",
+            targets={"tipo": kind, "ritmo": t["ritmo"], "zona_fc": t["zona_fc"], "metrica_prioritaria": "FC"},
+        ))
+    db.add_all(rows)
+    db.commit()
+    return plan, rows, model_used

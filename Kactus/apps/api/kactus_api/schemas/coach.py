@@ -90,6 +90,7 @@ class PlannedWorkoutOut(BaseModel):
     status: str
     activity_id: uuid.UUID | None
     weekly_plan_id: uuid.UUID | None = None
+    goal_plan_id: uuid.UUID | None = None
     objective: str | None = None
     reason: str | None = None
     steps: list[dict] | None = None
@@ -114,6 +115,36 @@ class WeeklyPlanOut(BaseModel):
 
 class WeeklyPlanResponse(BaseModel):
     plan: WeeklyPlanOut | None
+    workouts: list[PlannedWorkoutOut]
+
+
+class GoalPlanRequest(BaseModel):
+    days_per_week: int = Field(default=3, ge=3, le=5)
+
+
+class GoalPlanOut(BaseModel):
+    """Plano do objetivo: fases [{fase, inicio, fim, foco}], semanas [{semana, inicio,
+    fim, fase, km, longao_km, alivio}] e paces em s/km (leve_rapido, leve_lento,
+    limiar, intervalo, prova)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    race_name: str
+    race_date: date
+    race_distance_km: float
+    days_per_week: int
+    vdot: float | None
+    summary: str
+    phases: list[dict]
+    weeks: list[dict]
+    paces: dict
+    model_used: str | None
+    created_at: datetime
+
+
+class GoalPlanResponse(BaseModel):
+    plan: GoalPlanOut | None
     workouts: list[PlannedWorkoutOut]
 
 

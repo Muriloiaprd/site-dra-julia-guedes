@@ -26,6 +26,8 @@ from kactus_api.schemas.coach import (
     ChatHistoryItem,
     ChatRequest,
     ChatResponse,
+    GoalPlanRequest,
+    GoalPlanResponse,
     MemoryIn,
     MemoryOut,
     MemoryUpdate,
@@ -162,6 +164,35 @@ def post_generate_plan(current_user: CurrentUser, db: DbSession) -> dict:
     except CoachPlanParseError as e:
         _raise_parse_error(e)
     return {"plan": plan, "workouts": rows}
+
+
+@router.post("/goal-plan/generate", response_model=GoalPlanResponse)
+def post_generate_goal_plan(body: GoalPlanRequest, current_user: CurrentUser, db: DbSession) -> dict:
+    """Plano do objetivo: todos os treinos ate a prova cadastrada nas memorias."""
+    try:
+        plan, rows, _model_used = coach_service.generate_goal_plan(db, current_user.id, body.days_per_week)
+    except PlanEditError as e:
+        _raise_plan_edit(e)
+    except InsufficientDataError as e:
+        _raise_insufficient_data(e)
+    except CoachUnavailableError as e:
+        _raise_unavailable(e)
+    return {"plan": plan, "workouts": rows}
+
+
+@router.get("/goal-plan", response_model=GoalPlanResponse)
+def get_goal_plan(current_user: CurrentUser, db: DbSession) -> dict:
+    """O plano do objetivo ativo (ou nada) e todos os treinos dele, feitos ou nao."""
+    coach_service.reconcile_plan(db, current_user.id)
+    plan = coach_service.current_goal_plan(db, current_user.id)
+    if plan is None:
+        return {"plan": None, "workouts": []}
+    rows = db.execute(
+        select(PlannedWorkout)
+        .where(PlannedWorkout.user_id == current_user.id, PlannedWorkout.goal_plan_id == plan.id)
+        .order_by(PlannedWorkout.date.asc())
+    ).scalars().all()
+    return {"plan": plan, "workouts": list(rows)}
 
 
 @router.get("/plan/week", response_model=WeeklyPlanResponse)
