@@ -178,3 +178,41 @@ def test_regenerating_is_stable_and_keeps_done_workouts(auth_client: tuple[TestC
     assert client.get("/coach/goal-plan").json()["plan"]["id"] == second["plan"]["id"]  # o antigo saiu
     week = client.get("/coach/plan?days_ahead=14").json()
     assert sum(w["date"] == done["date"] for w in week) == 1  # o feito ficou e o dia nao ganhou outro
+
+
+# ── a semana segue o plano do objetivo (Fase 4) ─────────────────────────────
+
+
+def test_week_plan_details_goal_workouts_without_changing_them(auth_client: tuple[TestClient, dict], fake_llm) -> None:
+    from test_weekly_plan import _plan, _workout
+
+    client, _user = auth_client
+    _with_history(client)
+    _race(client, days_ahead=60)
+    fake_llm(_llm("2026-01-01", "2026-01-02"))
+    goal = client.post("/coach/goal-plan/generate", json={}).json()
+    start = date.today()
+    in_week = [w for w in goal["workouts"] if w["date"] <= (start + timedelta(days=6)).isoformat()]
+    assert in_week, "o plano do objetivo tem treino nesta semana"
+    target = in_week[0]
+    free_day = next(
+        d for d in (start + timedelta(days=i) for i in range(7)) if d.isoformat() not in {w["date"] for w in in_week}
+    )
+    # a IA "desobedece": muda distancia e tipo e inventa um treino num dia livre
+    sent = fake_llm(_plan([
+        _workout(date.fromisoformat(target["date"]), tipo="intervalado", distancia_km=20.0, titulo="Detalhado"),
+        _workout(free_day, titulo="Inventado"),
+    ]))
+
+    body = client.post("/coach/plan/generate").json()
+
+    assert sent["user_content"].startswith("PLANO DO OBJETIVO")
+    rows = {w["date"]: w for w in body["workouts"]}
+    assert set(rows) == {w["date"] for w in in_week}  # nenhum treino a mais
+    got = rows[target["date"]]
+    assert got["id"] == target["id"] and got["title"] == "Detalhado" and got["steps"]
+    assert got["target_distance_m"] == target["target_distance_m"]  # distancia do objetivo
+    assert got["targets"]["tipo"] == target["targets"]["tipo"]  # tipo do objetivo
+    assert got["weekly_plan_id"] == body["plan"]["id"] and got["goal_plan_id"] == goal["plan"]["id"]
+    week = client.get("/coach/plan/week").json()
+    assert {w["id"] for w in week["workouts"]} == {w["id"] for w in in_week}

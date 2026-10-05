@@ -1018,7 +1018,22 @@ def generate_weekly_plan(db: Session, user_id: uuid.UUID) -> tuple[WeeklyPlan, l
     days = ", ".join(
         f"{_WEEKDAYS_PT[d.weekday()]} {d.isoformat()}" for d in (start + timedelta(days=i) for i in range(7))
     )
+    # Com plano do objetivo, os treinos da semana ja existem: a Duni so detalha.
+    goal = current_goal_plan(db, user_id, start)
+    fixed = list(db.execute(
+        select(PlannedWorkout)
+        .where(
+            PlannedWorkout.user_id == user_id,
+            PlannedWorkout.goal_plan_id == goal.id,
+            PlannedWorkout.status == "planned",
+            PlannedWorkout.date >= start,
+            PlannedWorkout.date <= end,
+        )
+        .order_by(PlannedWorkout.date)
+    ).scalars()) if goal else []
     user_content = _WEEK_PLAN_INSTRUCTION.format(days=days, context=json.dumps(context, ensure_ascii=False))
+    if fixed:
+        user_content = _goal_week_block(goal, fixed) + "\n\n" + user_content
     parsed, model_used = call_llm(SYSTEM_PROMPT, user_content, response_model=WeeklyPlanLLM)
     workouts = validate_weekly_plan(parsed, start, end)
     # Dia que ja tem treino feito ou pulado nesta semana nao ganha outro (regerar no meio da semana).
@@ -1036,6 +1051,7 @@ def generate_weekly_plan(db: Session, user_id: uuid.UUID) -> tuple[WeeklyPlan, l
         delete(PlannedWorkout).where(
             PlannedWorkout.user_id == user_id,
             PlannedWorkout.status == "planned",
+            PlannedWorkout.goal_plan_id.is_(None),  # os do plano do objetivo sao detalhados, nao trocados
             PlannedWorkout.date >= start,
             PlannedWorkout.date <= end,
         )
@@ -1071,14 +1087,61 @@ def generate_weekly_plan(db: Session, user_id: uuid.UUID) -> tuple[WeeklyPlan, l
         .values(weekly_plan_id=plan.id)
     )
 
-    batch_id = uuid.uuid4()
-    rows = [
-        PlannedWorkout(user_id=user_id, plan_batch_id=batch_id, weekly_plan_id=plan.id, **_workout_fields(w))
-        for w in workouts
-    ]
-    db.add_all(rows)
+    if fixed:
+        rows = _detail_goal_workouts(fixed, workouts, plan.id)
+    else:
+        batch_id = uuid.uuid4()
+        rows = [
+            PlannedWorkout(user_id=user_id, plan_batch_id=batch_id, weekly_plan_id=plan.id, **_workout_fields(w))
+            for w in workouts
+        ]
+        db.add_all(rows)
     db.commit()
     return plan, rows, model_used
+
+
+_GOAL_WEEK_INSTRUCTION = """PLANO DO OBJETIVO ({race}): esta e a semana {week} ({phase}).
+Os treinos desta semana JA ESTAO DEFINIDOS e nao mudam: mesma data, mesmo tipo,
+mesma distancia. Em "treinos", devolva EXATAMENTE estas datas, uma por linha
+abaixo, e so detalhe cada uma (passos, ritmo, FC, objetivo, motivo). Nenhum
+treino em outra data.
+{lines}"""
+
+
+def _goal_week_block(goal: GoalPlan, fixed: list[PlannedWorkout]) -> str:
+    week = next((w for w in goal.weeks if w["inicio"] <= fixed[0].date.isoformat() <= w["fim"]), None)
+    lines = "\n".join(
+        f"- {w.date.isoformat()}: {(w.targets or {}).get('tipo', w.title)}, {float(w.target_distance_m or 0) / 1000:g} km, "
+        f"ritmo {(w.targets or {}).get('ritmo', '-')}, FC {(w.targets or {}).get('zona_fc', '-')}"
+        for w in fixed
+    )
+    return _GOAL_WEEK_INSTRUCTION.format(
+        race=f"{goal.race_name} em {goal.race_date.isoformat()}",
+        week=week["semana"] if week else "?",
+        phase=goal_plan.PHASE_LABEL.get(week["fase"], week["fase"]) if week else "?",
+        lines=lines,
+    )
+
+
+def _detail_goal_workouts(fixed: list[PlannedWorkout], workouts: list[PlanWorkout], weekly_plan_id: uuid.UUID) -> list[PlannedWorkout]:
+    """Poe o detalhe da Duni nos treinos do plano do objetivo. Data, tipo e distancia
+    ficam os do objetivo, mesmo que a IA mande outros; treino em outra data e ignorado."""
+    by_date = {date.fromisoformat(w.data): w for w in workouts}
+    for row in fixed:
+        row.weekly_plan_id = weekly_plan_id
+        w = by_date.get(row.date)
+        if w is None:
+            continue  # a Duni pulou este dia: fica o treino do objetivo, sem passo a passo
+        f = _workout_fields(w)
+        kind = (row.targets or {}).get("tipo")
+        row.title = f["title"]
+        row.objective = f["objective"]
+        row.reason = f["reason"]
+        row.steps = f["steps"]
+        row.targets = {**f["targets"], "tipo": kind or f["targets"]["tipo"]}
+        row.target_duration_s = f["target_duration_s"] or row.target_duration_s
+        row.updated_at = datetime.now(UTC)
+    return fixed
 
 
 def current_weekly_plan(db: Session, user_id: uuid.UUID, today: date | None = None) -> WeeklyPlan | None:
