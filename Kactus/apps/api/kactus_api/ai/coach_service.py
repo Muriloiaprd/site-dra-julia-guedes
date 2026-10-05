@@ -7,7 +7,7 @@ import json
 import time
 import uuid
 from datetime import UTC, date, datetime, timedelta
-from typing import Literal
+from typing import ClassVar, Literal
 from zoneinfo import ZoneInfo
 
 import anthropic
@@ -36,8 +36,9 @@ _CHAT_HISTORY_LIMIT = 20
 # mensagens antigas tem, "assistant" < "user" deixa a pergunta antes da resposta.
 CHAT_ORDER_DESC = (CoachInteraction.created_at.desc(), CoachInteraction.role.asc())
 # Detalhe atividade por atividade so do recente; o resto vem agregado na analise.
-_RECENT_DETAIL_DAYS = 14
-_RECENT_DETAIL_LIMIT = 15
+# O ultimo mes inteiro em detalhe (o plano olha o que o atleta fez, nao so 2 semanas).
+_RECENT_DETAIL_DAYS = 28
+_RECENT_DETAIL_LIMIT = 30
 
 _SPORT_GROUPS = {
     "run": "run", "trail_run": "run", "treadmill": "run",
@@ -370,6 +371,10 @@ class PlanWeekOutlook(BaseModel):
 
 
 class WeeklyPlanLLM(BaseModel):
+    # Mesma entrada → mesmo plano (temperatura 0 em _call_gemini). Sem isso cada
+    # clique em "Gerar plano da semana" trazia treinos diferentes.
+    stable_output: ClassVar[bool] = True
+
     status: Literal["verde", "amarelo", "laranja", "vermelho"]
     status_justificativa: str = Field(description="1 frase (ate ~20 palavras) com os dados que levaram ao status.")
     resumo: str = Field(description="1 a 2 frases curtas: a leitura da semana e o plano.")
@@ -381,6 +386,8 @@ class WeeklyPlanLLM(BaseModel):
 
 
 class RegeneratedDay(BaseModel):
+    stable_output: ClassVar[bool] = True
+
     descanso: bool
     explicacao: str
     treino: PlanWorkout | None
@@ -679,6 +686,8 @@ def _call_anthropic(system_prompt: str, user_content: str, response_model: type[
 # 2026-09-21 o free tier levou minutos so para devolver 503, e um timeout por
 # modelo deixava a soma estourar o proxy.
 _GEMINI_BUDGET_S = 200.0
+# Semente fixa dos planos: junto com temperatura 0, o mesmo contexto da o mesmo plano.
+_STABLE_SEED = 7
 # Abaixo disso nao vale comecar outro modelo: nao da tempo de responder.
 _GEMINI_MIN_ATTEMPT_S = 20.0
 # Sobrecarga momentanea do modelo (nao e cota): vale tentar o proximo da lista.
@@ -713,10 +722,14 @@ def _call_gemini(system_prompt: str, user_content: str, response_model: type[Bas
     from google.genai import errors, types
 
     if response_model is not None:
+        stable = getattr(response_model, "stable_output", False)
         config = types.GenerateContentConfig(
             system_instruction=system_prompt,
             response_mime_type="application/json",
             response_schema=response_model,
+            # planos: sem sorteio (chat e resumo seguem com a temperatura padrao)
+            temperature=0.0 if stable else None,
+            seed=_STABLE_SEED if stable else None,
         )
     else:
         config = types.GenerateContentConfig(system_instruction=system_prompt)

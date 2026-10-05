@@ -151,3 +151,29 @@ def test_call_gemini_unavailable_when_every_model_is_overloaded(monkeypatch):
         _call_gemini("sys", "oi", None)
 
     assert exc_info.value.reason == "llm_unavailable"
+
+
+class _ConfigSpy:
+    """Guarda o config de cada chamada e para na hora (cota), sem precisar de resposta."""
+
+    def __init__(self):
+        self.configs = []
+
+    def generate_content(self, *, config, **_kwargs):
+        self.configs.append(config)
+        raise _gemini_error(errors.ClientError, 429, "RESOURCE_EXHAUSTED")
+
+
+@pytest.mark.parametrize(
+    ("response_model", "stable"),
+    [(coach_service.WeeklyPlanLLM, True), (coach_service.RegeneratedDay, True), (coach_service.ChatReply, False)],
+)
+def test_plans_use_temperature_zero_and_chat_does_not(monkeypatch, response_model, stable):
+    spy = _ConfigSpy()
+    _patch_client(monkeypatch, spy)
+
+    with pytest.raises(CoachUnavailableError):
+        _call_gemini("sys", "oi", response_model)
+
+    [config] = spy.configs
+    assert (config.temperature, config.seed) == ((0.0, coach_service._STABLE_SEED) if stable else (None, None))

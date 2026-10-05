@@ -79,7 +79,7 @@ def test_build_context_shape(auth_client: tuple[TestClient, dict], db_session: S
     assert ctx["objetivo_cadastrado"] is True
     assert ctx["aderencia_4_semanas"]["planejados"] == 0
 
-    [act] = ctx["atividades_ultimos_14_dias"]
+    [act] = ctx["atividades_ultimos_28_dias"]
     local_day = start.astimezone(ZoneInfo("America/Sao_Paulo")).date().isoformat()
     assert act["data"] == local_day  # data no fuso da atividade, nao UTC
     assert act["tipo"] == "run" and act["km"] == 8.0 and act["ritmo"] == "5:00/km"
