@@ -180,7 +180,7 @@ export function CheckinPanel({ activity, onSaved }: { activity: ActivityDetail; 
 
             {/* PSE */}
             <fieldset>
-              <legend className="od-metric-label mb-2">Esforço percebido (PSE) · 0 a 10</legend>
+              <legend className="od-metric-label mb-2">Quanto esforço você sentiu · 0 a 10</legend>
               <LevelPicker value={form.rpe} onChange={(v) => set("rpe", v)} label="Esforço percebido" />
               <p className="mt-2 min-h-[1.25rem] text-xs text-brand-textSecondary" aria-live="polite">
                 {rpeInfo ? (
@@ -306,8 +306,8 @@ export function CheckinPanel({ activity, onSaved }: { activity: ActivityDetail; 
 
 function CheckinSummary({ activity: a, tagGroups }: { activity: ActivityDetail; tagGroups: CheckinTagGroup[] }) {
   const items: { k: string; v: string; sub?: string; color?: string }[] = [];
-  if (a.rpe != null) items.push({ k: "Esforço (PSE)", v: `${a.rpe}/10`, sub: RPE_SCALE[a.rpe].label, color: levelColor(a.rpe) });
-  if (a.srpe != null) items.push({ k: "Carga interna", v: `${Math.round(a.srpe)}`, sub: "PSE × minutos" });
+  if (a.rpe != null) items.push({ k: "Esforço sentido", v: `${a.rpe}/10`, sub: RPE_SCALE[a.rpe].label, color: levelColor(a.rpe) });
+  if (a.srpe != null) items.push({ k: "Carga interna", v: `${Math.round(a.srpe)}`, sub: "esforço × minutos" });
   const feeling = feelingLabel(a.feeling);
   if (feeling) items.push({ k: "Sensação", v: feeling });
   if (a.pain_level != null) {

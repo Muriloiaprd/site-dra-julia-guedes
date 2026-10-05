@@ -54,7 +54,7 @@ function volume(w: PlannedWorkout) {
   return parts.join(" · ") || "—";
 }
 
-// A IA as vezes ja escreve o rotulo no valor ("PSE 3/10"); nao repetir.
+// A IA as vezes ja escreve o rotulo no valor ("FC Z2"); nao repetir.
 function labeled(label: string, value: string) {
   return value.trimStart().toUpperCase().startsWith(label) ? value : `${label} ${value}`;
 }
@@ -66,7 +66,6 @@ function stepDetail(s: WorkoutStep) {
   if (s.duracao_min) parts.push(`${s.duracao_min} min`);
   if (s.ritmo) parts.push(s.ritmo);
   if (s.zona_fc) parts.push(labeled("FC", s.zona_fc));
-  if (s.pse) parts.push(labeled("PSE", s.pse));
   if (s.recuperacao) parts.push(`recuperação: ${s.recuperacao}`);
   return parts.join(" · ");
 }
@@ -401,7 +400,6 @@ function WorkoutDetail({ w, onDone, next }: { w: PlannedWorkout; onDone: (notice
   const editable = w.status === "planned" && w.date >= toISODate(new Date());
   const targets = [
     ["Ritmo", t.ritmo],
-    ["Esforço (PSE)", t.pse],
     ["Cadência", t.cadencia],
     ["Zona de FC", t.zona_fc],
     ["Ritmo no plano (GAP)", t.gap],
@@ -508,9 +506,9 @@ function WorkoutDetail({ w, onDone, next }: { w: PlannedWorkout; onDone: (notice
           {/* embaixo dos alvos e do km a km: o que priorizar e as observacoes */}
           {hasNotes && (
             <div className="space-y-2">
-              {t.metrica_prioritaria && (
+              {t.metrica_prioritaria && !/pse/i.test(t.metrica_prioritaria) && (
                 <p className="rounded-xl bg-white/[0.03] px-3.5 py-2.5 text-[0.8rem] text-brand-textSecondary">
-                  <span className="text-brand-muted">Se ritmo, FC e PSE não baterem, priorize: </span><span className="font-semibold text-white">{t.metrica_prioritaria}</span>
+                  <span className="text-brand-muted">Se ritmo e FC não baterem, priorize: </span><span className="font-semibold text-white">{t.metrica_prioritaria}</span>
                 </p>
               )}
               {t.observacoes && <p className="px-1 text-[0.8rem] text-brand-textSecondary">{t.observacoes}</p>}
@@ -773,7 +771,7 @@ export function WeeklyPlanPanel({
               <Stat label="Corrida" value={load.corrida_km != null ? `${load.corrida_km} km` : "—"} sub={load.corridas != null ? `${load.corridas} corrida${load.corridas === 1 ? "" : "s"}` : undefined} />
               <Stat label="Tempo" value={load.corrida_minutos ? formatDuration(load.corrida_minutos * 60) : "—"} sub={load.ritmo_medio ?? undefined} />
               <Stat label="Longão" value={load.longao_km ? `${load.longao_km} km` : "—"} />
-              <Stat label="Esforço médio" value={load.pse_media != null ? `${load.pse_media}/10` : "—"} sub={load.pse_media == null ? "sem check-in" : undefined} />
+              <Stat label="Treinos" value={load.treinos_total != null ? `${load.treinos_total}` : "—"} sub="contando os complementares" />
             </div>
             {(comp.length > 0 || load.intensidade_28d_pct) && (
               <p className="mt-2 text-[0.72rem] text-brand-muted">

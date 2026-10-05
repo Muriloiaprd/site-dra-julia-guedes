@@ -639,7 +639,8 @@ export interface WorkoutStep {
   repeticoes: number | null;
   ritmo: string | null;
   zona_fc: string | null;
-  pse: string | null;
+  /** So em planos antigos: a Duni nao usa mais PSE (o atleta nao entende a sigla). */
+  pse?: string | null;
   recuperacao: string | null;
 }
 
@@ -648,6 +649,7 @@ export interface WorkoutTargets {
   ritmo?: string | null;
   gap?: string | null;
   zona_fc?: string | null;
+  /** So em planos antigos. */
   pse?: string | null;
   cadencia?: string | null;
   terreno?: string | null;

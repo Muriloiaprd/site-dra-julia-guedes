@@ -75,11 +75,11 @@ export function DuniComment({ activity }: { activity: ActivityDetail }) {
         ) : (
           <p className="text-sm text-brand-muted">
             A Duni lê as voltas, a FC, a deriva, o seu check-in e o que estava planejado para o dia, e compara com treinos parecidos.
-            {!hasCheckin && " Preencha o check-in acima antes: sem PSE e dor ela só vê o relógio."}
+            {!hasCheckin && " Preencha o check-in acima antes: sem o seu esforço e a dor ela só vê o relógio."}
           </p>
         )}
         {comment && !hasCheckin && (
-          <p className="mt-2 text-xs text-brand-warning">Sem check-in neste treino. Preencha acima e peça de novo para ela considerar a PSE e a dor.</p>
+          <p className="mt-2 text-xs text-brand-warning">Sem check-in neste treino. Preencha acima e peça de novo para ela considerar o seu esforço e a dor.</p>
         )}
       </div>
     </Panel>

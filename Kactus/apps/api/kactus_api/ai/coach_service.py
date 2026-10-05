@@ -88,7 +88,7 @@ TOM
   (pulou treino, correu forte no dia fácil, aumentou demais). Segurança vem antes da
   cobrança: diante de dor, fadiga acumulada ou risco, a prioridade é proteger o atleta.
 - Linguagem simples, sem jargão. Quando usar um termo técnico, explique na prática na
-  primeira vez: "PSE 3/10 = leve, dá para conversar sem perder o fôlego"; "GAP = o
+  primeira vez: "zona 2 = leve, dá para conversar sem perder o fôlego"; "GAP = o
   ritmo equivalente no plano, descontando subidas e descidas".
 
 ESCRITA (o atleta lê rápido, muitas vezes no celular)
@@ -98,7 +98,11 @@ ESCRITA (o atleta lê rápido, muitas vezes no celular)
   despeje métricas.
 - Sem siglas soltas: "disposição" (não TSB), "salto de carga" (não ACWR),
   "condicionamento" (não CTL), "cansaço recente" (não ATL), "carga do treino" (não
-  TSS nem sRPE). VDOT, GAP e PSE só com a explicação curta na primeira vez.
+  TSS nem sRPE). VDOT e GAP só com a explicação curta na primeira vez.
+- NUNCA escreva "PSE" nem notas de esforço como "3/10": o atleta não entende. Guie
+  o treino por frequência cardíaca (zona e faixa em bpm de "perfil.zonas_fc_bpm"),
+  distância, ritmo e tempo. O campo "pse" do contexto é o esforço que o atleta
+  marcou no check-in: fale "o esforço que você marcou", sem número de escala.
 - Na conversa, responda em até ~100 palavras, a não ser que o atleta peça detalhes.
 
 DADOS (o campo "analise" do contexto já traz os cálculos feitos pelo código)
@@ -118,8 +122,8 @@ DADOS (o campo "analise" do contexto já traz os cálculos feitos pelo código)
   destreinou. Sono, HRV, Training Readiness, tempo de recuperação e tipo de terreno
   não existem no Kactus: diga que não tem esses dados quando fariam diferença, e
   nunca suponha valores.
-- Combine carga externa (km, tempo, ritmo, GAP, subida, sessões) e interna (FC, PSE,
-  carga sRPE, sensação, dor). Nunca decida por uma métrica isolada, e não use regra
+- Combine carga externa (km, tempo, ritmo, GAP, subida, sessões) e interna (FC,
+  esforço marcado no check-in, sensação, dor). Nunca decida por uma métrica isolada, e não use regra
   fixa de % de aumento semanal.
 - Diferencie sinal isolado de tendência (o campo "sinais_de_fadiga" já marca qual é).
   Um treino ruim isolado não muda o plano; vários sinais na mesma direção, sim.
@@ -131,8 +135,8 @@ DADOS (o campo "analise" do contexto já traz os cálculos feitos pelo código)
 REGRAS DE TREINO
 - Foco em corrida. Bicicleta, academia, Pilates e caminhada são carga complementar:
   contam no cansaço, mas você não prescreve esses treinos.
-- Ritmo, FC e PSE juntos. Treino fácil é guiado por percepção e FC baixa, não pelo
-  pace. Treino de qualidade: ritmo/GAP + FC + PSE. Na subida, não cobre o pace
+- Ritmo e FC juntos. Treino fácil é guiado pela FC baixa (dá para conversar), não
+  pelo pace. Treino de qualidade: ritmo/GAP + FC. Na subida, não cobre o pace
   absoluto: mantenha o esforço e deixe o ritmo cair; na descida, não acelere para
   compensar.
 - Cadência: não existe regra de 180 passos por minuto. Parta da cadência habitual do
@@ -141,7 +145,7 @@ REGRAS DE TREINO
   moderados. Não suba volume, intensidade e frequência ao mesmo tempo.
 - 1 a 2 dias de descanso por semana (total ou atividade muito leve). Treino com carga
   relevante não conta como descanso.
-- Autorregulação: FC alta + PSE alta + ritmo baixo → aliviar. Dor aumentando →
+- Autorregulação: FC alta para o ritmo + esforço marcado alto → aliviar. Dor aumentando →
   parar ou modificar o treino.
 - Cada treino tem uma finalidade fisiológica clara. Não coloque intensidade só porque
   há uma prova marcada.
@@ -152,7 +156,7 @@ SEGURANÇA
 - O status é 🟢 recuperado, 🟡 atenção, 🟠 fadiga acumulada ou 🔴 recuperação
   prioritária. Sempre diga quais dados levaram ao status; ele não é diagnóstico.
   O status mede o CANSAÇO, não a forma. 🟠 e 🔴 exigem sinais de fadiga, dor ou
-  doença (FC alta para o ritmo, PSE alta, dor que piora, carga aguda muito acima da
+  doença (FC alta para o ritmo, esforço marcado alto, dor que piora, carga aguda muito acima da
   crônica). Pouco treino ou uma pausa não é 🔴: o corpo está descansado, então é 🟢,
   ou 🟡 quando a volta precisa de cuidado (lesão anterior, pausa longa).
 
@@ -183,15 +187,15 @@ Preencha o JSON pedido:
   longao, intervalado, limiar, progressivo, regenerativo), titulo curto, objetivo
   (a finalidade, em 1 frase curta), motivo (por que ESTE treino NESTA semana, ligado
   aos dados, em 1 frase curta), intensidade (leve, moderado ou forte), distancia e duracao, ritmo, GAP,
-  zona de FC, PSE com a explicacao pratica, cadencia (a partir da habitual do
-  atleta, nunca 180 como regra), terreno, qual metrica priorizar se ritmo, FC e PSE
-  discordarem, observacoes e os passos (aquecimento, principal, desaquecimento;
+  zona de FC com a faixa em bpm (perfil.zonas_fc_bpm), cadencia (a partir da
+  habitual do atleta, nunca 180 como regra), terreno, qual priorizar se ritmo e FC
+  discordarem (ritmo, FC ou tempo), observacoes e os passos (aquecimento, principal, desaquecimento;
   no principal, repeticoes e recuperacao quando for intervalado). TODO passo,
   inclusive aquecimento e desaquecimento, tem distancia, duracao e pace (m:ss/km);
   a soma das distancias dos passos e a distancia do treino. Use null no que
   nao se aplica.
 - criterios_ajuste: quando manter, reduzir, acelerar e interromper, com sinais
-  concretos (FC, PSE, dor, ritmo). No maximo 2 itens curtos por lista.
+  concretos (FC, ritmo, dor). No maximo 2 itens curtos por lista.
 - proximas_4_semanas: 4 itens so com km aproximado e foco de cada semana, sem
   treinos diarios. E uma direcao, nao um compromisso.
 
@@ -311,8 +315,7 @@ class PlanStep(BaseModel):
         description="Pace alvo do passo no formato m:ss/km (ex.: 6:00/km; caminhada ~10:00/km). Preencha em TODOS "
         "os passos, inclusive aquecimento e desaquecimento. Progressivo: 6:00 → 5:30/km."
     )
-    zona_fc: str | None
-    pse: str | None
+    zona_fc: str | None = Field(description='Zona e faixa em bpm, ex.: "Zona 2 (128-142 bpm)".')
     recuperacao: str | None
 
 
@@ -328,11 +331,10 @@ class PlanWorkout(BaseModel):
     duracao_min: float | None
     ritmo: str | None
     gap: str | None
-    zona_fc: str | None
-    pse: str | None = Field(description='Curto, ex.: "3/10 (leve, da para conversar)".')
+    zona_fc: str | None = Field(description='Zona e faixa em bpm, ex.: "Zona 2 (128-142 bpm)".')
     cadencia: str | None
     terreno: str | None
-    metrica_prioritaria: str | None
+    metrica_prioritaria: str | None = Field(description='Se ritmo e FC discordarem: "Ritmo", "FC" ou "Tempo".')
     observacoes: str | None = Field(description="1 frase curta ou null.")
     passos: list[PlanStep]
 
@@ -541,6 +543,7 @@ def build_context(db: Session, user_id: uuid.UUID) -> dict:
             "peso_kg": float(profile.weight_kg) if profile and profile.weight_kg else None,
             "fc_repouso": profile.resting_hr if profile else None,
             "fc_max": profile.max_hr if profile else None,
+            "zonas_fc_bpm": resolve_hr_zones(profile),
         },
         "analise": analysis,
         "aderencia_4_semanas": adherence_context(db, user_id, today),
@@ -975,7 +978,6 @@ def _workout_fields(w: PlanWorkout) -> dict:
             "ritmo": w.ritmo,
             "gap": w.gap,
             "zona_fc": w.zona_fc,
-            "pse": w.pse,
             "cadencia": w.cadencia,
             "terreno": w.terreno,
             "metrica_prioritaria": w.metrica_prioritaria,
@@ -1176,8 +1178,8 @@ palavras, com 3 blocos curtos (pule o que nao tiver dado):
 planejado para o dia, diga se bateu com ele.
 **O que chamou atencao**: ate 2 pontos. Olhe as voltas (ritmo e GAP constantes
 ou caindo, FC subindo, deriva, cadencia contra a habitual), o tempo por zona, a
-sessao equivalente (melhorou ou custou mais) e o check-in (PSE, sensacao, dor,
-contexto). Em subida, julgue pelo GAP. Sem check-in, peca para ele preencher. Dor
+sessao equivalente (melhorou ou custou mais) e o check-in (esforco marcado,
+sensacao, dor, contexto). Em subida, julgue pelo GAP. Sem check-in, peca para ele preencher. Dor
 que persiste ou piora: avaliacao profissional.
 **Proximo passo**: 1 ou 2 recomendacoes praticas para os proximos dias.
 
@@ -1278,6 +1280,7 @@ def activity_context(db: Session, user_id: uuid.UUID, act: Activity) -> dict:
             "tratamento": _address(profile),
             "fc_repouso": profile.resting_hr if profile else None,
             "fc_max": profile.max_hr if profile else None,
+            "zonas_fc_bpm": resolve_hr_zones(profile),
         },
     }
 

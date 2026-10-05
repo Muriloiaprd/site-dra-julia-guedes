@@ -38,15 +38,14 @@ def _workout(day: date, **over) -> PlanWorkout:
         "duracao_min": 36.0,
         "ritmo": "6:00/km",
         "gap": None,
-        "zona_fc": "Z2",
-        "pse": "3/10 - leve, da para conversar",
+        "zona_fc": "Zona 2 (128-142 bpm)",
         "cadencia": "~170 ppm (a sua habitual)",
         "terreno": "plano",
-        "metrica_prioritaria": "PSE",
+        "metrica_prioritaria": "FC",
         "observacoes": None,
         "passos": [
             PlanStep(fase="principal", descricao="Rodar leve", duracao_min=36, distancia_km=6, repeticoes=None,
-                     ritmo="6:00/km", zona_fc="Z2", pse="3", recuperacao=None),
+                     ritmo="6:00/km", zona_fc="Zona 2 (128-142 bpm)", recuperacao=None),
         ],
     }
     return PlanWorkout(**{**base, **over})
@@ -178,7 +177,8 @@ def test_generate_saves_plan_and_structured_workouts(auth_client: tuple[TestClie
     [first, *_] = body["workouts"]
     assert first["objective"] == "Base aerobica" and first["reason"].startswith("Semana de retomada")
     assert first["target_distance_m"] == 6000 and first["target_duration_s"] == 2160
-    assert first["targets"]["metrica_prioritaria"] == "PSE" and first["steps"][0]["fase"] == "principal"
+    assert first["targets"]["metrica_prioritaria"] == "FC" and first["steps"][0]["fase"] == "principal"
+    assert "pse" not in first["targets"] and "pse" not in first["steps"][0]  # o atleta nao le PSE
     assert first["weekly_plan_id"] == plan["id"]
 
     week = client.get("/coach/plan/week").json()
@@ -301,3 +301,9 @@ def test_regenerating_keeps_done_day_without_a_second_workout(auth_client: tuple
         (date.today().isoformat(), "done"),
         ((date.today() + timedelta(days=3)).isoformat(), "planned"),
     ]
+
+
+def test_plan_schema_speaks_hr_not_pse() -> None:
+    """A Duni guia por FC, distancia, ritmo e tempo: o esquema pedido a IA nao tem PSE."""
+    assert "pse" not in PlanWorkout.model_fields and "pse" not in PlanStep.model_fields
+    assert "PSE" not in coach_service._WEEK_PLAN_INSTRUCTION

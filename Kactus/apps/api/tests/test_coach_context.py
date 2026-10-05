@@ -74,7 +74,7 @@ def test_build_context_shape(auth_client: tuple[TestClient, dict], db_session: S
     # a analise da Fase 4 vai inteira, e o formato de triathlon saiu
     assert ctx["analise"]["janelas"]["7d"]["corrida"]["km"] == 8.0
     assert "profile" not in ctx and "daily_metrics_last_30" not in ctx
-    assert set(ctx["perfil"]) == {"tratamento", "peso_kg", "fc_repouso", "fc_max"}
+    assert set(ctx["perfil"]) == {"tratamento", "peso_kg", "fc_repouso", "fc_max", "zonas_fc_bpm"}
     assert ctx["perfil"]["tratamento"] == "neutro"  # sexo nao informado
     assert ctx["objetivo_cadastrado"] is True
     assert ctx["aderencia_4_semanas"]["planejados"] == 0
