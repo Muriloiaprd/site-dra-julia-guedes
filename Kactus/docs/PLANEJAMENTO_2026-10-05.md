@@ -90,3 +90,20 @@ espelho `kactus` via commit-ponte).
 
 - Teste ao vivo com a conta do Murilo (ele gera o plano do objetivo e o da semana; Claude
   não digita senha), ajustes, `docs/` atualizado e memória do projeto.
+
+## Andamento
+
+- **Fase 1 — feita** (commit `fe3fef2`): prompt e esquema sem PSE; FC em bpm do perfil
+  (`perfil.zonas_fc_bpm`); tela, check-in e comentário sem a sigla.
+- **Fase 2 — feita** (`a3ed7ba`): `temperature=0` + `seed=7` em `WeeklyPlanLLM` e
+  `RegeneratedDay` (`stable_output`); 28 dias de atividades detalhadas.
+- **Fase 3 — feita** (`24af69b`): `ai/goal_plan.py` (esqueleto, paces de Daniels pelo VDOT),
+  `generate_goal_plan`, `POST /coach/goal-plan/generate`, `GET /coach/goal-plan`, migração
+  021 aplicada no banco principal. Exemplo (base 18 km/sem, maratona em 30/05/2027, 3 dias):
+  34 semanas, volume 19 → 55 km, longão até 32 km três vezes no pico, polimento 41 → 33 km.
+- **Fase 4 — feita** (`cb62d64`): com objetivo ativo, o plano da semana só detalha os treinos
+  dele (bloco do objetivo no início do pedido; data/tipo/km travados pelo código).
+- **Fase 5 — feita** (`b4db1f3`): botão "Gerar plano do objetivo" e quadro com fases, km por
+  semana e treinos da semana escolhida; conferido em `/coach-preview`.
+- **Fase 6 — pendente**: teste ao vivo com a conta do Murilo. Pré-requisito: a prova com data
+  em "O que a Duni sabe de você" (tipo Prova, ex.: "Maratona do Rio", data de maio/2027).
