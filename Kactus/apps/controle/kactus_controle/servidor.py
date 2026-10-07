@@ -77,7 +77,7 @@ def ambiente() -> dict[str, str]:
     extras = [
         os.path.join(env.get("APPDATA", ""), "npm"),
         os.path.join(env.get("USERPROFILE", ""), ".local", "bin"),
-        os.path.join(env.get("ProgramFiles", r"C:\Program Files"), "nodejs"),
+        os.path.join(env.get("PROGRAMFILES", r"C:\Program Files"), "nodejs"),
     ]
     env["PATH"] = os.pathsep.join([*extras, env.get("PATH", "")])
     # o NEXT_DIST_DIR de uma sessao de preview nao pode vazar para o modo rapido
@@ -126,6 +126,19 @@ def matar_arvore(pid: int) -> None:
     )
 
 
+def matar_lancadores_bat() -> None:
+    """Fecha o `Abrir Kactus.bat` que estiver rodando: ele religaria o servidor em 5 s."""
+    ps = (
+        "Get-CimInstance Win32_Process -Filter \"Name='cmd.exe'\" | "
+        "Where-Object { $_.CommandLine -like '*Abrir Kactus.bat*' } | "
+        "ForEach-Object { taskkill /PID $_.ProcessId /T /F | Out-Null }"
+    )
+    with contextlib.suppress(Exception):
+        subprocess.run(
+            ["powershell", "-NoProfile", "-Command", ps], capture_output=True, timeout=30, creationflags=SEM_JANELA
+        )
+
+
 class Servidor:
     def __init__(
         self,
@@ -133,6 +146,7 @@ class Servidor:
         comandos: Comandos | None = None,
         checar: Callable[[], bool] = checar_kactus,
         portas: tuple[int, ...] = (3003, 8000),
+        matar_lancadores: Callable[[], None] = matar_lancadores_bat,
         log: Path | None = None,
         modo: str = "rapido",
         intervalo: float = 3.0,
@@ -146,6 +160,7 @@ class Servidor:
         self.comandos = comandos or comandos_kactus(raiz)
         self._checar = checar
         self.portas = portas
+        self._matar_lancadores = matar_lancadores
         self.log = log or (Path(__file__).resolve().parents[1] / "logs" / "servidor.log")
         self.modo = modo
         self.intervalo = intervalo
@@ -214,7 +229,9 @@ class Servidor:
         for p in (build, proc):
             if p and p.poll() is None:
                 matar_arvore(p.pid)
-        # o que sobrou ouvindo nas portas (aberto pelo .bat, pelo Claude, ou filho orfao)
+        # o .bat religaria em 5 s; depois, o que sobrou ouvindo nas portas
+        # (aberto pelo .bat, pelo Claude, ou filho orfao)
+        self._matar_lancadores()
         for pid in pids_nas_portas(self.portas):
             matar_arvore(pid)
         for p in (build, proc):

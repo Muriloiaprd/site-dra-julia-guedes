@@ -23,7 +23,7 @@ wheels = [
 [[package]]
 name = "kactus-controle"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "pillow" },
     { name = "pystray" },

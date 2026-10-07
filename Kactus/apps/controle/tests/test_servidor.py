@@ -49,6 +49,7 @@ def criar(tmp_path, porta, comandos: Comandos, eventos=None, **kw) -> Servidor:
         comandos=comandos,
         checar=lambda: responde(f"http://127.0.0.1:{porta}/", 0.5),
         portas=(porta,),
+        matar_lancadores=lambda: None,  # nunca encostar no Kactus de verdade
         log=tmp_path / "logs" / "servidor.log",
         ao_mudar=(lambda info, ev: eventos.append(ev)) if eventos is not None else None,
         **kw,

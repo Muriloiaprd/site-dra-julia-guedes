@@ -8,6 +8,17 @@ dependencies = [
     "pillow>=10.4.0",
 ]
 
+[project.gui-scripts]
+# kactus-controle.exe sem console (o atalho do Windows aponta para ele)
+kactus-controle = "kactus_controle.app:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["kactus_controle"]
+
 [dependency-groups]
 dev = [
     "pytest>=8.3.0",
