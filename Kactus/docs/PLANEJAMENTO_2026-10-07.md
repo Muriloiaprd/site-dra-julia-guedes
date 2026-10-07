@@ -178,3 +178,19 @@ Nesta fase não há código. Ela termina com o endereço anotado no documento do
 ## Andamento
 
 - **Fase 0 — feita:** este documento.
+- **Fase 1 — aguardando o Murilo:** criar conta no Tailscale, instalar no PC e no iPhone e ligar MagicDNS + HTTPS Certificates. Depois o Claude roda o `tailscale serve`.
+- **Fase 2 — código feito** (`404ab95`):
+  - `/inicio` no `.bat`, endereço do iPhone na janela e `next dev` só em 127.0.0.1.
+  - Atalho criado na pasta Inicializar real (`%APPDATA%\...\Startup\Kactus.lnk`, feito via Explorer).
+  - Testado via `explorer.exe`: sobe sem abrir o navegador e escuta só em 127.0.0.1.
+  - Falta reiniciar o PC e testar no iPhone.
+- **Fase 3 — código feito** (`dc8a78c`):
+  - Manifest e ícones gerados de `Imagens/Logomarca Kactus.png` (o "Somente o Icone.png" citado em 2026-09-18 não existe mais). O `apple-icon` antigo, com moldura e cantos claros, foi trocado.
+  - `appleWebApp`, `viewport-fit=cover`, áreas seguras e campos com 16px no celular.
+  - Conferido: tags no HTML, CSS válido em 390×844 e `next build` com 18 rotas mais o manifest.
+  - Falta o teste no iPhone.
+- **Fase 5 — código feito** (`acb9f16`): PNG pronto antes do toque, `ClipboardItem` com promessa, LRU de 6 camadas só em tela de toque (no PC fica sem limite, senão as miniaturas refazem tudo a cada arraste da foto), erros com nome. Falta o teste no iPhone.
+- **Fase 6 — código feito** (`61553bc`):
+  - O seletor não filtra no celular e o app avisa quais arquivos foram ignorados.
+  - Fotos sem mudança: `lib/image.ts` já desenha a imagem num canvas e sai em JPEG, e o Safari lê HEIC.
+  - Falta o teste no iPhone.
