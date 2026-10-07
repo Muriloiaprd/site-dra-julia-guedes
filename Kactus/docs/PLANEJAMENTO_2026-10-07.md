@@ -194,3 +194,12 @@ Nesta fase não há código. Ela termina com o endereço anotado no documento do
   - O seletor não filtra no celular e o app avisa quais arquivos foram ignorados.
   - Fotos sem mudança: `lib/image.ts` já desenha a imagem num canvas e sai em JPEG, e o Safari lê HEIC.
   - Falta o teste no iPhone.
+- **Tela branca no iPhone (2026-10-07, à tarde):**
+  - **Causa:** o Kactus tinha sido fechado no PC (portas 3003 e 8000 fechadas), mas o Tailscale continuava repassando. Resultado: tela branca.
+  - **Correção 1** (`83cadc2`): se o servidor cair, o `.bat` sobe de novo em 5 s. Testado derrubando o site de propósito.
+  - **Correção 2, o "modo celular" da Fase 4** (`f5c4682`): o modo dev obrigava o iPhone a baixar ~12 MB de JS para abrir o painel.
+    - Com `/inicio`, o Kactus roda `next build` + `next start` em `.next-prod`, e o painel cai para **285 KB**.
+    - O build só é refeito quando o código do site muda (`scripts/precisa-build.ps1`). Se o build falhar, sobe em modo dev.
+    - O `next.config` passou a usar `.next-prod` por padrão em produção, então o build não pisa no `.next` do dev.
+    - Subida via Explorer: 32 s com build e 6 s sem build.
+  - **Consequência:** no modo rápido, mudanças no código só aparecem depois de reabrir o Kactus.
