@@ -18,6 +18,28 @@ const VIDEO_TYPES = ["video/mp4;codecs=avc1.640028", "video/mp4;codecs=avc1", "v
 const VIDEO_DRAW_MS = 5500; // modelo se desenhando (rota, barras, curva)
 const VIDEO_HOLD_MS = 2000; // imagem final parada
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const PNG_READY_DELAY_MS = 300; // espera a previa parar de mudar (arrastar foto) antes de gerar o PNG
+
+const isAbort = (e: unknown) => e instanceof Error && e.name === "AbortError";
+
+/** Mensagem com o nome do erro: no iPhone nao ha console, entao o que aparece na tela e o diagnostico. */
+function errorText(e: unknown, fallback: string): string {
+  if (!(e instanceof Error)) return fallback;
+  if (e.name === "NotAllowedError") return `O aparelho bloqueou a ação; toque de novo. (${e.name})`;
+  const msg = e.message || fallback;
+  return e.name && e.name !== "Error" ? `${msg} (${e.name})` : msg;
+}
+
+/** Baixa um blob como arquivo. No iPhone vai para o app Arquivos (a galeria e pelo Compartilhar). */
+function downloadBlob(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  // revogar na hora corta o download no Safari
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -55,6 +77,12 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
   const [video, setVideo] = useState<{ blob: Blob; url: string; ext: string; layoutId: string } | null>(null);
   const [redrawTick, setRedrawTick] = useState(0);
   const [copied, setCopied] = useState(false);
+  // PNG pronto antes do toque: o Safari do iPhone so abre o compartilhar se ele
+  // for chamado direto no toque, sem esperar nada antes (senao NotAllowedError)
+  const pngRef = useRef<{ blob: Blob; file: File } | null>(null);
+  const pngSeq = useRef(0);
+  // celular/tablet: o "Salvar" (download) vai para Arquivos, nao para a galeria
+  const [touch] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
   const [profile, setProfile] = useState<{ hrZones: HrZones | null; name: string | null }>({ hrZones: null, name: null });
 
   useEffect(() => {
@@ -162,6 +190,15 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
       hrZones: profile.hrZones,
       athleteName: profile.name,
     });
+    pngRef.current = null;
+    const seq = ++pngSeq.current;
+    const timer = setTimeout(() => {
+      canvas.toBlob((blob) => {
+        if (!blob || seq !== pngSeq.current) return;
+        pngRef.current = { blob, file: new File([blob], `kactus_story_${activity.id}.png`, { type: "image/png" }) };
+      }, "image/png");
+    }, PNG_READY_DELAY_MS);
+    return () => clearTimeout(timer);
   }, [layout, artForLayout, activity, metrics, routePoints, photo, transparent, color, fontsReady, splits, zones, profile, redrawTick]);
 
   useEffect(() => () => { if (video) URL.revokeObjectURL(video.url); }, [video]);
@@ -175,9 +212,12 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
     setVideo(null);
     setBusy("video");
     recordingRef.current = true;
+    // o PNG em preparo pegaria um quadro do video
+    pngSeq.current++;
+    pngRef.current = null;
     try {
       const mime = typeof MediaRecorder !== "undefined" ? VIDEO_TYPES.find((t) => MediaRecorder.isTypeSupported(t)) : undefined;
-      if (!mime) throw new Error("Este navegador não grava vídeo");
+      if (!mime || typeof canvas.captureStream !== "function") throw new Error("Este navegador não grava o vídeo do Story; use a imagem");
       const [art] = await Promise.all([loadArt(vl.art), loadStoryFonts()]);
       const ctx = canvas.getContext("2d")!;
       const frame = (progress: number) => {
@@ -210,11 +250,12 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
       rec.stop();
       await stopped;
       stream.getTracks().forEach((tr) => tr.stop());
+      if (!chunks.length) throw new Error("O vídeo saiu vazio; tente de novo ou use a imagem");
       const type = mime.split(";")[0];
       const blob = new Blob(chunks, { type });
       setVideo({ blob, url: URL.createObjectURL(blob), ext: type === "video/mp4" ? "mp4" : "webm", layoutId: vl.id });
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Não foi possível gravar o vídeo");
+      setActionError(errorText(e, "Não foi possível gravar o vídeo"));
     } finally {
       recordingRef.current = false;
       setRecording(null);
@@ -242,11 +283,12 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
     if (!file) return;
     setActionError(null);
     try {
+      // o arquivo ja existe: o share sai direto no toque (no iPhone: "Salvar vídeo" / Instagram)
       if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: "Kactus" });
       else handleSaveVideo();
     } catch (e) {
-      if (e instanceof Error && e.name === "AbortError") return;
-      setActionError(e instanceof Error ? e.message : "Não foi possível compartilhar o vídeo");
+      if (isAbort(e)) return;
+      setActionError(errorText(e, "Não foi possível compartilhar o vídeo"));
     }
   }
 
@@ -300,40 +342,48 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
     return new Promise((resolve) => canvasRef.current?.toBlob((b) => resolve(b), "image/png"));
   }
 
+  /** O PNG já pronto ou, se a prévia acabou de mudar, gera agora. */
+  async function pngBlob(): Promise<Blob> {
+    const blob = pngRef.current?.blob ?? (await toBlob());
+    if (!blob) throw new Error("Não foi possível gerar a imagem");
+    return blob;
+  }
+
   async function handleSave() {
     setBusy("save");
     setActionError(null);
     try {
-      const blob = await toBlob();
-      if (!blob) throw new Error("Não foi possível gerar a imagem");
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `kactus_story_${activity.id}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(await pngBlob(), `kactus_story_${activity.id}.png`);
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Não foi possível salvar a imagem");
+      setActionError(errorText(e, "Não foi possível salvar a imagem"));
     } finally {
       setBusy(null);
     }
   }
 
   async function handleShare() {
-    setBusy("share");
     setActionError(null);
-    try {
-      const blob = await toBlob();
-      if (!blob) throw new Error("Não foi possível gerar a imagem");
-      const file = new File([blob], `kactus_story_${activity.id}.png`, { type: "image/png" });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Kactus" });
-      } else {
-        await handleSave();
+    const ready = pngRef.current;
+    if (ready) {
+      // sem nenhum await antes do share: e o que o Safari do iPhone exige
+      if (!navigator.canShare?.({ files: [ready.file] })) return downloadBlob(ready.blob, ready.file.name);
+      try {
+        await navigator.share({ files: [ready.file], title: "Kactus" });
+      } catch (e) {
+        if (!isAbort(e)) setActionError(errorText(e, "Não foi possível compartilhar a imagem"));
       }
+      return;
+    }
+    // a prévia acabou de mudar e o PNG ainda está saindo: no PC funciona; no iPhone
+    // pode ser bloqueado, e aí o segundo toque já encontra o PNG pronto
+    setBusy("share");
+    try {
+      const blob = await pngBlob();
+      const file = new File([blob], `kactus_story_${activity.id}.png`, { type: "image/png" });
+      if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: "Kactus" });
+      else downloadBlob(blob, file.name);
     } catch (e) {
-      if (e instanceof Error && e.name === "AbortError") return;
-      setActionError(e instanceof Error ? e.message : "Não foi possível compartilhar a imagem");
+      if (!isAbort(e)) setActionError(errorText(e, "Não foi possível compartilhar a imagem"));
     } finally {
       setBusy(null);
     }
@@ -343,14 +393,13 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
     setBusy("copy");
     setActionError(null);
     try {
-      const blob = await toBlob();
-      if (!blob) throw new Error("Não foi possível gerar a imagem");
-      if (!navigator.clipboard?.write) throw new Error("Copiar não é suportado neste navegador");
-      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") throw new Error("Copiar não é suportado neste navegador");
+      // o Safari exige o ClipboardItem criado no próprio toque, com a imagem como promessa
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": pngBlob() })]);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Não foi possível copiar a imagem");
+      setActionError(errorText(e, "Não foi possível copiar a imagem"));
     } finally {
       setBusy(null);
     }
@@ -519,6 +568,11 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
             {copied ? "Copiado!" : busy === "copy" ? "…" : "Copiar"}
           </button>
         </div>
+        {touch && (
+          <p className="mt-2.5 text-center text-[0.7rem] text-brand-muted">
+            Para a galeria: <strong className="text-brand-text">Compartilhar → Salvar imagem/vídeo</strong>. &quot;Salvar&quot; guarda no app Arquivos.
+          </p>
+        )}
         </div>
       </div>
     </div>

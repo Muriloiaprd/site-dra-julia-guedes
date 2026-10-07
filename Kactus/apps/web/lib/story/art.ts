@@ -96,6 +96,28 @@ function hexToHsl(hex: string): { h: number; s: number; l: number } {
 export type ArtRegions = { mode: "clear"; rects: Box[] } | { mode: "keep"; rects: Box[] };
 
 const layerCache = new Map<string, HTMLCanvasElement>();
+/**
+ * Cada camada tem ~8 MB (1080×1920 RGBA). Sem limite, as miniaturas dos 24
+ * modelos estouram a memória de canvas do Safari do iPhone, que mostra o
+ * canvas em branco sem erro nenhum. No celular guarda só as mais recentes
+ * (LRU); no PC fica sem limite, para as miniaturas não recalcularem tudo a
+ * cada movimento da foto.
+ */
+const MOBILE_LAYER_CACHE_MAX = 6;
+let layerCacheMax: number | null = null;
+
+function cacheLayer(key: string, canvas: HTMLCanvasElement) {
+  layerCacheMax ??= window.matchMedia("(pointer: coarse)").matches ? MOBILE_LAYER_CACHE_MAX : Infinity;
+  layerCache.set(key, canvas);
+  while (layerCache.size > layerCacheMax) {
+    const [oldKey, old] = layerCache.entries().next().value as [string, HTMLCanvasElement];
+    layerCache.delete(oldKey);
+    // zerar o tamanho devolve a memória na hora (o Safari segura até o GC);
+    // seguro porque os layouts usam a camada só dentro do draw, sem guardar
+    old.width = 0;
+    old.height = 0;
+  }
+}
 
 /**
  * Monta a camada de arte pronta: recorta as regiões dinâmicas e recolore
@@ -114,7 +136,12 @@ export function buildArtLayer(
   const rectsKey = (rects: Box[]) => rects.map((r) => `${r.x},${r.y},${r.w},${r.h}`).join(";");
   const key = `${src}|${regions.mode}|${rectsKey(regions.rects)}|${color}|${rectsKey(noTint)}`;
   const hit = layerCache.get(key);
-  if (hit) return hit;
+  if (hit) {
+    // vai para o fim da fila: é a mais recente
+    layerCache.delete(key);
+    layerCache.set(key, hit);
+    return hit;
+  }
 
   const canvas = document.createElement("canvas");
   canvas.width = img.naturalWidth;
@@ -158,6 +185,6 @@ export function buildArtLayer(
     }
   }
 
-  layerCache.set(key, canvas);
+  cacheLayer(key, canvas);
   return canvas;
 }
