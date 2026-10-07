@@ -28,6 +28,7 @@ ACOES_API = {"ligar", "desligar", "reiniciar"}
 def origens_permitidas(endereco_iphone: str | None, porta: int = PORTA) -> set[str]:
     """O proprio controle (PC e iPhone) e o app do Kactus (tela "Kactus desligado")."""
     origens = {f"http://127.0.0.1:{porta}", f"http://localhost:{porta}"}
+    origens |= {"http://localhost:3003", "http://127.0.0.1:3003"}  # o Kactus aberto no proprio PC
     if endereco_iphone:
         origens |= {endereco_iphone, f"{endereco_iphone}:{PORTA_IPHONE}"}
     return origens

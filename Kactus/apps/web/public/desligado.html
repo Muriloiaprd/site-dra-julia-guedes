@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0A">
+<title>Kactus desligado</title>
+<style>
+  :root { --bg:#0A0A0A; --painel:#141414; --borda:#262626; --texto:#fff; --mudo:#8A8A8A; --verde:#00FF66; --amarelo:#FFC145; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--texto); font:16px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif; }
+  main { min-height:100%; display:flex; flex-direction:column; justify-content:center; max-width:420px; margin:0 auto;
+         padding:calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom)); text-align:center; }
+  img { width:72px; height:72px; margin:0 auto 22px; border-radius:18px; }
+  h1 { font-size:24px; margin:0 0 8px; }
+  p { margin:0; color:var(--mudo); }
+  .bola { display:inline-block; width:10px; height:10px; border-radius:50%; background:#555; margin-right:8px; vertical-align:middle; }
+  .ligando .bola { background:var(--amarelo); animation:pulsa 1.2s ease-in-out infinite; }
+  @keyframes pulsa { 50% { opacity:.35; } }
+  #estado { margin:20px 0 26px; padding:12px 14px; border-radius:14px; background:var(--painel); border:1px solid var(--borda); font-size:14px; color:var(--texto); }
+  button { appearance:none; border:0; border-radius:14px; padding:16px; width:100%; font:700 16px/1 inherit; font-family:inherit; cursor:pointer; }
+  #ligar { background:var(--verde); color:#000; }
+  #ligar:disabled { background:#1A1A1A; color:#555; }
+  #tentar { margin-top:10px; background:transparent; color:var(--mudo); border:1px solid var(--borda); }
+</style>
+</head>
+<body>
+<main>
+  <img src="/apple-icon.png" alt="" onerror="this.remove()">
+  <h1 id="titulo">O Kactus está desligado</h1>
+  <p id="texto">O servidor no seu PC não está no ar.</p>
+  <div id="estado"><span class="bola"></span><span id="estado-texto">Verificando o PC…</span></div>
+  <button id="ligar" disabled>Ligar agora</button>
+  <button id="tentar">Tentar de novo</button>
+</main>
+<script>
+  // Mostrada pelo service worker (sw.js) quando o Kactus nao responde.
+  // O controle do PC fica no mesmo endereco, na porta 8443 (no proprio PC, 3010).
+  const noPc = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  const CONTROLE = noPc ? "http://127.0.0.1:3010" : `${location.protocol}//${location.hostname}:8443`;
+  const $ = (id) => document.getElementById(id);
+  let acompanhando = null;
+
+  function mostrar(titulo, texto, estado, podeLigar, ligando) {
+    $("titulo").textContent = titulo;
+    $("texto").textContent = texto;
+    $("estado-texto").textContent = estado;
+    $("estado").className = ligando ? "ligando" : "";
+    $("ligar").disabled = !podeLigar;
+  }
+
+  async function verificar() {
+    let st;
+    try {
+      const r = await fetch(`${CONTROLE}/api/status`, { cache: "no-store" });
+      st = await r.json();
+    } catch {
+      mostrar("O PC está desligado ou dormindo", "Ligue ou acorde o PC e toque em Tentar de novo.",
+              "Sem resposta do PC", false, false);
+      return;
+    }
+    if (st.estado === "ligado") {
+      mostrar("Kactus ligado!", "Abrindo…", "Ligado", false, true);
+      // servida no lugar da pagina pedida: recarregar abre ela; aberta direto, vai ao painel
+      if (location.pathname === "/desligado.html") location.replace("/dashboard");
+      else location.reload();
+    } else if (st.estado === "ligando" || st.estado === "preparando") {
+      mostrar("Ligando o Kactus…", "Pode levar até 2 minutos quando o código mudou.", st.mensagem, false, true);
+      acompanhar();
+    } else {
+      mostrar("O Kactus está desligado", "O PC está ligado, mas o servidor do Kactus não.",
+              st.estado === "erro" ? st.mensagem : "Servidor desligado", true, false);
+    }
+  }
+
+  function acompanhar() {
+    if (!acompanhando) acompanhando = setInterval(verificar, 2000);
+  }
+
+  $("ligar").addEventListener("click", async () => {
+    $("ligar").disabled = true;
+    mostrar("Ligando o Kactus…", "Pode levar até 2 minutos quando o código mudou.", "Pedindo ao PC…", false, true);
+    try { await fetch(`${CONTROLE}/api/ligar`, { method: "POST" }); } catch {}
+    acompanhar();
+  });
+  $("tentar").addEventListener("click", () => location.reload());
+  verificar();
+</script>
+</body>
+</html>
