@@ -25,11 +25,19 @@ export default function ImportPage() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [rejected, setRejected] = useState<string[]>([]);
+  // no iPhone, filtrar por extensao no seletor deixa o .fit acinzentado (o iOS nao
+  // conhece o tipo): la o seletor aceita tudo e o filtro de addFiles barra o resto
+  const [touch, setTouch] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchMe().then((u) => { if (!u) router.push("/login"); });
   }, [router]);
+
+  useEffect(() => {
+    setTouch(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
 
   useEffect(() => {
     if (!processing) return;
@@ -42,10 +50,10 @@ export default function ImportPage() {
   }, [processing]);
 
   function addFiles(fileList: FileList | File[]) {
-    const files = Array.from(fileList).filter((f) => {
-      const ext = "." + (f.name.split(".").pop() ?? "").toLowerCase();
-      return ACCEPTED_EXT.includes(ext);
-    });
+    const all = Array.from(fileList);
+    const accepted = (f: File) => ACCEPTED_EXT.includes("." + (f.name.split(".").pop() ?? "").toLowerCase());
+    const files = all.filter(accepted);
+    setRejected(all.filter((f) => !accepted(f)).map((f) => f.name));
     if (files.length === 0) return;
     const items: QueueItem[] = files.map((f) => ({
       id: `${f.name}-${f.size}-${Math.random().toString(36).slice(2)}`,
@@ -188,7 +196,7 @@ export default function ImportPage() {
           ref={inputRef}
           type="file"
           multiple
-          accept={ACCEPTED_EXT.join(",")}
+          accept={touch ? undefined : ACCEPTED_EXT.join(",")}
           className="hidden"
           onChange={handleInputChange}
         />
@@ -218,6 +226,13 @@ export default function ImportPage() {
         </div>
         <p className="relative mt-2 text-[0.7rem] text-brand-textTertiary">Pode selecionar vários de uma vez</p>
       </div>
+
+      {rejected.length > 0 && (
+        <p role="alert" className="mt-3 text-center text-xs text-brand-danger">
+          {rejected.length === 1 ? "Arquivo ignorado" : `${rejected.length} arquivos ignorados`}: {rejected.slice(0, 3).join(", ")}
+          {rejected.length > 3 ? "…" : ""}. Use {ACCEPTED_EXT.map((e) => e.slice(1)).join(", ")}.
+        </p>
+      )}
 
       {/* Processamento */}
       {queue.length > 0 && (
