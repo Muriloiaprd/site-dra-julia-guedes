@@ -178,7 +178,7 @@ Nesta fase não há código. Ela termina com o endereço anotado no documento do
 ## Andamento
 
 - **Fase 0 — feita:** este documento.
-- **Fase 1 — aguardando o Murilo:** criar conta no Tailscale, instalar no PC e no iPhone e ligar MagicDNS + HTTPS Certificates. Depois o Claude roda o `tailscale serve`.
+- **Fase 1 — feita no PC:** Tailscale no PC (`murilo`) e no iPhone (`iphone-15-pro-max`); Serve ligado pelo Murilo no painel; `tailscale serve --bg http://127.0.0.1:3003` → **https://murilo.tailf0dcb1.ts.net** (só na tailnet). Certificado válido; site, manifest e `/api/health` respondem 200 (o 1º acesso levou 28 s, emissão do certificado). Falta o teste no iPhone em 4G.
 - **Fase 2 — código feito** (`404ab95`):
   - `/inicio` no `.bat`, endereço do iPhone na janela e `next dev` só em 127.0.0.1.
   - Atalho criado na pasta Inicializar real (`%APPDATA%\...\Startup\Kactus.lnk`, feito via Explorer).
