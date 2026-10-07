@@ -1,0 +1,12 @@
+{
+  "name": "Kactus Controle",
+  "short_name": "Controle",
+  "description": "Liga e desliga o servidor do Kactus no PC",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "lang": "pt-BR",
+  "icons": [{ "src": "/icone.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }]
+}

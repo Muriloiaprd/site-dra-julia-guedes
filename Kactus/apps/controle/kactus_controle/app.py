@@ -102,6 +102,18 @@ class App:
         self.na_tela(lambda: self.comando(acao))
         return True
 
+    def status(self) -> dict:
+        """Para a pagina do iPhone e a tela "Kactus desligado" do app."""
+        info = self.servidor.info
+        return {
+            "estado": info.estado.value,
+            "rotulo": ROTULO[info.estado],
+            "mensagem": info.mensagem,
+            "modo": info.modo,
+            "externo": info.externo,
+            "desde": info.desde,
+        }
+
     def _ao_mudar(self, info: Info, evento: str | None) -> None:
         self.na_tela(lambda: self._aplicar(info, evento))
 
@@ -243,7 +255,7 @@ def main(argv: list[str] | None = None) -> None:
 
     app = App()
     try:
-        app.web = web.iniciar(app.comando_externo)
+        app.web = web.iniciar(app.comando_externo, app.status, web.origens_permitidas(app.endereco))
     except OSError:
         # ja tem um controle rodando: entrega o pedido para ele
         web.enviar(acao)

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Controle">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icone.png">
+<title>Kactus Controle</title>
+<style>
+  :root { --bg:#0A0A0A; --painel:#141414; --borda:#262626; --texto:#fff; --mudo:#8A8A8A; --verde:#00FF66; --amarelo:#FFC145; --vermelho:#F85149; --cinza:#8A8A8A; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; background:var(--bg); color:var(--texto); font:16px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif; }
+  main { max-width:440px; margin:0 auto; padding:calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom)); }
+  header { display:flex; align-items:center; gap:12px; }
+  header img { width:44px; height:44px; border-radius:12px; }
+  h1 { font-size:20px; margin:0; }
+  header p { margin:0; color:var(--mudo); font-size:13px; }
+  .estado { margin:22px 0 16px; padding:18px; border-radius:18px; background:var(--painel); border:1px solid var(--borda); }
+  .linha { display:flex; align-items:center; gap:10px; }
+  .bola { width:14px; height:14px; border-radius:50%; background:var(--cinza); flex:none; }
+  .ligado .bola { background:var(--verde); box-shadow:0 0 12px var(--verde); }
+  .ligando .bola, .preparando .bola { background:var(--amarelo); animation:pulsa 1.2s ease-in-out infinite; }
+  .erro .bola { background:var(--vermelho); }
+  .offline .bola { background:#444; }
+  @keyframes pulsa { 50% { opacity:.35; } }
+  #rotulo { font-size:24px; font-weight:800; }
+  #detalhe { margin:6px 0 0; color:var(--mudo); font-size:14px; }
+  .botoes { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  button, a.botao { appearance:none; border:0; border-radius:14px; padding:16px; font:700 16px/1 inherit; font-family:inherit; color:var(--texto); background:#1F1F1F; text-align:center; text-decoration:none; cursor:pointer; }
+  button:active, a.botao:active { transform:scale(.98); }
+  button:disabled { color:#4A4A4A; background:#161616; }
+  #ligar { background:var(--verde); color:#000; }
+  #ligar:disabled { background:#161616; color:#4A4A4A; }
+  #abrir { grid-column:1 / -1; background:transparent; border:1px solid var(--borda); }
+  #abrir.pronto { border-color:var(--verde); color:var(--verde); }
+  .nota { margin-top:22px; color:#5A5A5A; font-size:12px; text-align:center; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="/icone.png" alt="">
+    <div><h1>Kactus Controle</h1><p>o servidor do Kactus no seu PC</p></div>
+  </header>
+
+  <section class="estado offline" id="caixa" aria-live="polite">
+    <div class="linha"><span class="bola"></span><span id="rotulo">Conectando…</span></div>
+    <p id="detalhe">Procurando o PC…</p>
+  </section>
+
+  <div class="botoes">
+    <button id="ligar" disabled>Ligar</button>
+    <button id="desligar" disabled>Desligar</button>
+    <button id="reiniciar" disabled>Reiniciar</button>
+    <button id="atualizar">Atualizar</button>
+    <a class="botao" id="abrir" href="/">Abrir o Kactus</a>
+  </div>
+
+  <p class="nota">Funciona com o PC ligado. Desligar aqui também desliga no PC.</p>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  // o app do Kactus fica no mesmo endereco, na porta padrao (o controle e o :8443)
+  const noPc = location.hostname === "127.0.0.1" || location.hostname === "localhost";
+  $("abrir").href = noPc ? "http://localhost:3003/dashboard" : `${location.protocol}//${location.hostname}/dashboard`;
+
+  function haQuanto(desde) {
+    if (!desde) return "";
+    const s = Date.now() / 1000 - desde;
+    if (s < 60) return "agora há pouco";
+    if (s < 3600) return `há ${Math.floor(s / 60)} min`;
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+    return m ? `há ${h} h ${String(m).padStart(2, "0")}` : `há ${h} h`;
+  }
+
+  function mostrar(st) {
+    $("caixa").className = "estado " + (st ? st.estado : "offline");
+    if (!st) {
+      $("rotulo").textContent = "Sem conexão";
+      $("detalhe").textContent = "O PC está desligado, dormindo ou sem internet.";
+      for (const b of ["ligar", "desligar", "reiniciar"]) $(b).disabled = true;
+      $("abrir").classList.remove("pronto");
+      return;
+    }
+    $("rotulo").textContent = st.rotulo;
+    const partes = [st.mensagem.startsWith("Ligado · ") ? st.mensagem.slice(9).replace(/^./, (c) => c.toUpperCase()) : st.mensagem];
+    if (st.estado === "ligado") partes.push(haQuanto(st.desde));
+    $("detalhe").textContent = partes.filter(Boolean).join(" · ");
+    $("ligar").disabled = !["desligado", "erro"].includes(st.estado);
+    $("desligar").disabled = st.estado === "desligado";
+    $("reiniciar").disabled = !["ligado", "ligando", "erro"].includes(st.estado);
+    $("abrir").classList.toggle("pronto", st.estado === "ligado");
+  }
+
+  async function status() {
+    try {
+      const r = await fetch("/api/status", { cache: "no-store" });
+      mostrar(r.ok ? await r.json() : null);
+    } catch { mostrar(null); }
+  }
+
+  async function acao(nome) {
+    if (nome === "desligar" && !confirm("Desligar o Kactus? O app para de abrir até ligar de novo.")) return;
+    for (const b of ["ligar", "desligar", "reiniciar"]) $(b).disabled = true;
+    try { await fetch(`/api/${nome}`, { method: "POST" }); } catch {}
+    setTimeout(status, 400);
+  }
+
+  for (const nome of ["ligar", "desligar", "reiniciar"]) $(nome).addEventListener("click", () => acao(nome));
+  $("atualizar").addEventListener("click", status);
+  status();
+  setInterval(status, 2500);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) status(); });
+</script>
+</body>
+</html>
