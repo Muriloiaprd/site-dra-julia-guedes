@@ -126,6 +126,25 @@ body {
   transform: none;
 }
 
+/* ───── iPhone (app na Tela de Início) ───── */
+/* Conteudo do shell acima da barra inferior + area segura (barra de gestos) */
+.od-shell-content {
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  .od-shell-content {
+    padding-bottom: 0;
+  }
+}
+/* O Safari do iPhone da zoom ao focar campo com fonte < 16px */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 :focus-visible {
   outline: 2px solid rgba(0, 255, 102, 0.6);
   outline-offset: 2px;

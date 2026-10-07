@@ -13,7 +13,11 @@ export function WakingBanner() {
   }, []);
   if (count === 0) return null;
   return (
-    <div role="status" className="fixed inset-x-0 top-0 z-[90] bg-brand-accent/90 px-4 py-1.5 text-center text-xs font-semibold text-black">
+    <div
+      role="status"
+      className="fixed inset-x-0 top-0 z-[90] bg-brand-accent/90 px-4 pb-1.5 text-center text-xs font-semibold text-black"
+      style={{ paddingTop: "calc(0.375rem + env(safe-area-inset-top))" }}
+    >
       Acordando o servidor… pode levar alguns segundos.
     </div>
   );

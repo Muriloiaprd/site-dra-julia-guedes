@@ -182,8 +182,14 @@ export function Sidebar() {
 
       {/* ───────── Mobile: top bar ───────── */}
       <header
-        className="sticky top-0 z-40 flex h-14 items-center justify-between px-4 md:hidden"
-        style={{ background: "rgba(10,10,10,0.82)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+        className="sticky top-0 z-40 flex items-center justify-between px-4 md:hidden"
+        style={{
+          height: "calc(3.5rem + env(safe-area-inset-top))",
+          paddingTop: "env(safe-area-inset-top)",
+          background: "rgba(10,10,10,0.82)",
+          backdropFilter: "blur(16px)",
+          borderBottom: "1px solid rgba(255,255,255,0.05)",
+        }}
       >
         <Link href="/dashboard" aria-label="Kactus — Dashboard"><Logo size={30} /></Link>
         <Link href="/profile" aria-label="Perfil"><Avatar user={user} avatarUrl={avatarUrl} size={30} /></Link>
@@ -239,7 +245,8 @@ export function Sidebar() {
             role="dialog"
             aria-modal="true"
             aria-label="Mais opções de navegação"
-            className="od-panel od-panel-glass od-nav-sheet absolute inset-x-3 bottom-[76px] animate-od-fade-up overflow-hidden !p-2"
+            className="od-panel od-panel-glass od-nav-sheet absolute inset-x-3 animate-od-fade-up overflow-hidden !p-2"
+            style={{ bottom: "calc(76px + env(safe-area-inset-bottom))" }}
             onClick={(e) => e.stopPropagation()}
           >
             {ALL_ITEMS.filter((i) => !MOBILE_PRIMARY.includes(i.href)).map((item) => (

@@ -367,8 +367,9 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="od-panel flex max-h-[95vh] w-full max-w-[520px] flex-col overflow-y-auto !rounded-b-none sm:!rounded-card"
-        style={{ background: "#0e0e0e" }}
+        className="od-panel flex w-full max-w-[520px] flex-col overflow-y-auto !rounded-b-none sm:!rounded-card"
+        // dvh = altura visivel de verdade no Safari; o topo nao entra embaixo da barra de status do iPhone
+        style={{ background: "#0e0e0e", maxHeight: "min(95dvh, calc(100dvh - env(safe-area-inset-top) - 8px))" }}
       >
         <div className="mb-4 flex items-center justify-between">
           {gallery ? (

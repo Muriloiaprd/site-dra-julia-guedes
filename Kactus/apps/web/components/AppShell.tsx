@@ -9,7 +9,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <WakingBanner />
       <Sidebar />
       {/* Cada pagina ja renderiza seu proprio <main> (PageContainer); este wrapper e so o alvo do skip-link. */}
-      <div id="conteudo" tabIndex={-1} className="min-w-0 pb-20 outline-none md:ml-[76px] md:pb-0 lg:ml-60">{children}</div>
+      <div id="conteudo" tabIndex={-1} className="od-shell-content min-w-0 outline-none md:ml-[76px] lg:ml-60">{children}</div>
     </div>
   );
 }

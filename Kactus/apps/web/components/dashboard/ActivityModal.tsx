@@ -83,7 +83,7 @@ export function ActivityModal({ activity, activities, detail, onClose }: {
         ref={panelRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="od-panel max-h-[88vh] w-full max-w-[760px] animate-od-fade-up overflow-y-auto !rounded-b-none sm:!rounded-card outline-none"
+        className="od-panel max-h-[88dvh] w-full max-w-[760px] animate-od-fade-up overflow-y-auto !rounded-b-none sm:!rounded-card outline-none"
         style={{ background: "linear-gradient(180deg, rgba(0,255,102,0.04), transparent 30%), #0e0e0e" }}
       >
         <div className="mb-5 flex items-start justify-between gap-4">
