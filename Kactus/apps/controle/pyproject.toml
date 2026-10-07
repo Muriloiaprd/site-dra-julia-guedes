@@ -1,0 +1,28 @@
+[project]
+name = "kactus-controle"
+version = "0.1.0"
+description = "Kactus Controle - liga, desliga e acompanha o servidor do Kactus (icone no relogio + iPhone)"
+requires-python = ">=3.12"
+dependencies = [
+    "pystray>=0.19.5",
+    "pillow>=10.4.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "ruff>=0.7.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+# mesmas regras da API
+select = ["E", "F", "I", "N", "UP", "B", "SIM"]
+ignore = ["E501"]
