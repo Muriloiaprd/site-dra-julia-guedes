@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "concurrently -k -n api,web -c cyan,green \"pnpm dev:api\" \"pnpm dev:web\"",
     "dev:api": "uv run --directory apps/api uvicorn kactus_api.main:app --host 127.0.0.1 --port 8000",
-    "dev:web": "pnpm -C apps/web dev -p 3003"
+    "dev:web": "pnpm -C apps/web dev -p 3003 -H 127.0.0.1"
   },
   "devDependencies": {
     "concurrently": "10.0.5"
