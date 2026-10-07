@@ -51,9 +51,12 @@ REM Espera o site responder e abre o navegador (em paralelo)
 REM (ping como pausa: o "timeout" falha em segundo plano e o laco acabava antes do site subir)
 if "%ABRIR_NAVEGADOR%"=="1" start "" /b cmd /q /c "for /l %%i in (1,1,90) do (curl -s -o nul %URL% && (start "" %URL% & exit) || ping -n 3 127.0.0.1 >nul)"
 
-REM Sobe API (FastAPI) + site (Next.js)
+REM Sobe API (FastAPI) + site (Next.js). Se cair, sobe de novo sozinho: o iPhone
+REM so mostra tela branca quando o servidor esta fora. Para parar de vez, feche
+REM esta janela (ou Ctrl+C e responda S).
+:subir
 call pnpm dev
-
 echo.
-echo Servidor encerrado.
-pause
+echo Servidor caiu. Subindo de novo em 5 segundos... (feche a janela para encerrar)
+ping -n 6 127.0.0.1 >nul
+goto :subir
