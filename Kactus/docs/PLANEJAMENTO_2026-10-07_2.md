@@ -142,3 +142,21 @@ Novo `Kactus/apps/controle/`: projeto `uv` próprio, Python 3.12. Dependências:
 ## Andamento
 
 - **Fase 0 — feita:** este documento.
+- **Fase 1 — feita** (`5c28b21`): `apps/controle`, com a classe `Servidor` (modo rápido/dev, build só quando precisa, religa ao cair, desiste após 5 quedas em 2 min, adota servidor aberto por fora) e 9 testes.
+- **Fase 2 — feita** (`00e6145`): ícone `pystray` + janela `tkinter`, avisos do Windows, Iniciar com o Windows, Manter acordado (padrão desligado), instância única pela 3010 e `kactus-controle.exe` sem console. O "Desligar" também fecha o `Abrir Kactus.bat`, que religaria o servidor. Testado ao vivo via Explorer.
+- **Fase 3 — feita** (`f7991df`):
+  - Página e API no `:3010`, publicadas em `https://murilo.tailf0dcb1.ts.net:8443` (`tailscale serve --bg --https=8443`).
+  - Proteção por `Origin` e 10 testes.
+  - Conferido pelo Tailscale: POST de origem estranha → 403.
+- **Fase 4 — feita** (`18c2e60`):
+  - `sw.js` mínimo + `desligado.html`. Com o servidor fora, o Tailscale devolve **502**, e um Ligar pelo `:8443` religou em 6 s.
+  - Lógica do service worker testada em Node. O navegador do painel do Claude não registra service worker, então o teste visual fica no iPhone.
+- **Fase 5 — feita** (só atalhos locais, sem código):
+  - Inicializar → `kactus-controle.exe --inicio`; área de trabalho → `--abrir`. Criados por processo aberto via Explorer.
+  - Login simulado (tudo parado + atalho da Inicializar): ligado em 24 s, sem `.bat`, e app e controle com 200 pelo Tailscale.
+- **Fase 6 — feita:** README, `ESTADO_DO_PROJETO.md` e memória.
+- **Falta (Murilo):**
+  - No iPhone: abrir `:8443` no Safari → Adicionar à Tela de Início ("Controle").
+  - Abrir o app Kactus uma vez em modo rápido, para instalar o service worker.
+  - Testar "Kactus desligado → Ligar agora".
+  - Reiniciar o PC e ver o ícone verde aparecer sozinho.

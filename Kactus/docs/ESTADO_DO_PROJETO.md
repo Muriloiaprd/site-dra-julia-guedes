@@ -139,6 +139,19 @@ Detalhes em [`PLANEJAMENTO_2026-09-29_2.md`](./PLANEJAMENTO_2026-09-29_2.md).
 - **Vídeo de Parciais e Batimento (2026-10-01)**: o botão virou "🎬 Gravar vídeo" e grava o **modelo selecionado** quando ele é `animated` (Rota pelo ritmo, Parciais, Batimento; os três levam 🎬 na fileira de modelos). Parciais: barras sobem uma a uma, o número do topo mostra o km mais rápido até ali e no fim o mais rápido estoura na cor do esporte (com a linha da média). Batimento: a curva de FC corre da esquerda para a direita com ponto brilhante na ponta, a média e o máximo sobem até os valores oficiais e cada zona enche conforme a curva passa por ela. Nos dois, distância e tempo do rodapé correm junto. A série de FC fica em cache por atividade. Arquivo: `kactus_<modelo>_<id>.mp4`. Conferido no navegador (corrida de 5 km): MP4 1080×1920 de 7,5 s, sem quadros lentos. Na conferência apareceu "0m0.0004s" no rodapé: `formatDuration` não arredondava segundos fracionados (afetava também o vídeo da rota); agora arredonda.
 - **Escolha de modelo (2026-10-01)**: a fileira de chips com barra de rolagem e os 24 pontinhos deram lugar a **miniaturas reais** de cada modelo (desenhadas com os dados do treino e a foto, em `components/share/useStoryThumbs.ts`: tamanho real fora da tela e reduzido, um por vez, pausado durante a gravação). Trilho sem barra aparente, com esmaecimento nas bordas e divisórias entre grupos; nome do modelo + "2 de 24 · grupo" acima; setas ‹ › sobre a prévia, arrastar para o lado (sem foto) e ←/→ no teclado; **"Ver todos"** abre a galeria em grade (3 colunas no celular, 4 no desktop) por grupo: "Viram vídeo", "Feitos com seus dados", "Artes Kactus" (`components/share/ModelGallery.tsx`). Esc fecha a galeria e depois o modal.
 
+### ✅ Sessão 2026-10-07 — Kactus no iPhone e Kactus Controle
+
+- **iPhone pelo Tailscale** (`PLANEJAMENTO_2026-10-07.md`): o PC serve o app em `https://murilo.tailf0dcb1.ts.net` (só na tailnet). O app tem manifest, ícone na Tela de Início, áreas seguras e campos com 16px. Ajustes para o iPhone: Stories (compartilhar direto no toque, cache de camadas limitado no celular) e importação de `.fit`.
+- **Modo rápido:** `next build` + `next start` em `apps/web/.next-prod`. Para abrir, o painel baixa ~285 KB, contra ~12 MB no dev. O `next build` sem `NEXT_DIST_DIR` já vai para `.next-prod`.
+- **Kactus Controle** (`PLANEJAMENTO_2026-10-07_2.md`, `apps/controle`, Python 3.12 + `pystray` + `tkinter`):
+  - Ícone perto do relógio e janelinha para ligar, desligar e reiniciar.
+  - Religa se o servidor cair e desiste depois de 5 quedas em 2 min.
+  - Sobe com o Windows (`--inicio`).
+  - Página de controle para o iPhone no `:8443` (`tailscale serve --https=8443`), protegida por `Origin`.
+  - `public/sw.js` mínimo: com o servidor fora (502) ou o PC dormindo, mostra `desligado.html` com "Ligar agora" no lugar da tela branca.
+  - 19 testes em `apps/controle/tests`.
+- **Sem tela branca no iPhone:** depois que o app abriu uma vez em modo rápido, o service worker instalado mostra "PC desligado ou dormindo" (PC fora) ou "Kactus desligado — Ligar agora" (servidor fora).
+
 ---
 
 ## Para iniciar uma sessão de trabalho

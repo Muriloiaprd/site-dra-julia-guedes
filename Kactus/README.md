@@ -80,6 +80,16 @@ Para rodar cada lado separado (ex.: debugar so a API), use `pnpm dev:api` ou `pn
 
 > Se ja houver outro `next dev` rodando em `apps/web`, suba um extra com `NEXT_DIST_DIR=.next-preview` para nao corromper o cache compartilhado (ver `docs/ESTADO_DO_PROJETO.md`).
 
+## Kactus Controle (ligar/desligar) e iPhone
+
+No dia a dia o Kactus e ligado pelo **Kactus Controle** (`apps/controle`): um icone perto do relogio do Windows (cinza desligado, amarelo ligando, verde ligado, vermelho com erro). Clique abre a janelinha com Ligar/Desligar/Reiniciar/Abrir, o endereco do iPhone e o log; o botao direito tem o menu com "Iniciar com o Windows" e "Manter o PC acordado enquanto ligado".
+
+- Sobe sozinho ao entrar no Windows (atalho na Inicializar: `kactus-controle.exe --inicio`), em **modo rapido** (build de producao em `apps/web/.next-prod`, refeito so quando o codigo muda). Mudancas no codigo so aparecem depois de **Reiniciar** (ou troque para o modo desenvolvimento na janela).
+- Religa o servidor se ele cair; o icone da area de trabalho abre o Kactus no navegador (`--abrir`).
+- **iPhone** (Tailscale, so nos seus aparelhos): app em `https://murilo.tailf0dcb1.ts.net`, controle em `https://murilo.tailf0dcb1.ts.net:8443`. Com o servidor fora, o app mostra "Kactus desligado — Ligar agora" em vez de tela branca.
+- Primeira instalacao do controle: `uv sync --directory apps/controle`. Testes: `uv run --directory apps/controle pytest`.
+- O `Abrir Kactus.bat` continua como reserva manual.
+
 ## Importar treinos do Garmin
 
 Baixa o arquivo `.FIT` original de cada atividade e reusa o mesmo parser do upload manual,
