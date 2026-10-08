@@ -39,6 +39,7 @@ class Acoes(Protocol):
     def copiar_iphone(self) -> None: ...
     def ver_log(self) -> None: ...
     def definir_modo(self, modo: str) -> None: ...
+    def consertar_tailscale(self) -> None: ...
 
 
 def ha_quanto(desde: float | None) -> str:
@@ -148,6 +149,17 @@ class Janela:
             self.b_copiar.configure(padx=10, pady=4, font=(FONTE, 9, "bold"))
             self.b_copiar.pack(side="right")
 
+        # acesso do iPhone (Tailscale do PC)
+        acesso = tk.Frame(corpo, bg=BG)
+        acesso.pack(fill="x", pady=(6, 0))
+        self.ts_bola = tk.Canvas(acesso, width=10, height=10, bg=BG, highlightthickness=0)
+        self.ts_bola.pack(side="left")
+        self._ts_circulo = self.ts_bola.create_oval(1, 1, 9, 9, fill=MUDO, outline="")
+        self.ts_texto = tk.Label(acesso, text="Conferindo o Tailscale…", bg=BG, fg=MUDO, font=(FONTE, 9))
+        self.ts_texto.pack(side="left", padx=6)
+        self.b_consertar = Botao(acesso, "Consertar", acoes.consertar_tailscale)
+        self.b_consertar.configure(padx=10, pady=3, font=(FONTE, 9, "bold"))
+
         # modo
         tk.Label(corpo, text="MODO", bg=BG, fg=MUDO, font=(FONTE, 8, "bold")).pack(anchor="w", pady=(16, 4))
         self.modo = tk.StringVar(value=modo)
@@ -213,6 +225,14 @@ class Janela:
     def _tique(self) -> None:
         self._detalhe()
         self.root.after(30_000, self._tique)
+
+    def atualizar_tailscale(self, ok: bool, texto: str, consertavel: bool) -> None:
+        self.ts_bola.itemconfigure(self._ts_circulo, fill=VERDE if ok else "#F85149")
+        self.ts_texto.configure(text=texto, fg=TEXTO if ok else "#F85149")
+        if consertavel and not ok:
+            self.b_consertar.pack(side="right")
+        else:
+            self.b_consertar.pack_forget()
 
     def _copiar(self) -> None:
         self.acoes.copiar_iphone()

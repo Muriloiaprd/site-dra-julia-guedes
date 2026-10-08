@@ -23,7 +23,7 @@ from tkinter import messagebox
 
 import pystray
 
-from . import icones, sistema, web
+from . import icones, sistema, tailscale, web
 from .config import Config
 from .janela import ROTULO, Janela
 from .servidor import Estado, Info, Servidor
@@ -52,11 +52,15 @@ class App:
             lambda: self.config.manter_acordado and self.servidor.estado != Estado.DESLIGADO
         )
         self.web: web.ThreadingHTTPServer | None = None
+        self.ts: tailscale.EstadoTailscale | None = None
+        self._ts_consertou = False  # tenta consertar sozinho uma vez por queda
+        self._ts_parar = threading.Event()
 
     # ── ciclo ────────────────────────────────────────────────────────────
     def rodar(self, acao: str) -> None:
         self.servidor.iniciar_vigia()
         self.acordado.iniciar()
+        threading.Thread(target=self._vigiar_tailscale, name="kactus-tailscale", daemon=True).start()
         self.icone.run_detached()
         self.comando(acao)
         self.janela.atualizar(self.servidor.info)
@@ -112,6 +116,7 @@ class App:
             "modo": info.modo,
             "externo": info.externo,
             "desde": info.desde,
+            "tailscale": None if self.ts is None else {"ok": self.ts.ok, "texto": self.ts.texto},
         }
 
     def _ao_mudar(self, info: Info, evento: str | None) -> None:
@@ -119,8 +124,7 @@ class App:
 
     def _aplicar(self, info: Info, evento: str | None) -> None:
         self.janela.atualizar(info)
-        self.icone.icon = icones.bandeja(info.estado)
-        self.icone.title = f"Kactus: {ROTULO[info.estado].lower()}"
+        self._atualizar_icone()
         self.icone.update_menu()
         texto = info.mensagem if evento == "erro" else AVISO.get(evento or "")
         if texto:
@@ -129,6 +133,62 @@ class App:
         if info.estado == Estado.LIGADO and self._abrir_ao_ligar:
             self._abrir_ao_ligar = False
             webbrowser.open(URL_PC)
+
+    def _atualizar_icone(self) -> None:
+        info = self.servidor.info
+        sem_iphone = self.ts is not None and not self.ts.ok
+        # ligado mas o iPhone sem acesso: bolinha amarela, nao verde
+        estado = Estado.LIGANDO if info.estado == Estado.LIGADO and sem_iphone else info.estado
+        self.icone.icon = icones.bandeja(estado)
+        extra = " · iPhone sem acesso" if sem_iphone else ""
+        self.icone.title = f"Kactus: {ROTULO[info.estado].lower()}{extra}"
+
+    # ── Tailscale (acesso do iPhone) ─────────────────────────────────────
+    def _vigiar_tailscale(self) -> None:
+        while True:
+            e = tailscale.checar()
+            self.na_tela(lambda e=e: self._aplicar_tailscale(e))
+            if self._ts_parar.wait(20):
+                break
+
+    def _aplicar_tailscale(self, e: tailscale.EstadoTailscale) -> None:
+        anterior, self.ts = self.ts, e
+        consertavel = e.motivo in ("parado", "sem_endereco")
+        self.janela.atualizar_tailscale(e.ok, e.texto, consertavel)
+        self._atualizar_icone()
+        if e.ok:
+            if not self.endereco:
+                self.endereco = sistema.endereco_iphone()
+            if anterior is not None and not anterior.ok:
+                self._avisar("Tailscale de volta: o iPhone tem acesso de novo.")
+            self._ts_consertou = False
+            return
+        if anterior is None or anterior.ok:
+            self._avisar(f"{e.texto}. Tentando consertar…" if consertavel else e.texto)
+        if consertavel and not self._ts_consertou:
+            self._ts_consertou = True
+            self.consertar_tailscale()
+
+    def consertar_tailscale(self) -> None:
+        estado = self.ts
+
+        def rodar() -> None:
+            feito = tailscale.consertar(estado) if estado else None
+            if feito:
+                self.na_tela(lambda: self._avisar(feito))
+            # confere de novo logo, sem esperar os 20 s
+            for espera in (5, 10):
+                self._ts_parar.wait(espera)
+                e = tailscale.checar()
+                self.na_tela(lambda e=e: self._aplicar_tailscale(e))
+                if e.ok:
+                    break
+
+        threading.Thread(target=rodar, daemon=True).start()
+
+    def _avisar(self, texto: str) -> None:
+        with contextlib.suppress(Exception):
+            self.icone.notify(texto, "Kactus")
 
     # ── acoes (janela e menu) ────────────────────────────────────────────
     def ligar(self) -> None:
@@ -194,6 +254,7 @@ class App:
         if resp:
             self.servidor.desligar()
         self.servidor.parar_vigia()
+        self._ts_parar.set()
         self.acordado.parar()
         self.icone.stop()
         if self.web:

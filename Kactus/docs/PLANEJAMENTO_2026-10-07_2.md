@@ -160,3 +160,11 @@ Novo `Kactus/apps/controle/`: projeto `uv` próprio, Python 3.12. Dependências:
   - Abrir o app Kactus uma vez em modo rápido, para instalar o service worker.
   - Testar "Kactus desligado → Ligar agora".
   - Reiniciar o PC e ver o ícone verde aparecer sozinho.
+- **Extra — aviso do Tailscale (pedido do Murilo, 2026-10-07):**
+  - `kactus_controle/tailscale.py` confere a cada 20 s `status --json` + `serve status --json`.
+  - **Tailscale parado** (app fechado com o serviço em `NoState`): abre `tailscale-ipn.exe` sozinho.
+  - **Endereço sumido** (faltou a porta 443 ou a 8443): refaz o `serve`.
+  - Avisa no Windows quando cai e quando volta. Com o Kactus ligado e o iPhone sem acesso, a bolinha do ícone fica amarela, e a janela mostra a linha do Tailscale com o botão "Consertar". O `/api/status` ganhou `tailscale`.
+  - 4 testes (23 no total).
+  - Teste ao vivo: `serve --https=8443 off` → detectou em 6 s e refez em 10 s.
+  - Fechar o app do Tailscale com o serviço já rodando não derruba nada (o `NoState` de hoje cedo veio do serviço reiniciado esperando o app).
