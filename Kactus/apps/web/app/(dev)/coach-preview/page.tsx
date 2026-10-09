@@ -242,6 +242,27 @@ const ROUTES: [RegExp, unknown][] = [
     },
     model_used: "exemplo",
   }],
+  [/\/coach\/plan\/adherence/, [
+    {
+      id: "adh1", date: day(-1), title: "Rodagem leve", sport: "run", status: "done",
+      planned: { distance_m: 6000, duration_s: 2340, intensity: "leve", ritmo: "6:30–7:00/km", zona_fc: "Z2 (136–150 bpm)" },
+      actual: { activity_id: "a1", title: "Corrida da manhã", sport: "run", distance_m: 6200, moving_s: 2280, pace_s_per_km: 368, avg_hr: 149, rpe: 4 },
+      volume: "cumpriu", ratio: 1.03, ritmo: "mais_rapido", comment: null,
+    },
+    {
+      id: "adh2", date: day(-3), title: "Longão", sport: "run", status: "done",
+      planned: { distance_m: 12000, duration_s: 4800, intensity: "leve", ritmo: "6:40–7:10/km", zona_fc: "Z2" },
+      actual: { activity_id: "a2", title: "Longão de domingo", sport: "run", distance_m: 9100, moving_s: 3690, pace_s_per_km: 405, avg_hr: 147, rpe: 6 },
+      volume: "a_menos", ratio: 0.76, ritmo: "no_ritmo",
+      comment: { text: "Parou com 9 km: a lombar pesou. Faltaram 3 km, mas o ritmo ficou certo. Próximo longão volta para 10 km.", generated_at: day(-3), model_used: "exemplo" },
+    },
+    {
+      id: "adh3", date: day(-5), title: "Intervalado 6×400 m", sport: "run", status: "skipped",
+      planned: { distance_m: 6500, duration_s: null, intensity: "forte", ritmo: "tiros a 5:10/km", zona_fc: "Z4" },
+      actual: null, volume: null, ratio: null, ritmo: null, comment: null,
+    },
+  ]],
+  [/\/coach\/activities\/.*\/analyze/, { comment: "Treino na medida: 6,2 km para 6 planejados e FC em Z2. Só saiu 10 s/km mais rápido que o alvo — no leve, segure.", model_used: "exemplo", generated_at: day(0) }],
   [/\/coach\/goal-plan/, GOAL],
   [/\/auth\/me$/, { id: "preview", email: "preview@kactus" }],
   [/\/coach\/chat\/history/, HISTORY],

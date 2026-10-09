@@ -913,6 +913,28 @@ export interface ActivityComment {
   generated_at?: string | null;
 }
 
+/** Planejado × feito de um treino dos ultimos dias (GET /coach/plan/adherence). */
+export interface AdherenceItem {
+  id: string;
+  date: string;
+  title: string;
+  sport: string;
+  status: "done" | "skipped";
+  planned: { distance_m: number | null; duration_s: number | null; intensity: string | null; ritmo: string | null; zona_fc: string | null };
+  actual: {
+    activity_id: string; title: string | null; sport: string; distance_m: number | null; moving_s: number | null;
+    pace_s_per_km: number | null; avg_hr: number | null; rpe: number | null;
+  } | null;
+  volume: "cumpriu" | "a_mais" | "a_menos" | null;
+  ratio: number | null;
+  ritmo: "no_ritmo" | "mais_rapido" | "mais_lento" | null;
+  comment: { text: string; generated_at: string; model_used: string | null } | null;
+}
+
+export async function fetchAdherence(days = 7): Promise<AdherenceItem[]> {
+  return apiFetch<AdherenceItem[]>(`/coach/plan/adherence?days=${days}`);
+}
+
 /** Ultimo comentario salvo da Duni sobre a atividade (nao chama a IA). */
 export async function fetchActivityComment(activityId: string): Promise<ActivityComment> {
   return coachFetch<ActivityComment>(`/coach/activities/${activityId}/analyze`);

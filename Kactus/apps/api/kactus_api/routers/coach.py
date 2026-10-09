@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import delete, select
 
 from kactus_api.ai import coach_service
+from kactus_api.ai.adherence import recent_adherence
 from kactus_api.ai.athlete_analysis import build_analysis
 from kactus_api.ai.coach_service import (
     CHAT_ORDER_DESC,
@@ -313,6 +314,13 @@ def post_move_workout(workout_id: uuid.UUID, body: MoveWorkoutRequest, current_u
                 "conflict": {"id": str(e.conflict.id), "title": e.conflict.title, "status": e.conflict.status},
             },
         ) from e
+
+
+@router.get("/plan/adherence")
+def get_plan_adherence(current_user: CurrentUser, db: DbSession, days: int = Query(default=7, ge=1, le=60)) -> list[dict]:
+    """Planejado × feito dos ultimos dias (sem IA): volume e ritmo contra o alvo."""
+    coach_service.reconcile_plan(db, current_user.id)
+    return recent_adherence(db, current_user.id, days)
 
 
 @router.get("/plan", response_model=list[PlannedWorkoutOut])

@@ -13,6 +13,7 @@ import {
 import { C } from "@/lib/theme";
 import { formatClock, recordLabel } from "@/lib/utils";
 import { Alert, PageContainer } from "@/components/ui/primitives";
+import { AdherencePanel } from "@/components/coach/AdherencePanel";
 import { ActivityModal } from "@/components/dashboard/ActivityModal";
 import { AthleteStatus } from "@/components/dashboard/AthleteStatus";
 import { CoachCard } from "@/components/dashboard/CoachCard";
@@ -218,6 +219,9 @@ export default function DashboardPage() {
 
         {/* 3. O que fiz esta semana */}
         <WeekStrip className="md:col-span-6 xl:col-span-12" activities={stats.curActs} plan={plan} loading={loading} cur={stats.cur} prevToDate={stats.prevToDate} />
+
+        {/* o planejado dos ultimos dias ao lado do que foi feito (some sem plano) */}
+        <AdherencePanel className="md:col-span-6 xl:col-span-12" days={3} limit={2} />
 
         {/* 2. Estou evoluindo? */}
         <PerformanceChart className="md:col-span-6 xl:col-span-8" activities={activities} loading={loading} onSelect={openById} />

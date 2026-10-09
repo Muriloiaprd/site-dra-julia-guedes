@@ -32,7 +32,13 @@ function install() {
   if (installed || typeof window === "undefined") return;
   installed = true;
   // a página confere a sessão antes de carregar: um token de mentira basta (toda /api é falsa aqui)
-  try { if (!localStorage.getItem("kactus_token")) localStorage.setItem("kactus_token", "preview"); } catch { /* sem armazenamento */ }
+  try {
+    if (!localStorage.getItem("kactus_token")) {
+      localStorage.setItem("kactus_token", "preview");
+      // o token falso sai ao fechar a aba
+      window.addEventListener("pagehide", () => { try { localStorage.removeItem("kactus_token"); } catch { /* ignore */ } });
+    }
+  } catch { /* sem armazenamento */ }
   const real = window.fetch.bind(window);
   window.fetch = async (input, init) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;

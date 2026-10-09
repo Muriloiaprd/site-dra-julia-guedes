@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { kindLabel, MemoryPanel, whenLabel } from "@/components/coach/MemoryPanel";
+import { AdherencePanel } from "@/components/coach/AdherencePanel";
 import { SummaryBody } from "@/components/coach/SummaryBody";
 import { GoalPlanPanel } from "@/components/coach/GoalPlanPanel";
 import { WeekPlans } from "@/components/coach/WeekPlans";
@@ -532,6 +533,9 @@ export default function CoachPage() {
 
         {/* ───────── Plano do objetivo (ate a prova) ───────── */}
         {goal && <GoalPlanPanel goal={goal} onGenerate={handleGenerateGoal} generating={generatingGoal} />}
+
+        {/* ───────── Planejado × feito ───────── */}
+        <AdherencePanel days={14} />
 
         {/* ───────── Plano da semana ───────── */}
         {week && (

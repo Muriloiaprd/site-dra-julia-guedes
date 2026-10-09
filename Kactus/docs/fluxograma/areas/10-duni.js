@@ -151,6 +151,27 @@ flowchart TD
   ID -->|sim| CALL
 `,
     },
+    {
+      titulo: "Planejado × feito",
+      mermaid: `
+flowchart TD
+  AIN("Abre o dashboard ou a Duni"):::acao --> PAPI[/"GET /coach/plan/adherence<br/>3 dias no dashboard, 14 na Duni"/]:::api
+  PAPI --> AREC[["reconcile_plan: casa treino feito<br/>e marca pulado o que passou"]]:::calc
+  AREC --> AHAS{"Há treino planejado<br/>com desfecho?"}:::decisao
+  AHAS -->|não| AHIDE(["O painel não aparece"]):::estado
+  AHAS -->|sim| AITEM["Planejado × feito<br/>dia, título, planejado, feito"]:::tela
+  AITEM --> AVOL[["Volume: distância ou duração<br/>±15% = cumpriu"]]:::calc
+  AITEM --> ARIT[["Ritmo contra a faixa do alvo<br/>±5 s/km"]]:::calc
+  AVOL --> ASELO["Cumpriu · Fez a mais · Fez a menos · Pulou"]:::ok
+  ARIT --> ASELO2["no ritmo · mais rápido · mais lento"]:::ok
+  AITEM --> ATEM{"Já tem comentário?"}:::decisao
+  ATEM -->|sim| AVER("Ver comentário da Duni"):::acao
+  ATEM -->|não| APED("Pedir comentário da Duni"):::acao --> AIA{{"POST /coach/activities/id/analyze"}}:::ia
+  AIA --> AVER
+  AIA -->|erro| AERR["Mensagem da Duni"]:::erro
+  AITEM --> AVT("Ver treino →"):::acao --> ADET["/activities/id"]:::tela
+`,
+    },
   ],
   inventario: [
     { tipo: "API", nome: "Carregamento da página", acao: "Nove chamadas em paralelo; falhas viram estado vazio.", api: "GET /coach/chat/history · /coach/memories · /coach/plan/week · /coach/goal-plan · /coach/plan/free · /coach/analyze · /coach/plan?days_ahead=14 · /predictions/overview · /metrics/load?days=30", onde: "apps/web/app/coach/page.tsx:220", no: "LD" },
@@ -216,6 +237,13 @@ flowchart TD
     { tipo: "erro", nome: "invalid_plan_response · invalid_response", acao: "Plano fora das regras (sem dia de descanso, treino sem objetivo) ou JSON inválido, inclusive no plano do objetivo.", msg: "O plano veio fora das regras e foi recusado · A resposta veio num formato inválido", onde: "apps/web/lib/coachErrors.ts:31", no: "IPR" },
     { tipo: "erro", nome: "no_goal_race · race_too_close", msg: "Falta a prova com data · A prova está perto demais", onde: "apps/web/lib/coachErrors.ts:36", no: "E1,E2" },
     { tipo: "erro", nome: "Erros de edição e do servidor", acao: "no_free_week, not_editable, past_date, not_swappable, invalid_suggestion, not_found e internal_error ganham título e explicação.", msg: "Falta o plano da semana pelo estado de agora · Esse treino não pode mais mudar · Esse dia já passou · Erro no servidor do Kactus …", onde: "apps/web/lib/coachErrors.ts:45" },
+    { tipo: "seção", nome: "Planejado × feito", acao: "Treinos planejados dos últimos 14 dias que já têm desfecho: o planejado ao lado do feito, com selos de volume e ritmo. Some se não houver nenhum.", onde: "apps/web/components/coach/AdherencePanel.tsx:122", no: "AITEM,AHAS,AHIDE" },
+    { tipo: "cálculo", nome: "Selo de volume", acao: "Distância feita ÷ planejada (ou duração em movimento ÷ planejada): abaixo de 85% fez a menos, acima de 115% fez a mais.", onde: "apps/api/kactus_api/ai/adherence.py:47", no: "AVOL,ASELO" },
+    { tipo: "cálculo", nome: "Selo de ritmo", acao: "Só corrida: o pace médio contra a faixa do alvo (texto do ritmo; um valor só vira ±10 s), com 5 s/km de folga.", onde: "apps/api/kactus_api/ai/adherence.py:65", no: "ARIT,ASELO2" },
+    { tipo: "botão", nome: "Pedir comentário da Duni / Ver comentário da Duni", acao: "Usa o comentário da atividade, que já lê o planejado do dia; só chama a IA quando pedido.", api: "POST /coach/activities/{id}/analyze", msg: "A Duni está lendo o treino…", onde: "apps/web/components/coach/AdherencePanel.tsx:101", no: "ATEM,AVER,APED,AIA,AERR" },
+    { tipo: "vazio", nome: "Treino pulado", msg: "Não houve treino nesse dia", onde: "apps/web/components/coach/AdherencePanel.tsx:55" },
+    { tipo: "API", nome: "Planejado × feito", acao: "Lista os treinos com desfecho dos últimos N dias (1 a 60), o mais recente primeiro.", api: "GET /coach/plan/adherence", onde: "apps/api/kactus_api/routers/coach.py:320", no: "PAPI,AREC" },
+    { tipo: "link", nome: "Ver treino →", onde: "apps/web/components/coach/AdherencePanel.tsx:105", no: "AVT,ADET" },
     { tipo: "API", nome: "Listar treinos planejados", acao: "Usada pelo dashboard (35 dias) e pela Duni (14 dias).", api: "GET /coach/plan", onde: "apps/api/kactus_api/routers/coach.py:316" },
     { tipo: "API", nome: "Plano do objetivo atual", api: "GET /coach/goal-plan", onde: "apps/api/kactus_api/routers/coach.py:188" },
     { tipo: "API", nome: "Semana atual", acao: "Plano da semana vigente e os treinos pela data; sem plano da semana, os 7 dias do objetivo.", api: "GET /coach/plan/week", onde: "apps/api/kactus_api/routers/coach.py:203" },

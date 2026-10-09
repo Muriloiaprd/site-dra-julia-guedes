@@ -28,8 +28,8 @@ flowchart LR
   ],
   inventario: [
     { tipo: "tela", nome: "/activities-preview", acao: "Atividades com dados de exemplo para testar excluir, restaurar e limpar a lixeira.", onde: "apps/web/app/(dev)/activities-preview/page.tsx:68", no: "A,A1,A2" },
-    { tipo: "tela", nome: "/equipment-preview", acao: "Equipamentos com dados de exemplo para testar o tênis padrão por esporte e o Aplicar aos treinos antigos. Grava um token de mentira no navegador para passar pela checagem de sessão.", onde: "apps/web/app/(dev)/equipment-preview/page.tsx", no: "E,E1,E2" },
-    { tipo: "tela", nome: "/coach-preview", acao: "Página da Duni com plano, memórias e conversa falsos; não chama a API nem a IA.", onde: "apps/web/app/(dev)/coach-preview/page.tsx", no: "C,C1,C2" },
+    { tipo: "tela", nome: "/equipment-preview", acao: "Equipamentos com dados de exemplo para testar o tênis padrão por esporte e o Aplicar aos treinos antigos. Grava um token de mentira (apagado ao fechar a aba) para passar pela checagem de sessão.", onde: "apps/web/app/(dev)/equipment-preview/page.tsx", no: "E,E1,E2" },
+    { tipo: "tela", nome: "/coach-preview", acao: "Página da Duni com plano, memórias, conversa e planejado × feito falsos; não chama a API nem a IA.", onde: "apps/web/app/(dev)/coach-preview/page.tsx", no: "C,C1,C2" },
     { tipo: "tela", nome: "/story-art-probe", acao: "Mede as faixas de transparência dos PNGs em public/story-art e imprime literais para lib/story/regions.ts.", onde: "apps/web/app/(dev)/story-art-probe/page.tsx", no: "P,P1,P2" },
     { tipo: "tela", nome: "/story-calibrate", acao: "?id=<modelo> compara o desenho com a arte; &color=%23RRGGBB mostra o modelo recolorido.", onde: "apps/web/app/(dev)/story-calibrate/page.tsx", no: "K,K1,K2" },
     { tipo: "permissão", nome: "Abertas em produção", acao: "Nenhuma confere NODE_ENV; no modo rápido continuam acessíveis (só com dados falsos).", onde: "apps/web/app/(dev)/" },

@@ -56,6 +56,7 @@ flowchart LR
   ST -->|Status da Duni| DUNI
   CC["Duni · sua treinadora<br/>próximo treino"]:::tela -->|Ver treino ou Falar com a Duni| DUNI
   WK["Visão semanal<br/>7 dias"]:::tela -->|Atividades| ACTL["/activities"]:::tela
+  ADH["Planejado × feito<br/>últimos 3 dias"]:::tela -->|Ver todos na Duni| DUNI
   EV["Evolução do desempenho<br/>gráfico"]:::tela -->|clique num ponto| MOD
   LA["Última atividade"]:::tela -->|clique| MOD
   CAL["Calendário"]:::tela -->|dia com treino| MOD
@@ -87,6 +88,7 @@ flowchart LR
     { tipo: "card", nome: "Duni · sua treinadora", acao: "Próximo treino planejado (distância, duração, intensidade) e a recomendação de hoje; selo AI ANALYSIS · SYNC/ACTIVE/OFFLINE.", msg: "Seu próximo treino está pronto. · Nenhum plano ativo. · A Duni está indisponível agora.", onde: "apps/web/components/dashboard/CoachCard.tsx:44", no: "CC" },
     { tipo: "botão", nome: "Ver treino / Falar com a Duni", acao: "Vai para /coach.", onde: "apps/web/components/dashboard/CoachCard.tsx:134" },
     { tipo: "card", nome: "Visão semanal", acao: "Segunda a domingo: Feito, Hoje, Planejado (Duni), Descanso ou Livre; barra = duração relativa; total de km, tempo, sessões e comparação com a semana passada até o mesmo dia.", onde: "apps/web/components/dashboard/WeekStrip.tsx:16", no: "WK" },
+    { tipo: "card", nome: "Planejado × feito", acao: "Os 2 treinos planejados mais recentes dos últimos 3 dias, com o feito ao lado e os selos; some sem plano. Detalhes na área Duni.", api: "GET /coach/plan/adherence?days=3", onde: "apps/web/app/dashboard/page.tsx:224", no: "ADH" },
     { tipo: "card", nome: "Evolução do desempenho", acao: "Gráfico de distância, pace ou FC média com linha de tendência.", onde: "apps/web/components/dashboard/PerformanceChart.tsx:89", no: "EV" },
     { tipo: "filtro", nome: "Período do gráfico", acao: "7D, 30D (padrão), 3M, 6M, 1A.", onde: "apps/web/components/dashboard/PerformanceChart.tsx:15" },
     { tipo: "aba", nome: "Distância · Pace médio · FC média", acao: "As três caixas de cima são também as abas da métrica, com variação contra o período anterior.", onde: "apps/web/components/dashboard/PerformanceChart.tsx:166" },
