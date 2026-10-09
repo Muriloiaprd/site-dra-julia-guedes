@@ -19,6 +19,7 @@ import {
   type Profile,
 } from "@/lib/api";
 import { resizeImageToDataUrl, resizeLogoToPngDataUrl } from "@/lib/image";
+import { clearSnapshot } from "@/lib/offlineSnapshot";
 
 const DELETE_CONFIRM_WORD = "EXCLUIR";
 
@@ -244,6 +245,7 @@ export default function ProfilePage() {
     try {
       await deleteAccount();
       clearToken();
+      clearSnapshot();
       router.push("/login");
     } catch (err: unknown) {
       setDeleteAccountError(err instanceof Error ? err.message : "Erro ao excluir a conta");

@@ -7,7 +7,7 @@
  * desligado), mostra /desligado.html. Nenhuma pagina do app fica em cache: o
  * motivo de 2026-09-18 para nao ter service worker (app velho) nao se aplica.
  */
-const CACHE = "kactus-desligado-v1";
+const CACHE = "kactus-desligado-v2"; // v2: desligado.html mostra o ultimo painel
 const DESLIGADO = "/desligado.html";
 
 self.addEventListener("install", (event) => {

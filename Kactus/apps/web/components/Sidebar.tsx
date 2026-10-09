@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Logo } from "@/components/Logo";
 import { clearToken, fetchMe, fetchProfile, type User } from "@/lib/api";
+import { clearSnapshot } from "@/lib/offlineSnapshot";
 import { useFocusTrap } from "@/lib/useFocusTrap";
 
 type NavItem = { href: string; label: string; short?: string; icon: ReactNode; ai?: boolean };
@@ -102,6 +103,7 @@ export function Sidebar() {
 
   function handleLogout() {
     clearToken();
+    clearSnapshot();
     router.push("/login");
   }
 

@@ -10,6 +10,7 @@ import {
 import {
   calcWeekStats, computeReadiness, metricDaysAgo, nameFromEmail, recoveryFromTsb, toISODate, WEEK_HOURS_GOAL, type Tone,
 } from "@/lib/athlete";
+import { buildSnapshot, saveSnapshot } from "@/lib/offlineSnapshot";
 import { C } from "@/lib/theme";
 import { formatClock, recordLabel } from "@/lib/utils";
 import { Alert, PageContainer } from "@/components/ui/primitives";
@@ -159,6 +160,21 @@ export default function DashboardPage() {
       recoveryTrend: d == null ? { text: "—", color: C.muted } : d > 0 ? { text: "↑ melhorando", color: C.accent } : d < 0 ? { text: "↓ em queda", color: C.warning } : { text: "estável", color: C.textSecondary },
     };
   }, [readiness.tsb, loadMetrics, weekHours, stats]);
+
+  // último painel para ver com o PC desligado (public/desligado.html)
+  useEffect(() => {
+    if (!user || syncState !== "ok") return;
+    saveSnapshot(buildSnapshot({
+      name: profile?.full_name?.trim().split(/\s+/)[0] || null,
+      recommendation,
+      plan,
+      week: stats.cur,
+      weeklyKmGoal: profile?.weekly_km_goal ?? null,
+      activities,
+      records,
+      goal: goalPlan,
+    }));
+  }, [user, syncState, profile, recommendation, plan, stats, activities, records, goalPlan]);
 
   const alerts = useMemo(() => {
     const out: HeaderAlert[] = [];

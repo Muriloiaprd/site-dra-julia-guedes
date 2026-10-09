@@ -22,16 +22,36 @@
   #ligar { background:var(--verde); color:#000; }
   #ligar:disabled { background:#1A1A1A; color:#555; }
   #tentar { margin-top:10px; background:transparent; color:var(--mudo); border:1px solid var(--borda); }
+  /* ultimo painel (lib/offlineSnapshot.ts grava no aparelho) */
+  body.com-painel main { justify-content:flex-start; text-align:left; }
+  body.com-painel img { width:44px; height:44px; margin:0 0 12px; border-radius:12px; }
+  body.com-painel h1 { font-size:20px; }
+  #faixa { display:none; margin:0 -24px 18px; padding:10px 24px; background:rgba(255,193,69,.12); color:var(--amarelo);
+           font-size:13px; font-weight:600; border-bottom:1px solid rgba(255,193,69,.3); }
+  body.com-painel #faixa { display:block; }
+  #painel { display:none; margin-top:26px; }
+  body.com-painel #painel { display:block; }
+  .card { background:var(--painel); border:1px solid var(--borda); border-radius:16px; padding:14px 16px; margin-bottom:12px; }
+  .rotulo { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--mudo); margin-bottom:8px; }
+  .grande { font-size:20px; font-weight:800; }
+  .linha { display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-top:1px solid var(--borda); font-size:14px; }
+  .linha:first-of-type { border-top:0; padding-top:0; }
+  .linha span:last-child { color:var(--mudo); text-align:right; white-space:nowrap; }
+  .nums { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; text-align:center; }
+  .nums b { display:block; font-size:20px; }
+  .nums small { color:var(--mudo); font-size:12px; }
 </style>
 </head>
 <body>
 <main>
+  <div id="faixa" role="status"></div>
   <img src="/apple-icon.png" alt="" onerror="this.remove()">
   <h1 id="titulo">O Kactus está desligado</h1>
   <p id="texto">O servidor no seu PC não está no ar.</p>
   <div id="estado"><span class="bola"></span><span id="estado-texto">Verificando o PC…</span></div>
   <button id="ligar" disabled>Ligar agora</button>
   <button id="tentar">Tentar de novo</button>
+  <section id="painel" aria-label="Último painel visto"></section>
 </main>
 <script>
   // Mostrada pelo service worker (sw.js) quando o Kactus nao responde.
@@ -84,6 +104,56 @@
     acompanhar();
   });
   $("tentar").addEventListener("click", () => location.reload());
+
+  // Ultimo painel visto (gravado pelo dashboard). So texto pronto, montado com textContent.
+  function el(tag, cls, texto) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (texto != null) e.textContent = texto;
+    return e;
+  }
+  function card(rotulo, ...filhos) {
+    const c = el("div", "card");
+    c.append(el("div", "rotulo", rotulo), ...filhos);
+    return c;
+  }
+  function linha(esq, dir) {
+    const l = el("div", "linha");
+    l.append(el("span", null, esq), el("span", null, dir));
+    return l;
+  }
+  const dia = (iso) => new Date(iso.length === 10 ? iso + "T12:00:00" : iso).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" });
+  function mostrarPainel() {
+    let s;
+    try { s = JSON.parse(localStorage.getItem("kactus_ultimo_painel") || "null"); } catch { s = null; }
+    if (!s || s.v !== 1) return;
+    const quando = new Date(s.salvo_em);
+    $("faixa").textContent = `Sem conexão com o PC · dados de ${quando.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} às ${quando.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+    const p = $("painel");
+    p.append(el("div", "rotulo", s.nome ? `Último painel de ${s.nome}` : "Último painel visto"));
+    if (s.hoje || s.treino_hoje) {
+      const filhos = [];
+      if (s.hoje) {
+        const t = el("div", "grande", s.hoje.titulo);
+        if (/^#[0-9a-f]{3,8}$/i.test(s.hoje.cor || "")) t.style.color = s.hoje.cor;
+        filhos.push(t);
+        if (s.hoje.detalhe) filhos.push(el("p", null, s.hoje.detalhe));
+      }
+      if (s.treino_hoje) filhos.push(el("p", null, `Treino de hoje: ${s.treino_hoje}`));
+      p.append(card("Hoje", ...filhos));
+    }
+    const nums = el("div", "nums");
+    for (const [v, r] of [[s.semana.treinos, "treinos"], [s.semana.km, s.semana.meta_km ? `de ${s.semana.meta_km} km` : "distância"], [s.semana.tempo, "tempo"]]) {
+      const d = el("div"); d.append(el("b", null, String(v)), el("small", null, r)); nums.append(d);
+    }
+    p.append(card("Esta semana", nums));
+    if (s.prova) p.append(card("Próxima prova", el("div", "grande", s.prova.nome), el("p", null, `${dia(s.prova.data)} · faltam ${s.prova.dias} dias`)));
+    if (s.proximos.length) p.append(card("Próximos treinos", ...s.proximos.map((w) => linha(w.titulo, dia(w.data)))));
+    if (s.treinos.length) p.append(card("Últimos treinos", ...s.treinos.map((a) => linha(a.titulo, `${dia(a.data)} · ${a.km}${a.ritmo ? " · " + a.ritmo : ""}`))));
+    if (s.recordes.length) p.append(card("Recordes recentes", el("p", null, s.recordes.join(" · "))));
+    document.body.classList.add("com-painel");
+  }
+  mostrarPainel();
   verificar();
 </script>
 </body>

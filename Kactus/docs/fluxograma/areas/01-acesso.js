@@ -4,7 +4,7 @@ KACTUS_MAPA.areas.push({
   n: 1,
   titulo: "Acesso e servidor",
   resumo:
-    "O Kactus Controle é um programa em Python com ícone perto do relógio e uma janelinha. Também importa sozinho os treinos do relógio Garmin ligado no USB. Ele liga o site (porta 3003) e a API (porta 8000), vigia os dois e religa se caírem. No modo rápido o site roda o build de produção, bem mais leve no iPhone; no modo desenvolvimento mostra mudanças de código na hora. O iPhone entra pelo Tailscale. Se o servidor estiver fora do ar, o service worker mostra a tela 'Kactus desligado', que fala com o Controle na porta 8443 para ligar.",
+    "O Kactus Controle é um programa em Python com ícone perto do relógio e uma janelinha. Também importa sozinho os treinos do relógio Garmin ligado no USB. Ele liga o site (porta 3003) e a API (porta 8000), vigia os dois e religa se caírem. No modo rápido o site roda o build de produção, bem mais leve no iPhone; no modo desenvolvimento mostra mudanças de código na hora. O iPhone entra pelo Tailscale. Se o servidor estiver fora do ar, o service worker mostra a tela 'Kactus desligado', que fala com o Controle na porta 8443 para ligar e, se o aparelho já abriu o dashboard antes, mostra o último painel visto com a faixa 'Sem conexão com o PC'.",
   rotas: ["/desligado.html", "Controle :3010 (PC)", "Controle :8443 (iPhone)"],
   arquivos: [
     "apps/controle/kactus_controle/app.py",
@@ -20,6 +20,7 @@ KACTUS_MAPA.areas.push({
     "apps/controle/kactus_controle/relogio.ps1",
     "apps/web/public/sw.js",
     "apps/web/public/desligado.html",
+    "apps/web/lib/offlineSnapshot.ts",
     "apps/web/components/RegistrarSW.tsx",
     "Abrir Kactus.bat",
     "scripts/precisa-build.ps1",
@@ -69,6 +70,9 @@ flowchart TD
   LIGAR --> ACOMP
   ACOMP --> ST
   DESL --> TENTA("Tentar de novo<br/>recarrega a página"):::acao
+  DESL --> SNAP{"O aparelho guardou<br/>um último painel?"}:::decisao
+  SNAP -->|sim| ULT["Sem conexão com o PC · dados de 09/10 às 14:32<br/>Hoje · Esta semana · Próxima prova<br/>Próximos treinos · Últimos treinos · Recordes"]:::tela
+  SNAP -->|não| SOD["Só o estado do PC e os botões"]:::estado
 `,
     },
     {
@@ -161,6 +165,7 @@ flowchart TD
     { tipo: "integração", nome: "Service worker", acao: "Só intercepta navegação. Falha de rede ou 502/503/504 → desligado.html. Não guarda páginas do app.", onde: "apps/web/public/sw.js:30", no: "SW" },
     { tipo: "integração", nome: "Registro do service worker", acao: "Só fora do next dev (produção).", onde: "apps/web/components/RegistrarSW.tsx:6" },
     { tipo: "tela", nome: "Kactus desligado", acao: "Mostra o estado do PC e do servidor e deixa ligar pelo iPhone.", msg: "O Kactus está desligado", onde: "apps/web/public/desligado.html", no: "DESL" },
+    { tipo: "seção", nome: "Último painel (sem conexão)", acao: "O dashboard grava no aparelho (localStorage kactus_ultimo_painel) um resumo pronto a cada carregamento: recomendação de hoje, treino de hoje, semana (treinos, km com a meta, tempo), próxima prova, próximos 3 treinos planejados, últimos 5 treinos e recordes de 30 dias. A tela desligado.html mostra esse resumo com a faixa amarela com data e hora; os botões de ligar continuam no alto. Sair da conta ou excluir a conta apaga o resumo.", msg: "Sem conexão com o PC · dados de DD/MM às HH:MM", onde: "apps/web/public/desligado.html:126", no: "SNAP,ULT,SOD" },
     { tipo: "erro", nome: "PC desligado ou dormindo", acao: "O Controle não respondeu.", msg: "Ligue ou acorde o PC e toque em Tentar de novo.", onde: "apps/web/public/desligado.html", no: "PCOFF" },
     { tipo: "botão", nome: "Ligar agora", acao: "Pede ao Controle para ligar e acompanha a cada 2 s.", api: "POST :8443/api/ligar", msg: "Pode levar até 2 minutos quando o código mudou.", onde: "apps/web/public/desligado.html", no: "BTN" },
     { tipo: "botão", nome: "Tentar de novo", acao: "Recarrega a página.", onde: "apps/web/public/desligado.html", no: "TENTA" },
