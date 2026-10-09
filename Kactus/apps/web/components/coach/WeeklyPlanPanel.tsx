@@ -34,7 +34,8 @@ function dayShort(iso: string) {
 }
 
 function shortDate(iso: string) {
-  return parseLocalDate(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  // "05 de outubro"
+  return parseLocalDate(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
 }
 
 function weekDays(start: string, end: string): string[] {
