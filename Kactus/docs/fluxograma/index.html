@@ -1,0 +1,619 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mapa do Kactus</title>
+<meta name="description" content="Fluxograma funcional do Kactus: telas, botões, estados, API, cálculos e a Duni.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Poppins:wght@700;800&display=swap">
+<style>
+/* Layout: índice fixo à esquerda + áreas empilhadas (diagrama em cima, inventário embaixo). Dark-first, igual ao app. */
+:root {
+  --bg: #0A0B0A;
+  --panel: #121412;
+  --panel2: #181B18;
+  --line: #262A26;
+  --fg: #E8EDE8;
+  --muted: #8C948C;
+  --accent: #00FF66;
+  --accent-ink: #04140A;
+  --lime: #C6FF00;
+  --info: #00BFFF;
+  --ia: #B38CFF;
+  --danger: #FF6B63;
+  --warn: #FFC145;
+  --hl: rgba(0, 255, 102, .12);
+  --font-display: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #F4F7F3; --panel: #FFFFFF; --panel2: #EDF2EB; --line: #D3DBD1; --fg: #0F1410; --muted: #586258;
+    --accent: #00994A; --accent-ink: #FFFFFF; --lime: #5F7A00; --info: #0071AD; --ia: #7046D0;
+    --danger: #C2302A; --warn: #9A6200; --hl: rgba(0, 153, 74, .12); color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #F4F7F3; --panel: #FFFFFF; --panel2: #EDF2EB; --line: #D3DBD1; --fg: #0F1410; --muted: #586258;
+  --accent: #00994A; --accent-ink: #FFFFFF; --lime: #5F7A00; --info: #0071AD; --ia: #7046D0;
+  --danger: #C2302A; --warn: #9A6200; --hl: rgba(0, 153, 74, .12); color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.55 var(--font-body); -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.shell { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; }
+@media (max-width: 900px) { .shell { grid-template-columns: minmax(0, 1fr); } }
+
+/* índice */
+.side { position: sticky; top: env(safe-area-inset-top, 0px); height: 100vh; overflow-y: auto; border-right: 1px solid var(--line); background: var(--panel); padding: 20px 14px 28px; }
+@media (max-width: 900px) { .side { display: none; } }
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 6px 16px; }
+.brand-mark { width: 30px; height: 30px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font: 800 15px var(--font-display); }
+.brand b { font: 800 15px var(--font-display); letter-spacing: -.01em; display: block; }
+.brand small { color: var(--muted); font-size: 11px; }
+.toc { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.toc a { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 6px; align-items: baseline; padding: 6px 8px; border-radius: 8px; color: var(--fg); text-decoration: none; font-size: 13px; }
+.toc a:hover { background: var(--panel2); }
+.toc a.on { background: var(--hl); color: var(--accent); }
+.toc .num { font: 600 11px var(--font-mono); color: var(--muted); }
+.toc .cnt { font: 500 11px var(--font-mono); color: var(--muted); }
+.toc-sep { margin: 12px 8px 6px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+/* topo */
+.main { min-width: 0; padding-inline: 16px; padding-block: 0 64px; }
+@media (min-width: 700px) { .main { padding-inline: 32px; } }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); padding-block: 14px 12px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+.top-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.search { flex: 1 1 260px; min-width: 0; display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; }
+.search input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 9px 0; outline: none; }
+.search kbd { font: 11px var(--font-mono); color: var(--muted); }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 8px 12px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+.btn:hover { border-color: var(--muted); }
+.mobile-nav { display: none; }
+@media (max-width: 900px) { .mobile-nav { display: block; flex: 1 1 100%; } .mobile-nav select { width: 100%; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); } }
+.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.chip { flex: none; border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 3px 10px; font-size: 12px; cursor: pointer; color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--hl); color: var(--accent); border-color: var(--accent); }
+.chip .k { font-family: var(--font-mono); font-size: 10px; margin-left: 4px; opacity: .8; }
+
+/* cabeçalho da página */
+.hero { padding-block: 28px 8px; display: grid; gap: 10px; max-width: 900px; }
+.eyebrow { font: 600 11px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 800 clamp(28px, 4vw, 40px)/1.05 var(--font-display); letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+.lede { color: var(--muted); max-width: 68ch; margin: 0; }
+.stamp { display: flex; flex-wrap: wrap; gap: 8px 16px; font: 12px var(--font-mono); color: var(--muted); }
+.stamp b { color: var(--fg); font-weight: 600; }
+
+/* legenda */
+.legend { margin-block: 18px 6px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.lg { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.sw { flex: none; width: 34px; height: 20px; border: 1.5px solid; }
+
+/* áreas */
+.area { padding-top: 34px; scroll-margin-top: 130px; }
+@media (max-width: 900px) { .top { position: static; } .area { scroll-margin-top: 8px; } }
+.area-head { display: grid; gap: 6px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.area-num { font: 600 12px var(--font-mono); color: var(--accent); }
+h2 { font: 800 24px/1.15 var(--font-display); letter-spacing: -.01em; margin: 0; text-wrap: balance; }
+.resumo { margin: 0; max-width: 72ch; color: var(--fg); }
+.meta-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font: 12px var(--font-mono); padding: 2px 8px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--line); color: var(--fg); }
+details.files { font-size: 12px; color: var(--muted); }
+details.files summary { cursor: pointer; }
+details.files ul { margin: 6px 0 0; padding-left: 18px; font-family: var(--font-mono); overflow-wrap: anywhere; }
+
+.diag { margin-top: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); overflow: hidden; }
+.diag-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.diag-bar h3 { margin: 0; font: 600 14px var(--font-body); }
+.zoom { display: flex; gap: 4px; }
+.zoom button { width: 32px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel2); cursor: pointer; font-size: 14px; }
+.zoom button.wide { width: auto; padding: 0 10px; font-size: 12px; }
+.diag-scroll { overflow: auto; padding: 16px; max-height: 78vh; cursor: grab; }
+.diag-scroll.dragging { cursor: grabbing; user-select: none; }
+.diag-scroll svg { display: block; margin: 0 auto; height: auto; }
+.diag-scroll .node.linked { cursor: pointer; }
+.diag-scroll .node.linked:hover > * { filter: brightness(1.25); }
+.diag-err { color: var(--danger); font: 12px var(--font-mono); white-space: pre-wrap; padding: 12px; }
+.diag-note { padding: 0 14px 12px; color: var(--muted); font-size: 12px; }
+
+/* inventário */
+.inv { margin-top: 18px; }
+.inv-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px; margin-bottom: 8px; }
+.inv-head h3 { margin: 0; font: 600 14px var(--font-body); }
+.inv-head span { font: 12px var(--font-mono); color: var(--muted); }
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13px; }
+th { text-align: left; font: 600 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 9px 12px; border-bottom: 1px solid var(--line); background: var(--panel2); position: sticky; top: 0; }
+td { padding: 9px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+tr:first-child td { border-top: 0; }
+tr.flash td { animation: flash 2.2s ease-out; }
+@keyframes flash { 0%, 40% { background: var(--hl); } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { tr.flash td { animation: none; background: var(--hl); } }
+td.tipo { white-space: nowrap; }
+.pill { display: inline-block; font: 600 11px var(--font-mono); padding: 2px 7px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel2); }
+.pill.t-erro, .pill.t-aviso { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+.pill.t-sucesso { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.pill.t-IA { color: var(--ia); border-color: color-mix(in srgb, var(--ia) 40%, transparent); }
+.pill.t-API, .pill.t-integração { color: var(--info); border-color: color-mix(in srgb, var(--info) 40%, transparent); }
+.pill.t-cálculo { color: var(--lime); border-color: color-mix(in srgb, var(--lime) 40%, transparent); }
+.pill.t-validação, .pill.t-permissão { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+td.nome { font-weight: 600; min-width: 150px; }
+td.acao { min-width: 240px; }
+td .api { display: block; font: 12px var(--font-mono); color: var(--info); margin-top: 3px; }
+td .msg { display: block; margin-top: 3px; color: var(--muted); font-style: italic; }
+td.onde { font: 11.5px var(--font-mono); color: var(--muted); white-space: nowrap; }
+.empty-row td { color: var(--muted); font-style: italic; }
+mark { background: color-mix(in srgb, var(--warn) 35%, transparent); color: inherit; border-radius: 3px; }
+
+/* extras */
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 16px; }
+.card { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 14px 16px; min-width: 0; }
+.card h4 { margin: 0 0 4px; font: 600 14px var(--font-body); }
+.card p { margin: 0; color: var(--muted); font-size: 13px; }
+.card .onde { margin-top: 6px; font: 11.5px var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
+.sev { display: inline-block; font: 600 10px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; padding: 1px 6px; border-radius: 5px; margin-bottom: 6px; }
+.sev.alta { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.sev.media { color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.sev.baixa { color: var(--muted); background: var(--panel2); }
+.no { color: var(--danger); font-weight: 700; }
+.yes { color: var(--accent); font-weight: 700; }
+.hist { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 8px; }
+.hist li { display: grid; grid-template-columns: 100px 80px minmax(0, 1fr); gap: 10px; font-size: 13px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.hist .d, .hist .c { font-family: var(--font-mono); color: var(--muted); font-size: 12px; }
+@media (max-width: 560px) { .hist li { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+
+/* tela cheia */
+.fs { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.fs[hidden] { display: none; }
+.fs .diag-bar { padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
+.fs .diag-scroll { max-height: none; height: 100%; }
+.loading { color: var(--muted); padding: 24px; font-size: 13px; }
+</style>
+
+<div class="shell">
+  <aside class="side" aria-label="Índice">
+    <div class="brand"><span class="brand-mark">K</span><span><b>Mapa do Kactus</b><small>fluxograma funcional</small></span></div>
+    <ul class="toc" id="toc"></ul>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <div class="top-row">
+        <label class="search" for="q">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="q" type="search" placeholder="Buscar botão, mensagem, rota, arquivo…" autocomplete="off">
+          <kbd>/</kbd>
+        </label>
+        <button class="btn" id="theme" type="button" title="Trocar tema">Tema: sistema</button>
+        <div class="mobile-nav"><select id="jump" aria-label="Ir para a área"></select></div>
+      </div>
+      <div class="chips" id="chips" role="group" aria-label="Filtrar por tipo"></div>
+    </div>
+
+    <header class="hero">
+      <div class="eyebrow">Kactus · do login ao Story</div>
+      <h1>Como o Kactus funciona, tela por tela</h1>
+      <p class="lede" id="lede">Cada tela, botão, campo, estado, mensagem, chamada à API, cálculo e uso da IA, com o arquivo e a linha onde está no código. Clique num bloco do diagrama para ir à linha do inventário.</p>
+      <div class="stamp" id="stamp"></div>
+      <div class="legend" id="legend"></div>
+    </header>
+
+    <div id="areas"><p class="loading">Carregando o mapa…</p></div>
+    <div id="extras"></div>
+  </main>
+</div>
+
+<div class="fs" id="fs" hidden role="dialog" aria-modal="true" aria-label="Diagrama em tela cheia">
+  <div class="diag-bar">
+    <h3 id="fs-title"></h3>
+    <div class="zoom">
+      <button type="button" data-z="-" aria-label="Diminuir">−</button>
+      <button type="button" data-z="+" aria-label="Aumentar">+</button>
+      <button type="button" data-z="fit" class="wide">Ajustar</button>
+      <button type="button" id="fs-close" class="wide">Fechar</button>
+    </div>
+  </div>
+  <div class="diag-scroll" id="fs-body"></div>
+</div>
+
+<script>window.KACTUS_MAPA = { areas: [], meta: null };</script>
+<script src="areas/00-geral.js"></script>
+<script src="areas/01-acesso.js"></script>
+<script src="areas/02-autenticacao.js"></script>
+<script src="areas/03-navegacao.js"></script>
+<script src="areas/04-dashboard.js"></script>
+<script src="areas/05-atividades.js"></script>
+<script src="areas/06-detalhe.js"></script>
+<script src="areas/07-stories.js"></script>
+<script src="areas/08-importacao.js"></script>
+<script src="areas/09-desempenho.js"></script>
+<script src="areas/10-duni.js"></script>
+<script src="areas/11-equipamentos.js"></script>
+<script src="areas/12-perfil.js"></script>
+<script src="areas/13-calculos.js"></script>
+<script src="areas/14-bastidores.js"></script>
+<script src="areas/15-dev.js"></script>
+<script src="areas/meta.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  const M = window.KACTUS_MAPA;
+  M.areas.sort((a, b) => a.n - b.n);
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch { /* sem armazenamento */ } },
+  };
+
+  /* ---------- tema ---------- */
+  const THEMES = ["sistema", "claro", "escuro"];
+  let themePref = store.get("kmapa-tema") || "sistema";
+  function applyTheme() {
+    const root = document.documentElement;
+    if (themePref === "claro") root.setAttribute("data-theme", "light");
+    else if (themePref === "escuro") root.setAttribute("data-theme", "dark");
+    else root.removeAttribute("data-theme");
+    $("#theme").textContent = "Tema: " + themePref;
+  }
+  function isDark() {
+    const t = document.documentElement.getAttribute("data-theme");
+    if (t) return t === "dark";
+    return !window.matchMedia("(prefers-color-scheme: light)").matches;
+  }
+  applyTheme();
+  $("#theme").addEventListener("click", () => {
+    themePref = THEMES[(THEMES.indexOf(themePref) + 1) % THEMES.length];
+    store.set("kmapa-tema", themePref);
+    applyTheme();
+    renderAllDiagrams();
+  });
+  window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (themePref === "sistema") renderAllDiagrams(); });
+
+  /* ---------- paleta dos diagramas (uma por tema) ---------- */
+  const PAL = {
+    dark: {
+      tela: ["#16241B", "#00FF66", "#E8EDE8"], acao: ["#1E2220", "#9AA39A", "#E8EDE8"], decisao: ["#2A2410", "#FFC145", "#FFE7A8"],
+      api: ["#0F2230", "#00BFFF", "#CDEFFF"], ia: ["#231A36", "#B38CFF", "#E6DAFF"], erro: ["#331414", "#FF6B63", "#FFD3D0"],
+      ok: ["#0F2A18", "#3DDC84", "#C9F7DA"], estado: ["#1A1C1A", "#6E766E", "#C2C8C2"], ext: ["#141414", "#8C948C", "#C2C8C2"],
+      calc: ["#20240F", "#C6FF00", "#EEFFC0"], bg: "#121412", line: "#7C857C", text: "#E8EDE8", cluster: "#161916", clusterLine: "#2E332E",
+    },
+    light: {
+      tela: ["#E3F5E9", "#00994A", "#0F1410"], acao: ["#F2F4F1", "#6B756B", "#0F1410"], decisao: ["#FFF3D3", "#9A6200", "#3D2A00"],
+      api: ["#E1F1FB", "#0071AD", "#00304A"], ia: ["#EEE6FF", "#7046D0", "#2E1A5C"], erro: ["#FCE5E3", "#C2302A", "#5C0E0A"],
+      ok: ["#E0F4E7", "#1E8E4E", "#0B3A1E"], estado: ["#F0F1EF", "#8A918A", "#333833"], ext: ["#FAFAFA", "#8A918A", "#333833"],
+      calc: ["#F1F7D8", "#5F7A00", "#2A3600"], bg: "#FFFFFF", line: "#7A847A", text: "#0F1410", cluster: "#F6F8F5", clusterLine: "#D3DBD1",
+    },
+  };
+  const KINDS = [
+    ["tela", "Tela ou seção", "[ ]"], ["acao", "Ação do usuário", "( )"], ["decisao", "Decisão", "{ }"], ["api", "Chamada à API", "/ /"],
+    ["ia", "IA (Duni)", "{{ }}"], ["calc", "Cálculo", "[[ ]]"], ["ok", "Sucesso", ""], ["erro", "Erro", ""],
+    ["estado", "Carregando ou vazio", "( )"], ["ext", "Externo (Garmin, Tailscale…)", "tracejado"],
+  ];
+  function pal() { return isDark() ? PAL.dark : PAL.light; }
+  function classDefs() {
+    const p = pal();
+    return KINDS.map(([k]) => {
+      const [fill, stroke, color] = p[k];
+      const dash = k === "ext" ? ",stroke-dasharray:5 4" : "";
+      return `classDef ${k} fill:${fill},stroke:${stroke},color:${color},stroke-width:1.5px${dash}`;
+    }).join("\n");
+  }
+  function renderLegend() {
+    const p = pal();
+    $("#legend").innerHTML = KINDS.map(([k, label]) => {
+      const [fill, stroke] = p[k];
+      const r = k === "acao" || k === "estado" ? "10px" : k === "decisao" ? "3px" : "5px";
+      const dash = k === "ext" ? "dashed" : "solid";
+      return `<span class="lg"><span class="sw" style="background:${fill};border-color:${stroke};border-style:${dash};border-radius:${r}"></span>${esc(label)}</span>`;
+    }).join("");
+  }
+
+  /* ---------- tipos do inventário ---------- */
+  const TIPOS = ["tela", "seção", "aba", "card", "botão", "link", "campo", "filtro", "modal", "menu", "validação", "carregando", "vazio", "erro", "sucesso", "aviso", "cálculo", "API", "IA", "integração", "permissão"];
+  const activeTipos = new Set();
+  let query = "";
+
+  function counts() {
+    const c = {};
+    for (const a of M.areas) for (const it of a.inventario) c[it.tipo] = (c[it.tipo] || 0) + 1;
+    return c;
+  }
+  function renderChips() {
+    const c = counts();
+    const all = `<button class="chip" type="button" data-t="" aria-pressed="${activeTipos.size === 0}">Todos<span class="k">${M.areas.reduce((s, a) => s + a.inventario.length, 0)}</span></button>`;
+    $("#chips").innerHTML = all + TIPOS.filter((t) => c[t]).map((t) =>
+      `<button class="chip" type="button" data-t="${esc(t)}" aria-pressed="${activeTipos.has(t)}">${esc(t)}<span class="k">${c[t]}</span></button>`).join("");
+  }
+  $("#chips").addEventListener("click", (e) => {
+    const b = e.target.closest(".chip");
+    if (!b) return;
+    const t = b.dataset.t;
+    if (!t) activeTipos.clear();
+    else if (activeTipos.has(t)) activeTipos.delete(t);
+    else activeTipos.add(t);
+    renderChips();
+    filterRows();
+  });
+
+  /* ---------- cabeçalho, índice ---------- */
+  function renderStamp() {
+    const m = M.meta || {};
+    const total = M.areas.reduce((s, a) => s + a.inventario.length, 0);
+    const diags = M.areas.reduce((s, a) => s + a.diagramas.length, 0);
+    $("#stamp").innerHTML = `<span>Atualizado em <b>${esc(m.atualizado || "—")}</b></span><span>commit de referência <b>${esc(m.commit || "—")}</b></span><span><b>${M.areas.length}</b> áreas · <b>${diags}</b> diagramas · <b>${total}</b> itens</span>`;
+  }
+  function renderToc() {
+    const items = M.areas.map((a) =>
+      `<li><a href="#${esc(a.id)}" data-id="${esc(a.id)}"><span class="num">${String(a.n).padStart(2, "0")}</span><span>${esc(a.titulo)}</span><span class="cnt">${a.inventario.length}</span></a></li>`).join("");
+    const extra = `<li class="toc-sep">Fechamento</li>
+      <li><a href="#existe" data-id="existe"><span class="num">··</span><span>Existe × não existe</span><span class="cnt"></span></a></li>
+      <li><a href="#achados" data-id="achados"><span class="num">··</span><span>Achados</span><span class="cnt">${(M.meta?.achados || []).length}</span></a></li>
+      <li><a href="#historico" data-id="historico"><span class="num">··</span><span>Histórico</span><span class="cnt"></span></a></li>`;
+    $("#toc").innerHTML = items + extra;
+    $("#jump").innerHTML = `<option value="">Ir para…</option>` + M.areas.map((a) => `<option value="${esc(a.id)}">${String(a.n).padStart(2, "0")} · ${esc(a.titulo)}</option>`).join("")
+      + `<option value="existe">Existe × não existe</option><option value="achados">Achados</option><option value="historico">Histórico</option>`;
+  }
+  $("#jump").addEventListener("change", (e) => { if (e.target.value) document.getElementById(e.target.value)?.scrollIntoView(); });
+
+  /* ---------- áreas ---------- */
+  function renderAreas() {
+    $("#areas").innerHTML = M.areas.map((a) => `
+      <section class="area" id="${esc(a.id)}" aria-labelledby="h-${esc(a.id)}">
+        <div class="area-head">
+          <span class="area-num">${String(a.n).padStart(2, "0")} · ÁREA</span>
+          <h2 id="h-${esc(a.id)}">${esc(a.titulo)}</h2>
+          <p class="resumo">${esc(a.resumo)}</p>
+          ${a.rotas?.length ? `<div class="meta-row">${a.rotas.map((r) => `<span class="tag">${esc(r)}</span>`).join("")}</div>` : ""}
+          ${a.arquivos?.length ? `<details class="files"><summary>${a.arquivos.length} arquivo(s) de origem</summary><ul>${a.arquivos.map((f) => `<li>${esc(f)}</li>`).join("")}</ul></details>` : ""}
+        </div>
+        ${a.diagramas.map((d, i) => `
+          <figure class="diag" style="margin-inline:0">
+            <div class="diag-bar">
+              <h3>${esc(d.titulo)}</h3>
+              <div class="zoom" data-for="${esc(a.id)}-${i}">
+                <button type="button" data-z="-" aria-label="Diminuir">−</button>
+                <button type="button" data-z="+" aria-label="Aumentar">+</button>
+                <button type="button" data-z="fit" class="wide">Ajustar</button>
+                <button type="button" data-z="full" class="wide">Tela cheia</button>
+              </div>
+            </div>
+            <div class="diag-scroll" id="dg-${esc(a.id)}-${i}" data-area="${esc(a.id)}" data-i="${i}"><p class="loading">Desenhando…</p></div>
+            ${d.nota ? `<figcaption class="diag-note">${esc(d.nota)}</figcaption>` : ""}
+          </figure>`).join("")}
+        <div class="inv">
+          <div class="inv-head"><h3>Inventário</h3><span id="cnt-${esc(a.id)}">${a.inventario.length} itens</span></div>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Tipo</th><th>Nome</th><th>O que faz · API · mensagem</th><th>Onde</th></tr></thead>
+            <tbody>${a.inventario.map((it, j) => `
+              <tr id="it-${esc(a.id)}-${j}" data-tipo="${esc(it.tipo)}" data-no="${esc(it.no || "")}">
+                <td class="tipo"><span class="pill t-${esc(it.tipo)}">${esc(it.tipo)}</span></td>
+                <td class="nome" data-raw="${esc(it.nome)}">${esc(it.nome)}</td>
+                <td class="acao" data-raw="${esc(it.acao || "")}">${esc(it.acao || "")}${it.api ? `<span class="api">${esc(it.api)}</span>` : ""}${it.msg ? `<span class="msg">“${esc(it.msg)}”</span>` : ""}</td>
+                <td class="onde">${esc(it.onde || "")}</td>
+              </tr>`).join("")}
+              <tr class="empty-row" hidden><td colspan="4">Nenhum item desta área com esse filtro.</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </section>`).join("");
+  }
+
+  function renderExtras() {
+    const m = M.meta || {};
+    const existe = (m.existe || []).map((e) => `
+      <div class="card"><h4><span class="${e.existe ? "yes" : "no"}">${e.existe ? "Existe" : "Não existe"}</span> · ${esc(e.nome)}</h4><p>${esc(e.detalhe)}</p>${e.onde ? `<div class="onde">${esc(e.onde)}</div>` : ""}</div>`).join("");
+    const SEV = { alta: "alta", media: "média", baixa: "baixa" };
+    const achados = (m.achados || []).map((a) => `
+      <div class="card"><span class="sev ${esc(a.gravidade)}">${esc(SEV[a.gravidade] || a.gravidade)}</span><h4>${esc(a.titulo)}</h4><p>${esc(a.detalhe)}</p>${a.onde ? `<div class="onde">${esc(a.onde)}</div>` : ""}</div>`).join("");
+    const hist = (m.historico || []).map((h) => `<li><span class="d">${esc(h.data)}</span><span class="c">${esc(h.commit)}</span><span>${esc(h.mudanca)}</span></li>`).join("");
+    $("#extras").innerHTML = `
+      <section class="area" id="existe"><div class="area-head"><span class="area-num">FECHAMENTO</span><h2>Existe × não existe</h2>
+        <p class="resumo">O que costuma existir num app como este e como está no Kactus hoje.</p></div><div class="cols">${existe}</div></section>
+      <section class="area" id="achados"><div class="area-head"><span class="area-num">FECHAMENTO</span><h2>Achados durante o mapeamento</h2>
+        <p class="resumo">Inconsistências que apareceram ao ler o código. Só registradas aqui; nenhuma foi corrigida.</p></div><div class="cols">${achados}</div></section>
+      <section class="area" id="historico"><div class="area-head"><span class="area-num">FECHAMENTO</span><h2>Histórico do fluxograma</h2>
+        <p class="resumo">Cada mudança no código que mexe no funcionamento atualiza a área correspondente e ganha uma linha aqui.</p></div><ul class="hist">${hist}</ul></section>`;
+  }
+
+  /* ---------- busca e filtros ---------- */
+  function highlight(raw, q) {
+    if (!q) return esc(raw);
+    const i = raw.toLowerCase().indexOf(q);
+    if (i < 0) return esc(raw);
+    return esc(raw.slice(0, i)) + "<mark>" + esc(raw.slice(i, i + q.length)) + "</mark>" + esc(raw.slice(i + q.length));
+  }
+  function filterRows() {
+    const q = query.trim().toLowerCase();
+    for (const a of M.areas) {
+      const sec = document.getElementById(a.id);
+      let shown = 0;
+      a.inventario.forEach((it, j) => {
+        const tr = document.getElementById(`it-${a.id}-${j}`);
+        const hay = [it.tipo, it.nome, it.acao, it.api, it.msg, it.onde].join(" ").toLowerCase();
+        const ok = (!activeTipos.size || activeTipos.has(it.tipo)) && (!q || hay.includes(q) || a.titulo.toLowerCase().includes(q));
+        tr.hidden = !ok;
+        if (ok) shown++;
+        tr.querySelector(".nome").innerHTML = highlight(it.nome, q);
+      });
+      sec.querySelector(".empty-row").hidden = shown > 0;
+      document.getElementById(`cnt-${a.id}`).textContent = shown === a.inventario.length ? `${shown} itens` : `${shown} de ${a.inventario.length} itens`;
+    }
+  }
+  let t;
+  $("#q").addEventListener("input", (e) => { clearTimeout(t); t = setTimeout(() => { query = e.target.value; filterRows(); }, 120); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "/" && document.activeElement !== $("#q")) { e.preventDefault(); $("#q").focus(); }
+    if (e.key === "Escape" && !$("#fs").hidden) closeFs();
+  });
+
+  /* ---------- índice ativo ---------- */
+  const io = new IntersectionObserver((entries) => {
+    for (const en of entries) if (en.isIntersecting) {
+      document.querySelectorAll(".toc a").forEach((x) => x.classList.toggle("on", x.dataset.id === en.target.id));
+    }
+  }, { rootMargin: "-40% 0px -55% 0px" });
+
+  /* ---------- diagramas ---------- */
+  let renderSeq = 0;
+  const zoomState = new Map();
+  function mermaidInit() {
+    const p = pal();
+    window.mermaid.initialize({
+      startOnLoad: false, securityLevel: "loose", theme: "base",
+      flowchart: { htmlLabels: true, curve: "basis", padding: 10, nodeSpacing: 34, rankSpacing: 42, useMaxWidth: false },
+      themeVariables: {
+        fontFamily: "Inter, Segoe UI, system-ui, sans-serif", fontSize: "13px",
+        background: p.bg, primaryColor: p.acao[0], primaryBorderColor: p.acao[1], primaryTextColor: p.text,
+        lineColor: p.line, textColor: p.text, clusterBkg: p.cluster, clusterBorder: p.clusterLine,
+        edgeLabelBackground: p.bg, titleColor: p.text,
+      },
+    });
+  }
+  function withDefs(src) {
+    const lines = src.trim().split("\n");
+    return [lines[0], classDefs(), ...lines.slice(1)].join("\n");
+  }
+  function naturalWidth(svg) {
+    const vb = svg.viewBox?.baseVal;
+    return vb && vb.width ? vb.width : svg.getBBox().width;
+  }
+  function setZoom(box, z) {
+    const svg = box.querySelector("svg");
+    if (!svg) return;
+    zoomState.set(box.id, z);
+    if (z === "fit") { svg.style.width = "100%"; svg.style.maxWidth = naturalWidth(svg) + "px"; }
+    else { svg.style.maxWidth = "none"; svg.style.width = Math.round(naturalWidth(svg) * z) + "px"; }
+  }
+  /** Primeira abertura: cabe na largura; no celular, não encolhe abaixo de 70% (rola de lado dentro do quadro). */
+  function autoZoom(box) {
+    const svg = box.querySelector("svg");
+    if (!svg) return;
+    const nat = naturalWidth(svg);
+    const avail = box.clientWidth - 32;
+    if (nat <= avail || window.innerWidth >= 700) return setZoom(box, "fit");
+    setZoom(box, Math.max(avail / nat, 0.7));
+    box.scrollLeft = (box.scrollWidth - box.clientWidth) / 2;
+  }
+  function stepZoom(box, dir) {
+    const cur = zoomState.get(box.id);
+    const svg = box.querySelector("svg");
+    if (!svg) return;
+    let z = cur === "fit" || cur == null ? svg.getBoundingClientRect().width / naturalWidth(svg) : cur;
+    z = dir === "+" ? Math.min(4, z * 1.25) : Math.max(0.25, z / 1.25);
+    setZoom(box, z);
+  }
+  function linkNodes(box, areaId) {
+    const area = M.areas.find((a) => a.id === areaId);
+    const byNode = new Map();
+    area.inventario.forEach((it, j) => { if (it.no) for (const n of String(it.no).split(",")) if (!byNode.has(n.trim())) byNode.set(n.trim(), j); });
+    box.querySelectorAll("g.node").forEach((g) => {
+      const m = /^flowchart-(.+)-\d+$/.exec(g.id);
+      if (!m || !byNode.has(m[1])) return;
+      g.classList.add("linked");
+      g.setAttribute("role", "link");
+      g.setAttribute("tabindex", "0");
+      const go = () => {
+        closeFs();
+        const j = byNode.get(m[1]);
+        const tr = document.getElementById(`it-${areaId}-${j}`);
+        if (!tr) return;
+        if (tr.hidden) { activeTipos.clear(); query = ""; $("#q").value = ""; renderChips(); filterRows(); }
+        tr.scrollIntoView({ block: "center" });
+        tr.classList.remove("flash"); void tr.offsetWidth; tr.classList.add("flash");
+      };
+      g.addEventListener("click", go);
+      g.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+    });
+  }
+  async function renderAllDiagrams() {
+    renderLegend();
+    if (!window.mermaid) {
+      document.querySelectorAll(".diag-scroll[data-area]").forEach((b) => { b.innerHTML = `<p class="diag-err">Não foi possível carregar o Mermaid (sem internet?). O inventário abaixo continua válido.</p>`; });
+      return;
+    }
+    mermaidInit();
+    const seq = ++renderSeq;
+    for (const a of M.areas) {
+      for (let i = 0; i < a.diagramas.length; i++) {
+        if (seq !== renderSeq) return;
+        const box = document.getElementById(`dg-${a.id}-${i}`);
+        try {
+          const { svg } = await window.mermaid.render(`m-${a.id}-${i}-${seq}`, withDefs(a.diagramas[i].mermaid));
+          box.innerHTML = svg;
+          if (zoomState.has(box.id)) setZoom(box, zoomState.get(box.id)); else autoZoom(box);
+          linkNodes(box, a.id);
+        } catch (err) {
+          box.innerHTML = `<p class="diag-err">Erro no diagrama: ${esc(err?.message || err)}</p>`;
+          console.error("diagrama", a.id, i, err);
+        }
+      }
+    }
+  }
+
+  /* zoom, arrastar, tela cheia */
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest(".zoom button[data-z]");
+    if (!b) return;
+    const host = b.closest(".zoom");
+    const box = host.dataset.for ? document.getElementById("dg-" + host.dataset.for) : $("#fs-body");
+    const z = b.dataset.z;
+    if (z === "full") return openFs(box);
+    if (z === "fit") return setZoom(box, "fit");
+    stepZoom(box, z);
+  });
+  function dragScroll(el) {
+    let sx, sy, sl, st, down = false, moved = false;
+    el.addEventListener("pointerdown", (e) => { if (e.pointerType !== "mouse") return; down = true; moved = false; sx = e.clientX; sy = e.clientY; sl = el.scrollLeft; st = el.scrollTop; });
+    el.addEventListener("pointermove", (e) => {
+      if (!down) return;
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+      if (!moved && Math.hypot(dx, dy) < 5) return;
+      moved = true; el.classList.add("dragging"); el.scrollLeft = sl - dx; el.scrollTop = st - dy;
+    });
+    const up = () => { down = false; el.classList.remove("dragging"); };
+    el.addEventListener("pointerup", up); el.addEventListener("pointerleave", up);
+    el.addEventListener("click", (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+  }
+  let fsFrom = null;
+  function openFs(box) {
+    const fig = box.closest("figure");
+    $("#fs-title").textContent = fig.querySelector("h3").textContent;
+    const body = $("#fs-body");
+    body.innerHTML = box.innerHTML;
+    body.dataset.area = box.dataset.area;
+    zoomState.delete("fs-body");
+    setZoom(body, "fit");
+    linkNodes(body, box.dataset.area);
+    fsFrom = fig.querySelector("[data-z=full]");
+    $("#fs").hidden = false;
+    $("#fs-close").focus();
+  }
+  function closeFs() {
+    if ($("#fs").hidden) return;
+    $("#fs").hidden = true;
+    $("#fs-body").innerHTML = "";
+    fsFrom?.focus({ preventScroll: true });
+  }
+  $("#fs-close").addEventListener("click", closeFs);
+
+  /* ---------- início ---------- */
+  renderStamp();
+  renderToc();
+  renderChips();
+  renderAreas();
+  renderExtras();
+  document.querySelectorAll(".area").forEach((s) => io.observe(s));
+  document.querySelectorAll(".diag-scroll").forEach(dragScroll);
+  renderAllDiagrams();
+  if (location.hash) setTimeout(() => document.getElementById(location.hash.slice(1))?.scrollIntoView(), 50);
+})();
+</script>

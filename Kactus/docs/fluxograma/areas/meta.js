@@ -1,0 +1,48 @@
+// Fechamento do mapa: data, commit de referência, o que existe e o que não existe,
+// achados do mapeamento e histórico. Atualizar "atualizado", "commit" e "historico"
+// a cada mudança funcional (regra em Kactus/CLAUDE.md).
+KACTUS_MAPA.meta = {
+  atualizado: "09/10/2026",
+  commit: "499fd13",
+
+  existe: [
+    { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
+    { existe: false, nome: "Recuperar senha", detalhe: "Não há 'esqueci a senha' nem envio de e-mail." },
+    { existe: false, nome: "Primeiro acesso guiado", detalhe: "Depois do login vai direto ao dashboard; os cartões vazios explicam o que fazer." },
+    { existe: false, nome: "Notificações", detalhe: "Só o sino do dashboard (calculado ao abrir) e os avisos do Windows do Kactus Controle. Nada chega ao iPhone com o app fechado." },
+    { existe: false, nome: "Recursos sociais", detalhe: "Sem amigos, curtidas ou feed. Compartilhar é só pelo Story." },
+    { existe: false, nome: "Papéis e permissões", detalhe: "Uma conta por pessoa; todos os dados são filtrados pelo usuário logado." },
+    { existe: false, nome: "Revogar sessão", detalhe: "Sair só apaga o token do navegador; trocar a senha não derruba outros aparelhos (o token vale 7 dias)." },
+    { existe: false, nome: "Garmin pela tela", detalhe: "A sincronização existe só em linha de comando e está bloqueada por limite de IP. O caminho atual é exportar o .fit e arrastar em Importar.", onde: "apps/api/kactus_api/scripts/sync_garmin.py" },
+    { existe: false, nome: "Strava", detalhe: "Descartado (exige OAuth). A rota /activities/import-normalized já aceitaria os dados." },
+    { existe: false, nome: "Funcionar com o PC desligado", detalhe: "Tudo roda no PC; com ele desligado o iPhone mostra 'Kactus desligado'." },
+    { existe: true, nome: "Lixeira de atividades", detalhe: "Excluir é reversível até limpar a lixeira; reimportar tira da lixeira.", onde: "apps/web/components/activities/TrashPanel.tsx" },
+    { existe: true, nome: "Exportar dados", detalhe: "JSON com perfil, equipamentos, recordes e atividades (sem os dados da Duni).", onde: "apps/api/kactus_api/routers/profile.py:61" },
+    { existe: true, nome: "App na Tela de Início do iPhone", detalhe: "Manifest + ícones + service worker mínimo, via Tailscale.", onde: "apps/web/app/manifest.ts" },
+    { existe: true, nome: "Limite de tentativas de login", detalhe: "5 por minuto por IP.", onde: "apps/api/kactus_api/routers/auth.py:19" },
+  ],
+
+  achados: [
+    { gravidade: "media", titulo: "Editar a atividade apaga a descrição", detalhe: "O formulário abre com a descrição sempre vazia (ela nem vem da API) e o Salvar manda vazio, então a descrição salva some.", onde: "apps/web/app/activities/[id]/page.tsx:191 · :208" },
+    { gravidade: "media", titulo: "Excluir atividade ou equipamento ignora erro da API", detalhe: "deleteActivity e deleteEquipment não olham a resposta: se o servidor falhar, a tela tira o item mesmo assim.", onde: "apps/web/lib/api.ts:380 · :615" },
+    { gravidade: "media", titulo: "Erros 500 e 422 aparecem como '[object Object]'", detalhe: "O erro interno devolve detail como objeto e a validação como lista; o apiFetch usa detail direto como texto.", onde: "apps/web/lib/api.ts:280 · apps/api/kactus_api/main.py:56" },
+    { gravidade: "media", titulo: "Plano do objetivo com JSON inválido vira erro interno", detalhe: "A rota trata prova, dados e IA indisponível, mas não a resposta fora do formato; a tela mostra 'Erro · internal_error'.", onde: "apps/api/kactus_api/routers/coach.py:174" },
+    { gravidade: "baixa", titulo: "Texto de excluir no detalhe está velho", detalhe: "Diz 'Esta ação não pode ser desfeita', mas agora vai para a lixeira (a lista já usa o texto novo).", onde: "apps/web/app/activities/[id]/page.tsx:222" },
+    { gravidade: "baixa", titulo: "Códigos de erro da Duni sem texto amigável", detalhe: "no_free_week, not_editable, past_date, not_swappable, invalid_suggestion e internal_error caem em 'Erro' com o código cru quando passam pelo coachErrorMessage.", onde: "apps/web/lib/coachErrors.ts:4" },
+    { gravidade: "baixa", titulo: "Dois riscos de lesão diferentes", detalhe: "O dashboard calcula só pelo ACWR do último dia; o sino e Desempenho usam a regra de 14 dias do servidor. Podem discordar no mesmo dia.", onde: "apps/web/lib/athlete.ts:196 · apps/api/kactus_api/metrics/predictions.py:90" },
+    { gravidade: "baixa", titulo: "Trocar a modalidade não recalcula a carga", detalhe: "Recalcula os recordes, mas não a carga diária (que muda para bike com potência).", onde: "apps/api/kactus_api/routers/activities.py:354" },
+    { gravidade: "baixa", titulo: "Treino na lixeira continua 'feito' no plano", detalhe: "A aderência só olha treinos ainda planejados; o planejado só volta a 'planejado' quando a lixeira é limpa.", onde: "apps/api/kactus_api/ai/coach_service.py:649" },
+    { gravidade: "baixa", titulo: "Filtros e totais só valem para o que foi carregado", detalhe: "A lista traz 100 por vez e filtra no navegador; o '+' no total avisa, mas os filtros não.", onde: "apps/web/app/activities/page.tsx:174" },
+    { gravidade: "baixa", titulo: "Cartão 'Meta principal' desatualizado", detalhe: "Diz que não existe meta no backend, mas a Duni já tem prova-alvo e plano do objetivo.", onde: "apps/web/components/dashboard/GoalCard.tsx:10" },
+    { gravidade: "baixa", titulo: "Rotas de desenvolvimento abertas em produção", detalhe: "As quatro páginas de (dev) não conferem o ambiente; só usam dados falsos, mas ficam acessíveis no modo rápido.", onde: "apps/web/app/(dev)/" },
+    { gravidade: "baixa", titulo: "Confirmações misturadas", detalhe: "Excluir atividade, equipamento e memória usam o confirm() do navegador; lixeira, conversa e zona de perigo confirmam na tela.", onde: "apps/web/components/coach/MemoryPanel.tsx:98" },
+    { gravidade: "baixa", titulo: "Exportar não leva os dados da Duni", detalhe: "Ficam de fora memórias, conversa, planos e métricas diárias.", onde: "apps/api/kactus_api/routers/profile.py:72" },
+    { gravidade: "baixa", titulo: "Data de nascimento e altura sem campo", detalhe: "Existem no perfil do banco, mas a tela não mostra.", onde: "apps/web/app/profile/page.tsx:370" },
+    { gravidade: "baixa", titulo: "Código sem uso e comentário velho", detalhe: "uploadActivity (um arquivo) não é chamado por nenhuma tela; o comentário do manifest diz 'sem service worker', mas existe o sw.js.", onde: "apps/web/lib/api.ts:1066 · apps/web/app/manifest.ts:3" },
+    { gravidade: "baixa", titulo: "Documentos desatualizados", detalhe: "ESTADO_DO_PROJETO cita mapas CARTO (hoje é Stadia) e migrations até 018 (já há 021 e 023); o item 14 do BACKLOG lista como faltando coisas que já existem no Perfil.", onde: "docs/ESTADO_DO_PROJETO.md:87 · :189 · docs/BACKLOG.md:29" },
+  ],
+
+  historico: [
+    { data: "09/10/2026", commit: "499fd13", mudanca: "Primeira versão do fluxograma, com as 16 áreas, já incluindo a lixeira de atividades e os tênis com quilometragem." },
+  ],
+};
