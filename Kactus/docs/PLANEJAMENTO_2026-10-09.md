@@ -81,8 +81,9 @@ Itens que o código e os testes cobrem, mas que só dá para confirmar com o apa
 - [ ] **Fase 2:** na tela de Equipamentos com a conta real, marcar o tênis padrão e usar "Aplicar aos treinos antigos" (testado só na página de exemplo `/equipment-preview`).
 - [ ] **Fase 3:** ver o "Planejado × feito" no dashboard e na Duni com treinos reais (testado só em `/coach-preview`).
 - [ ] **Fase 4:** fechar o Kactus Controle (Sair → Não), abrir de novo e ligar o relógio no USB: os treinos novos devem entrar sozinhos e aparecer o aviso no Windows. O caminho por MTP (Forerunner/Fenix atuais) nunca foi testado com relógio de verdade.
-- [ ] **Fase 5:** Reiniciar no Kactus Controle e tocar em "📤 Story" no cartão Última atividade (PC e iPhone).
-- [ ] **Fase 6:** pôr a meta no Perfil e ver a barra "Meta de corrida" na Visão semanal do dashboard e o bloco "Sua meta" em Desempenho.
+- [ ] **Fase 5:** Reiniciar no Kactus Controle e tocar em "📤 Story" no cartão Última atividade, no PC e no iPhone (na página de exemplo `/dashboard-preview` o gerador abre).
+- [ ] **Fase 6:** pôr a meta no Perfil (salvar com a conta real) e ver a barra "Meta de corrida" na Visão semanal do dashboard e o bloco "Sua meta" em Desempenho.
+- [ ] **Fase 7:** com a conta real, conferir o cartão "Próxima prova" (Maratona do Rio, dias, fase e semana do plano, alvo).
 - [ ] **Hook do fluxograma:** numa conversa nova, conferir que o lembrete aparece depois de um commit que mexe em `apps/` sem mexer em `docs/fluxograma/`.
 
 ## Andamento
@@ -93,3 +94,4 @@ Itens que o código e os testes cobrem, mas que só dá para confirmar com o apa
 - **Fase 4 — feita (falta o teste com o relógio de verdade):** `apps/controle/kactus_controle/relogio.py` + `relogio.ps1` vigiam o USB a cada 15 s (pendrive com letra ou MTP pelo Shell do Windows), copiam só os `.fit` novos (`relogio_vistos.json`) e chamam `kactus_api.scripts.import_files --json` (conta = `INITIAL_USER_EMAIL`); aviso no Windows, seção "Relógio no USB" na janela, opção e "Importar do relógio agora" no menu. A importação em lote saiu do router para `services/batch_import.py` (tela /import e relógio pelo mesmo caminho). **Para ativar: fechar o Kactus Controle (Sair → Não) e abrir de novo.** Testes: 281 da API e 29 do Controle.
 - **Fase 5 — feita (sem conferência visual):** botão "📤 Story" no cartão Última atividade do dashboard abre o `StoryGenerator` do treino mais recente (busca detalhe, splits e zonas). Typecheck ok; falta ver na tela.
 - **Fase 6 — feita (sem conferência visual):** migração `025_weekly_km_goal` (aplicada na `test` e na principal); campo no Perfil; `meta_semanal` em `GET /metrics/summary` (`summary._weekly_goal`: feito de segunda até hoje, situação contra a faixa segura); barra na Visão semanal e bloco "Sua meta" em Desempenho. Testes em `tests/test_load_summary.py`.
+- **Fase 7 — feita:** `components/dashboard/GoalCard.tsx` virou "Próxima prova" (plano do objetivo + provas das memórias; o dashboard passou a buscar `/coach/goal-plan` e `/coach/memories`). Página de teste `/dashboard-preview` (também cobre as Fases 3, 5 e 6) conferida no navegador, com e sem prova (`?sem-prova`). O achado do cartão "Meta principal" saiu da lista.

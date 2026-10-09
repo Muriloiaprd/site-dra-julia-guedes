@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "09/10/2026",
-  commit: "plano 2026-10-09 · Fase 6",
+  commit: "plano 2026-10-09 · Fase 7",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -27,7 +27,6 @@ KACTUS_MAPA.meta = {
     { gravidade: "baixa", titulo: "Trocar a modalidade não recalcula a carga", detalhe: "Recalcula os recordes, mas não a carga diária (que muda para bike com potência).", onde: "apps/api/kactus_api/routers/activities.py:354" },
     { gravidade: "baixa", titulo: "Treino na lixeira continua 'feito' no plano", detalhe: "A aderência só olha treinos ainda planejados; o planejado só volta a 'planejado' quando a lixeira é limpa.", onde: "apps/api/kactus_api/ai/coach_service.py:649" },
     { gravidade: "baixa", titulo: "Filtros e totais só valem para o que foi carregado", detalhe: "A lista traz 100 por vez e filtra no navegador; o '+' no total avisa, mas os filtros não.", onde: "apps/web/app/activities/page.tsx:174" },
-    { gravidade: "baixa", titulo: "Cartão 'Meta principal' desatualizado", detalhe: "Diz que não existe meta no backend, mas a Duni já tem prova-alvo e plano do objetivo.", onde: "apps/web/components/dashboard/GoalCard.tsx:10" },
     { gravidade: "baixa", titulo: "Rotas de desenvolvimento abertas em produção", detalhe: "As quatro páginas de (dev) não conferem o ambiente; só usam dados falsos, mas ficam acessíveis no modo rápido.", onde: "apps/web/app/(dev)/" },
     { gravidade: "baixa", titulo: "Confirmações misturadas", detalhe: "Excluir atividade, equipamento e memória usam o confirm() do navegador; lixeira, conversa e zona de perigo confirmam na tela.", onde: "apps/web/components/coach/MemoryPanel.tsx:98" },
     { gravidade: "baixa", titulo: "Exportar não leva os dados da Duni", detalhe: "Ficam de fora memórias, conversa, planos e métricas diárias.", onde: "apps/api/kactus_api/routers/profile.py:72" },
@@ -37,7 +36,8 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
-    { data: "09/10/2026", commit: "Fase 6", mudanca: "Meta de km de corrida por semana no Perfil, com barra no dashboard e aviso da faixa segura em Desempenho." },
+    { data: "09/10/2026", commit: "Fase 7", mudanca: "Cartão Próxima prova no dashboard (no lugar de Meta principal), com contagem regressiva, fase e semana do plano; página de teste /dashboard-preview." },
+    { data: "09/10/2026", commit: "69de3e5", mudanca: "Meta de km de corrida por semana no Perfil, com barra no dashboard e aviso da faixa segura em Desempenho." },
     { data: "09/10/2026", commit: "7d07804", mudanca: "Botão 📤 Story no cartão Última atividade do dashboard." },
     { data: "09/10/2026", commit: "d68d19a", mudanca: "Kactus Controle importa sozinho os treinos do relógio Garmin ligado no USB (pendrive ou MTP); a importação em lote virou o serviço batch_import, usado também pela tela Importar." },
     { data: "09/10/2026", commit: "dd33a56", mudanca: "Planejado × feito no dashboard e na Duni, com selos de volume e ritmo e o comentário da Duni sob demanda." },

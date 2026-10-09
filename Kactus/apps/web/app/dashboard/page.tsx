@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  fetchActivities, fetchActivity, fetchCoachPlan, fetchSplits, fetchZones, fetchLoadMetrics, fetchWeekPlan, fetchMe, fetchPredictionsOverview, fetchProfile, fetchRecords, getToken,
-  type ActivityDetail, type ActivitySummary, type DailyMetric, type PersonalRecord, type PlannedWorkout,
+  fetchActivities, fetchActivity, fetchCoachPlan, fetchGoalPlan, fetchMemories, fetchSplits, fetchZones, fetchLoadMetrics, fetchWeekPlan, fetchMe, fetchPredictionsOverview, fetchProfile, fetchRecords, getToken,
+  type ActivityDetail, type ActivitySummary, type AthleteMemory, type GoalPlan, type DailyMetric, type PersonalRecord, type PlannedWorkout,
   type PredictionsOverview, type Profile, type Split, type User, type WeeklyPlan, type ZoneBucket,
 } from "@/lib/api";
 import {
@@ -43,6 +43,8 @@ export default function DashboardPage() {
   const [plan, setPlan] = useState<PlannedWorkout[]>([]);
   const [planState, setPlanState] = useState<LoadState>("loading");
   const [weekPlan, setWeekPlan] = useState<WeeklyPlan | null>(null);
+  const [goalPlan, setGoalPlan] = useState<GoalPlan | null>(null);
+  const [memories, setMemories] = useState<AthleteMemory[]>([]);
   const [modalActivity, setModalActivity] = useState<ActivitySummary | null>(null);
   const [recentDetails, setRecentDetails] = useState<Record<string, ActivityDetail>>({});
   const [authError, setAuthError] = useState(false);
@@ -93,6 +95,8 @@ export default function DashboardPage() {
       .then((p) => { setPlan(p); setPlanState("ok"); })
       .catch(() => setPlanState("error"));
     fetchWeekPlan().then((w) => setWeekPlan(w.plan)).catch(() => {});
+    fetchGoalPlan().then((g) => setGoalPlan(g.plan)).catch(() => {});
+    fetchMemories().then(setMemories).catch(() => {});
   }, [user]);
 
   useEffect(() => {
@@ -266,7 +270,7 @@ export default function DashboardPage() {
 
         {/* conquistas, meta, calendario */}
         <Records className="md:col-span-6 xl:col-span-5" records={records} loading={loading} />
-        <GoalCard className="md:col-span-3 xl:col-span-3" predictions={overview?.race_predictions ?? []} loading={!overview && loading} />
+        <GoalCard className="md:col-span-3 xl:col-span-3" predictions={overview?.race_predictions ?? []} loading={!overview && loading} goal={goalPlan} races={memories} />
         <MonthCalendar className="md:col-span-3 xl:col-span-4" activities={activities} plan={plan} loading={loading} onSelect={setModalActivity} />
 
         <RecentActivities

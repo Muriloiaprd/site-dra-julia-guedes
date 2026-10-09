@@ -75,7 +75,7 @@ export function WeekStrip({
         <div className="mb-4">
           <div className="mb-1.5 flex items-baseline justify-between text-xs text-brand-muted">
             <span>Meta de corrida</span>
-            <span><strong className="od-num text-sm text-white">{runKm.toFixed(1)}</strong> de {goalKm} km{runKm >= goalKm ? " ✓" : ""}</span>
+            <span><strong className="od-num text-sm text-white">{runKm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</strong> de {goalKm.toLocaleString("pt-BR")} km{runKm >= goalKm ? " ✓" : ""}</span>
           </div>
           <ProgressBar value={Math.min(100, (runKm / goalKm) * 100)} height={6} />
         </div>

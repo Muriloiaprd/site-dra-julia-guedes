@@ -32,7 +32,7 @@ flowchart TD
   ME -->|ok| WAIT(["Carregando centro de comando…"]):::estado
   WAIT -->|passou de 2 s| SLOW(["Na primeira abertura do dia<br/>pode levar alguns segundos"]):::estado
   ME --> ACTS[/"GET /activities · 500 do último ano<br/>GET /records"/]:::api
-  ME --> PAR[/"GET /predictions/overview<br/>GET /metrics/load?days=60<br/>GET /coach/plan?days_ahead=35<br/>GET /coach/plan/week"/]:::api
+  ME --> PAR[/"GET /predictions/overview<br/>GET /metrics/load?days=60<br/>GET /coach/plan?days_ahead=35<br/>GET /coach/plan/week · goal-plan · memories"/]:::api
   ACTS -->|falhou| ERR["Não foi possível carregar suas atividades<br/>Tentar de novo"]:::erro
   ACTS -->|ok| CARDS["Cartões montados"]:::ok
   ACTS --> DET5[/"GET /activities/id<br/>das 5 mais recentes, para os mapas"/]:::api
@@ -64,7 +64,7 @@ flowchart LR
   RC["Atividades recentes"]:::tela -->|clique| MOD
   RC -->|Ver todas| ACTL
   REC["Recordes pessoais"]:::tela -->|clique| DET
-  GOAL["Meta principal"]:::tela -->|Ver previsões de prova| PERF
+  GOAL["Próxima prova"]:::tela -->|Ver o plano até a prova| DUNI
   MOD["Modal da atividade"]:::tela -->|Ver página completa| DET
 `,
     },
@@ -102,7 +102,7 @@ flowchart LR
     { tipo: "card", nome: "Recordes pessoais", acao: "Destaque para o maior longão (ou pedal, ou nado) e grade com 4 recordes; 'Novo' se tiver menos de 30 dias.", onde: "apps/web/components/dashboard/Records.tsx:51", no: "REC" },
     { tipo: "botão", nome: "Ver todos (N) / Mostrar menos", acao: "Expande a grade de recordes.", onde: "apps/web/components/dashboard/Records.tsx:140" },
     { tipo: "vazio", nome: "Sem recordes ainda", msg: "Seus melhores esforços aparecem aqui automaticamente.", onde: "apps/web/components/dashboard/Records.tsx:73" },
-    { tipo: "card", nome: "Meta principal", acao: "Convida a definir um desafio e mostra o potencial em 5K, 10K, 21K e 42K (VDOT).", msg: "Defina seu próximo desafio", onde: "apps/web/components/dashboard/GoalCard.tsx:15", no: "GOAL" },
+    { tipo: "card", nome: "Próxima prova", acao: "Com plano do objetivo: nome, data, dias que faltam, fase e semana do plano (barra de progresso), km da semana e o alvo do plano (ritmo de prova × distância). Sem plano mas com prova cadastrada: a prova e os dias. Sem prova: convite e o potencial atual (VDOT). Embaixo, até 3 outras provas com data.", api: "GET /coach/goal-plan · GET /coach/memories", msg: "Ver o plano até a prova · Montar o plano com a Duni · Cadastrar a prova na Duni", onde: "apps/web/components/dashboard/GoalCard.tsx:25", no: "GOAL" },
     { tipo: "card", nome: "Calendário", acao: "Mês com pontos coloridos por esporte e anel para treinos planejados; navega até 11 meses para trás e 1 para frente.", onde: "apps/web/components/dashboard/MonthCalendar.tsx:11", no: "CAL" },
     { tipo: "botão", nome: "Mês anterior / Próximo mês", onde: "apps/web/components/dashboard/MonthCalendar.tsx:42" },
     { tipo: "card", nome: "Atividades recentes", acao: "As 5 últimas com minimapa e selo PR, Longão, 10K+ ou 5K+.", onde: "apps/web/components/dashboard/RecentActivities.tsx:34", no: "RC" },
