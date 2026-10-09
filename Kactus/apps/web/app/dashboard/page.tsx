@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  fetchActivities, fetchActivity, fetchCoachPlan, fetchLoadMetrics, fetchWeekPlan, fetchMe, fetchPredictionsOverview, fetchProfile, fetchRecords, getToken,
+  fetchActivities, fetchActivity, fetchCoachPlan, fetchSplits, fetchZones, fetchLoadMetrics, fetchWeekPlan, fetchMe, fetchPredictionsOverview, fetchProfile, fetchRecords, getToken,
   type ActivityDetail, type ActivitySummary, type DailyMetric, type PersonalRecord, type PlannedWorkout,
-  type PredictionsOverview, type Profile, type User, type WeeklyPlan,
+  type PredictionsOverview, type Profile, type Split, type User, type WeeklyPlan, type ZoneBucket,
 } from "@/lib/api";
 import {
   calcWeekStats, computeReadiness, metricDaysAgo, nameFromEmail, recoveryFromTsb, toISODate, WEEK_HOURS_GOAL, type Tone,
@@ -25,6 +25,7 @@ import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
 import { RecentActivities } from "@/components/dashboard/RecentActivities";
 import { Records } from "@/components/dashboard/Records";
 import { WeekStrip } from "@/components/dashboard/WeekStrip";
+import { StoryGenerator } from "@/components/share/StoryGenerator";
 
 const RECENT_COUNT = 5;
 
@@ -46,6 +47,9 @@ export default function DashboardPage() {
   const [recentDetails, setRecentDetails] = useState<Record<string, ActivityDetail>>({});
   const [authError, setAuthError] = useState(false);
   const [profileDone, setProfileDone] = useState(false);
+  const [story, setStory] = useState<{ activity: ActivityDetail; splits: Split[]; zones: ZoneBucket[] } | null>(null);
+  const [storyBusy, setStoryBusy] = useState(false);
+  const [storyError, setStoryError] = useState<string | null>(null);
   // So explica a espera se ela passar de 2s — carregamento rapido nao pisca aviso.
   const [slow, setSlow] = useState(false);
 
@@ -102,6 +106,26 @@ export default function DashboardPage() {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activities]);
+
+  /** "Story do último treino": busca o detalhe, os splits e as zonas e abre o gerador direto. */
+  async function openLatestStory() {
+    const latest = activities[0];
+    if (!latest) return;
+    setStoryBusy(true);
+    setStoryError(null);
+    try {
+      const [detail, splits, zones] = await Promise.all([
+        recentDetails[latest.id] ? Promise.resolve(recentDetails[latest.id]) : fetchActivity(latest.id),
+        fetchSplits(latest.id).catch(() => [] as Split[]),
+        fetchZones(latest.id).catch(() => [] as ZoneBucket[]),
+      ]);
+      setStory({ activity: detail, splits, zones });
+    } catch (e) {
+      setStoryError(e instanceof Error ? e.message : "Não consegui abrir o Story");
+    } finally {
+      setStoryBusy(false);
+    }
+  }
 
   const stats = useMemo(() => calcWeekStats(activities), [activities]);
   const recommendation = overview?.recommendation ?? null;
@@ -193,6 +217,10 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {storyError && (
+        <div className="mb-4"><Alert tone="danger" title="Story do último treino">{storyError}</Alert></div>
+      )}
+
       {syncState === "error" && (
         <div className="mb-4">
           <Alert tone="danger" title="Não foi possível carregar suas atividades" action={<button onClick={load} className="od-btn od-btn-ghost od-btn-sm">Tentar de novo</button>}>
@@ -232,6 +260,8 @@ export default function DashboardPage() {
           activities={activities}
           loading={loading}
           onOpen={setModalActivity}
+          onStory={openLatestStory}
+          storyBusy={storyBusy}
         />
 
         {/* conquistas, meta, calendario */}
@@ -248,6 +278,8 @@ export default function DashboardPage() {
           onSelect={setModalActivity}
         />
       </div>
+
+      {story && <StoryGenerator activity={story.activity} splits={story.splits} zones={story.zones} onClose={() => setStory(null)} />}
 
       {modalActivity && (
         <ActivityModal

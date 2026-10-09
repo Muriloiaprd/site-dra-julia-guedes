@@ -59,6 +59,7 @@ flowchart LR
   ADH["Planejado × feito<br/>últimos 3 dias"]:::tela -->|Ver todos na Duni| DUNI
   EV["Evolução do desempenho<br/>gráfico"]:::tela -->|clique num ponto| MOD
   LA["Última atividade"]:::tela -->|clique| MOD
+  LA -->|📤 Story| STY["Gerador de Story<br/>do último treino"]:::tela
   CAL["Calendário"]:::tela -->|dia com treino| MOD
   RC["Atividades recentes"]:::tela -->|clique| MOD
   RC -->|Ver todas| ACTL
@@ -95,6 +96,7 @@ flowchart LR
     { tipo: "botão", nome: "Comparar", acao: "Sobrepõe o período anterior em linha tracejada.", onde: "apps/web/components/dashboard/PerformanceChart.tsx:204" },
     { tipo: "vazio", nome: "Atividades insuficientes", acao: "Menos de 2 atividades no período.", msg: "Atividades insuficientes no período · Escolha um período maior ou importe mais atividades.", onde: "apps/web/components/dashboard/PerformanceChart.tsx:216" },
     { tipo: "card", nome: "Última atividade", acao: "Minimapa, distância, tempo, pace/velocidade, FC, elevação, curva do ritmo e comparação com a média das últimas 10.", onde: "apps/web/components/dashboard/LastActivity.tsx:17", no: "LA" },
+    { tipo: "botão", nome: "📤 Story", acao: "No cartão Última atividade: busca detalhe, splits e zonas do treino mais recente e abre o gerador de Story direto, sem passar pela página do treino.", api: "GET /activities/{id} · /splits · /zones", msg: "Abrindo… · Não consegui abrir o Story", onde: "apps/web/app/dashboard/page.tsx", no: "STY" },
     { tipo: "vazio", nome: "Nenhuma atividade registrada", msg: "Importe seus arquivos .fit, .gpx ou .tcx para começar.", onde: "apps/web/components/dashboard/LastActivity.tsx:30" },
     { tipo: "card", nome: "Recordes pessoais", acao: "Destaque para o maior longão (ou pedal, ou nado) e grade com 4 recordes; 'Novo' se tiver menos de 30 dias.", onde: "apps/web/components/dashboard/Records.tsx:51", no: "REC" },
     { tipo: "botão", nome: "Ver todos (N) / Mostrar menos", acao: "Expande a grade de recordes.", onde: "apps/web/components/dashboard/Records.tsx:140" },

@@ -15,13 +15,16 @@ const ActivityMiniMap = dynamic(
 );
 
 export function LastActivity({
-  activity, detail, activities, loading, onOpen, className = "",
+  activity, detail, activities, loading, onOpen, onStory, storyBusy = false, className = "",
 }: {
   activity: ActivitySummary | null;
   detail?: ActivityDetail;
   activities: ActivitySummary[];
   loading: boolean;
   onOpen: (a: ActivitySummary) => void;
+  /** Abre o gerador de Story deste treino (1 toque, sem passar pelo detalhe). */
+  onStory?: () => void;
+  storyBusy?: boolean;
   className?: string;
 }) {
   if (loading) {
@@ -107,7 +110,20 @@ export function LastActivity({
               <span className="text-brand-textTertiary">vs média das últ. {cmp.sample}</span>
             </div>
           ) : <span />}
-          <span className="text-xs font-semibold text-brand-accent">Ver detalhes →</span>
+          <span className="flex items-center gap-3">
+            {onStory && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onStory(); }}
+                disabled={storyBusy}
+                className="od-btn od-btn-secondary od-btn-sm !px-3"
+                aria-label="Story do último treino"
+              >
+                {storyBusy ? "Abrindo…" : "📤 Story"}
+              </button>
+            )}
+            <span className="text-xs font-semibold text-brand-accent">Ver detalhes →</span>
+          </span>
         </div>
       </div>
     </Panel>
