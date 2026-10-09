@@ -4,7 +4,7 @@ KACTUS_MAPA.areas.push({
   n: 6,
   titulo: "Detalhe da atividade",
   resumo:
-    "Página de um treino. No topo: esporte, data, título e as ações Compartilhar, Editar e Excluir. Depois vêm as métricas principais e secundárias, o check-in pós-treino, o comentário da Duni (só quando pedido), os dados extras do relógio, mapa, zonas de FC, gráficos de elevação, pace×FC e dinâmica de corrida, e os splits por km.",
+    "Página de um treino. No topo: esporte, data, título e as ações Compartilhar, Comparar, Editar e Excluir. Depois vêm as métricas principais e secundárias, o check-in pós-treino, o comentário da Duni (só quando pedido), os dados extras do relógio, mapa, zonas de FC, gráficos de elevação, pace×FC e dinâmica de corrida, e os splits por km.",
   rotas: ["/activities/[id]", "/activities/[id]#checkin"],
   arquivos: [
     "apps/web/app/activities/[id]/page.tsx",
@@ -26,6 +26,7 @@ flowchart TD
   API -->|ok| PG["Página do treino"]:::tela
   PG -->|veio de Como foi?| CK["Rola até o check-in"]:::estado
   PG --> SH("📤 Compartilhar"):::acao --> STORY["Gerador de Story"]:::tela
+  PG --> CMP("⇄ Comparar"):::acao --> CMPL["Atividades no modo comparar<br/>com este treino marcado"]:::tela
   PG --> ED("✏️ Editar"):::acao --> FORM["Título · Modalidade · Equipamento · Descrição"]:::tela
   FORM --> EQ[/"GET /equipment"/]:::api
   FORM --> SV("Salvar"):::acao --> PA[/"PATCH /activities/id"/]:::api
@@ -67,14 +68,15 @@ flowchart TD
     { tipo: "erro", nome: "Não encontrada", acao: "Também para atividades na lixeira.", msg: "Atividade não encontrada · ← Voltar ao dashboard", onde: "apps/web/app/activities/[id]/page.tsx:150", no: "NF" },
     { tipo: "link", nome: "Trilha Dashboard / Atividades / título", onde: "apps/web/app/activities/[id]/page.tsx:268" },
     { tipo: "seção", nome: "Topo", acao: "Esporte, data e hora, título (ou 'X km — tempo').", onde: "apps/web/app/activities/[id]/page.tsx:277", no: "PG" },
+    { tipo: "botão", nome: "⇄ Comparar", acao: "Abre a lista no modo comparar com este treino já marcado; falta escolher o outro.", onde: "apps/web/app/activities/[id]/page.tsx:295", no: "CMP,CMPL" },
     { tipo: "botão", nome: "📤 Compartilhar", acao: "Abre o gerador de Story.", onde: "apps/web/app/activities/[id]/page.tsx:292", no: "SH" },
-    { tipo: "botão", nome: "✏️ Editar", acao: "Abre o formulário no próprio topo e busca os equipamentos.", api: "GET /equipment", onde: "apps/web/app/activities/[id]/page.tsx:296", no: "ED,EQ" },
-    { tipo: "campo", nome: "Título · Modalidade · Equipamento · Descrição", acao: "Modalidade com 14 opções; Equipamento com 'Nenhum'. A descrição abre com o texto salvo.", onde: "apps/web/app/activities/[id]/page.tsx:310", no: "FORM" },
-    { tipo: "botão", nome: "Salvar / Cancelar", api: "PATCH /activities/{id}", msg: "Salvando…", onde: "apps/web/app/activities/[id]/page.tsx:357", no: "SV,PA" },
+    { tipo: "botão", nome: "✏️ Editar", acao: "Abre o formulário no próprio topo e busca os equipamentos.", api: "GET /equipment", onde: "apps/web/app/activities/[id]/page.tsx:299", no: "ED,EQ" },
+    { tipo: "campo", nome: "Título · Modalidade · Equipamento · Descrição", acao: "Modalidade com 14 opções; Equipamento com 'Nenhum'. A descrição abre com o texto salvo.", onde: "apps/web/app/activities/[id]/page.tsx:313", no: "FORM" },
+    { tipo: "botão", nome: "Salvar / Cancelar", api: "PATCH /activities/{id}", msg: "Salvando…", onde: "apps/web/app/activities/[id]/page.tsx:360", no: "SV,PA" },
     { tipo: "API", nome: "Editar atividade", acao: "Título, descrição, esporte e equipamento; o detalhe devolve a descrição. Trocar o equipamento recalcula o km dos tênis.", api: "PATCH /activities/{id}", onde: "apps/api/kactus_api/routers/activities.py:333" },
     { tipo: "erro", nome: "Erro ao salvar", msg: "Erro ao salvar", onde: "apps/web/app/activities/[id]/page.tsx:215", no: "SE" },
     { tipo: "botão", nome: "🗑️ Excluir", acao: "Confirma e manda para a lixeira; volta para a lista.", msg: "Mover a atividade para a lixeira? Dá para restaurar depois em Atividades → Lixeira. · Falha ao excluir (mensagem da API)", onde: "apps/web/app/activities/[id]/page.tsx:221", no: "EX,CF,DEL" },
-    { tipo: "card", nome: "Métricas principais", acao: "Distância, tempo em movimento (ou duração), pace médio (ou velocidade), FC média.", onde: "apps/web/app/activities/[id]/page.tsx:367" },
+    { tipo: "card", nome: "Métricas principais", acao: "Distância, tempo em movimento (ou duração), pace médio (ou velocidade), FC média.", onde: "apps/web/app/activities/[id]/page.tsx:370" },
     { tipo: "card", nome: "Métricas secundárias", acao: "Tempo total (se houve pausa ≥ 5 s), FC máx, elevação, velocidade, pace ajustado (GAP), deriva cardíaca, cadência, potência, calorias; cada uma com dica ao passar o mouse.", onde: "apps/web/app/activities/[id]/page.tsx:241" },
     { tipo: "seção", nome: "Como foi o treino?", acao: "Check-in opcional. Aberto se ainda não houver; senão mostra o resumo com Editar.", msg: "Opcional. O relógio não sabe como você se sentiu — isso ajuda a Duni a separar cansaço de verdade de um dia ruim.", onde: "apps/web/components/activity/CheckinPanel.tsx:103", no: "C0,CKF,RES,EDT" },
     { tipo: "botão", nome: "Usar no check-in", acao: "Aparece quando o relógio gravou sensação ou esforço e ainda não há check-in.", msg: "O relógio registrou: … · Confira: o relógio grava isso quando a tela de avaliação é só confirmada.", onde: "apps/web/components/activity/CheckinPanel.tsx:169", no: "W,USE" },
@@ -90,11 +92,11 @@ flowchart TD
     { tipo: "IA", nome: "Comentário da Duni", acao: "Só chama a IA quando pedido (nunca na importação). Sem check-in, avisa que ela só vê o relógio.", api: "GET e POST /coach/activities/{id}/analyze", msg: "A Duni está lendo o treino… · Sem check-in neste treino. Preencha acima e peça de novo…", onde: "apps/web/components/activity/DuniComment.tsx:15", no: "D0,G,HAS,ASK,AGAIN,IA,SHOW" },
     { tipo: "erro", nome: "Erro da Duni", acao: "Título e explicação por código (ver área Duni).", onde: "apps/web/components/activity/DuniComment.tsx:35", no: "EIA" },
     { tipo: "seção", nome: "Mais do relógio", acao: "Efeito de treino, dinâmica de corrida, minutos de intensidade, correndo × andando, temperatura, calorias e suor, outros. Some se o treino não tiver nada disso.", onde: "apps/web/components/activity/WatchPanel.tsx:65" },
-    { tipo: "seção", nome: "Rota", acao: "Mapa Leaflet com a linha do percurso.", onde: "apps/web/app/activities/[id]/page.tsx:406" },
-    { tipo: "seção", nome: "Zonas de frequência cardíaca", acao: "Z1 Recuperação a Z5 VO2 máx com % e tempo; só aparece se houver tempo em alguma zona.", msg: "Calculado a partir da sua FC máxima configurada no perfil.", onde: "apps/web/app/activities/[id]/page.tsx:412" },
-    { tipo: "seção", nome: "Perfil de elevação", onde: "apps/web/app/activities/[id]/page.tsx:441" },
-    { tipo: "seção", nome: "Pace & frequência cardíaca", acao: "Ou velocidade, se não houver pace.", onde: "apps/web/app/activities/[id]/page.tsx:471" },
-    { tipo: "aba", nome: "Dinâmica de corrida", acao: "Uma série por vez: Cadência, Passada, Oscilação, Proporção vertical, Contato com o solo. Só em corrida com 2+ séries.", onde: "apps/web/app/activities/[id]/page.tsx:516" },
-    { tipo: "seção", nome: "Splits por km", acao: "Pace, GAP (corrida), tempo, FC, elevação; destaca o mais rápido.", onde: "apps/web/app/activities/[id]/page.tsx:540" },
+    { tipo: "seção", nome: "Rota", acao: "Mapa Leaflet com a linha do percurso.", onde: "apps/web/app/activities/[id]/page.tsx:409" },
+    { tipo: "seção", nome: "Zonas de frequência cardíaca", acao: "Z1 Recuperação a Z5 VO2 máx com % e tempo; só aparece se houver tempo em alguma zona.", msg: "Calculado a partir da sua FC máxima configurada no perfil.", onde: "apps/web/app/activities/[id]/page.tsx:415" },
+    { tipo: "seção", nome: "Perfil de elevação", onde: "apps/web/app/activities/[id]/page.tsx:444" },
+    { tipo: "seção", nome: "Pace & frequência cardíaca", acao: "Ou velocidade, se não houver pace.", onde: "apps/web/app/activities/[id]/page.tsx:474" },
+    { tipo: "aba", nome: "Dinâmica de corrida", acao: "Uma série por vez: Cadência, Passada, Oscilação, Proporção vertical, Contato com o solo. Só em corrida com 2+ séries.", onde: "apps/web/app/activities/[id]/page.tsx:519" },
+    { tipo: "seção", nome: "Splits por km", acao: "Pace, GAP (corrida), tempo, FC, elevação; destaca o mais rápido.", onde: "apps/web/app/activities/[id]/page.tsx:543" },
   ],
 });

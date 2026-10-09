@@ -76,6 +76,8 @@ export default function ActivitiesPage() {
   const [pace, setPace] = useState<RangeState>(EMPTY_RANGE);
   const [elevation, setElevation] = useState<RangeState>(EMPTY_RANGE);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  // modo comparar: null = desligado; até 2 ids marcados
+  const [comparando, setComparando] = useState<string[] | null>(null);
 
   const PAGE_SIZE = 100;
 
@@ -93,7 +95,18 @@ export default function ActivitiesPage() {
       .catch((e) => setError(e instanceof Error ? e.message : "Erro ao carregar atividades"))
       .finally(() => setLoading(false));
     fetchTrash().then(setTrash).catch(() => {});
+    // ?comparar=1 abre o modo comparar; ?comparar=<id> já vem com esse treino marcado (botão do detalhe)
+    const c = new URLSearchParams(window.location.search).get("comparar");
+    if (c) setComparando(c === "1" ? [] : [c]);
   }, []);
+
+  function toggleCompare(id: string) {
+    setComparando((prev) => {
+      const cur = prev ?? [];
+      if (cur.includes(id)) return cur.filter((x) => x !== id);
+      return cur.length < 2 ? [...cur, id] : [cur[1], id];
+    });
+  }
 
   async function reloadList() {
     try {
@@ -218,6 +231,14 @@ export default function ActivitiesPage() {
         icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M3 12h4l3 8 4-16 3 8h4" /></svg>}
         actions={
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setComparando((v) => (v ? null : []))}
+              aria-pressed={comparando != null}
+              className={`od-btn od-btn-ghost ${comparando ? "!text-brand-accent" : ""}`}
+            >
+              ⇄ Comparar
+            </button>
             <button
               type="button"
               onClick={() => setShowTrash((v) => !v)}
@@ -374,6 +395,7 @@ export default function ActivitiesPage() {
               <table className="od-table">
                 <thead>
                   <tr>
+                    {comparando && <th className="w-10" aria-label="Comparar" />}
                     <th className="text-left">Atividade</th>
                     <th className="text-left">Data</th>
                     <th className="text-right">Distância</th>
@@ -388,10 +410,27 @@ export default function ActivitiesPage() {
                 <tbody>
                   {filtered.map((a) => {
                     const isBike = isBikeSport(a.sport);
+                    const marcado = comparando?.includes(a.id) ?? false;
                     return (
-                      <tr key={a.id} className="group cursor-pointer" onClick={() => router.push(`/activities/${a.id}`)}>
+                      <tr
+                        key={a.id}
+                        className={`group cursor-pointer ${marcado ? "bg-brand-accent/[0.06]" : ""}`}
+                        onClick={() => (comparando ? toggleCompare(a.id) : router.push(`/activities/${a.id}`))}
+                      >
+                        {comparando && (
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <input type="checkbox" checked={marcado} onChange={() => toggleCompare(a.id)} className="h-4 w-4 accent-[#00FF66]" aria-label={`Comparar ${a.title ?? sportLabel(a.sport)}`} />
+                          </td>
+                        )}
                         <td>
-                          <Link href={`/activities/${a.id}`} className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                          <Link
+                            href={`/activities/${a.id}`}
+                            className="flex items-center gap-3"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (comparando) { e.preventDefault(); toggleCompare(a.id); }
+                            }}
+                          >
                             <SportTile sport={a.sport} size={32} radius={9} />
                             <span className="min-w-0">
                               <span className="block max-w-[260px] truncate font-medium text-white transition-colors group-hover:text-brand-accent">{a.title ?? sportLabel(a.sport)}</span>
@@ -436,9 +475,15 @@ export default function ActivitiesPage() {
           <ul className="space-y-2 md:hidden">
             {filtered.map((a) => {
               const isBike = isBikeSport(a.sport);
+              const marcado = comparando?.includes(a.id) ?? false;
               return (
                 <li key={a.id} className="flex items-center gap-2">
-                  <Link href={`/activities/${a.id}`} className="od-panel od-interactive flex min-w-0 flex-1 items-center gap-3 !p-3.5">
+                  <Link
+                    href={`/activities/${a.id}`}
+                    onClick={(e) => { if (comparando) { e.preventDefault(); toggleCompare(a.id); } }}
+                    aria-pressed={comparando ? marcado : undefined}
+                    className={`od-panel od-interactive flex min-w-0 flex-1 items-center gap-3 !p-3.5 ${marcado ? "!border-brand-accent/70 bg-brand-accent/[0.06]" : ""}`}
+                  >
                     <SportTile sport={a.sport} size={40} radius={11} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold">{a.title ?? sportLabel(a.sport)}</div>
@@ -468,6 +513,25 @@ export default function ActivitiesPage() {
             })}
           </ul>
         </>
+      )}
+
+      {comparando && (
+        <div className="sticky bottom-3 z-30 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-accent/40 bg-[#0e0e0e]/95 px-4 py-3 shadow-2xl backdrop-blur" role="region" aria-label="Comparar treinos">
+          <span className="text-sm text-brand-textSecondary">
+            {comparando.length === 2 ? "Pronto: 2 treinos marcados." : `Marque ${comparando.length === 0 ? "dois treinos" : "mais um treino"} para comparar (${comparando.length}/2).`}
+          </span>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setComparando(null)} className="od-btn od-btn-ghost od-btn-sm">Cancelar</button>
+            <button
+              type="button"
+              disabled={comparando.length !== 2}
+              onClick={() => router.push(`/activities/compare?a=${comparando[0]}&b=${comparando[1]}`)}
+              className="od-btn od-btn-primary od-btn-sm"
+            >
+              Comparar
+            </button>
+          </div>
+        </div>
       )}
 
       {!loading && hasMore && (

@@ -292,6 +292,9 @@ export default function ActivityPage() {
             <button onClick={() => setSharing(true)} className="od-btn od-btn-secondary od-btn-sm">
               📤 Compartilhar
             </button>
+            <Link href={`/activities?comparar=${activity.id}`} className="od-btn od-btn-ghost od-btn-sm">
+              ⇄ Comparar
+            </Link>
             <span className="mx-1 hidden h-4 w-px bg-white/10 sm:block" />
             <button onClick={openEdit} disabled={editing} className="od-btn od-btn-ghost od-btn-sm">
               ✏️ Editar
