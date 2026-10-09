@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "09/10/2026",
-  commit: "plano 2026-10-09 · Fase 15",
+  commit: "plano 2026-10-09 · Fase 16",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -35,7 +35,8 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
-    { data: "09/10/2026", commit: "Fase 15", mudanca: "Acessibilidade: cinzas apagados com contraste AA, calendário do dashboard pelas setas, resumo da Constância para leitor de tela e setas nos gráficos novos." },
+    { data: "09/10/2026", commit: "Fase 16", mudanca: "Notificações Web Push (iPhone pela Tela de Início): treino de hoje, recorde novo e dias sem treinar, ligadas no Perfil; rotas /push/*, migration 026, avisos rodando dentro da API." },
+    { data: "09/10/2026", commit: "13d1f12", mudanca: "Acessibilidade: cinzas apagados com contraste AA, calendário do dashboard pelas setas, resumo da Constância para leitor de tela e setas nos gráficos novos." },
     { data: "09/10/2026", commit: "a3c47ab", mudanca: "Novo modelo de Story Capa de revista (7º modelo feito com os dados)." },
     { data: "09/10/2026", commit: "a98b465", mudanca: "Gerador de Story com o formato Feed 4:5 (1080×1350): reenquadra os 15 modelos que cabem, inclusive no vídeo." },
     { data: "09/10/2026", commit: "a279b33", mudanca: "Comparar dois treinos: ⇄ Comparar na lista e no detalhe abre /activities/compare com métricas, curvas de ritmo e FC sobrepostas e parciais lado a lado; página de teste /compare-preview." },

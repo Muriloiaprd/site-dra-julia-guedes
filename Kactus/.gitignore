@@ -20,6 +20,8 @@ build/
 apps/api/data/uploads/
 apps/api/data/exports/
 apps/api/data/logs/
+# chaves VAPID das notificacoes (services/push.py)
+apps/api/data/push/
 !apps/api/data/uploads/.gitkeep
 !apps/api/data/exports/.gitkeep
 !apps/api/data/logs/.gitkeep

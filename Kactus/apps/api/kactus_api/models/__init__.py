@@ -8,6 +8,7 @@ from kactus_api.models.coach import (
 )
 from kactus_api.models.daily_metric import DailyMetric
 from kactus_api.models.equipment import Equipment
+from kactus_api.models.push import PushLog, PushSubscription
 from kactus_api.models.record import PersonalRecord
 from kactus_api.models.user import AthleteProfile, User, UserIntegration
 
@@ -26,4 +27,6 @@ __all__ = [
     "AthleteMemory",
     "WeeklyPlan",
     "GoalPlan",
+    "PushSubscription",
+    "PushLog",
 ]

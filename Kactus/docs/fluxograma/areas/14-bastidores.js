@@ -4,7 +4,7 @@ KACTUS_MAPA.areas.push({
   n: 14,
   titulo: "Integrações e bastidores",
   resumo:
-    "O que roda por trás das telas: o banco Neon, os modelos de IA (Anthropic e Gemini), os mapas (Stadia ou OpenStreetMap), o Tailscale, os scripts de linha de comando (criar usuário, dados de teste, recálculos, sincronizar Garmin) e as rotas da API que nenhuma tela chama.",
+    "O que roda por trás das telas: o banco Neon, os modelos de IA (Anthropic e Gemini), os mapas (Stadia ou OpenStreetMap), o Tailscale, os avisos por push, os scripts de linha de comando (criar usuário, dados de teste, recálculos, sincronizar Garmin) e as rotas da API que nenhuma tela chama.",
   rotas: [],
   arquivos: [
     "apps/api/kactus_api/main.py",
@@ -12,6 +12,8 @@ KACTUS_MAPA.areas.push({
     "apps/api/kactus_api/db.py",
     "apps/api/kactus_api/scripts/",
     "apps/api/kactus_api/services/garmin_sync.py",
+    "apps/api/kactus_api/services/push.py",
+    "apps/web/public/sw.js",
     "apps/web/lib/mapTiles.ts",
   ],
   diagramas: [
@@ -34,6 +36,8 @@ flowchart LR
   API --> DISK
   API --> ANT{{"Anthropic<br/>se houver chave"}}:::ia
   API --> GEM{{"Gemini grátis"}}:::ia
+  API -->|"a cada 10 min · ao importar recorde"| PUSHS["Serviço de push<br/>Apple, Google, Mozilla"]:::ext
+  PUSHS --> IPH
   WEB --> TILES["Stadia Maps ou<br/>OpenStreetMap"]:::ext
   CLI("Linha de comando"):::acao --> SCR[["seed_user · seed_fake_activities<br/>backfills · sync_garmin · import_files"]]:::calc
   CTRL -->|relógio no USB| SCR
@@ -47,6 +51,8 @@ flowchart LR
     { tipo: "integração", nome: "Anthropic", acao: "Usado primeiro quando ANTHROPIC_API_KEY existe.", onde: "apps/api/kactus_api/ai/coach_service.py:692", no: "ANT" },
     { tipo: "integração", nome: "Gemini", acao: "GEMINI_MODEL aceita uma lista em ordem de preferência; free tier.", onde: "apps/api/kactus_api/ai/coach_service.py:729", no: "GEM" },
     { tipo: "integração", nome: "Mapas", acao: "Stadia (tema escuro) com NEXT_PUBLIC_STADIA_API_KEY; sem chave, OpenStreetMap escurecido por filtro.", onde: "apps/web/lib/mapTiles.ts:9", no: "TILES" },
+    { tipo: "integração", nome: "Avisos por push", acao: "Dentro da API: a cada 10 min confere o treino planejado de hoje (a partir das 7h) e 3+ dias sem treinar (a partir das 18h); ao importar, avisa recorde de treino com até 2 dias. push_log garante um aviso só por dia, por sequência sem treino e por treino. Chaves VAPID geradas na primeira vez em data/push/vapid.pem (fora do Git). Inscrição que responde 404/410, ou falha 5 vezes, é apagada. Os testes desligam com PUSH_SCHEDULER=false.", onde: "apps/api/kactus_api/services/push.py:193", no: "PUSHS" },
+    { tipo: "integração", nome: "Service worker", acao: "Além da tela Kactus desligado, mostra a notificação (título, texto, ícone) e, ao tocar, abre ou traz para frente o Kactus na página do aviso.", onde: "apps/web/public/sw.js:50" },
     { tipo: "integração", nome: "Tailscale", acao: "Publica o site (443) e o Controle (8443) só dentro da rede pessoal.", onde: "apps/controle/kactus_controle/tailscale.py:19" },
     { tipo: "integração", nome: "Pasta data", acao: "Guarda os arquivos originais enviados e os logs.", onde: "apps/api/kactus_api/config.py:39", no: "DISK" },
     { tipo: "integração", nome: "Garmin Connect (linha de comando)", acao: "Script pronto que baixa o .FIT original; nunca rodou com sucesso por limite de IP (429). Sem tela.", onde: "apps/api/kactus_api/scripts/sync_garmin.py:36", no: "GAR" },
@@ -55,11 +61,11 @@ flowchart LR
     { tipo: "integração", nome: "backup", acao: "Grava todos os dados num .json.gz e guarda as últimas N cópias (padrão 8); usado pelo Kactus Controle toda semana.", onde: "apps/api/kactus_api/scripts/backup.py" },
     { tipo: "integração", nome: "seed_fake_activities", acao: "Gera atividades falsas para teste.", onde: "apps/api/kactus_api/scripts/seed_fake_activities.py:101" },
     { tipo: "integração", nome: "backfill_derived · backfill_garmin_fields · backfill_moving_time", acao: "Recalculam campos em atividades antigas; todos têm --dry-run e --email.", onde: "apps/api/kactus_api/scripts/backfill_derived.py:47" },
-    { tipo: "API", nome: "Saúde da API", acao: "Usada pelo Controle para saber se a API está no ar.", api: "GET /health", onde: "apps/api/kactus_api/main.py:65" },
+    { tipo: "API", nome: "Saúde da API", acao: "Usada pelo Controle para saber se a API está no ar.", api: "GET /health", onde: "apps/api/kactus_api/main.py:97" },
     { tipo: "API", nome: "Importar atividade já normalizada", acao: "Porta para integrações (Strava, Garmin via MCP); só os testes chamam.", api: "POST /activities/import-normalized", onde: "apps/api/kactus_api/routers/activities.py:161" },
     { tipo: "API", nome: "Fatos calculados da Duni", acao: "Janelas 7/14/28 dias, tendência, fadiga, sessões parecidas; sem tela.", api: "GET /coach/analysis", onde: "apps/api/kactus_api/routers/coach.py:383" },
     { tipo: "API", nome: "Mudar status de um treino planejado", acao: "Marcar feito/pulado à mão; sem tela (a aderência é automática).", api: "PATCH /coach/plan/{id}", msg: "Treino nao encontrado · Status invalido", onde: "apps/api/kactus_api/routers/coach.py:333" },
-    { tipo: "erro", nome: "Erro interno", acao: "Qualquer exceção não tratada vira 500 com um corpo padrão.", msg: "Erro interno. Tente novamente.", onde: "apps/api/kactus_api/main.py:56" },
+    { tipo: "erro", nome: "Erro interno", acao: "Qualquer exceção não tratada vira 500 com um corpo padrão.", msg: "Erro interno. Tente novamente.", onde: "apps/api/kactus_api/main.py:88" },
     { tipo: "permissão", nome: "CORS da API", acao: "Só localhost:3000 e :3003 por padrão.", onde: "apps/api/kactus_api/config.py:35" },
   ],
 });

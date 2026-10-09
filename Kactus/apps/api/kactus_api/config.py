@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     # deram 503/504 depois de minutos na fila.
     gemini_model: str = Field(default="gemini-3.5-flash-lite,gemini-3.5-flash")
     coach_prompt_version: str = Field(default="v4")
+    # avisos do dia (services/push.py) rodando dentro da API; os testes desligam
+    push_scheduler: bool = Field(default=True)
 
     @model_validator(mode="after")
     def _fail_fast_outside_dev(self) -> "Settings":

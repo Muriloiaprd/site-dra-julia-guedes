@@ -484,6 +484,43 @@ export async function fetchZones(id: string): Promise<ZoneBucket[]> {
 
 // ---------- perfil & recordes ----------
 
+// ---------- notificações (Web Push) ----------
+
+export interface PushPrefs { treino_hoje: boolean; recorde: boolean; sem_treino: boolean }
+export interface PushConfig { public_key: string; prefs: PushPrefs; devices: number }
+
+export async function fetchPushConfig(): Promise<PushConfig> {
+  return apiFetch<PushConfig>("/push/config");
+}
+
+export async function savePushSubscription(sub: PushSubscriptionJSON, device: string): Promise<PushConfig> {
+  return apiFetch<PushConfig>("/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoint: sub.endpoint, keys: sub.keys, device }),
+  });
+}
+
+export async function removePushSubscription(endpoint: string): Promise<PushConfig> {
+  return apiFetch<PushConfig>("/push/unsubscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoint }),
+  });
+}
+
+export async function updatePushPrefs(prefs: Partial<PushPrefs>): Promise<PushConfig> {
+  return apiFetch<PushConfig>("/push/prefs", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(prefs),
+  });
+}
+
+export async function sendPushTest(): Promise<{ delivered: number }> {
+  return apiFetch<{ delivered: number }>("/push/test", { method: "POST" });
+}
+
 export async function fetchProfile(): Promise<Profile> {
   return dedupe("profile", () => apiFetch<Profile>("/profile"));
 }

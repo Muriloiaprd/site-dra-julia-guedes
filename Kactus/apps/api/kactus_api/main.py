@@ -1,4 +1,5 @@
-from contextlib import asynccontextmanager
+import asyncio
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,15 +20,45 @@ from kactus_api.routers import (
     metrics,
     predictions,
     profile,
+    push,
 )
 
 log = get_logger(__name__)
 
 
+PUSH_CHECK_S = 10 * 60
+
+
+def _push_daily_check() -> None:
+    from kactus_api.db import SessionLocal
+    from kactus_api.services.push import daily_check
+
+    db = SessionLocal()
+    try:
+        daily_check(db)
+    finally:
+        db.close()
+
+
+async def _push_loop() -> None:
+    """Avisos do dia (treino de hoje, dias sem treinar): confere a cada 10 min enquanto a API roda."""
+    while True:
+        try:
+            await asyncio.to_thread(_push_daily_check)
+        except Exception:
+            log.exception("push_daily_check_failed")
+        await asyncio.sleep(PUSH_CHECK_S)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging()
+    task = asyncio.create_task(_push_loop()) if settings.push_scheduler else None
     yield
+    if task:
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
 
 
 app = FastAPI(title="Kactus API", version="0.1.0", lifespan=lifespan)
@@ -51,6 +82,7 @@ app.include_router(metrics.router)
 app.include_router(predictions.router)
 app.include_router(equipment.router)
 app.include_router(coach.router)
+app.include_router(push.router)
 
 
 @app.exception_handler(Exception)

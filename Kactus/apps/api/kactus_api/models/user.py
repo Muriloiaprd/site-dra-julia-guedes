@@ -75,6 +75,8 @@ class AthleteProfile(Base):
     vo2max_estimated: Mapped[float | None] = mapped_column(Numeric(4, 2))
     # meta de km de corrida por semana (segunda a domingo)
     weekly_km_goal: Mapped[float | None] = mapped_column(Numeric(5, 1))
+    # notificacoes ligadas por tipo (services/push.py: DEFAULT_PREFS)
+    push_prefs: Mapped[dict | None] = mapped_column(JSONB)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

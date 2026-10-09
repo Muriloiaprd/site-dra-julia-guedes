@@ -23,6 +23,7 @@ dependencies = [
     "google-genai>=1.0.0",
     "slowapi>=0.1.9",
     "garminconnect>=0.2.25",
+    "pywebpush>=2.0.0",
 ]
 
 [dependency-groups]

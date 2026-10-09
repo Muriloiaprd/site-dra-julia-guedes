@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { NotificationsPanel } from "@/components/profile/NotificationsPanel";
 import { Alert, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
 import {
   changePassword,
@@ -542,6 +543,10 @@ export default function ProfilePage() {
           </div>
         </div>
       </form>
+
+      <div className="mt-4">
+        <NotificationsPanel />
+      </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Panel>

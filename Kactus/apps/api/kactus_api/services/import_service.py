@@ -20,6 +20,7 @@ from kactus_api.metrics.records import update_records
 from kactus_api.models import Activity, ActivityLap, ActivityPoint, Equipment
 from kactus_api.parsers.base import NormalizedActivity, compute_moving_time_s
 from kactus_api.services.derived_metrics import apply_derived_metrics, normalize_step_cadence
+from kactus_api.services.push import notify_records_background
 
 
 @dataclass(slots=True)
@@ -132,7 +133,8 @@ def import_activity(
     db.commit()
     db.refresh(activity)
 
-    update_records(db, activity)
+    broken = update_records(db, activity)
+    notify_records_background(activity.id, broken)
     if recompute_metrics:
         # custa uma varredura de todo o historico ate hoje -- em import em lote,
         # o chamador deve pular isso aqui e chamar update_daily_metrics() uma

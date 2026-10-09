@@ -38,6 +38,7 @@ _PROD_HOST_FRAGMENT = "ep-tiny-rain-acyg4qmw"  # host da main, ver Kactus/.env
 
 os.environ["DATABASE_URL"] = _TEST_DATABASE_URL
 os.environ["ALLOW_REGISTRATION"] = "true"
+os.environ["PUSH_SCHEDULER"] = "false"  # avisos do dia nao rodam nos testes
 
 import subprocess  # noqa: E402
 import uuid  # noqa: E402
