@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "09/10/2026",
-  commit: "plano 2026-10-09 · Fase 5",
+  commit: "plano 2026-10-09 · Fase 6",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -37,7 +37,8 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
-    { data: "09/10/2026", commit: "Fase 5", mudanca: "Botão 📤 Story no cartão Última atividade do dashboard." },
+    { data: "09/10/2026", commit: "Fase 6", mudanca: "Meta de km de corrida por semana no Perfil, com barra no dashboard e aviso da faixa segura em Desempenho." },
+    { data: "09/10/2026", commit: "7d07804", mudanca: "Botão 📤 Story no cartão Última atividade do dashboard." },
     { data: "09/10/2026", commit: "d68d19a", mudanca: "Kactus Controle importa sozinho os treinos do relógio Garmin ligado no USB (pendrive ou MTP); a importação em lote virou o serviço batch_import, usado também pela tela Importar." },
     { data: "09/10/2026", commit: "dd33a56", mudanca: "Planejado × feito no dashboard e na Duni, com selos de volume e ritmo e o comentário da Duni sob demanda." },
     { data: "09/10/2026", commit: "fe6dbdb", mudanca: "Tênis padrão por esporte: 'Usar como padrão em' no equipamento, treino importado entra com ele e 'Aplicar aos treinos antigos'." },

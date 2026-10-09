@@ -175,6 +175,8 @@ export interface LoadSummary {
   faixa_segura:
     | { disponivel: true; min_km: number; max_km: number; feito_7d_km: number }
     | { disponivel: false; motivo: "base_baixa" | "sem_corrida"; feito_7d_km: number };
+  /** Meta de corrida da semana contra a faixa segura (null sem meta no Perfil). */
+  meta_semanal: { km: number; feito_km: number; falta_km: number; situacao: "dentro" | "acima_da_faixa" | "abaixo_da_faixa" | "sem_faixa" } | null;
   intensidade_28d:
     | { disponivel: true; percentual: { leve_z1_z2: number; moderado_z3: number; forte_z4_z5: number } }
     | { disponivel: false }
@@ -234,6 +236,8 @@ export interface Profile {
   weight_kg: number | null;
   resting_hr: number | null;
   vo2max_estimated: number | null;
+  /** Meta de km de corrida por semana (segunda a domingo). */
+  weekly_km_goal: number | null;
 }
 
 // ---------- helper de fetch ----------

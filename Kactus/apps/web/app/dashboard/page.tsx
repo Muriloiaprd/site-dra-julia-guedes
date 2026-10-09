@@ -246,7 +246,7 @@ export default function DashboardPage() {
         <CoachCard className="md:col-span-6 xl:col-span-4" workouts={plan} planState={planState} recommendation={recommendation} />
 
         {/* 3. O que fiz esta semana */}
-        <WeekStrip className="md:col-span-6 xl:col-span-12" activities={stats.curActs} plan={plan} loading={loading} cur={stats.cur} prevToDate={stats.prevToDate} />
+        <WeekStrip className="md:col-span-6 xl:col-span-12" activities={stats.curActs} plan={plan} loading={loading} cur={stats.cur} prevToDate={stats.prevToDate} goalKm={profile?.weekly_km_goal ?? null} />
 
         {/* o planejado dos ultimos dias ao lado do que foi feito (some sem plano) */}
         <AdherencePanel className="md:col-span-6 xl:col-span-12" days={3} limit={2} />

@@ -74,11 +74,31 @@ def load_summary(db: Session, user_id: uuid.UUID, today: date | None = None) -> 
         "hoje": training_recommendation(latest),
         "semana": _period(acts, today, 7),
         "media_4_semanas": _avg_week(acts, today),
-        "faixa_segura": _safe_range(acts, today),
+        "faixa_segura": (faixa := _safe_range(acts, today)),
+        "meta_semanal": _weekly_goal(profile, acts, today, faixa),
         "intensidade_28d": analysis.get("distribuicao_intensidade_28d"),
         "efeito_treino_7d": _training_effect(acts, today),
         "semanas": _weeks(acts, first_week, today),
     }
+
+
+def _weekly_goal(profile: AthleteProfile | None, acts: list[dict], today: date, faixa: dict) -> dict | None:
+    """Meta de km de corrida da semana (segunda a domingo) e como ela fica contra a
+    faixa segura dos proximos 7 dias."""
+    meta = _f(profile.weekly_km_goal) if profile else None
+    if not meta:
+        return None
+    monday = today - timedelta(days=today.weekday())
+    feito = round(sum(a["km"] for a in acts if a["kind"] == "run" and monday <= a["day"] <= today), 1)
+    if not faixa.get("disponivel"):
+        situacao = "sem_faixa"
+    elif meta > faixa["max_km"]:
+        situacao = "acima_da_faixa"
+    elif meta < faixa["min_km"]:
+        situacao = "abaixo_da_faixa"
+    else:
+        situacao = "dentro"
+    return {"km": meta, "feito_km": feito, "falta_km": round(max(0.0, meta - feito), 1), "situacao": situacao}
 
 
 def _in_last(acts: list[dict], today: date, days: int) -> list[dict]:

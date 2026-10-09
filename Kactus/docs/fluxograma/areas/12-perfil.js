@@ -46,6 +46,7 @@ flowchart TD
     { tipo: "campo", nome: "Nome completo · Peso (kg) · Sexo", acao: "Sexo: Prefiro não informar, Feminino, Masculino, Outro. Data de nascimento e altura existem no banco, mas não têm campo na tela.", onde: "apps/web/app/profile/page.tsx:370" },
     { tipo: "campo", nome: "Logo para compartilhamento", acao: "PNG (de preferência transparente) reduzido para 512 px; Remover apaga.", msg: "Selecione um arquivo PNG (com fundo transparente, se quiser) · Imagem muito grande mesmo após redimensionar — tente um PNG mais simples", onde: "apps/web/app/profile/page.tsx:406", no: "LOGO,RL,EL" },
     { tipo: "campo", nome: "FC Repouso · FC Máxima · FTP · CSS", acao: "FTP em watts (ciclismo), CSS em s/100 m (natação).", onde: "apps/web/app/profile/page.tsx:453" },
+    { tipo: "campo", nome: "Meta de corrida por semana (km)", acao: "De 0 a 400 km; vazio = sem meta. Aparece no dashboard (Visão semanal) e em Desempenho (Hoje).", api: "PUT /profile", onde: "apps/web/app/profile/page.tsx:491" },
     { tipo: "botão", nome: "Personalizar zonas de FC manualmente", acao: "Liga os campos de limite de cada zona; desligado, as zonas são automáticas.", onde: "apps/web/app/profile/page.tsx:495", no: "ZON,MAN" },
     { tipo: "cálculo", nome: "Zonas automáticas", acao: "Com FC de repouso: Karvonen (FC de reserva). Sem: % da FC máxima.", onde: "apps/web/app/profile/page.tsx:28", no: "AUTO" },
     { tipo: "botão", nome: "Salvar perfil", api: "PUT /profile", msg: "Salvando… · ✓ Salvo com sucesso!", onde: "apps/web/app/profile/page.tsx:525", no: "SAVE,PUT,OK1" },

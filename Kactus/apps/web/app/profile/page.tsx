@@ -69,6 +69,7 @@ export default function ProfilePage() {
     hr_zones: null,
     ftp_watts: null,
     css_pace_s_per_100m: null,
+    weekly_km_goal: null,
     weight_kg: null,
     resting_hr: null,
     vo2max_estimated: null,
@@ -485,6 +486,18 @@ export default function ProfilePage() {
                   onChange={(e) => set("css_pace_s_per_100m", e.target.value)}
                   className="od-input"
                   placeholder="95"
+                />
+              </Field>
+              <Field label="Meta de corrida por semana (km)">
+                <input
+                  type="number"
+                  min="0"
+                  max="400"
+                  step="1"
+                  value={form.weekly_km_goal ?? ""}
+                  onChange={(e) => set("weekly_km_goal", e.target.value)}
+                  className="od-input"
+                  placeholder="30"
                 />
               </Field>
             </div>

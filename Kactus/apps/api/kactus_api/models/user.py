@@ -73,6 +73,8 @@ class AthleteProfile(Base):
     ftp_watts: Mapped[int | None] = mapped_column(SmallInteger)
     css_pace_s_per_100m: Mapped[float | None] = mapped_column(Numeric(5, 2))
     vo2max_estimated: Mapped[float | None] = mapped_column(Numeric(4, 2))
+    # meta de km de corrida por semana (segunda a domingo)
+    weekly_km_goal: Mapped[float | None] = mapped_column(Numeric(5, 1))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

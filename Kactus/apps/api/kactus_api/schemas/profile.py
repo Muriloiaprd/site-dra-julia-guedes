@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 _LOGO_PREFIX = "data:image/png;base64,"
 _LOGO_MAX_BYTES = 700 * 1024
@@ -66,6 +66,7 @@ class ProfileOut(BaseModel):
     ftp_watts: int | None = None
     css_pace_s_per_100m: float | None = None
     vo2max_estimated: float | None = None
+    weekly_km_goal: float | None = None
 
 
 class ProfileUpdate(BaseModel):
@@ -81,6 +82,7 @@ class ProfileUpdate(BaseModel):
     hr_zones: dict | None = None
     ftp_watts: int | None = None
     css_pace_s_per_100m: float | None = None
+    weekly_km_goal: float | None = Field(None, ge=0, le=400)
 
     _validate_logo = field_validator("logo_data_url")(_validate_logo_data_url)
     _validate_zones = field_validator("hr_zones")(_validate_hr_zones)

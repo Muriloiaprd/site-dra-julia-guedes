@@ -5,7 +5,9 @@ from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
 
-from kactus_api.metrics.summary import _period, _safe_range, _training_effect, _weeks
+from types import SimpleNamespace
+
+from kactus_api.metrics.summary import _period, _safe_range, _training_effect, _weekly_goal, _weeks
 
 TODAY = date(2026, 9, 27)  # domingo
 
@@ -71,3 +73,23 @@ def test_summary_endpoint(auth_client: tuple[TestClient, dict]) -> None:
     assert len(body["semanas"]) == 16
     assert body["faixa_segura"]["feito_7d_km"] == 21.0
     assert client.get("/metrics/summary", headers={"Authorization": ""}).status_code == 401
+
+
+def test_weekly_goal_against_the_safe_range() -> None:
+    # TODAY e domingo: a semana vai de segunda (6 dias atras) ate hoje
+    acts = [_act(d) for w in range(4) for d in (w * 7 + 1, w * 7 + 3, w * 7 + 5, w * 7 + 6)]
+    faixa = _safe_range(acts, TODAY)  # 26-42 km
+    goal = lambda km: _weekly_goal(SimpleNamespace(weekly_km_goal=km), acts, TODAY, faixa)  # noqa: E731
+    assert goal(30) == {"km": 30.0, "feito_km": 32.0, "falta_km": 0.0, "situacao": "dentro"}
+    assert goal(50)["situacao"] == "acima_da_faixa" and goal(50)["falta_km"] == 18.0
+    assert goal(20)["situacao"] == "abaixo_da_faixa"
+    assert goal(None) is None and _weekly_goal(None, acts, TODAY, faixa) is None
+    assert _weekly_goal(SimpleNamespace(weekly_km_goal=30), [], TODAY, {"disponivel": False})["situacao"] == "sem_faixa"
+
+
+def test_weekly_goal_saved_in_profile_and_shown_in_summary(auth_client: tuple[TestClient, dict]) -> None:
+    client, _user = auth_client
+    assert client.put("/profile", json={"weekly_km_goal": 25}).json()["weekly_km_goal"] == 25.0
+    meta = client.get("/metrics/summary").json()["meta_semanal"]
+    assert meta["km"] == 25.0 and meta["situacao"] == "sem_faixa"
+    assert client.put("/profile", json={"weekly_km_goal": -3}).status_code == 422

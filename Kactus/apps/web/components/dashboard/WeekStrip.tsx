@@ -1,6 +1,6 @@
 "use client";
 
-import { LinkAction, Panel, Skeleton, TrendBadge } from "@/components/ui/primitives";
+import { LinkAction, Panel, ProgressBar, Skeleton, TrendBadge } from "@/components/ui/primitives";
 import { SportIcon } from "@/components/SportIcon";
 import { LegendDot } from "@/components/ui/charts";
 import { getMonday, pctChange, sameDay, toISODate, weekDates, WEEK_LABELS, type WeekAgg } from "@/lib/athlete";
@@ -9,18 +9,22 @@ import { activeSeconds, formatDuration, sportLabel } from "@/lib/utils";
 
 type DayState = "done" | "today" | "planned" | "rest" | "open";
 
+const RUN_SPORTS = new Set(["run", "trail_run", "treadmill"]);
+
 function isRestWorkout(w: PlannedWorkout) {
   return /rest|descanso|off/i.test(w.sport) || /descanso|folga/i.test(w.title);
 }
 
 export function WeekStrip({
-  activities, plan, loading, cur, prevToDate, className = "",
+  activities, plan, loading, cur, prevToDate, goalKm = null, className = "",
 }: {
   activities: ActivitySummary[];
   plan: PlannedWorkout[];
   loading: boolean;
   cur: WeekAgg;
   prevToDate: WeekAgg;
+  /** Meta de km de corrida da semana (Perfil). */
+  goalKm?: number | null;
   className?: string;
 }) {
   const today = new Date();
@@ -52,6 +56,7 @@ export function WeekStrip({
   });
 
   const maxLoad = Math.max(1, ...cells.map((c) => c.load));
+  const runKm = activities.filter((a) => RUN_SPORTS.has(a.sport)).reduce((s, a) => s + (a.distance_m ?? 0), 0) / 1000;
 
   return (
     <Panel className={className} aria-label="Visão semanal">
@@ -65,6 +70,16 @@ export function WeekStrip({
           <LinkAction href="/activities">Atividades</LinkAction>
         </div>
       </div>
+
+      {goalKm ? (
+        <div className="mb-4">
+          <div className="mb-1.5 flex items-baseline justify-between text-xs text-brand-muted">
+            <span>Meta de corrida</span>
+            <span><strong className="od-num text-sm text-white">{runKm.toFixed(1)}</strong> de {goalKm} km{runKm >= goalKm ? " ✓" : ""}</span>
+          </div>
+          <ProgressBar value={Math.min(100, (runKm / goalKm) * 100)} height={6} />
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5">{days.map((_, i) => <Skeleton key={i} className="h-[92px] sm:h-[168px]" />)}</div>

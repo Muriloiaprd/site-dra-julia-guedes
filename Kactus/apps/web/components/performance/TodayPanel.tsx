@@ -8,6 +8,7 @@ export function TodayPanel({ summary }: { summary: LoadSummary | null }) {
   const safe = summary?.faixa_segura;
   const week = summary?.semana;
   const avg = summary?.media_4_semanas;
+  const meta = summary?.meta_semanal;
 
   return (
     <Panel variant="accent">
@@ -38,6 +39,22 @@ export function TodayPanel({ summary }: { summary: LoadSummary | null }) {
                   : "Sem corrida nas últimas 4 semanas para calcular a faixa em km."}
               </p>
             </>
+          )}
+          {meta && (
+            <div className="mt-3 rounded-xl bg-white/[0.03] px-3.5 py-2.5 text-sm">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-brand-textSecondary">Sua meta: <strong className="text-white">{meta.km} km</strong> por semana</span>
+                <span className="text-[0.75rem] text-brand-muted">
+                  {meta.falta_km > 0 ? `faltam ${meta.falta_km} km nesta semana` : "meta da semana batida ✓"}
+                </span>
+              </div>
+              {meta.situacao === "acima_da_faixa" && (
+                <p className="mt-1 text-[0.78rem] text-brand-warning">Acima da faixa segura de agora: suba aos poucos, até uns 10% por semana, para não dar salto de carga.</p>
+              )}
+              {meta.situacao === "abaixo_da_faixa" && (
+                <p className="mt-1 text-[0.78rem] text-brand-muted">Abaixo da faixa de agora: dá para manter a meta, mas o condicionamento tende a cair um pouco.</p>
+              )}
+            </div>
           )}
           {week && avg && (
             <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[0.75rem] text-brand-muted">
