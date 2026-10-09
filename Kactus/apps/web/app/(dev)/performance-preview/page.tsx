@@ -46,6 +46,25 @@ const LOAD = Array.from({ length: 90 }, (_, i) => {
   return { date: d.toISOString().slice(0, 10), daily_load: i % 2 ? 60 : 0, ctl: 30 + i / 6, atl: 32 + (i % 7), tsb: -2 - (i % 5), acwr: 1.05 };
 });
 
+const HEAT = (() => {
+  const pontos = Array.from({ length: 28 }, (_, i) => {
+    const temp = 12 + (i * 7) % 22;
+    const d = new Date(); d.setDate(d.getDate() - i * 9);
+    return { id: `h${i}`, data: d.toISOString().slice(0, 10), temp_c: temp, pace_s_km: Math.round(345 + (temp - 12) * 1.6 + (i % 5) * 4), fc: Math.round(142 + (temp - 12) * 0.6), km: 6 + (i % 6) };
+  });
+  return {
+    corridas: pontos.length, pontos,
+    faixas: [
+      { faixa: "até 15 °C", corridas: 5, pace_s_km: 352, fc: 143 },
+      { faixa: "15–20 °C", corridas: 6, pace_s_km: 357, fc: 145 },
+      { faixa: "20–25 °C", corridas: 7, pace_s_km: 364, fc: 148 },
+      { faixa: "25–30 °C", corridas: 6, pace_s_km: 372, fc: 151 },
+      { faixa: "30 °C ou mais", corridas: 4, pace_s_km: 381, fc: 155 },
+    ],
+    comparacao: { fria: "até 15 °C", quente: "30 °C ou mais", pace_diff_s_km: 29, fc_diff: 12 },
+  };
+})();
+
 function routes(url: string): unknown {
   const month = url.match(/\/metrics\/month\?month=(\d{4}-\d{2})/);
   if (month) return MONTH(month[1]);
@@ -53,7 +72,7 @@ function routes(url: string): unknown {
   if (/\/metrics\/summary/.test(url)) return SUMMARY;
   if (/\/metrics\/load/.test(url)) return LOAD;
   if (/\/metrics\/heatmap/.test(url)) return [];
-  if (/\/metrics\/heat/.test(url)) return (window as unknown as { __HEAT__?: unknown }).__HEAT__ ?? {};
+  if (/\/metrics\/heat$/.test(url)) return HEAT;
   if (/\/metrics\/technique/.test(url)) return (window as unknown as { __TECH__?: unknown }).__TECH__ ?? {};
   if (/\/predictions\/overview/.test(url)) return {
     race_predictions: [], risk: { level: "low", reasons: ["Carga dentro da zona segura"], recommendation: "" },

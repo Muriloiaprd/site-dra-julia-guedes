@@ -200,6 +200,18 @@ export interface MonthSummary {
   meses_disponiveis: string[];
 }
 
+/** Ritmo x calor (GET /metrics/heat): corridas ao ar livre de 3 km+ do ultimo ano. */
+export interface HeatAnalysis {
+  corridas: number;
+  pontos: { id: string; data: string; temp_c: number; pace_s_km: number; fc: number | null; km: number }[];
+  faixas: { faixa: string; corridas: number; pace_s_km: number | null; fc: number | null }[];
+  comparacao: { fria: string; quente: string; pace_diff_s_km: number; fc_diff: number | null } | null;
+}
+
+export async function fetchHeat(): Promise<HeatAnalysis> {
+  return apiFetch<HeatAnalysis>("/metrics/heat");
+}
+
 export async function fetchMonthSummary(month?: string): Promise<MonthSummary> {
   return apiFetch<MonthSummary>(`/metrics/month${month ? `?month=${month}` : ""}`);
 }

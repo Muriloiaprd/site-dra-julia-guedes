@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 
 from kactus_api.deps import CurrentUser, DbSession
 from kactus_api.metrics.load import update_daily_metrics
+from kactus_api.metrics.heat import heat_analysis
 from kactus_api.metrics.month import month_summary
 from kactus_api.metrics.summary import load_summary
 from kactus_api.models.activity import Activity
@@ -70,6 +71,12 @@ def get_month_summary(
     """Resumo do mes: volume, esportes, maior treino, recordes e o mes anterior."""
     ref = date.fromisoformat(f"{month}-01") if month else date.today()
     return month_summary(db, current_user.id, ref)
+
+
+@router.get("/heat")
+def get_heat(current_user: CurrentUser, db: DbSession) -> dict:
+    """Ritmo x calor: corridas ao ar livre do ultimo ano por faixa de temperatura."""
+    return heat_analysis(db, current_user.id)
 
 
 @router.get("/heatmap", response_model=list[HeatmapDay])
