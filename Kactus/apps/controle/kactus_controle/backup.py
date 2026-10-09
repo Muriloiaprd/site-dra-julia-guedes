@@ -1,6 +1,6 @@
 """Backup semanal: uma vez por semana o Controle roda o script de backup da API
 (`kactus_api.scripts.backup`), que grava um .json.gz com todos os dados e guarda as
-últimas 8 cópias. A pasta padrão é Documentos/Kactus backups.
+últimas 8 cópias. A pasta padrão é Documentos/Kactus backups (a do OneDrive, se houver).
 """
 
 from __future__ import annotations
@@ -15,7 +15,23 @@ from pathlib import Path
 from .servidor import RAIZ, ambiente
 
 SEMANA_S = 7 * 24 * 3600
-PASTA_PADRAO = Path.home() / "Documents" / "Kactus backups"
+
+
+def pasta_documentos() -> Path:
+    """A pasta Documentos de verdade: com o OneDrive ela vira OneDrive/Documentos,
+    e Path.home()/"Documents" é uma pasta velha que o Explorer não mostra."""
+    try:
+        import ctypes
+
+        buf = ctypes.create_unicode_buffer(260)
+        if ctypes.windll.shell32.SHGetFolderPathW(None, 5, None, 0, buf) == 0 and buf.value:  # CSIDL_PERSONAL
+            return Path(buf.value)
+    except (AttributeError, OSError):
+        pass
+    return Path.home() / "Documents"
+
+
+PASTA_PADRAO = pasta_documentos() / "Kactus backups"
 _SEM_JANELA = 0x08000000  # CREATE_NO_WINDOW
 
 

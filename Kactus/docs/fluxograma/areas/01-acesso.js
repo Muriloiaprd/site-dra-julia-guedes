@@ -149,7 +149,7 @@ flowchart TD
     { tipo: "botão", nome: "Fazer backup agora", acao: "Na janela e no menu do ícone.", msg: "Fazendo o backup… (cerca de meio minuto)", onde: "apps/controle/kactus_controle/app.py:233", no: "BAGORA" },
     { tipo: "sucesso", nome: "Backup salvo", msg: "Backup do Kactus salvo (X MB)", onde: "apps/controle/kactus_controle/backup.py:38", no: "BOK" },
     { tipo: "erro", nome: "Backup falhou", msg: "Não consegui fazer o backup do Kactus: …", onde: "apps/controle/kactus_controle/backup.py", no: "BERR" },
-    { tipo: "botão", nome: "Abrir pasta de backups", acao: "Abre Documentos/Kactus backups no Explorer.", onde: "apps/controle/kactus_controle/app.py", no: "BPASTA" },
+    { tipo: "botão", nome: "Abrir pasta de backups", acao: "Abre Documentos/Kactus backups no Explorer (a pasta Documentos de verdade: com o OneDrive, OneDrive/Documentos).", onde: "apps/controle/kactus_controle/backup.py:20", no: "BPASTA" },
     { tipo: "botão", nome: "Importar agora", acao: "Na janela e no menu: confere o USB na hora e reimporta tudo o que está no relógio.", msg: "Procurando o relógio no USB… · Nenhum relógio com treinos encontrado no USB.", onde: "apps/controle/kactus_controle/app.py:205", no: "AGORA,FORCA" },
     { tipo: "modal", nome: "Sair do Controle", acao: "Pergunta se desliga o servidor também.", msg: "Desligar o servidor do Kactus também? Sim: desliga tudo. Não: o Kactus continua no ar, sem o controle.", onde: "apps/controle/kactus_controle/app.py:242" },
     { tipo: "carregando", nome: "Preparando", acao: "Build da versão rápida quando o código do site mudou.", msg: "Preparando a versão rápida do site (1–2 min)…", onde: "apps/controle/kactus_controle/app.py:35", no: "PREP" },

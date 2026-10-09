@@ -35,7 +35,8 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
-    { data: "09/10/2026", commit: "Fase 17", mudanca: "Com o PC desligado, a tela Kactus desligado mostra o último painel visto no aparelho, com a faixa Sem conexão com o PC e a data." },
+    { data: "09/10/2026", commit: "verificação", mudanca: "Backup semanal passa a ir para a pasta Documentos de verdade (OneDrive/Documentos), não a Documents escondida." },
+    { data: "09/10/2026", commit: "4f55c53", mudanca: "Com o PC desligado, a tela Kactus desligado mostra o último painel visto no aparelho, com a faixa Sem conexão com o PC e a data." },
     { data: "09/10/2026", commit: "5add391", mudanca: "Notificações Web Push (iPhone pela Tela de Início): treino de hoje, recorde novo e dias sem treinar, ligadas no Perfil; rotas /push/*, migration 026, avisos rodando dentro da API." },
     { data: "09/10/2026", commit: "13d1f12", mudanca: "Acessibilidade: cinzas apagados com contraste AA, calendário do dashboard pelas setas, resumo da Constância para leitor de tela e setas nos gráficos novos." },
     { data: "09/10/2026", commit: "a3c47ab", mudanca: "Novo modelo de Story Capa de revista (7º modelo feito com os dados)." },
