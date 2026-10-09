@@ -34,9 +34,13 @@ flowchart TD
   FORM2 --> TIPO
   TIPO -->|sim| KM["Mostra Distância inicial km"]:::tela
   TIPO -->|não| SEMKM["Esconde a distância<br/>e grava 0"]:::calc
-  KM --> SAVE("Salvar"):::acao
+  KM --> PAD("Usar como padrão em<br/>Corrida · Trail · Esteira · Caminhada"):::acao
+  PAD --> SAVE("Salvar"):::acao
   SEMKM --> SAVE
   SAVE --> POST[/"POST /equipment ou<br/>PATCH /equipment/id"/]:::api
+  POST --> CLAIM[["Um padrão por esporte:<br/>tira o esporte dos outros"]]:::calc
+  CARDS --> APD("Aplicar aos treinos antigos"):::acao --> APDA[/"POST /equipment/id/apply-default"/]:::api
+  APDA --> APOK["Nome entrou em N treinos antigos"]:::ok
   CARDS --> RET("Aposentar"):::acao --> PR[/"PATCH retired_at = hoje"/]:::api
   CARDS --> DEL("Excluir"):::acao --> CF{"Excluir equipamento?<br/>confirm do navegador"}:::decisao
   CF -->|sim| DE[/"DELETE /equipment/id"/]:::api
@@ -54,12 +58,15 @@ flowchart TD
     { tipo: "erro", nome: "Hora de trocar o tênis", acao: "Tênis ativo com 600 km ou mais.", msg: "nome já tem N km: o amortecimento costuma cansar entre 500 e 800 km. Hora de pensar no próximo.", onde: "apps/api/kactus_api/services/equipment_recommendations.py:46", no: "AL,TROCA" },
     { tipo: "card", nome: "Em uso · Distância dos tênis · Aposentados", acao: "A distância soma só os tênis ativos.", onde: "apps/web/app/equipment/page.tsx:196", no: "TOT" },
     { tipo: "vazio", nome: "Nenhum equipamento cadastrado", msg: "Adicione tenis, bikes e outros para rastrear quilometragem.", onde: "apps/web/app/equipment/page.tsx:330", no: "LIST,VZ" },
-    { tipo: "card", nome: "Cartão do equipamento", acao: "Foto ou ícone do tipo, nome, marca e modelo, selo Aposentado, distância total (só tênis), 'desde' mês/ano, notas.", onde: "apps/web/app/equipment/page.tsx:404", no: "CARDS" },
+    { tipo: "card", nome: "Cartão do equipamento", acao: "Foto ou ícone do tipo, nome, marca e modelo, selo Aposentado, distância total (só tênis), 'desde' mês/ano, 'Padrão em …', notas.", onde: "apps/web/app/equipment/page.tsx:404", no: "CARDS" },
     { tipo: "modal", nome: "Novo / Editar equipamento", acao: "Formulário que abre no topo da página.", onde: "apps/web/app/equipment/page.tsx:215", no: "FORM,FORM2,ADD,EDIT" },
     { tipo: "campo", nome: "Nome *", acao: "Obrigatório.", msg: "Ex: Nike Vaporfly 3", onde: "apps/web/app/equipment/page.tsx:218" },
     { tipo: "campo", nome: "Tipo *", acao: "13 tipos: Tênis, Camiseta/regata, Short/legging, Meia, Boné/viseira, Óculos, Relógio, Cinta cardíaca, Hidratação, Bicicleta, Roupa de nado, Wetsuit, Outro.", onde: "apps/web/app/equipment/page.tsx:24", no: "TIPO" },
     { tipo: "campo", nome: "Marca · Modelo · Data de compra · Notas", onde: "apps/web/app/equipment/page.tsx:240" },
     { tipo: "campo", nome: "Distância inicial (km)", acao: "Só aparece para tênis; os outros tipos gravam 0.", onde: "apps/web/app/equipment/page.tsx:268", no: "KM,SEMKM" },
+    { tipo: "campo", nome: "Usar como padrão em", acao: "Tênis: Corrida, Trail, Esteira, Caminhada. Bicicleta: Bike, MTB, Gravel, Bike indoor. O chip mostra quem é o padrão hoje; marcar tira do outro.", msg: "Treinos importados desses esportes entram com este item. Cada esporte tem um padrão só: marcar aqui tira do outro.", onde: "apps/web/app/equipment/page.tsx:305", no: "PAD" },
+    { tipo: "cálculo", nome: "Um padrão por esporte", acao: "Ao salvar, o esporte sai dos outros equipamentos; aposentar zera os padrões do item.", onde: "apps/api/kactus_api/routers/equipment.py:46", no: "CLAIM" },
+    { tipo: "botão", nome: "Aplicar aos treinos antigos", acao: "Liga o item aos treinos sem equipamento dos seus esportes, da data de compra até a aposentadoria.", api: "POST /equipment/{id}/apply-default", msg: "Nome entrou em N treinos antigos sem equipamento. · Nenhum treino antigo sem equipamento para Nome.", onde: "apps/web/app/equipment/page.tsx:165", no: "APD,APDA,APOK" },
     { tipo: "campo", nome: "Foto da peça", acao: "Reduzida para JPEG de 480 px no navegador; Remover apaga.", msg: "Uma foto sua da peça. Ela aparece no card. · Não foi possível ler essa imagem", onde: "apps/web/app/equipment/page.tsx:280" },
     { tipo: "botão", nome: "Salvar / Cancelar", api: "POST /equipment · PATCH /equipment/{id}", msg: "Salvando… · Erro ao salvar", onde: "apps/web/app/equipment/page.tsx:307", no: "SAVE,POST" },
     { tipo: "botão", nome: "Aposentar", acao: "Marca a data de hoje; o item vai para 'Aposentados (N)', que abre e fecha.", api: "PATCH /equipment/{id}", msg: "Erro ao aposentar equipamento", onde: "apps/web/app/equipment/page.tsx:446", no: "RET,PR" },

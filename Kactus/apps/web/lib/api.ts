@@ -553,6 +553,8 @@ export interface EquipmentItem {
   notes: string | null;
   /** Foto real da peca (data URL JPEG ~30 KB). */
   photo_data_url: string | null;
+  /** Esportes em que entra sozinho nos treinos importados. */
+  default_sports: string[];
   created_at: string;
 }
 
@@ -565,6 +567,7 @@ export interface EquipmentCreate {
   initial_distance_m?: number;
   notes?: string | null;
   photo_data_url?: string | null;
+  default_sports?: string[];
 }
 
 export interface EquipmentUpdate {
@@ -578,6 +581,7 @@ export interface EquipmentUpdate {
   notes?: string | null;
   /** "" ou null remove a foto. */
   photo_data_url?: string | null;
+  default_sports?: string[];
 }
 
 export async function fetchEquipment(): Promise<EquipmentItem[]> {
@@ -625,6 +629,11 @@ export async function updateEquipment(id: string, data: EquipmentUpdate): Promis
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
+}
+
+/** Liga o equipamento aos treinos antigos sem equipamento dos seus esportes padrao. */
+export async function applyDefaultEquipment(id: string): Promise<{ updated: number }> {
+  return apiFetch<{ updated: number }>(`/equipment/${id}/apply-default`, { method: "POST" });
 }
 
 export async function deleteEquipment(id: string): Promise<void> {

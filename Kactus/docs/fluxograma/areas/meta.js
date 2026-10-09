@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "09/10/2026",
-  commit: "plano 2026-10-09 · Fase 1",
+  commit: "plano 2026-10-09 · Fase 2",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -37,7 +37,8 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
-    { data: "09/10/2026", commit: "Fase 1", mudanca: "Correções do plano 2026-10-09: descrição preservada ao editar, exclusões conferem a API, erros da API legíveis, erro de formato no plano do objetivo e textos para os códigos de erro da Duni. Seis achados saíram da lista." },
+    { data: "09/10/2026", commit: "Fase 2", mudanca: "Tênis padrão por esporte: 'Usar como padrão em' no equipamento, treino importado entra com ele e 'Aplicar aos treinos antigos'." },
+    { data: "09/10/2026", commit: "c5aab6b", mudanca: "Correções do plano 2026-10-09: descrição preservada ao editar, exclusões conferem a API, erros da API legíveis, erro de formato no plano do objetivo e textos para os códigos de erro da Duni. Seis achados saíram da lista." },
     { data: "09/10/2026", commit: "499fd13", mudanca: "Primeira versão do fluxograma, com as 16 áreas, já incluindo a lixeira de atividades e os tênis com quilometragem." },
   ],
 };

@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 import { Recommendations, ShoeAlerts } from "@/components/equipment/Recommendations";
 import { Alert, EmptyState, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
 import { resizePhotoToJpegDataUrl } from "@/lib/image";
+import { sportLabel } from "@/lib/utils";
 import {
+  applyDefaultEquipment,
   createEquipment,
   deleteEquipment,
   fetchEquipment,
@@ -42,6 +44,12 @@ const TYPE_LABEL: Record<string, string> = Object.fromEntries(EQUIPMENT_TYPES.ma
 /** So tenis conta quilometragem; o resto nao mostra distancia. */
 const tracksDistance = (type: string) => type === "shoe";
 
+/** Esportes em que cada tipo pode entrar sozinho nos treinos importados. */
+const DEFAULT_SPORTS: Record<string, string[]> = {
+  shoe: ["run", "trail_run", "treadmill", "walk"],
+  bike: ["bike", "mtb", "gravel", "indoor_bike"],
+};
+
 const INITIAL_FORM: EquipmentCreate = {
   name: "",
   type: "shoe",
@@ -51,6 +59,7 @@ const INITIAL_FORM: EquipmentCreate = {
   initial_distance_m: 0,
   notes: "",
   photo_data_url: null,
+  default_sports: [],
 };
 
 export default function EquipmentPage() {
@@ -66,6 +75,7 @@ export default function EquipmentPage() {
   const [showRetired, setShowRetired] = useState(false);
   const [recs, setRecs] = useState<EquipmentRecommendations | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEquipmentRecommendations().then(setRecs).catch(() => {});
@@ -106,6 +116,7 @@ export default function EquipmentPage() {
       initial_distance_m: item.initial_distance_m / 1000,
       notes: item.notes ?? "",
       photo_data_url: item.photo_data_url,
+      default_sports: item.default_sports ?? [],
     });
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -124,14 +135,12 @@ export default function EquipmentPage() {
         initial_distance_m: tracksDistance(form.type) ? Number(form.initial_distance_m) * 1000 : 0,
         // na edicao, "" apaga a foto que existia
         photo_data_url: form.photo_data_url || (editId ? "" : null),
+        default_sports: (form.default_sports ?? []).filter((s) => (DEFAULT_SPORTS[form.type] ?? []).includes(s)),
       };
-      if (editId) {
-        const updated = await updateEquipment(editId, payload);
-        setItems((prev) => prev.map((i) => (i.id === editId ? updated : i)));
-      } else {
-        const created = await createEquipment(payload);
-        setItems((prev) => [created, ...prev]);
-      }
+      if (editId) await updateEquipment(editId, payload);
+      else await createEquipment(payload);
+      // um padrao por esporte: salvar pode tirar o esporte de outro item
+      setItems(await fetchEquipment());
       setShowForm(false);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro ao salvar");
@@ -150,6 +159,20 @@ export default function EquipmentPage() {
       setError("Não foi possível ler essa imagem");
     } finally {
       setPhotoBusy(false);
+    }
+  }
+
+  async function handleApplyDefault(item: EquipmentItem) {
+    setError(null);
+    setNotice(null);
+    try {
+      const { updated } = await applyDefaultEquipment(item.id);
+      setNotice(updated
+        ? `${item.name} entrou em ${updated} treino${updated === 1 ? "" : "s"} antigo${updated === 1 ? "" : "s"} sem equipamento.`
+        : `Nenhum treino antigo sem equipamento para ${item.name}.`);
+      setItems(await fetchEquipment());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao aplicar aos treinos antigos");
     }
   }
 
@@ -191,6 +214,7 @@ export default function EquipmentPage() {
       />
 
       {error && <div className="mb-4"><Alert tone="danger">{error}</Alert></div>}
+      {notice && <div className="mb-4"><Alert tone="accent">{notice}</Alert></div>}
 
       <div className="mb-4 grid grid-cols-3 gap-3">
         {[
@@ -276,6 +300,30 @@ export default function EquipmentPage() {
                 className="od-input"
               />
             </label>}
+            {DEFAULT_SPORTS[form.type] && (
+              <fieldset className="sm:col-span-2">
+                <legend className="od-field-label">Usar como padrão em</legend>
+                <div className="flex flex-wrap gap-2">
+                  {DEFAULT_SPORTS[form.type].map((sport) => {
+                    const on = (form.default_sports ?? []).includes(sport);
+                    const owner = items.find((i) => i.id !== editId && !i.retired_at && i.default_sports?.includes(sport));
+                    return (
+                      <button
+                        key={sport}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => setForm({ ...form, default_sports: on ? (form.default_sports ?? []).filter((s) => s !== sport) : [...(form.default_sports ?? []), sport] })}
+                        className={`od-chip ${on ? "is-active" : ""}`}
+                        title={owner ? `Hoje o padrão é ${owner.name}` : undefined}
+                      >
+                        {sportLabel(sport)}{owner && !on ? <span className="text-brand-muted"> · {owner.name}</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-1.5 text-[0.7rem] text-brand-muted">Treinos importados desses esportes entram com este item. Cada esporte tem um padrão só: marcar aqui tira do outro.</p>
+              </fieldset>
+            )}
             <div className="sm:col-span-2">
               <span className="od-field-label">Foto da peça</span>
               <div className="flex items-center gap-3">
@@ -345,6 +393,7 @@ export default function EquipmentPage() {
                     item={item}
                     onEdit={() => openEdit(item)}
                     onRetire={() => handleRetire(item)}
+                    onApplyDefault={() => handleApplyDefault(item)}
                     onDelete={() => handleDelete(item.id)}
                     deleting={deletingId === item.id}
                   />
@@ -390,6 +439,7 @@ function EquipmentCard({
   item,
   onEdit,
   onRetire,
+  onApplyDefault,
   onDelete,
   deleting,
   retired,
@@ -397,6 +447,7 @@ function EquipmentCard({
   item: EquipmentItem;
   onEdit: () => void;
   onRetire?: () => void;
+  onApplyDefault?: () => void;
   onDelete: () => void;
   deleting: boolean;
   retired?: boolean;
@@ -438,12 +489,23 @@ function EquipmentCard({
         )}
       </div>}
 
+      {item.default_sports?.length > 0 && (
+        <p className="mt-3 text-xs text-brand-textSecondary">
+          <span className="text-brand-muted">Padrão em </span>{item.default_sports.map(sportLabel).join(" · ")}
+        </p>
+      )}
+
       {item.notes && <p className="mt-3 line-clamp-2 text-xs text-brand-muted">{item.notes}</p>}
 
       <div className="mt-5 flex flex-wrap gap-2 border-t border-white/5 pt-4">
         <button onClick={onEdit} className="od-btn od-btn-ghost od-btn-sm">Editar</button>
         {!retired && onRetire && (
           <button onClick={onRetire} className="od-btn od-btn-ghost od-btn-sm">Aposentar</button>
+        )}
+        {!retired && onApplyDefault && item.default_sports?.length > 0 && (
+          <button onClick={onApplyDefault} className="od-btn od-btn-ghost od-btn-sm" title="Liga este item aos treinos antigos desses esportes que estão sem equipamento">
+            Aplicar aos treinos antigos
+          </button>
         )}
         <button onClick={onDelete} disabled={deleting} className="od-btn od-btn-danger od-btn-sm ml-auto">
           {deleting ? "…" : "Excluir"}

@@ -68,7 +68,8 @@ flowchart TD
   DUPQ -->|ativo| D1["duplicate = true"]:::estado
   DUPQ -->|na lixeira| REST[["Tira da lixeira"]]:::calc
   DUPQ -->|não| CRIA[["Cria a atividade<br/>GPS a cada 3 s, voltas"]]:::calc
-  CRIA --> DER[["Cadência por perna ×2<br/>tempo em movimento, GAP, deriva"]]:::calc
+  CRIA --> EQP[["Equipamento padrão do esporte<br/>se houver um ativo"]]:::calc
+  EQP --> DER[["Cadência por perna ×2<br/>tempo em movimento, GAP, deriva"]]:::calc
   DER --> DB[("Banco Neon<br/>activities, points, laps")]:::ext
   DB --> RECS[["Recordes desta atividade"]]:::calc
   REST --> RECS
@@ -96,6 +97,7 @@ flowchart TD
     { tipo: "cálculo", nome: "Escolha do leitor", acao: "Pela extensão; .gz é descompactado; sem extensão conhecida, tenta reconhecer FIT, GPX ou TCX pelo conteúdo.", msg: "Formato nao suportado: 'nome' · Arquivo .gz corrompido ou invalido", onde: "apps/api/kactus_api/parsers/dispatch.py:16", no: "GZ,UNZ,P,SN,X2,PF,PG,PT,PC" },
     { tipo: "cálculo", nome: "Duplicados", acao: "Mesmo hash do arquivo, mesmo id na fonte, ou início a menos de 60 s com distância até 1% diferente.", onde: "apps/api/kactus_api/services/import_service.py:142", no: "DUPQ,D1,REST" },
     { tipo: "cálculo", nome: "Gravação", acao: "GPS reduzido a um ponto a cada 3 s; resumo calculado sobre a série completa antes de reduzir; arquivo original guardado em disco.", onde: "apps/api/kactus_api/services/import_service.py:92", no: "CRIA,DB" },
+    { tipo: "cálculo", nome: "Equipamento padrão", acao: "O treino novo entra com o equipamento ativo marcado como padrão do esporte (ex.: o tênis da corrida).", onde: "apps/api/kactus_api/services/import_service.py:92", no: "EQP" },
     { tipo: "cálculo", nome: "Métricas derivadas", acao: "Cadência por perna vira passos/min, GAP e deriva cardíaca da atividade e de cada volta.", onde: "apps/api/kactus_api/services/derived_metrics.py:54", no: "DER" },
     { tipo: "cálculo", nome: "Recordes e carga", acao: "Recordes desta atividade na hora; carga diária uma vez só, a partir da data mais antiga do lote.", onde: "apps/api/kactus_api/routers/activities.py:148", no: "RECS,LOAD" },
     { tipo: "API", nome: "Upload de um arquivo", acao: "Versão de um arquivo só; nenhuma tela usa hoje.", api: "POST /activities/upload", msg: "415 formato · 422 arquivo inválido", onde: "apps/api/kactus_api/routers/activities.py:42" },

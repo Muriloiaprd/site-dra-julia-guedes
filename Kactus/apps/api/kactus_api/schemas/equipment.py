@@ -3,6 +3,8 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, Field, field_validator
 
+from kactus_api.parsers.sports import VALID_SPORTS
+
 # Foto vem redimensionada do navegador (~30 KB); o teto so barra upload cru por engano.
 PHOTO_MAX_CHARS = 400_000  # ~300 KB de imagem em base64
 _PHOTO_PREFIXES = ("data:image/jpeg;base64,", "data:image/png;base64,")
@@ -18,6 +20,15 @@ def _check_photo(v: str | None) -> str | None:
     return v
 
 
+def _check_sports(v: list[str] | None) -> list[str] | None:
+    if v is None:
+        return None
+    bad = [s for s in v if s not in VALID_SPORTS]
+    if bad:
+        raise ValueError(f"esporte invalido: {', '.join(bad)}")
+    return sorted(set(v))
+
+
 class EquipmentCreate(BaseModel):
     name: str = Field(..., max_length=100)
     type: str = Field(..., max_length=30)
@@ -27,8 +38,10 @@ class EquipmentCreate(BaseModel):
     initial_distance_m: float = 0.0
     notes: str | None = None
     photo_data_url: str | None = None
+    default_sports: list[str] = Field(default_factory=list)
 
     _photo = field_validator("photo_data_url")(_check_photo)
+    _sports = field_validator("default_sports")(_check_sports)
 
 
 class EquipmentUpdate(BaseModel):
@@ -41,8 +54,10 @@ class EquipmentUpdate(BaseModel):
     initial_distance_m: float | None = None
     notes: str | None = None
     photo_data_url: str | None = None
+    default_sports: list[str] | None = None
 
     _photo = field_validator("photo_data_url")(_check_photo)
+    _sports = field_validator("default_sports")(_check_sports)
 
 
 class EquipmentOut(BaseModel):
@@ -57,6 +72,7 @@ class EquipmentOut(BaseModel):
     total_distance_m: float
     notes: str | None
     photo_data_url: str | None = None
+    default_sports: list[str] = Field(default_factory=list)
     created_at: datetime
 
     model_config = {"from_attributes": True}

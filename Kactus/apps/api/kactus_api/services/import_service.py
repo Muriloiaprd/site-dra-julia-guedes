@@ -17,7 +17,7 @@ from kactus_api.metrics.derived import RUN_SPORTS
 from kactus_api.metrics.garmin import compute_walk_time_s
 from kactus_api.metrics.load import update_daily_metrics
 from kactus_api.metrics.records import update_records
-from kactus_api.models import Activity, ActivityLap, ActivityPoint
+from kactus_api.models import Activity, ActivityLap, ActivityPoint, Equipment
 from kactus_api.parsers.base import NormalizedActivity, compute_moving_time_s
 from kactus_api.services.derived_metrics import apply_derived_metrics, normalize_step_cadence
 
@@ -89,6 +89,8 @@ def import_activity(
         location_end_lon=_last_coord(norm, "lon"),
     )
 
+    activity.equipment_id = _default_equipment(db, user_id, norm.sport)
+
     kept = _downsample(norm.points, settings.gps_downsample_seconds)
     activity.points = [
         ActivityPoint(
@@ -138,6 +140,17 @@ def import_activity(
         update_daily_metrics(db, user_id, from_date=activity.start_time.date())
 
     return ImportResult(activity.id, False, activity.sport, _as_float(activity.distance_m), len(kept))
+
+
+def _default_equipment(db: Session, user_id: uuid.UUID, sport: str) -> uuid.UUID | None:
+    """Equipamento padrao do esporte (ativo): o tenis da corrida entra sozinho no treino."""
+    return db.execute(
+        select(Equipment.id).where(
+            Equipment.user_id == user_id,
+            Equipment.retired_at.is_(None),
+            Equipment.default_sports.any(sport),
+        ).limit(1)
+    ).scalar_one_or_none()
 
 
 def _find_duplicate(
