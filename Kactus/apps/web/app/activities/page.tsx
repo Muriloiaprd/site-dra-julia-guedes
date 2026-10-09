@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { TrashPanel } from "@/components/activities/TrashPanel";
 import { SportTile } from "@/components/SportIcon";
 import { Alert, EmptyState, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
-import { deleteActivity, fetchActivities, type ActivitySummary } from "@/lib/api";
+import { deleteActivity, fetchActivities, fetchTrash, type ActivitySummary, type TrashItem } from "@/lib/api";
 import { activeSeconds, formatDistance, formatDuration, formatPace, formatPaceShort, isBikeSport, sportColor, sportLabel } from "@/lib/utils";
 
 const SPORTS = [
@@ -61,6 +62,8 @@ export default function ActivitiesPage() {
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [trash, setTrash] = useState<TrashItem[]>([]);
+  const [showTrash, setShowTrash] = useState(false);
 
   const [search, setSearch] = useState("");
   const [selectedSports, setSelectedSports] = useState<Set<string>>(new Set());
@@ -89,7 +92,16 @@ export default function ActivitiesPage() {
       .then((batch) => setActivities(batch))
       .catch((e) => setError(e instanceof Error ? e.message : "Erro ao carregar atividades"))
       .finally(() => setLoading(false));
+    fetchTrash().then(setTrash).catch(() => {});
   }, []);
+
+  async function reloadList() {
+    try {
+      setActivities(await loadPage(0));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao carregar atividades");
+    }
+  }
 
   async function handleLoadMore() {
     setLoadingMore(true);
@@ -104,11 +116,12 @@ export default function ActivitiesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Excluir atividade? Esta ação não pode ser desfeita.")) return;
+    if (!confirm("Mover a atividade para a lixeira? Dá para restaurar depois.")) return;
     setDeletingId(id);
     try {
       await deleteActivity(id);
       setActivities((prev) => prev.filter((a) => a.id !== id));
+      fetchTrash().then(setTrash).catch(() => {});
     } catch {
       setError("Erro ao excluir atividade");
     } finally {
@@ -203,8 +216,33 @@ export default function ActivitiesPage() {
         title="Atividades"
         description="Todos os seus treinos importados, com filtros por modalidade, período e esforço."
         icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M3 12h4l3 8 4-16 3 8h4" /></svg>}
-        actions={<Link href="/import" className="od-btn od-btn-secondary">+ Importar</Link>}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setShowTrash((v) => !v)}
+              aria-expanded={showTrash}
+              className={`od-btn od-btn-ghost ${showTrash ? "!text-white" : ""}`}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></svg>
+              Lixeira{trash.length > 0 ? ` (${trash.length})` : ""}
+            </button>
+            <Link href="/import" className="od-btn od-btn-secondary">+ Importar</Link>
+          </div>
+        }
       />
+
+      {showTrash && (
+        <TrashPanel
+          items={trash}
+          onClose={() => setShowTrash(false)}
+          onRestored={(item) => {
+            setTrash((t) => t.filter((x) => x.id !== item.id));
+            reloadList();
+          }}
+          onEmptied={() => setTrash([])}
+        />
+      )}
 
       {/* totais do filtro */}
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">

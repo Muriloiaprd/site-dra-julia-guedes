@@ -45,6 +45,15 @@ def import_activity(
     recompute_metrics: bool = True,
 ) -> ImportResult:
     existing = _find_duplicate(db, user_id, norm, file_hash)
+    if existing is not None and existing.deleted_at is not None:
+        # importar de novo um treino que esta na lixeira tira ele de la
+        # (file_hash e unico: nao da para criar outro)
+        existing.deleted_at = None
+        db.commit()
+        update_records(db, existing)
+        if recompute_metrics:
+            update_daily_metrics(db, user_id, from_date=existing.start_time.date())
+        return ImportResult(existing.id, False, existing.sport, _as_float(existing.distance_m), 0)
     if existing is not None:
         return ImportResult(existing.id, True, existing.sport, _as_float(existing.distance_m), 0)
 

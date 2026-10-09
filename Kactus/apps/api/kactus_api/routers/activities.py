@@ -27,6 +27,7 @@ from kactus_api.schemas.activity import (
     CheckinTagGroupOut,
     NormalizedActivityIn,
     SplitOut,
+    TrashItemOut,
     UploadItemResult,
     UploadResponse,
     ZoneBucketOut,
@@ -262,6 +263,57 @@ def delete_all_activities(current_user: CurrentUser, db: DbSession) -> dict:
     )
     db.commit()
     return {"deleted": len(activity_ids)}
+
+
+@router.get("/trash", response_model=list[TrashItemOut])
+def list_trash(current_user: CurrentUser, db: DbSession) -> list:
+    """Atividades excluidas (lixeira), a mais recente primeiro."""
+    return list(db.execute(
+        select(Activity)
+        .where(Activity.user_id == current_user.id, Activity.deleted_at.is_not(None))
+        .order_by(Activity.deleted_at.desc())
+    ).scalars())
+
+
+@router.post("/{activity_id}/restore", response_model=TrashItemOut)
+def restore_activity(
+    activity_id: uuid.UUID, current_user: CurrentUser, db: DbSession, background: BackgroundTasks
+) -> dict:
+    """Tira da lixeira. Recalcula carga e recordes, como na exclusao (ao contrario)."""
+    activity = db.execute(
+        select(Activity).where(
+            Activity.id == activity_id, Activity.user_id == current_user.id, Activity.deleted_at.is_not(None),
+        )
+    ).scalar_one_or_none()
+    if activity is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Atividade nao esta na lixeira")
+    # a resposta diz quando ela tinha sido excluida
+    body = TrashItemOut.model_validate(activity).model_dump()
+    activity.deleted_at = None
+    db.commit()
+    update_daily_metrics(db, current_user.id, from_date=activity.start_time.date())
+    background.add_task(recompute_all_records_background, current_user.id)
+    return body
+
+
+@router.delete("/trash")
+def empty_trash(current_user: CurrentUser, db: DbSession) -> dict:
+    """Apaga de vez o que esta na lixeira (pontos e voltas vao junto, por cascade).
+    Carga e recordes ja foram recalculados quando cada uma foi excluida. O treino
+    planejado que tinha sido casado com uma delas volta a ficar so planejado."""
+    ids = db.execute(
+        select(Activity.id).where(Activity.user_id == current_user.id, Activity.deleted_at.is_not(None))
+    ).scalars().all()
+    if not ids:
+        return {"deleted": 0}
+    db.execute(
+        update(PlannedWorkout)
+        .where(PlannedWorkout.user_id == current_user.id, PlannedWorkout.activity_id.in_(ids))
+        .values(activity_id=None, status="planned")
+    )
+    db.execute(delete(Activity).where(Activity.id.in_(ids), Activity.user_id == current_user.id))
+    db.commit()
+    return {"deleted": len(ids)}
 
 
 @router.get("/{activity_id}", response_model=ActivityDetail)

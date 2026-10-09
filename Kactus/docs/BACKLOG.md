@@ -70,6 +70,7 @@ O usuário escolheu 6 modelos na primeira leva (feitos). Estas ficaram para depo
 
 ## ✅ Concluído
 
+- **2026-10-09**: lixeira de atividades. Excluir manda para a lixeira; dá para Restaurar (recalcula carga e recordes) ou Limpar lixeira (apaga de vez, com pontos e voltas). Reimportar um treino que está na lixeira tira ele de lá. Rotas `GET`/`DELETE /activities/trash` e `POST /activities/{id}/restore`; tela de exemplo em `/activities-preview`.
 - **2026-09-27**: nome Ondilow varrido do banco e do site, Duni com textos curtos e resumo estruturado, dados completos do FIT do Garmin, aba Carga em linguagem simples, equipamentos recomendados. Ver [`PLANEJAMENTO_2026-09-27_2.md`](./PLANEJAMENTO_2026-09-27_2.md).
 - **2026-09-23**: Duni, a treinadora de IA (dados derivados, check-in, motor de análise, memórias, persona v2, plano da semana, comentário pós-treino), verificada ao vivo com o Gemini. Ver [`PLANEJAMENTO_2026-09-21.md`](./PLANEJAMENTO_2026-09-21.md).
 - **2026-09-15** — Equipamento com km real: `equipment_id` em `activities`, soma real de distância por equipamento, seletor no formulário de edição da atividade (ver `PLANEJAMENTO.md`, Fase 5).

@@ -224,3 +224,17 @@ class NormalizedActivityIn(BaseModel):
     calories: int | None = None
     avg_temperature_c: float | None = None
     title: str | None = None
+
+
+class TrashItemOut(BaseModel):
+    """Atividade na lixeira (excluida, ainda restauravel)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    sport: str
+    title: str | None
+    start_time: datetime
+    duration_s: int
+    distance_m: float | None
+    deleted_at: datetime

@@ -385,6 +385,30 @@ export async function deleteActivity(id: string): Promise<void> {
   });
 }
 
+/** Atividade na lixeira (excluida, ainda da para restaurar). */
+export interface TrashItem {
+  id: string;
+  sport: string;
+  title: string | null;
+  start_time: string;
+  duration_s: number;
+  distance_m: number | null;
+  deleted_at: string;
+}
+
+export async function fetchTrash(): Promise<TrashItem[]> {
+  return apiFetch<TrashItem[]>("/activities/trash");
+}
+
+export async function restoreActivity(id: string): Promise<TrashItem> {
+  return apiFetch<TrashItem>(`/activities/${id}/restore`, { method: "POST" });
+}
+
+/** Apaga de vez tudo o que esta na lixeira. */
+export async function emptyTrash(): Promise<{ deleted: number }> {
+  return apiFetch<{ deleted: number }>("/activities/trash", { method: "DELETE" });
+}
+
 export async function fetchSplits(id: string, splitM = 1000): Promise<Split[]> {
   return apiFetch<Split[]>(`/activities/${id}/splits?split_m=${splitM}`);
 }
