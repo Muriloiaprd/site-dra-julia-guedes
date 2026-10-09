@@ -85,6 +85,7 @@ Itens que o código e os testes cobrem, mas que só dá para confirmar com o apa
 - [ ] **Fase 6:** pôr a meta no Perfil (salvar com a conta real) e ver a barra "Meta de corrida" na Visão semanal do dashboard e o bloco "Sua meta" em Desempenho.
 - [ ] **Fase 7:** com a conta real, conferir o cartão "Próxima prova" (Maratona do Rio, dias, fase e semana do plano, alvo).
 - [ ] **Fase 8:** depois de reabrir o Kactus Controle, ver a seção "Backup semanal", o primeiro backup em Documentos/Kactus backups (~8 MB) e o aviso no Windows.
+- [ ] **Fase 9:** em Desempenho com dados reais, conferir o Resumo do mês (navegar entre meses) e compartilhar o Story do mês no iPhone.
 - [ ] **Hook do fluxograma:** numa conversa nova, conferir que o lembrete aparece depois de um commit que mexe em `apps/` sem mexer em `docs/fluxograma/`.
 
 ## Andamento
@@ -97,3 +98,4 @@ Itens que o código e os testes cobrem, mas que só dá para confirmar com o apa
 - **Fase 6 — feita (sem conferência visual):** migração `025_weekly_km_goal` (aplicada na `test` e na principal); campo no Perfil; `meta_semanal` em `GET /metrics/summary` (`summary._weekly_goal`: feito de segunda até hoje, situação contra a faixa segura); barra na Visão semanal e bloco "Sua meta" em Desempenho. Testes em `tests/test_load_summary.py`.
 - **Fase 7 — feita:** `components/dashboard/GoalCard.tsx` virou "Próxima prova" (plano do objetivo + provas das memórias; o dashboard passou a buscar `/coach/goal-plan` e `/coach/memories`). Página de teste `/dashboard-preview` (também cobre as Fases 3, 5 e 6) conferida no navegador, com e sem prova (`?sem-prova`). O achado do cartão "Meta principal" saiu da lista.
 - **Fase 8 — feita:** `services/export.py` (`build_export`, versão 2: agora com a Duni e a carga diária; usado pelo Exportar e pelo backup); `scripts/backup.py` grava `.json.gz` e guarda 8 cópias (rodado de verdade: ~8 MB, ~25 s); `apps/controle/kactus_controle/backup.py` (`VigiaBackup`) roda 2 min depois de abrir e de hora em hora se passou uma semana; seção na janela, "Fazer backup agora" e "Abrir pasta de backups" no menu. Testes: API e 32 do Controle. Ativa ao reabrir o Kactus Controle.
+- **Fase 9 — feita:** `metrics/month.py` + `GET /metrics/month?month=AAAA-MM`; `components/performance/MonthSummary.tsx` em Desempenho (setas de mês, totais com variação, por esporte, ritmo, maior treino, recordes) e `components/share/MonthStory.tsx` (Story 1080×1920, Compartilhar/Salvar). Página de teste `/performance-preview`, conferida no navegador. Testes: `tests/test_month_summary.py`.

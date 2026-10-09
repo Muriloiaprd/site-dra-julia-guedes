@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { AdvancedSection } from "@/components/performance/AdvancedSection";
 import { ConsistencyHeatmap } from "@/components/performance/ConsistencyHeatmap";
 import { EvolutionChart } from "@/components/performance/EvolutionChart";
+import { MonthSummary } from "@/components/performance/MonthSummary";
 import { RacePredictions } from "@/components/performance/RacePredictions";
 import { StatusTiles } from "@/components/performance/StatusTiles";
 import { TodayPanel } from "@/components/performance/TodayPanel";
@@ -87,6 +88,7 @@ export default function PerformancePage() {
           <RacePredictions predictions={overview?.race_predictions ?? null} loading={overviewLoading} />
           <EvolutionChart weeks={summary?.semanas ?? null} activities={activities} activitiesLoading={activitiesLoading} />
           <TrainingQuality summary={summary} />
+          <MonthSummary />
           <ConsistencyHeatmap data={heatmap} loading={heatmapLoading} />
           <AdvancedSection data={metrics} loading={metricsLoading} days={days} onDaysChange={setDays} />
         </div>

@@ -185,6 +185,25 @@ export interface LoadSummary {
   semanas: { semana: string; em_andamento: boolean; corrida_km: number; bike_km: number; caminhada_km: number; horas: number; treinos: number }[];
 }
 
+/** Resumo do mes (GET /metrics/month). `tipo` dos esportes: run, walk, bike, swim, strength, pilates, other. */
+export interface MonthSummary {
+  mes: string;
+  inicio: string;
+  fim: string;
+  total: { treinos: number; km: number; horas: number; dias: number };
+  anterior: { treinos: number; km: number; horas: number; dias: number };
+  variacao: { km_pct: number | null; horas_pct: number | null; treinos: number };
+  esportes: { tipo: string; treinos: number; km: number; horas: number; dias: number }[];
+  corrida: { km: number; treinos: number; pace_medio_s_km: number | null } | null;
+  maior_treino: { id: string; titulo: string | null; sport: string; km: number; data: string } | null;
+  recordes: { tipo: string; sport: string; valor: number; unidade: string; data: string; activity_id: string | null }[];
+  meses_disponiveis: string[];
+}
+
+export async function fetchMonthSummary(month?: string): Promise<MonthSummary> {
+  return apiFetch<MonthSummary>(`/metrics/month${month ? `?month=${month}` : ""}`);
+}
+
 export async function fetchLoadSummary(): Promise<LoadSummary> {
   return apiFetch<LoadSummary>("/metrics/summary");
 }

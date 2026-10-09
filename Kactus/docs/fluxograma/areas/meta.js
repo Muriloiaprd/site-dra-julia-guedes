@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "09/10/2026",
-  commit: "plano 2026-10-09 · Fase 8",
+  commit: "plano 2026-10-09 · Fase 9",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -35,7 +35,8 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
-    { data: "09/10/2026", commit: "Fase 8", mudanca: "Backup semanal pelo Kactus Controle (.json.gz, 8 cópias); Exportar meus dados passou a levar a Duni e a carga diária." },
+    { data: "09/10/2026", commit: "Fase 9", mudanca: "Resumo do mês em Desempenho (GET /metrics/month) com o Story do mês; página de teste /performance-preview." },
+    { data: "09/10/2026", commit: "4f4ac8a", mudanca: "Backup semanal pelo Kactus Controle (.json.gz, 8 cópias); Exportar meus dados passou a levar a Duni e a carga diária." },
     { data: "09/10/2026", commit: "2d6339d", mudanca: "Cartão Próxima prova no dashboard (no lugar de Meta principal), com contagem regressiva, fase e semana do plano; página de teste /dashboard-preview." },
     { data: "09/10/2026", commit: "69de3e5", mudanca: "Meta de km de corrida por semana no Perfil, com barra no dashboard e aviso da faixa segura em Desempenho." },
     { data: "09/10/2026", commit: "7d07804", mudanca: "Botão 📤 Story no cartão Última atividade do dashboard." },
