@@ -1,4 +1,4 @@
-"""Preferencias do Kactus Controle (fora do git): modo e manter o PC acordado."""
+"""Preferencias do Kactus Controle (fora do git): modo, manter o PC acordado e importar do relogio."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ ARQUIVO = Path(__file__).resolve().parents[1] / "config.json"
 class Config:
     modo: str = "rapido"  # "rapido" | "dev"
     manter_acordado: bool = False  # so enquanto o Kactus estiver ligado
+    importar_relogio: bool = True  # importa sozinho os treinos do relogio ligado no USB
 
     @classmethod
     def carregar(cls, arquivo: Path = ARQUIVO) -> Config:
@@ -24,6 +25,7 @@ class Config:
         if dados.get("modo") in ("rapido", "dev"):
             c.modo = dados["modo"]
         c.manter_acordado = bool(dados.get("manter_acordado", False))
+        c.importar_relogio = bool(dados.get("importar_relogio", True))
         return c
 
     def salvar(self, arquivo: Path = ARQUIVO) -> None:

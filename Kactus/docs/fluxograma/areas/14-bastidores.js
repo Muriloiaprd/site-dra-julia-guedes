@@ -35,7 +35,8 @@ flowchart LR
   API --> ANT{{"Anthropic<br/>se houver chave"}}:::ia
   API --> GEM{{"Gemini grátis"}}:::ia
   WEB --> TILES["Stadia Maps ou<br/>OpenStreetMap"]:::ext
-  CLI("Linha de comando"):::acao --> SCR[["seed_user · seed_fake_activities<br/>backfills · sync_garmin"]]:::calc
+  CLI("Linha de comando"):::acao --> SCR[["seed_user · seed_fake_activities<br/>backfills · sync_garmin · import_files"]]:::calc
+  CTRL -->|relógio no USB| SCR
   SCR --> NEON
   SCR -.->|bloqueado por limite de IP| GAR["Garmin Connect"]:::ext
 `,
@@ -50,6 +51,7 @@ flowchart LR
     { tipo: "integração", nome: "Pasta data", acao: "Guarda os arquivos originais enviados e os logs.", onde: "apps/api/kactus_api/config.py:39", no: "DISK" },
     { tipo: "integração", nome: "Garmin Connect (linha de comando)", acao: "Script pronto que baixa o .FIT original; nunca rodou com sucesso por limite de IP (429). Sem tela.", onde: "apps/api/kactus_api/scripts/sync_garmin.py:36", no: "GAR" },
     { tipo: "integração", nome: "seed_user", acao: "Cria a conta inicial pelas variáveis INITIAL_USER_EMAIL e INITIAL_USER_PASSWORD.", onde: "apps/api/kactus_api/scripts/seed_user.py:15", no: "SCR" },
+    { tipo: "integração", nome: "import_files", acao: "Importa arquivos direto no banco, sem a API; usado pelo Kactus Controle com os .fit do relógio no USB. --email ou INITIAL_USER_EMAIL; --json devolve importadas, duplicadas, erros e ids.", onde: "apps/api/kactus_api/scripts/import_files.py:34" },
     { tipo: "integração", nome: "seed_fake_activities", acao: "Gera atividades falsas para teste.", onde: "apps/api/kactus_api/scripts/seed_fake_activities.py:101" },
     { tipo: "integração", nome: "backfill_derived · backfill_garmin_fields · backfill_moving_time", acao: "Recalculam campos em atividades antigas; todos têm --dry-run e --email.", onde: "apps/api/kactus_api/scripts/backfill_derived.py:47" },
     { tipo: "API", nome: "Saúde da API", acao: "Usada pelo Controle para saber se a API está no ar.", api: "GET /health", onde: "apps/api/kactus_api/main.py:65" },

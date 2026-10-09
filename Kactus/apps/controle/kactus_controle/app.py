@@ -16,6 +16,7 @@ import queue
 import subprocess
 import sys
 import threading
+import time
 import tkinter as tk
 import webbrowser
 from collections.abc import Callable
@@ -23,7 +24,7 @@ from tkinter import messagebox
 
 import pystray
 
-from . import icones, sistema, tailscale, web
+from . import icones, relogio, sistema, tailscale, web
 from .config import Config
 from .janela import ROTULO, Janela
 from .servidor import Estado, Info, Servidor
@@ -55,12 +56,17 @@ class App:
         self.ts: tailscale.EstadoTailscale | None = None
         self._ts_consertou = False  # tenta consertar sozinho uma vez por queda
         self._ts_parar = threading.Event()
+        self.relogio = relogio.VigiaRelogio(
+            ativo=lambda: self.config.importar_relogio,
+            ao_terminar=lambda texto, res: self.na_tela(lambda: self._relogio_terminou(texto, res)),
+        )
 
     # ── ciclo ────────────────────────────────────────────────────────────
     def rodar(self, acao: str) -> None:
         self.servidor.iniciar_vigia()
         self.acordado.iniciar()
         threading.Thread(target=self._vigiar_tailscale, name="kactus-tailscale", daemon=True).start()
+        self.relogio.iniciar()
         self.icone.run_detached()
         self.comando(acao)
         self.janela.atualizar(self.servidor.info)
@@ -186,6 +192,26 @@ class App:
 
         threading.Thread(target=rodar, daemon=True).start()
 
+    # ── relogio no USB ───────────────────────────────────────────────────
+    def relogio_ativo(self) -> bool:
+        return self.config.importar_relogio
+
+    def alternar_relogio(self) -> None:
+        self.config.importar_relogio = not self.config.importar_relogio
+        self.config.salvar()
+        self.janela.rel_auto.set(self.config.importar_relogio)
+        self.icone.update_menu()
+
+    def importar_relogio_agora(self) -> None:
+        self.janela.atualizar_relogio("Procurando o relógio no USB…", ocupado=True)
+        threading.Thread(target=lambda: self.relogio.passo(forcar=True), daemon=True).start()
+
+    def _relogio_terminou(self, texto: str, res: dict | None) -> None:
+        hora = time.strftime("%H:%M")
+        self.janela.atualizar_relogio(f"{texto} ({hora})")
+        if res is None or res.get("importadas") or res.get("erros"):
+            self._avisar(texto)
+
     def _avisar(self, texto: str) -> None:
         with contextlib.suppress(Exception):
             self.icone.notify(texto, "Kactus")
@@ -255,6 +281,7 @@ class App:
             self.servidor.desligar()
         self.servidor.parar_vigia()
         self._ts_parar.set()
+        self.relogio.parar()
         self.acordado.parar()
         self.icone.stop()
         if self.web:
@@ -297,6 +324,12 @@ class App:
                 tela(self.alternar_acordado),
                 checked=lambda _i: self.config.manter_acordado,
             ),
+            pystray.MenuItem(
+                "Importar do relógio no USB",
+                tela(self.alternar_relogio),
+                checked=lambda _i: self.config.importar_relogio,
+            ),
+            pystray.MenuItem("Importar do relógio agora", tela(self.importar_relogio_agora)),
             pystray.MenuItem("Ver log", tela(self.ver_log)),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Sair", tela(self.sair)),

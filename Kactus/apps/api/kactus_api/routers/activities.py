@@ -1,4 +1,3 @@
-import hashlib
 import uuid
 from dataclasses import asdict
 from datetime import UTC, date, datetime, timedelta
@@ -8,7 +7,6 @@ from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Uplo
 from sqlalchemy import delete, select, update
 
 from kactus_api.checkin_tags import CHECKIN_TAG_GROUPS
-from kactus_api.config import settings
 from kactus_api.deps import CurrentUser, DbSession
 from kactus_api.metrics import compute_splits, hr_zone_distribution, resolve_hr_zones
 from kactus_api.metrics.basic import PointLike
@@ -32,11 +30,11 @@ from kactus_api.schemas.activity import (
     UploadResponse,
     ZoneBucketOut,
 )
+from kactus_api.services.batch_import import MAX_BYTES, derived_hash, import_batch, persist_raw
 from kactus_api.services.import_service import file_sha256, import_activity
 
 router = APIRouter(prefix="/activities", tags=["activities"])
 
-_MAX_BYTES = 50 * 1024 * 1024
 
 
 @router.post("/upload", response_model=UploadResponse, status_code=status.HTTP_201_CREATED)
@@ -48,7 +46,7 @@ def upload_activity(
     content = file.file.read()
     if not content:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Arquivo vazio")
-    if len(content) > _MAX_BYTES:
+    if len(content) > MAX_BYTES:
         raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "Arquivo maior que 50MB")
 
     filename = file.filename or "upload"
@@ -60,14 +58,14 @@ def upload_activity(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
 
     file_hash = file_sha256(content)
-    saved_path = _persist_raw(current_user.id, filename, content)
+    saved_path = persist_raw(current_user.id, filename, content)
 
     results: list[UploadItemResult] = []
     multi = len(normalized) > 1
     for i, norm in enumerate(normalized):
         # CSV gera varias atividades de um arquivo; deriva um hash de 64 chars por
         # linha para manter idempotencia no reupload sem estourar a coluna.
-        hash_for_item = _derived_hash(file_hash, i) if multi else file_hash
+        hash_for_item = derived_hash(file_hash, i) if multi else file_hash
         r = import_activity(
             db, current_user.id, norm, file_hash=hash_for_item, file_path=saved_path
         )
@@ -90,72 +88,20 @@ def upload_activities_batch(
     db: DbSession,
     files: Annotated[list[UploadFile], File()],
 ) -> list[UploadResponse]:
-    """Importa varios arquivos numa unica requisicao.
+    """Importa varios arquivos numa unica requisicao (ver services/batch_import).
 
-    Diferenca-chave em relacao a /upload chamado em loop: o recalculo de
-    CTL/ATL/TSB (varre todo o historico do usuario, custoso com muitos anos
-    de dados) roda UMA UNICA VEZ ao final, a partir da menor data afetada no
-    lote inteiro -- em vez de uma vez por arquivo. Um arquivo com erro (vazio,
-    grande demais, formato invalido, falha de parsing) fica registrado no
-    campo `error` do proprio item da resposta e NAO interrompe os demais.
+    O recalculo de CTL/ATL/TSB roda UMA UNICA VEZ ao final; um arquivo com erro
+    fica registrado no campo `error` do proprio item e NAO interrompe os demais.
     """
-    responses: list[UploadResponse] = []
-    min_date: date | None = None
-
-    for file in files:
-        filename = file.filename or "upload"
-        content = file.file.read()
-        if not content:
-            responses.append(UploadResponse(filename=filename, imported=[], error="Arquivo vazio"))
-            continue
-        if len(content) > _MAX_BYTES:
-            responses.append(UploadResponse(filename=filename, imported=[], error="Arquivo maior que 50MB"))
-            continue
-
-        try:
-            normalized = parse_file(filename, content)
-        except (UnsupportedFormatError, ParserError) as e:
-            responses.append(UploadResponse(filename=filename, imported=[], error=str(e)))
-            continue
-
-        file_hash = file_sha256(content)
-        saved_path = _persist_raw(current_user.id, filename, content)
-
-        results: list[UploadItemResult] = []
-        multi = len(normalized) > 1
-        file_error: str | None = None
-        for i, norm in enumerate(normalized):
-            hash_for_item = _derived_hash(file_hash, i) if multi else file_hash
-            try:
-                r = import_activity(
-                    db, current_user.id, norm,
-                    file_hash=hash_for_item, file_path=saved_path,
-                    recompute_metrics=False,
-                )
-            except Exception as e:
-                db.rollback()
-                file_error = f"Falha ao importar: {e}"
-                break
-            results.append(
-                UploadItemResult(
-                    activity_id=r.activity_id,
-                    duplicate=r.duplicate,
-                    sport=r.sport,
-                    distance_m=r.distance_m,
-                    points_stored=r.points_stored,
-                )
-            )
-            if not r.duplicate:
-                d = norm.start_time.date()
-                if min_date is None or d < min_date:
-                    min_date = d
-
-        responses.append(UploadResponse(filename=filename, imported=results, error=file_error))
-
-    if min_date is not None:
-        update_daily_metrics(db, current_user.id, from_date=min_date)
-
-    return responses
+    batch = [(file.filename or "upload", file.file.read()) for file in files]
+    return [
+        UploadResponse(
+            filename=r["filename"],
+            imported=[UploadItemResult(**item) for item in r["imported"]],
+            error=r["error"],
+        )
+        for r in import_batch(db, current_user.id, batch)
+    ]
 
 
 @router.post(
@@ -490,18 +436,4 @@ def _f(v) -> float | None:
     return float(v) if v is not None else None
 
 
-def _derived_hash(file_hash: str, index: int) -> str:
-    return hashlib.sha256(f"{file_hash}:{index}".encode()).hexdigest()
 
-
-def _persist_raw(user_id: uuid.UUID, filename: str, content: bytes) -> str | None:
-    """Guarda o arquivo original em disco. file_path e write-only (nenhum codigo
-    o le), entao em deploy sem disco persistente isto fica desligado."""
-    if not settings.persist_raw_uploads:
-        return None
-    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
-    user_dir = settings.data_path / "uploads" / str(user_id)
-    user_dir.mkdir(parents=True, exist_ok=True)
-    path = user_dir / f"{file_sha256(content)[:16]}.{ext}"
-    path.write_bytes(content)
-    return str(path)

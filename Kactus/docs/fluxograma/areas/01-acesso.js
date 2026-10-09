@@ -4,7 +4,7 @@ KACTUS_MAPA.areas.push({
   n: 1,
   titulo: "Acesso e servidor",
   resumo:
-    "O Kactus Controle é um programa em Python com ícone perto do relógio e uma janelinha. Ele liga o site (porta 3003) e a API (porta 8000), vigia os dois e religa se caírem. No modo rápido o site roda o build de produção, bem mais leve no iPhone; no modo desenvolvimento mostra mudanças de código na hora. O iPhone entra pelo Tailscale. Se o servidor estiver fora do ar, o service worker mostra a tela 'Kactus desligado', que fala com o Controle na porta 8443 para ligar.",
+    "O Kactus Controle é um programa em Python com ícone perto do relógio e uma janelinha. Também importa sozinho os treinos do relógio Garmin ligado no USB. Ele liga o site (porta 3003) e a API (porta 8000), vigia os dois e religa se caírem. No modo rápido o site roda o build de produção, bem mais leve no iPhone; no modo desenvolvimento mostra mudanças de código na hora. O iPhone entra pelo Tailscale. Se o servidor estiver fora do ar, o service worker mostra a tela 'Kactus desligado', que fala com o Controle na porta 8443 para ligar.",
   rotas: ["/desligado.html", "Controle :3010 (PC)", "Controle :8443 (iPhone)"],
   arquivos: [
     "apps/controle/kactus_controle/app.py",
@@ -15,6 +15,8 @@ KACTUS_MAPA.areas.push({
     "apps/controle/kactus_controle/tailscale.py",
     "apps/controle/kactus_controle/sistema.py",
     "apps/controle/kactus_controle/config.py",
+    "apps/controle/kactus_controle/relogio.py",
+    "apps/controle/kactus_controle/relogio.ps1",
     "apps/web/public/sw.js",
     "apps/web/public/desligado.html",
     "apps/web/components/RegistrarSW.tsx",
@@ -83,9 +85,28 @@ flowchart LR
   CONS -->|sem endereço| SERVE["tailscale serve --bg<br/>refaz 443 e 8443"]:::ext
 `,
     },
+    {
+      titulo: "Relógio no USB",
+      mermaid: `
+flowchart TD
+  USB("Liga o Garmin no USB"):::acao --> RVIG[["Vigia a cada 15 s<br/>se a opção estiver ligada"]]:::calc
+  RVIG --> TIPO{"Como o Windows mostra?"}:::decisao
+  TIPO -->|pendrive com letra| UNI[["Lê E:/GARMIN/Activity"]]:::calc
+  TIPO -->|dispositivo MTP| MTP[["relogio.ps1 pelo Shell do Windows"]]:::ext
+  UNI --> NOVOS{"Arquivo .fit<br/>ainda não visto?"}:::decisao
+  MTP --> NOVOS
+  NOVOS -->|não| RVIG
+  NOVOS -->|sim| COP[["Copia para relogio_chegada"]]:::calc
+  COP --> IMP[/"uv run … scripts.import_files --json"/]:::api
+  IMP -->|ok| AV["Aviso no Windows:<br/>N treinos novos do relógio no Kactus"]:::ok
+  IMP -->|erro| RERR["Não consegui importar do relógio: …<br/>tenta de novo na próxima"]:::erro
+  AV --> VIS[["Guarda em relogio_vistos.json"]]:::calc
+  AGORA("Importar agora · janela ou menu"):::acao --> FORCA[["Reimporta tudo o que está no relógio<br/>o import ignora duplicados"]]:::calc --> COP
+`,
+    },
   ],
   inventario: [
-    { tipo: "menu", nome: "Ícone no relógio", acao: "Menu com Abrir o painel, Ligar, Desligar, Reiniciar, Abrir no PC, Copiar endereço do iPhone, modo, Iniciar com o Windows, Manter o PC acordado, Ver log e Sair.", onde: "apps/controle/kactus_controle/app.py:265" },
+    { tipo: "menu", nome: "Ícone no relógio", acao: "Menu com Abrir o painel, Ligar, Desligar, Reiniciar, Abrir no PC, Copiar endereço do iPhone, modo, Iniciar com o Windows, Manter o PC acordado, Importar do relógio no USB, Importar do relógio agora, Ver log e Sair.", onde: "apps/controle/kactus_controle/app.py:265" },
     { tipo: "botão", nome: "Ligar", acao: "Sobe API e site no modo escolhido. Só fica ativo com o servidor desligado ou com erro.", onde: "apps/controle/kactus_controle/app.py:273", no: "MODO" },
     { tipo: "botão", nome: "Desligar", acao: "Mata os processos nas portas 3003 e 8000 e os .bat que os lançaram.", onde: "apps/controle/kactus_controle/servidor.py:221" },
     { tipo: "botão", nome: "Reiniciar", acao: "Desliga e liga de novo. Necessário no modo rápido para pegar código novo.", onde: "apps/controle/kactus_controle/servidor.py:243" },
@@ -95,6 +116,15 @@ flowchart LR
     { tipo: "campo", nome: "Iniciar com o Windows", acao: "Cria ou apaga o atalho Kactus.lnk na pasta Inicializar com --inicio (liga sem abrir navegador).", onde: "apps/controle/kactus_controle/sistema.py:86" },
     { tipo: "campo", nome: "Manter o PC acordado", acao: "Enquanto ligado, impede o Windows de dormir.", onde: "apps/controle/kactus_controle/sistema.py:98" },
     { tipo: "botão", nome: "Ver log", acao: "Abre o arquivo de log do servidor.", onde: "apps/controle/kactus_controle/app.py:211" },
+    { tipo: "seção", nome: "Relógio no USB", acao: "Na janela: o último resultado, o botão Importar agora e a opção Importar sozinho ao ligar no USB.", msg: "Ligue o Garmin no USB: os treinos novos entram sozinhos.", onde: "apps/controle/kactus_controle/janela.py:167", no: "USB" },
+    { tipo: "campo", nome: "Importar sozinho ao ligar no USB", acao: "Liga e desliga o vigia (também no menu do ícone). Salvo em config.json; vem ligado.", onde: "apps/controle/kactus_controle/janela.py:180", no: "RVIG" },
+    { tipo: "integração", nome: "Relógio como pendrive", acao: "Procura GARMIN/Activity em todas as letras de unidade e pega os .fit.", onde: "apps/controle/kactus_controle/relogio.py:49", no: "UNI,TIPO" },
+    { tipo: "integração", nome: "Relógio como dispositivo (MTP)", acao: "Forerunner e Fenix atuais não ganham letra: o relogio.ps1 navega pelo Shell do Windows até GARMIN\\Activity, lista e copia.", onde: "apps/controle/kactus_controle/relogio.py:92", no: "MTP" },
+    { tipo: "cálculo", nome: "Só os novos", acao: "Guarda dispositivo + nome de cada arquivo já importado em relogio_vistos.json; copia só os novos para relogio_chegada e apaga a cópia no fim.", onde: "apps/controle/kactus_controle/relogio.py:189", no: "NOVOS,COP,VIS" },
+    { tipo: "API", nome: "Importação direto no banco", acao: "O Controle roda o script da API com os arquivos; a conta é a INITIAL_USER_EMAIL do .env. Mesmo caminho da tela Importar (duplicados ignorados, carga recalculada uma vez).", api: "uv run python -m kactus_api.scripts.import_files --json", onde: "apps/controle/kactus_controle/relogio.py:116", no: "IMP" },
+    { tipo: "sucesso", nome: "Treinos do relógio importados", acao: "Aviso no Windows e na janela, com a hora.", msg: "N treinos novos do relógio no Kactus · N já estavam lá · N com erro", onde: "apps/controle/kactus_controle/app.py:209", no: "AV" },
+    { tipo: "erro", nome: "Falha ao importar do relógio", acao: "Nada é marcado como visto: tenta de novo na próxima conferência.", msg: "Não consegui importar do relógio: …", onde: "apps/controle/kactus_controle/relogio.py:189", no: "RERR" },
+    { tipo: "botão", nome: "Importar agora", acao: "Na janela e no menu: confere o USB na hora e reimporta tudo o que está no relógio.", msg: "Procurando o relógio no USB… · Nenhum relógio com treinos encontrado no USB.", onde: "apps/controle/kactus_controle/app.py:205", no: "AGORA,FORCA" },
     { tipo: "modal", nome: "Sair do Controle", acao: "Pergunta se desliga o servidor também.", msg: "Desligar o servidor do Kactus também? Sim: desliga tudo. Não: o Kactus continua no ar, sem o controle.", onde: "apps/controle/kactus_controle/app.py:242" },
     { tipo: "carregando", nome: "Preparando", acao: "Build da versão rápida quando o código do site mudou.", msg: "Preparando a versão rápida do site (1–2 min)…", onde: "apps/controle/kactus_controle/app.py:35", no: "PREP" },
     { tipo: "carregando", nome: "Ligando", acao: "Espera o site e a API responderem.", onde: "apps/controle/kactus_controle/servidor.py:315", no: "LIG" },

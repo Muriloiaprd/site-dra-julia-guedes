@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "09/10/2026",
-  commit: "plano 2026-10-09 · Fase 3",
+  commit: "plano 2026-10-09 · Fase 4",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -13,7 +13,7 @@ KACTUS_MAPA.meta = {
     { existe: false, nome: "Recursos sociais", detalhe: "Sem amigos, curtidas ou feed. Compartilhar é só pelo Story." },
     { existe: false, nome: "Papéis e permissões", detalhe: "Uma conta por pessoa; todos os dados são filtrados pelo usuário logado." },
     { existe: false, nome: "Revogar sessão", detalhe: "Sair só apaga o token do navegador; trocar a senha não derruba outros aparelhos (o token vale 7 dias)." },
-    { existe: false, nome: "Garmin pela tela", detalhe: "A sincronização existe só em linha de comando e está bloqueada por limite de IP. O caminho atual é exportar o .fit e arrastar em Importar.", onde: "apps/api/kactus_api/scripts/sync_garmin.py" },
+    { existe: false, nome: "Garmin pela tela", detalhe: "A sincronização pela internet existe só em linha de comando e está bloqueada por limite de IP. Os caminhos atuais: ligar o relógio no USB (o Controle importa sozinho) ou exportar o .fit e arrastar em Importar.", onde: "apps/api/kactus_api/scripts/sync_garmin.py" },
     { existe: false, nome: "Strava", detalhe: "Descartado (exige OAuth). A rota /activities/import-normalized já aceitaria os dados." },
     { existe: false, nome: "Funcionar com o PC desligado", detalhe: "Tudo roda no PC; com ele desligado o iPhone mostra 'Kactus desligado'." },
     { existe: true, nome: "Lixeira de atividades", detalhe: "Excluir é reversível até limpar a lixeira; reimportar tira da lixeira.", onde: "apps/web/components/activities/TrashPanel.tsx" },
@@ -37,7 +37,8 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
-    { data: "09/10/2026", commit: "Fase 3", mudanca: "Planejado × feito no dashboard e na Duni, com selos de volume e ritmo e o comentário da Duni sob demanda." },
+    { data: "09/10/2026", commit: "Fase 4", mudanca: "Kactus Controle importa sozinho os treinos do relógio Garmin ligado no USB (pendrive ou MTP); a importação em lote virou o serviço batch_import, usado também pela tela Importar." },
+    { data: "09/10/2026", commit: "dd33a56", mudanca: "Planejado × feito no dashboard e na Duni, com selos de volume e ritmo e o comentário da Duni sob demanda." },
     { data: "09/10/2026", commit: "fe6dbdb", mudanca: "Tênis padrão por esporte: 'Usar como padrão em' no equipamento, treino importado entra com ele e 'Aplicar aos treinos antigos'." },
     { data: "09/10/2026", commit: "c5aab6b", mudanca: "Correções do plano 2026-10-09: descrição preservada ao editar, exclusões conferem a API, erros da API legíveis, erro de formato no plano do objetivo e textos para os códigos de erro da Duni. Seis achados saíram da lista." },
     { data: "09/10/2026", commit: "499fd13", mudanca: "Primeira versão do fluxograma, com as 16 áreas, já incluindo a lixeira de atividades e os tênis com quilometragem." },

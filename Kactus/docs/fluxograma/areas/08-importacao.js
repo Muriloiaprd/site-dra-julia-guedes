@@ -4,7 +4,7 @@ KACTUS_MAPA.areas.push({
   n: 8,
   titulo: "Importação",
   resumo:
-    "Arrastar ou escolher arquivos .fit, .gpx, .tcx, .csv ou .gz (export em massa do Garmin). O site manda em lotes de 15; se um lote falhar, divide ao meio e tenta de novo até lotes de 2. A API lê o arquivo, descarta duplicados, reduz o GPS a um ponto a cada 3 s, calcula as métricas derivadas e os recordes e, no fim do lote, recalcula a carga. Cada treino novo ganha o atalho 'Como foi? →' para o check-in.",
+    "Arrastar ou escolher arquivos .fit, .gpx, .tcx, .csv ou .gz (export em massa do Garmin), ou deixar o Kactus Controle importar sozinho do relógio ligado no USB (área Acesso e servidor). O site manda em lotes de 15; se um lote falhar, divide ao meio e tenta de novo até lotes de 2. A API lê o arquivo, descarta duplicados, reduz o GPS a um ponto a cada 3 s, calcula as métricas derivadas e os recordes e, no fim do lote, recalcula a carga. Cada treino novo ganha o atalho 'Como foi? →' para o check-in.",
   rotas: ["/import"],
   arquivos: [
     "apps/web/app/import/page.tsx",
@@ -82,7 +82,7 @@ flowchart TD
     { tipo: "campo", nome: "Área de arrastar", acao: "Clique, Enter ou espaço abrem o seletor; aceita vários arquivos. No iPhone o seletor não filtra (o iOS não conhece .fit) e o filtro é feito depois.", msg: "Arraste seus arquivos aqui · Solte para importar · Selecionar arquivos", onde: "apps/web/app/import/page.tsx:161", no: "DROP" },
     { tipo: "validação", nome: "Extensão aceita", acao: ".fit, .gpx, .tcx, .csv, .gz; o resto é listado como ignorado.", msg: "Arquivo ignorado: nome. Use fit, gpx, tcx, csv, gz.", onde: "apps/web/app/import/page.tsx:52", no: "EXT,IGN" },
     { tipo: "cálculo", nome: "Lotes com divisão", acao: "15 por lote; se falhar, divide ao meio até 2 por lote. Evita perder tudo num tempo esgotado.", onde: "apps/web/app/import/page.tsx:73", no: "LOTE,HALF" },
-    { tipo: "API", nome: "Upload em lote", acao: "Cada arquivo responde separado: importadas, duplicadas ou erro.", api: "POST /activities/upload/batch", onde: "apps/api/kactus_api/routers/activities.py:87", no: "UP" },
+    { tipo: "API", nome: "Upload em lote", acao: "Cada arquivo responde separado: importadas, duplicadas ou erro. A lógica fica em services/batch_import.py, a mesma do relógio no USB.", api: "POST /activities/upload/batch", onde: "apps/api/kactus_api/services/batch_import.py:40", no: "UP" },
     { tipo: "aviso", nome: "Não feche a página", acao: "Durante o envio a página avisa e o navegador pede confirmação para sair.", msg: "⏳ Importando — não feche nem navegue para outra página até terminar.", onde: "apps/web/app/import/page.tsx:271" },
     { tipo: "carregando", nome: "Barra de progresso", acao: "N de M arquivo(s) e porcentagem; estado 'Processando dados…'.", onde: "apps/web/app/import/page.tsx:261" },
     { tipo: "card", nome: "Importadas · Distância · Duplicadas · Erros", acao: "Contadores animados do lote; Erros mostra os pontos de GPS gravados.", onde: "apps/web/app/import/page.tsx:275" },

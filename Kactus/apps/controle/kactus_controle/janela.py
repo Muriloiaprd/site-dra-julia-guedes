@@ -40,6 +40,9 @@ class Acoes(Protocol):
     def ver_log(self) -> None: ...
     def definir_modo(self, modo: str) -> None: ...
     def consertar_tailscale(self) -> None: ...
+    def importar_relogio_agora(self) -> None: ...
+    def alternar_relogio(self) -> None: ...
+    def relogio_ativo(self) -> bool: ...
 
 
 def ha_quanto(desde: float | None) -> str:
@@ -160,6 +163,25 @@ class Janela:
         self.b_consertar = Botao(acesso, "Consertar", acoes.consertar_tailscale)
         self.b_consertar.configure(padx=10, pady=3, font=(FONTE, 9, "bold"))
 
+        # relogio no USB
+        tk.Label(corpo, text="RELÓGIO NO USB", bg=BG, fg=MUDO, font=(FONTE, 8, "bold")).pack(anchor="w", pady=(16, 4))
+        rel = tk.Frame(corpo, bg=BG)
+        rel.pack(fill="x")
+        self.rel_texto = tk.Label(
+            rel, text="Ligue o Garmin no USB: os treinos novos entram sozinhos.", bg=BG, fg=MUDO,
+            font=(FONTE, 9), justify="left", wraplength=230, anchor="w",
+        )
+        self.rel_texto.pack(side="left", fill="x", expand=True)
+        self.b_relogio = Botao(rel, "Importar agora", acoes.importar_relogio_agora)
+        self.b_relogio.configure(padx=10, pady=3, font=(FONTE, 9, "bold"))
+        self.b_relogio.pack(side="right")
+        self.rel_auto = tk.BooleanVar(value=acoes.relogio_ativo())
+        tk.Checkbutton(
+            corpo, text="Importar sozinho ao ligar no USB", variable=self.rel_auto,
+            command=acoes.alternar_relogio, bg=BG, fg=TEXTO, selectcolor=PAINEL, activebackground=BG,
+            activeforeground=TEXTO, font=(FONTE, 9), anchor="w", highlightthickness=0, cursor="hand2",
+        ).pack(fill="x", pady=(4, 0))
+
         # modo
         tk.Label(corpo, text="MODO", bg=BG, fg=MUDO, font=(FONTE, 8, "bold")).pack(anchor="w", pady=(16, 4))
         self.modo = tk.StringVar(value=modo)
@@ -233,6 +255,10 @@ class Janela:
             self.b_consertar.pack(side="right")
         else:
             self.b_consertar.pack_forget()
+
+    def atualizar_relogio(self, texto: str, ocupado: bool = False) -> None:
+        self.rel_texto.configure(text=texto, fg=TEXTO)
+        self.b_relogio.habilitar(not ocupado)
 
     def _copiar(self) -> None:
         self.acoes.copiar_iphone()
