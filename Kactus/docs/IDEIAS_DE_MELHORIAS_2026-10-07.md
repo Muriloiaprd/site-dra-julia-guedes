@@ -1,6 +1,6 @@
 # Ideias de melhorias — Kactus
 
-Levantadas em 2026-10-07, revisadas em 2026-10-09 (nenhuma estava feita). Nada aqui está aprovado: as escolhidas viram um `PLANEJAMENTO_AAAA-MM-DD.md`.
+Levantadas em 2026-10-07, revisadas em 2026-10-09 (nenhuma estava feita). Em 2026-10-09 o Murilo aprovou todas, **menos a 10, a 16, a 22 e a 23** (descartadas: não fazem sentido para ele). As aprovadas estão em [PLANEJAMENTO_2026-10-09.md](./PLANEJAMENTO_2026-10-09.md).
 
 Tudo com custo R$ 0. Escalas:
 
@@ -19,20 +19,20 @@ Tudo com custo R$ 0. Escalas:
 | 7 | Meta de km por semana | Média | Baixa | Baixa | Você define a meta; o painel mostra quanto falta e avisa se ela sai da faixa segura da carga. |
 | 8 | Contagem regressiva e calendário de provas | Média | Média | Baixa | Dias até a Maratona do Rio e a fase do plano no dashboard, no lugar do cartão "Meta principal" (que hoje diz que não existe meta). |
 | 9 | Backup automático semanal | Média | Baixa | Baixa | O Controle salva o export JSON numa pasta do PC toda semana, guardando as últimas N cópias. |
-| 10 | Frase da Duni como Story | Média | Baixa | Baixa | Novo modelo de Story com a frase do resumo da Duni sobre a semana. |
+| 10 | ~~Frase da Duni como Story~~ (descartada) | Média | Baixa | Baixa | Novo modelo de Story com a frase do resumo da Duni sobre a semana. |
 | 11 | Resumo do mês | Média | Média | Média | Tela e Story com km, horas, treinos, recordes e evolução do mês. |
 | 12 | Notificações no iPhone | Média | Média | Alta | Web Push (iOS 16.4+, app na Tela de Início): treino de hoje, recorde, sem treinar há dias. Só funciona com o PC ligado. |
 | 13 | Ritmo × calor | Média | Média | Média | Mostra quanto o calor pesou no ritmo e na FC, usando a temperatura do relógio. |
 | 14 | Evolução da técnica de corrida | Baixa | Média | Média | Gráfico mensal de cadência, contato com o solo e oscilação no mesmo ritmo. |
 | 15 | Comparar dois treinos | Baixa | Média | Média | Dois treinos lado a lado: métricas, splits e curvas. |
-| 16 | Mapa igual ao do PC no iPhone | Baixa | Baixa | Baixa | Conta grátis no Stadia com o endereço .ts.net liberado. Você cria a conta; o Kactus só usa a chave. |
+| 16 | ~~Mapa igual ao do PC no iPhone~~ (descartada) | Baixa | Baixa | Baixa | Conta grátis no Stadia com o endereço .ts.net liberado. Você cria a conta; o Kactus só usa a chave. |
 | 17 | Stories 4:5 para o feed | Baixa | Média | Média | Os modelos em formato de post do feed, além do Story 9:16. |
 | 18 | Capa de revista | Baixa | Média | Baixa | Novo modelo de Story com o treino como capa de revista. |
 | 19 | Destravar o sync do Garmin | Baixa | Média | Alta | Última tentativa pelo 4G; se falhar, apagar o código (combinado de 2026-09-20). Perde sentido se a ideia 5 for feita. |
 | 20 | Acessibilidade | Baixa | Média | Média | Contraste AA e gráficos usáveis pelo teclado. |
 | 21 | Último painel offline no iPhone | Baixa | Alta | Alta | Guardar o último painel para ver com o PC desligado. Mexe no service worker e em cache de dados com login. |
-| 22 | Kactus na nuvem 24h | Baixa | Alta | Alta | Vercel + Render grátis. Contraria a decisão de uso local; servidor grátis dorme e acorda devagar. |
-| 23 | App na App Store | Baixa | Alta | Alta | US$ 99 por ano: quebra o custo zero. |
+| 22 | ~~Kactus na nuvem 24h~~ (descartada) | Baixa | Alta | Alta | Vercel + Render grátis. Contraria a decisão de uso local; servidor grátis dorme e acorda devagar. |
+| 23 | ~~App na App Store~~ (descartada) | Baixa | Alta | Alta | US$ 99 por ano: quebra o custo zero. |
 
 ## Correções vindas do fluxograma (opcional)
 
