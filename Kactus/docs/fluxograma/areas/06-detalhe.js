@@ -31,7 +31,7 @@ flowchart TD
   FORM --> SV("Salvar"):::acao --> PA[/"PATCH /activities/id"/]:::api
   PA -->|ok| PG
   PA -->|erro| SE["Erro ao salvar"]:::erro
-  PG --> EX("🗑️ Excluir"):::acao --> CF{"Excluir esta atividade?<br/>confirm do navegador"}:::decisao
+  PG --> EX("🗑️ Excluir"):::acao --> CF{"Mover para a lixeira?<br/>confirm do navegador"}:::decisao
   CF -->|sim| DEL[/"DELETE /activities/id"/]:::api --> LST["/activities"]:::tela
 `,
     },
@@ -69,11 +69,11 @@ flowchart TD
     { tipo: "seção", nome: "Topo", acao: "Esporte, data e hora, título (ou 'X km — tempo').", onde: "apps/web/app/activities/[id]/page.tsx:277", no: "PG" },
     { tipo: "botão", nome: "📤 Compartilhar", acao: "Abre o gerador de Story.", onde: "apps/web/app/activities/[id]/page.tsx:292", no: "SH" },
     { tipo: "botão", nome: "✏️ Editar", acao: "Abre o formulário no próprio topo e busca os equipamentos.", api: "GET /equipment", onde: "apps/web/app/activities/[id]/page.tsx:296", no: "ED,EQ" },
-    { tipo: "campo", nome: "Título · Modalidade · Equipamento · Descrição", acao: "Modalidade com 14 opções; Equipamento com 'Nenhum'. A descrição abre sempre vazia.", onde: "apps/web/app/activities/[id]/page.tsx:310", no: "FORM" },
+    { tipo: "campo", nome: "Título · Modalidade · Equipamento · Descrição", acao: "Modalidade com 14 opções; Equipamento com 'Nenhum'. A descrição abre com o texto salvo.", onde: "apps/web/app/activities/[id]/page.tsx:310", no: "FORM" },
     { tipo: "botão", nome: "Salvar / Cancelar", api: "PATCH /activities/{id}", msg: "Salvando…", onde: "apps/web/app/activities/[id]/page.tsx:357", no: "SV,PA" },
-    { tipo: "API", nome: "Editar atividade", acao: "Título, descrição, esporte e equipamento. Trocar o equipamento recalcula o km dos tênis.", api: "PATCH /activities/{id}", onde: "apps/api/kactus_api/routers/activities.py:333" },
+    { tipo: "API", nome: "Editar atividade", acao: "Título, descrição, esporte e equipamento; o detalhe devolve a descrição. Trocar o equipamento recalcula o km dos tênis.", api: "PATCH /activities/{id}", onde: "apps/api/kactus_api/routers/activities.py:333" },
     { tipo: "erro", nome: "Erro ao salvar", msg: "Erro ao salvar", onde: "apps/web/app/activities/[id]/page.tsx:215", no: "SE" },
-    { tipo: "botão", nome: "🗑️ Excluir", acao: "Confirma e manda para a lixeira; volta para a lista.", msg: "Excluir esta atividade? Esta ação não pode ser desfeita.", onde: "apps/web/app/activities/[id]/page.tsx:221", no: "EX,CF,DEL" },
+    { tipo: "botão", nome: "🗑️ Excluir", acao: "Confirma e manda para a lixeira; volta para a lista.", msg: "Mover a atividade para a lixeira? Dá para restaurar depois em Atividades → Lixeira. · Falha ao excluir (mensagem da API)", onde: "apps/web/app/activities/[id]/page.tsx:221", no: "EX,CF,DEL" },
     { tipo: "card", nome: "Métricas principais", acao: "Distância, tempo em movimento (ou duração), pace médio (ou velocidade), FC média.", onde: "apps/web/app/activities/[id]/page.tsx:367" },
     { tipo: "card", nome: "Métricas secundárias", acao: "Tempo total (se houve pausa ≥ 5 s), FC máx, elevação, velocidade, pace ajustado (GAP), deriva cardíaca, cadência, potência, calorias; cada uma com dica ao passar o mouse.", onde: "apps/web/app/activities/[id]/page.tsx:241" },
     { tipo: "seção", nome: "Como foi o treino?", acao: "Check-in opcional. Aberto se ainda não houver; senão mostra o resumo com Editar.", msg: "Opcional. O relógio não sabe como você se sentiu — isso ajuda a Duni a separar cansaço de verdade de um dia ruim.", onde: "apps/web/components/activity/CheckinPanel.tsx:103", no: "C0,CKF,RES,EDT" },

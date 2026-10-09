@@ -87,6 +87,7 @@ flowchart LR
     { tipo: "integração", nome: "Proxy /api → API", acao: "Todo /api/* do site vai para a FastAPI em localhost:8000, com tempo limite de 240 s (por causa da Duni).", api: "/api/:path* → http://localhost:8000/:path*", onde: "apps/web/next.config.mjs:24" },
     { tipo: "permissão", nome: "401 manda para o login", acao: "Qualquer resposta 401 apaga o token e leva a /login.", msg: "Sessão expirada", onde: "apps/web/lib/api.ts:273", no: "ANY" },
     { tipo: "tela", nome: "App na Tela de Início (PWA)", acao: "Manifest com nome Kactus, abre em /dashboard, modo standalone, retrato.", onde: "apps/web/app/manifest.ts:4", no: "PWA" },
+    { tipo: "erro", nome: "Texto dos erros da API", acao: "Erros com detail em texto, objeto (erro interno, Duni) ou lista (validação) viram uma frase legível.", msg: "Erro interno. Tente novamente. · Dados inválidos: …", onde: "apps/web/lib/api.ts:245" },
     { tipo: "carregando", nome: "Acordando o servidor", acao: "Faixa no topo quando uma chamada passa de 3 s.", msg: "Acordando o servidor… pode levar alguns segundos.", onde: "apps/web/components/WakingBanner.tsx:6" },
     { tipo: "link", nome: "Pular para o conteúdo", acao: "Link de acessibilidade no topo de toda tela interna.", onde: "apps/web/components/AppShell.tsx:8" },
   ],

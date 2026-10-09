@@ -104,6 +104,7 @@ export interface ActivityLap {
 }
 
 export interface ActivityDetail extends ActivitySummary {
+  description: string | null;
   equipment_id: string | null;
   elevation_loss_m: number | null;
   max_hr: number | null;
@@ -237,6 +238,30 @@ export interface Profile {
 
 // ---------- helper de fetch ----------
 
+/**
+ * Texto do erro da API. `detail` pode ser texto (HTTPException), objeto
+ * ({error, message}: erro interno e erros da Duni) ou lista (validacao 422).
+ */
+export function apiErrorMessage(body: unknown, status: number, fallback = `Erro ${status}`): string {
+  const detail = (body as { detail?: unknown } | null)?.detail;
+  if (typeof detail === "string" && detail) return detail;
+  if (Array.isArray(detail) && detail.length) {
+    const msgs = detail.map((d) => (d as { msg?: string })?.msg).filter(Boolean);
+    if (msgs.length) return `Dados inválidos: ${msgs.join("; ")}`;
+  }
+  if (detail && typeof detail === "object") {
+    const d = detail as { message?: string; error?: string };
+    if (d.message) return d.message;
+    if (d.error) return d.error;
+  }
+  return fallback;
+}
+
+async function errorFromResponse(res: Response, fallback?: string): Promise<Error> {
+  const body = await res.json().catch(() => ({}));
+  return new Error(apiErrorMessage(body, res.status, fallback));
+}
+
 const REQUEST_TIMEOUT_MS = 60_000;
 const UPLOAD_TIMEOUT_MS = 300_000;
 const WAKING_AFTER_MS = 3_000;
@@ -275,10 +300,7 @@ async function apiFetch<T>(
     window.location.href = "/login";
     throw new Error("Sessão expirada");
   }
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail || `Erro ${res.status}`);
-  }
+  if (!res.ok) throw await errorFromResponse(res);
   return res.json() as Promise<T>;
 }
 
@@ -291,10 +313,7 @@ export async function login(email: string, password: string): Promise<string> {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
   });
-  if (!res.ok) {
-    const detail = await res.json().catch(() => ({}));
-    throw new Error((detail as { detail?: string }).detail || "Falha no login");
-  }
+  if (!res.ok) throw await errorFromResponse(res, "Falha no login");
   const data = await res.json() as { access_token: string };
   return data.access_token;
 }
@@ -378,11 +397,7 @@ export async function putCheckin(id: string, data: CheckinInput): Promise<Activi
 }
 
 export async function deleteActivity(id: string): Promise<void> {
-  const token = getToken();
-  await fetch(`/api/activities/${id}`, {
-    method: "DELETE",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  return voidFetch(`/activities/${id}`, { method: "DELETE" });
 }
 
 /** Atividade na lixeira (excluida, ainda da para restaurar). */
@@ -613,11 +628,7 @@ export async function updateEquipment(id: string, data: EquipmentUpdate): Promis
 }
 
 export async function deleteEquipment(id: string): Promise<void> {
-  const token = getToken();
-  await fetch(`/api/equipment/${id}`, {
-    method: "DELETE",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  return voidFetch(`/equipment/${id}`, { method: "DELETE" });
 }
 
 // ---------- heatmap ----------
@@ -747,7 +758,8 @@ export interface CoachErrorDetail {
     | "no_goal_race"
     | "race_too_close"
     | "invalid_suggestion"
-    | "no_free_week";
+    | "no_free_week"
+    | "internal_error";
   weeks_available?: number;
   message?: string;
   conflict?: { id: string; title: string; status: string };
@@ -1019,10 +1031,7 @@ async function voidFetch(path: string, options: RequestInit): Promise<void> {
   const headers: Record<string, string> = { ...(options.headers as Record<string, string>) };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`/api${path}`, { ...options, headers });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail || `Erro ${res.status}`);
-  }
+  if (!res.ok) throw await errorFromResponse(res);
   // 204 No Content — sem corpo pra ler.
 }
 
@@ -1044,10 +1053,7 @@ export async function exportData(): Promise<void> {
   const res = await fetch("/api/profile/export", {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail || `Erro ${res.status}`);
-  }
+  if (!res.ok) throw await errorFromResponse(res);
   const blob = await res.blob();
   const filename = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1]
     ?? "kactus_export.json";
@@ -1072,10 +1078,7 @@ export async function uploadActivity(file: File): Promise<UploadResult> {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: form,
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail || `Erro ${res.status}`);
-  }
+  if (!res.ok) throw await errorFromResponse(res);
   return res.json() as Promise<UploadResult>;
 }
 
@@ -1088,9 +1091,6 @@ export async function uploadActivitiesBatch(files: File[]): Promise<UploadResult
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: form,
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail || `Erro ${res.status}`);
-  }
+  if (!res.ok) throw await errorFromResponse(res);
   return res.json() as Promise<UploadResult[]>;
 }

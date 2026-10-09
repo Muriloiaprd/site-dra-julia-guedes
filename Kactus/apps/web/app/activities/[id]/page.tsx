@@ -188,7 +188,7 @@ export default function ActivityPage() {
   function openEdit() {
     setEditForm({
       title: activity!.title ?? "",
-      description: "",
+      description: activity!.description ?? "",
       sport: activity!.sport,
       equipment_id: activity!.equipment_id ?? "",
     });
@@ -219,7 +219,7 @@ export default function ActivityPage() {
   }
 
   async function handleDelete() {
-    if (!confirm("Excluir esta atividade? Esta ação não pode ser desfeita.")) return;
+    if (!confirm("Mover a atividade para a lixeira? Dá para restaurar depois em Atividades → Lixeira.")) return;
     setDeleting(true);
     setDeleteError(null);
     try {

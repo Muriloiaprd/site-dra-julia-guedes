@@ -279,3 +279,17 @@ def test_week_without_weekly_plan_shows_the_goal_workouts(auth_client: tuple[Tes
 def test_week_is_empty_without_any_plan(auth_client: tuple[TestClient, dict]) -> None:
     client, _user = auth_client
     assert client.get("/coach/plan/week").json() == {"plan": None, "workouts": []}
+
+
+def test_goal_plan_with_bad_llm_json_is_a_clear_error(auth_client: tuple[TestClient, dict], monkeypatch) -> None:
+    client, _user = auth_client
+    _with_history(client)
+    _race(client, days_ahead=120)
+
+    def _bad(*_a, **_k):
+        raise coach_service.CoachPlanParseError("Gemini retornou JSON invalido: ...")
+
+    monkeypatch.setattr(coach_service, "call_llm", _bad)
+    resp = client.post("/coach/goal-plan/generate", json={})
+
+    assert resp.status_code == 502 and resp.json()["detail"]["error"] == "invalid_plan_response"

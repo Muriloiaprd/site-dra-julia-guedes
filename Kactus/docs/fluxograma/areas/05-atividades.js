@@ -77,7 +77,7 @@ flowchart TD
     { tipo: "seção", nome: "Cartões (celular)", acao: "Título, data, duração, distância e ritmo; botão 🗑 ao lado.", onde: "apps/web/app/activities/page.tsx:436" },
     { tipo: "botão", nome: "Excluir", acao: "Pergunta e manda para a lixeira; some da lista e o contador da lixeira atualiza.", msg: "Mover a atividade para a lixeira? Dá para restaurar depois.", onde: "apps/web/app/activities/page.tsx:118", no: "EX,CF" },
     { tipo: "API", nome: "Excluir (lixeira)", acao: "Preenche deleted_at e recalcula carga do dia em diante e os recordes (em segundo plano).", api: "DELETE /activities/{id}", onde: "apps/api/kactus_api/routers/activities.py:393", no: "DEL,SOFT" },
-    { tipo: "erro", nome: "Erro ao excluir", msg: "Erro ao excluir atividade", onde: "apps/web/app/activities/page.tsx:125" },
+    { tipo: "erro", nome: "Erro ao excluir", acao: "Aparece quando a API recusa; o item continua na lista.", msg: "Erro ao excluir atividade", onde: "apps/web/app/activities/page.tsx:125" },
     { tipo: "botão", nome: "Carregar mais atividades", acao: "Aparece enquanto vierem páginas cheias de 100.", msg: "Carregando…", onde: "apps/web/app/activities/page.tsx:475", no: "MAIS" },
     { tipo: "botão", nome: "Lixeira (N)", acao: "Abre e fecha o painel da lixeira.", onde: "apps/web/app/activities/page.tsx:221", no: "B" },
     { tipo: "API", nome: "Itens da lixeira", acao: "Excluídos, o mais recente primeiro.", api: "GET /activities/trash", onde: "apps/api/kactus_api/routers/activities.py:268" },

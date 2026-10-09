@@ -42,6 +42,20 @@ export function coachErrorMessage(e: unknown): { title: string; detail: string }
         return { title: "A prova está perto demais", detail: e.detail.message ?? "Menos de 2 semanas: use o plano da semana." };
       case "invalid_response":
         return { title: "A resposta veio num formato inválido", detail: "Acontece às vezes com o modelo grátis. Mande a mensagem de novo." };
+      case "no_free_week":
+        return { title: "Falta o plano da semana pelo estado de agora", detail: "Gere o plano na aba \"Da semana\" ou em Comparar e depois escolha os dias." };
+      case "not_editable":
+        return { title: "Esse treino não pode mais mudar", detail: e.detail.message ?? "Só dá para mudar treino ainda não feito, de hoje em diante." };
+      case "past_date":
+        return { title: "Esse dia já passou", detail: e.detail.message ?? "Escolha hoje ou um dia mais à frente." };
+      case "not_swappable":
+        return { title: "Não dá para trocar com esse dia", detail: e.detail.message ?? "O treino desse dia já foi feito ou marcado." };
+      case "invalid_suggestion":
+        return { title: "A sugestão veio incompleta", detail: e.detail.message ?? "Peça a análise de novo." };
+      case "not_found":
+        return { title: "Não encontrei esse item", detail: e.detail.message ?? "Ele pode ter sido apagado. Recarregue a página." };
+      case "internal_error":
+        return { title: "Erro no servidor do Kactus", detail: "Algo falhou do lado do PC. Tente de novo; se repetir, veja o log no Kactus Controle." };
     }
   }
   return { title: "Erro", detail: e instanceof Error ? e.message : "Erro desconhecido" };

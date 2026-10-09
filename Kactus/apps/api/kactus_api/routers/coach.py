@@ -182,6 +182,8 @@ def post_generate_goal_plan(body: GoalPlanRequest, current_user: CurrentUser, db
         _raise_insufficient_data(e)
     except CoachUnavailableError as e:
         _raise_unavailable(e)
+    except CoachPlanParseError as e:
+        _raise_parse_error(e)
     return {"plan": plan, "workouts": rows}
 
 

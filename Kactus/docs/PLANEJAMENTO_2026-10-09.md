@@ -78,3 +78,4 @@ Regras deste plano:
 
 ## Andamento
 - **Fase 0 — feita:** este documento.
+- **Fase 1 — feita:** descrição volta no detalhe (`ActivityDetail.description`) e o formulário abre preenchido; `deleteActivity`/`deleteEquipment` usam `voidFetch` e mostram o erro; `apiErrorMessage` em `lib/api.ts` transforma `detail` texto/objeto/lista em frase; `POST /coach/goal-plan/generate` trata `CoachPlanParseError` (502 `invalid_plan_response`); textos novos em `lib/coachErrors.ts`. Testes: 273 da API passando (+2 novos).

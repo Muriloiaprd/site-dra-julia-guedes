@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "09/10/2026",
-  commit: "499fd13",
+  commit: "plano 2026-10-09 · Fase 1",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -23,12 +23,6 @@ KACTUS_MAPA.meta = {
   ],
 
   achados: [
-    { gravidade: "media", titulo: "Editar a atividade apaga a descrição", detalhe: "O formulário abre com a descrição sempre vazia (ela nem vem da API) e o Salvar manda vazio, então a descrição salva some.", onde: "apps/web/app/activities/[id]/page.tsx:191 · :208" },
-    { gravidade: "media", titulo: "Excluir atividade ou equipamento ignora erro da API", detalhe: "deleteActivity e deleteEquipment não olham a resposta: se o servidor falhar, a tela tira o item mesmo assim.", onde: "apps/web/lib/api.ts:380 · :615" },
-    { gravidade: "media", titulo: "Erros 500 e 422 aparecem como '[object Object]'", detalhe: "O erro interno devolve detail como objeto e a validação como lista; o apiFetch usa detail direto como texto.", onde: "apps/web/lib/api.ts:280 · apps/api/kactus_api/main.py:56" },
-    { gravidade: "media", titulo: "Plano do objetivo com JSON inválido vira erro interno", detalhe: "A rota trata prova, dados e IA indisponível, mas não a resposta fora do formato; a tela mostra 'Erro · internal_error'.", onde: "apps/api/kactus_api/routers/coach.py:174" },
-    { gravidade: "baixa", titulo: "Texto de excluir no detalhe está velho", detalhe: "Diz 'Esta ação não pode ser desfeita', mas agora vai para a lixeira (a lista já usa o texto novo).", onde: "apps/web/app/activities/[id]/page.tsx:222" },
-    { gravidade: "baixa", titulo: "Códigos de erro da Duni sem texto amigável", detalhe: "no_free_week, not_editable, past_date, not_swappable, invalid_suggestion e internal_error caem em 'Erro' com o código cru quando passam pelo coachErrorMessage.", onde: "apps/web/lib/coachErrors.ts:4" },
     { gravidade: "baixa", titulo: "Dois riscos de lesão diferentes", detalhe: "O dashboard calcula só pelo ACWR do último dia; o sino e Desempenho usam a regra de 14 dias do servidor. Podem discordar no mesmo dia.", onde: "apps/web/lib/athlete.ts:196 · apps/api/kactus_api/metrics/predictions.py:90" },
     { gravidade: "baixa", titulo: "Trocar a modalidade não recalcula a carga", detalhe: "Recalcula os recordes, mas não a carga diária (que muda para bike com potência).", onde: "apps/api/kactus_api/routers/activities.py:354" },
     { gravidade: "baixa", titulo: "Treino na lixeira continua 'feito' no plano", detalhe: "A aderência só olha treinos ainda planejados; o planejado só volta a 'planejado' quando a lixeira é limpa.", onde: "apps/api/kactus_api/ai/coach_service.py:649" },
@@ -43,6 +37,7 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
+    { data: "09/10/2026", commit: "Fase 1", mudanca: "Correções do plano 2026-10-09: descrição preservada ao editar, exclusões conferem a API, erros da API legíveis, erro de formato no plano do objetivo e textos para os códigos de erro da Duni. Seis achados saíram da lista." },
     { data: "09/10/2026", commit: "499fd13", mudanca: "Primeira versão do fluxograma, com as 16 áreas, já incluindo a lixeira de atividades e os tênis com quilometragem." },
   ],
 };

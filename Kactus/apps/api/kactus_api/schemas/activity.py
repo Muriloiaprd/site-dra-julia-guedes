@@ -97,6 +97,7 @@ class ActivityLapOut(BaseModel):
 
 
 class ActivityDetail(ActivitySummary):
+    description: str | None = None
     equipment_id: uuid.UUID | None = None
     elevation_loss_m: float | None = None
     max_hr: int | None = None
