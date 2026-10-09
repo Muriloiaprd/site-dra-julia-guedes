@@ -39,6 +39,9 @@ const EQUIPMENT_TYPES = [
 const TYPE_ICON: Record<string, string> = Object.fromEntries(EQUIPMENT_TYPES.map((t) => [t.value, t.icon]));
 const TYPE_LABEL: Record<string, string> = Object.fromEntries(EQUIPMENT_TYPES.map((t) => [t.value, t.label]));
 
+/** So tenis conta quilometragem; o resto nao mostra distancia. */
+const tracksDistance = (type: string) => type === "shoe";
+
 const INITIAL_FORM: EquipmentCreate = {
   name: "",
   type: "shoe",
@@ -118,7 +121,7 @@ export default function EquipmentPage() {
         brand: form.brand || null,
         model: form.model || null,
         notes: form.notes || null,
-        initial_distance_m: Number(form.initial_distance_m) * 1000,
+        initial_distance_m: tracksDistance(form.type) ? Number(form.initial_distance_m) * 1000 : 0,
         // na edicao, "" apaga a foto que existia
         photo_data_url: form.photo_data_url || (editId ? "" : null),
       };
@@ -175,14 +178,14 @@ export default function EquipmentPage() {
 
   const active = items.filter((i) => !i.retired_at);
   const retired = items.filter((i) => i.retired_at);
-  const activeKm = active.reduce((s, i) => s + i.total_distance_m, 0) / 1000;
+  const activeKm = active.filter((i) => tracksDistance(i.type)).reduce((s, i) => s + i.total_distance_m, 0) / 1000;
 
   return (
     <PageContainer width="medium">
       <PageHeader
         kicker="Gestão"
         title="Equipamentos"
-        description="Tênis, bikes e acessórios — acompanhe a quilometragem de cada item."
+        description="Tênis, bikes e acessórios — acompanhe a quilometragem dos seus tênis."
         icon={<span className="text-xl" aria-hidden>👟</span>}
         actions={<button onClick={openNew} className="od-btn od-btn-primary">+ Adicionar</button>}
       />
@@ -192,7 +195,7 @@ export default function EquipmentPage() {
       <div className="mb-4 grid grid-cols-3 gap-3">
         {[
           { k: "Em uso", v: active.length, u: "" },
-          { k: "Distância acumulada", v: activeKm.toFixed(0), u: "km" },
+          { k: "Distância dos tênis", v: activeKm.toFixed(0), u: "km" },
           { k: "Aposentados", v: retired.length, u: "" },
         ].map((t) => (
           <Panel key={t.k} className="!p-4">
@@ -262,7 +265,7 @@ export default function EquipmentPage() {
                 className="od-input"
               />
             </label>
-            <label>
+            {tracksDistance(form.type) && <label>
               <span className="od-field-label">Distância inicial (km)</span>
               <input
                 type="number"
@@ -272,7 +275,7 @@ export default function EquipmentPage() {
                 onChange={(e) => setForm({ ...form, initial_distance_m: parseFloat(e.target.value) || 0 })}
                 className="od-input"
               />
-            </label>
+            </label>}
             <div className="sm:col-span-2">
               <span className="od-field-label">Foto da peça</span>
               <div className="flex items-center gap-3">
@@ -421,19 +424,19 @@ function EquipmentCard({
         </div>
       </div>
 
-      <div className="mt-5 flex items-end justify-between gap-3">
-        <div>
+      {(tracksDistance(item.type) || item.purchase_date) && <div className="mt-5 flex items-end justify-between gap-3">
+        {tracksDistance(item.type) ? <div>
           <div className="od-metric-label">Distância total</div>
           <div className="od-num mt-1 text-[2rem] leading-none text-white">
             {(total / 1000).toFixed(total >= 100000 ? 0 : 1)}<span className="ml-1 font-sans text-sm font-semibold text-brand-accent">km</span>
           </div>
-        </div>
+        </div> : <div />}
         {item.purchase_date && (
           <div className="text-right text-[0.7rem] text-brand-muted">
             desde<br /><span className="text-brand-textSecondary">{new Date(item.purchase_date + "T12:00:00").toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</span>
           </div>
         )}
-      </div>
+      </div>}
 
       {item.notes && <p className="mt-3 line-clamp-2 text-xs text-brand-muted">{item.notes}</p>}
 
