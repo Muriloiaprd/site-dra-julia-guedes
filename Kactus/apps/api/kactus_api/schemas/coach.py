@@ -122,6 +122,12 @@ class GoalPlanRequest(BaseModel):
     days_per_week: int = Field(default=3, ge=3, le=5)
 
 
+class GoalTargetRequest(BaseModel):
+    """Tempo-alvo da prova em segundos (10 min a 24 h); nulo volta ao calculado pelo VDOT."""
+
+    target_time_s: int | None = Field(default=None, ge=600, le=86400)
+
+
 class GoalPlanOut(BaseModel):
     """Plano do objetivo: fases [{fase, inicio, fim, foco}], semanas [{semana, inicio,
     fim, fase, km, longao_km, alivio}] e paces em s/km (leve_rapido, leve_lento,
@@ -135,6 +141,7 @@ class GoalPlanOut(BaseModel):
     race_distance_km: float
     days_per_week: int
     vdot: float | None
+    target_time_s: int | None = None  # alvo do atleta; nulo = ritmo de prova pelo VDOT
     summary: str
     phases: list[dict]
     weeks: list[dict]

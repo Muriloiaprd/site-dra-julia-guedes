@@ -532,7 +532,7 @@ export default function CoachPage() {
         </Panel>
 
         {/* ───────── Plano do objetivo (ate a prova) ───────── */}
-        {goal && <GoalPlanPanel goal={goal} onGenerate={handleGenerateGoal} generating={generatingGoal} />}
+        {goal && <GoalPlanPanel goal={goal} onGenerate={handleGenerateGoal} generating={generatingGoal} onGoalChange={setGoal} />}
 
         {/* ───────── Planejado × feito ───────── */}
         <AdherencePanel days={14} />

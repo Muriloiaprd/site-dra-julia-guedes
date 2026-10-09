@@ -31,6 +31,7 @@ from kactus_api.schemas.coach import (
     FreeWeekResponse,
     GoalPlanRequest,
     GoalPlanResponse,
+    GoalTargetRequest,
     MemoryIn,
     MemoryOut,
     MemoryUpdate,
@@ -186,6 +187,21 @@ def post_generate_goal_plan(body: GoalPlanRequest, current_user: CurrentUser, db
     except CoachPlanParseError as e:
         _raise_parse_error(e)
     return {"plan": plan, "workouts": rows}
+
+
+@router.put("/goal-plan/target", response_model=GoalPlanResponse)
+def put_goal_target(body: GoalTargetRequest, current_user: CurrentUser, db: DbSession) -> dict:
+    """Tempo-alvo do atleta na prova do plano: ajusta o ritmo de prova e os treinos que usam ele."""
+    try:
+        plan = coach_service.set_goal_target(db, current_user.id, body.target_time_s)
+    except PlanEditError as e:
+        _raise_plan_edit(e)
+    rows = db.execute(
+        select(PlannedWorkout)
+        .where(PlannedWorkout.user_id == current_user.id, PlannedWorkout.goal_plan_id == plan.id)
+        .order_by(PlannedWorkout.date.asc())
+    ).scalars().all()
+    return {"plan": plan, "workouts": list(rows)}
 
 
 @router.get("/goal-plan", response_model=GoalPlanResponse)

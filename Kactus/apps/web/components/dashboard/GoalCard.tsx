@@ -43,7 +43,7 @@ export function GoalCard({
   const week = weekIdx >= 0 ? main!.weeks[weekIdx] : null;
   const phase = week ? PHASE_STYLE[week.fase] : null;
   const progress = main && main.weeks.length ? Math.max(0, weekIdx + 1) / main.weeks.length * 100 : 0;
-  const targetS = main ? main.paces.prova * main.race_distance_km : null;
+  const targetS = main ? main.target_time_s ?? main.paces.prova * main.race_distance_km : null;
 
   return (
     <Panel variant="accent" className={`flex flex-col overflow-hidden ${className}`} aria-label="Próxima prova">
@@ -72,7 +72,7 @@ export function GoalCard({
           )}
           {targetS != null && (
             <p className="mt-3 text-xs text-brand-textSecondary">
-              Alvo do plano: <strong className="od-num text-white">{formatClock(targetS)}</strong> · {formatPaceShort(main.paces.prova)}/km
+              {main.target_time_s ? "Seu alvo" : "Alvo do plano"}: <strong className="od-num text-white">{formatClock(targetS)}</strong> · {formatPaceShort(main.paces.prova)}/km
             </p>
           )}
         </div>

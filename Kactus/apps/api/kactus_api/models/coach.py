@@ -48,6 +48,8 @@ class GoalPlan(Base):
     race_distance_km: Mapped[float] = mapped_column(Numeric(5, 1), nullable=False)
     days_per_week: Mapped[int] = mapped_column(nullable=False)
     vdot: Mapped[float | None] = mapped_column(Numeric(4, 1), nullable=True)
+    # tempo-alvo escolhido pelo atleta (s); nulo = o ritmo de prova sai do VDOT
+    target_time_s: Mapped[int | None] = mapped_column(nullable=True)
     summary: Mapped[str] = mapped_column(Text(), nullable=False)
     phases: Mapped[list] = mapped_column(JSONB(), nullable=False)  # [{fase, inicio, fim, foco}]
     weeks: Mapped[list] = mapped_column(JSONB(), nullable=False)  # [{semana, inicio, fim, fase, km, longao_km, alivio}]

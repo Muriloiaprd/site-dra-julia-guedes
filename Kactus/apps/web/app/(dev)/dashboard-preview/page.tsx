@@ -50,7 +50,7 @@ const weeks = Array.from({ length: 30 }, (_, i) => {
 
 const GOAL = {
   plan: {
-    id: "g1", race_name: "Maratona do Rio", race_date: day(200), race_distance_km: 42.2, days_per_week: 3, vdot: 35.8,
+    id: "g1", race_name: "Maratona do Rio", race_date: day(200), race_distance_km: 42.2, days_per_week: 3, vdot: 35.8, target_time_s: 14340,
     summary: "Base longa, construção e pico até a maratona.", phases: [], weeks,
     paces: { leve_rapido: 395, leve_lento: 425, limiar: 330, intervalo: 305, prova: 358 }, analysis: [], model_used: "exemplo", created_at: at(-20),
   },

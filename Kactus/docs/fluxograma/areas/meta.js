@@ -35,7 +35,8 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
-    { data: "09/10/2026", commit: "verificação", mudanca: "Backup semanal passa a ir para a pasta Documentos de verdade (OneDrive/Documentos), não a Documents escondida." },
+    { data: "09/10/2026", commit: "alvo", mudanca: "Tempo-alvo escolhido pelo atleta no plano do objetivo (PUT /coach/goal-plan/target, migration 027): muda o ritmo de prova e os treinos que usam ele." },
+    { data: "09/10/2026", commit: "6418614", mudanca: "Backup semanal passa a ir para a pasta Documentos de verdade (OneDrive/Documentos), não a Documents escondida." },
     { data: "09/10/2026", commit: "4f55c53", mudanca: "Com o PC desligado, a tela Kactus desligado mostra o último painel visto no aparelho, com a faixa Sem conexão com o PC e a data." },
     { data: "09/10/2026", commit: "5add391", mudanca: "Notificações Web Push (iPhone pela Tela de Início): treino de hoje, recorde novo e dias sem treinar, ligadas no Perfil; rotas /push/*, migration 026, avisos rodando dentro da API." },
     { data: "09/10/2026", commit: "13d1f12", mudanca: "Acessibilidade: cinzas apagados com contraste AA, calendário do dashboard pelas setas, resumo da Constância para leitor de tela e setas nos gráficos novos." },

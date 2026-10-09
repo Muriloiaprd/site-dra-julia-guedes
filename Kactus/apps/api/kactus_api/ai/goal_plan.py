@@ -133,14 +133,16 @@ def race_time_s(vdot: float, distance_km: float) -> float:
     return (lo + hi) / 2
 
 
-def paces(vdot: float, race_km: float) -> dict[str, float]:
-    """Paces de treino em s/km: leve (faixa), limiar, intervalo e o da prova."""
+def paces(vdot: float, race_km: float, target_s: float | None = None) -> dict[str, float]:
+    """Paces de treino em s/km: leve (faixa), limiar, intervalo e o da prova. Com
+    tempo-alvo do atleta, so o ritmo de prova segue o alvo; os de treino seguem o VDOT
+    de hoje (treinar pelo condicionamento atual, nao pelo desejado)."""
     return {
         "leve_rapido": _pace_at(vdot, 0.74),
         "leve_lento": _pace_at(vdot, 0.66),
         "limiar": _pace_at(vdot, 0.88),
         "intervalo": _pace_at(vdot, 0.975),
-        "prova": race_time_s(vdot, race_km) / race_km,
+        "prova": target_s / race_km if target_s else race_time_s(vdot, race_km) / race_km,
     }
 
 

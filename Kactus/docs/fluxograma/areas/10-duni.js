@@ -90,6 +90,9 @@ flowchart TD
   EXP --> DPW("Dias/semana 3 · 4 · 5"):::acao --> GEN("Gerar plano do objetivo"):::acao
   HAS -->|sim| SHOW["Prova, data, faltam N dias, distância<br/>ritmos Leve, Limiar, Intervalo, Prova"]:::ok
   SHOW --> REDO("Refazer a partir de hoje"):::acao --> GEN
+  SHOW --> ALVO("Definir meu alvo · Mudar<br/>h:mm:ss"):::acao --> ALVOA[/"PUT /coach/goal-plan/target"/]:::api
+  ALVOA --> ALVOC[["Ritmo de prova = alvo ÷ distância<br/>treinos com ritmo de prova recalculados<br/>leve, limiar e intervalo seguem o VDOT"]]:::calc
+  SHOW --> ALVOV("Usar o calculado"):::acao --> ALVOA
   GEN --> RACE{"Prova futura com data<br/>e distância reconhecível?"}:::decisao
   RACE -->|não| E1["Falta a prova com data"]:::erro
   RACE -->|menos de 2 semanas| E2["A prova está perto demais"]:::erro
@@ -185,13 +188,14 @@ flowchart TD
     { tipo: "seção", nome: "Resumo da Duni", acao: "Status da semana, pontos (bom, atenção, risco), ações e uma pergunta. Resumos antigos aparecem como texto.", msg: "A Duni ainda não fez o resumo. Peça o relatório para ela dizer como você está e o que fazer.", onde: "apps/web/app/coach/page.tsx:493", no: "RES" },
     { tipo: "botão", nome: "Responder à pergunta do resumo", acao: "Põe a pergunta como 'Respondendo:' no chat e foca a caixa.", onde: "apps/web/app/coach/page.tsx:385", no: "RESP" },
     { tipo: "card", nome: "Hoje · Forma · Risco de lesão · Treinos planejados", acao: "Indicadores calculados (sem IA) ao lado do resumo.", onde: "apps/web/app/coach/page.tsx:397", no: "IND" },
-    { tipo: "seção", nome: "Plano do objetivo (vazio)", msg: "A Duni monta todos os treinos até a sua prova… Ela usa a prova com data que estiver em \"O que a Duni sabe de você\".", onde: "apps/web/components/coach/GoalPlanPanel.tsx:181", no: "EXP" },
-    { tipo: "campo", nome: "Dias/semana", acao: "3, 4 ou 5 dias de corrida.", onde: "apps/web/components/coach/GoalPlanPanel.tsx:170", no: "DPW" },
+    { tipo: "seção", nome: "Plano do objetivo (vazio)", msg: "A Duni monta todos os treinos até a sua prova… Ela usa a prova com data que estiver em \"O que a Duni sabe de você\".", onde: "apps/web/components/coach/GoalPlanPanel.tsx:246", no: "EXP" },
+    { tipo: "campo", nome: "Dias/semana", acao: "3, 4 ou 5 dias de corrida.", onde: "apps/web/components/coach/GoalPlanPanel.tsx:235", no: "DPW" },
     { tipo: "seção", nome: "Plano do objetivo", acao: "Nome e data da prova, dias que faltam, distância, resumo; ritmos Leve, Limiar, Intervalo e Ritmo de prova.", onde: "apps/web/components/coach/GoalPlanPanel.tsx:206", no: "GP,HAS,SHOW" },
-    { tipo: "botão", nome: "Refazer a partir de hoje", acao: "Gera de novo mantendo o que já foi feito.", msg: "Refazendo…", onde: "apps/web/components/coach/GoalPlanPanel.tsx:233", no: "REDO,GEN" },
-    { tipo: "seção", nome: "O que a Duni levou em conta · 6 meses", onde: "apps/web/components/coach/GoalPlanPanel.tsx:240", no: "TL" },
-    { tipo: "seção", nome: "Fases e km por semana", acao: "Base, Construção, Pico, Polimento; barra mais clara = semana de alívio; tocar numa semana lista os treinos dela (pulados aparecem apagados).", onde: "apps/web/components/coach/GoalPlanPanel.tsx:257", no: "PH,WC,WW" },
-    { tipo: "cálculo", nome: "Prova-alvo", acao: "A prova futura mais longa com data (empate: a mais próxima); precisa de 2+ semanas até ela.", onde: "apps/api/kactus_api/ai/coach_service.py:1600", no: "RACE" },
+    { tipo: "campo", nome: "Tempo-alvo da prova", acao: "Mostra Seu alvo (escolhido) ou Alvo calculado (pelo VDOT). Definir meu alvo / Mudar abre o campo h:mm:ss com o ritmo de prova ao lado; Usar o calculado apaga o alvo. Muda o ritmo de prova e, nos treinos ainda planejados de hoje em diante, o ritmo, a zona e a duração de progressivo, longão progressivo, longão com ritmo de prova, ritmo de prova e da própria prova. Refazer o plano mantém o alvo, e a Duni recebe o alvo ao montar e revisar.", api: "PUT /coach/goal-plan/target", msg: "Use h:mm:ss, como 3:59:00.", onde: "apps/web/components/coach/GoalPlanPanel.tsx:236", no: "ALVO,ALVOA,ALVOC,ALVOV" },
+    { tipo: "botão", nome: "Refazer a partir de hoje", acao: "Gera de novo mantendo o que já foi feito.", msg: "Refazendo…", onde: "apps/web/components/coach/GoalPlanPanel.tsx:299", no: "REDO,GEN" },
+    { tipo: "seção", nome: "O que a Duni levou em conta · 6 meses", onde: "apps/web/components/coach/GoalPlanPanel.tsx:306", no: "TL" },
+    { tipo: "seção", nome: "Fases e km por semana", acao: "Base, Construção, Pico, Polimento; barra mais clara = semana de alívio; tocar numa semana lista os treinos dela (pulados aparecem apagados).", onde: "apps/web/components/coach/GoalPlanPanel.tsx:323", no: "PH,WC,WW" },
+    { tipo: "cálculo", nome: "Prova-alvo", acao: "A prova futura mais longa com data (empate: a mais próxima); precisa de 2+ semanas até ela.", onde: "apps/api/kactus_api/ai/coach_service.py:1601", no: "RACE" },
     { tipo: "cálculo", nome: "Histórico de 6 meses", acao: "Último mês pesa mais; dor reduz a progressão semanal.", onde: "apps/api/kactus_api/ai/training_history.py", no: "HIST" },
     { tipo: "cálculo", nome: "Esqueleto do plano", acao: "Semanas, fases, km, longão, alívio e ritmos pelo VDOT são código; a Duni só escolhe o tipo dentro das opções da fase, título e objetivo.", onde: "apps/api/kactus_api/ai/goal_plan.py", no: "SK,IAG" },
     { tipo: "IA", nome: "Plano estável", acao: "Respostas de plano usam temperatura 0 e semente 7: o mesmo contexto dá o mesmo plano.", onde: "apps/api/kactus_api/ai/coach_service.py:763" },
@@ -212,7 +216,7 @@ flowchart TD
     { tipo: "seção", nome: "Da semana (pelo estado de agora)", acao: "Proposta que não muda a agenda; Gerar plano da semana nesta vista monta só a proposta.", api: "POST /coach/plan/free/generate", msg: "Proposta: não muda a sua agenda. Para usar algum dia, vá em Comparar.", onde: "apps/web/components/coach/WeekPlans.tsx:243", no: "FREE,GF,IAF" },
     { tipo: "seção", nome: "Comparar · Objetivo × Agora", acao: "Totais (km, treinos, longão, fortes) e dia a dia; dias diferentes destacados; recomendação da Duni: seguir o objetivo, seguir a semana ou misturar.", onde: "apps/web/components/coach/WeekPlans.tsx:60", no: "CMP" },
     { tipo: "botão", nome: "Usar o da semana · Usar a semana toda", acao: "Leva para a agenda os dias escolhidos (ou todos de hoje em diante); feito e pulado não mudam.", api: "POST /coach/plan/free/use", onde: "apps/web/components/coach/WeekPlans.tsx:109", no: "USE,UF" },
-    { tipo: "erro", nome: "Sem plano livre", msg: "Gere o plano da semana pelo estado de agora antes.", onde: "apps/api/kactus_api/ai/coach_service.py:2021" },
+    { tipo: "erro", nome: "Sem plano livre", msg: "Gere o plano da semana pelo estado de agora antes.", onde: "apps/api/kactus_api/ai/coach_service.py:2073" },
     { tipo: "seção", nome: "Chat em formato de celular", acao: "Barra de status, cabeçalho 'Duni · online / digitando… / não configurada', balões com hora.", onde: "apps/web/app/coach/page.tsx:555", no: "CHAT" },
     { tipo: "vazio", nome: "Chat vazio", acao: "Quatro perguntas prontas.", msg: "Pergunte sobre seus treinos, carga ou recuperação. Conte também seu objetivo e suas provas.", onde: "apps/web/app/coach/page.tsx:596", no: "C0,SUG" },
     { tipo: "campo", nome: "Mensagem", acao: "Enter ou ➤ envia. Respondendo a uma pergunta, a mensagem vai como 'Sobre \"pergunta\": resposta'.", api: "POST /coach/chat", onde: "apps/web/app/coach/page.tsx:666", no: "TXT,SEND,TYP" },
@@ -242,13 +246,14 @@ flowchart TD
     { tipo: "cálculo", nome: "Selo de ritmo", acao: "Só corrida: o pace médio contra a faixa do alvo (texto do ritmo; um valor só vira ±10 s), com 5 s/km de folga.", onde: "apps/api/kactus_api/ai/adherence.py:65", no: "ARIT,ASELO2" },
     { tipo: "botão", nome: "Pedir comentário da Duni / Ver comentário da Duni", acao: "Usa o comentário da atividade, que já lê o planejado do dia; só chama a IA quando pedido.", api: "POST /coach/activities/{id}/analyze", msg: "A Duni está lendo o treino…", onde: "apps/web/components/coach/AdherencePanel.tsx:101", no: "ATEM,AVER,APED,AIA,AERR" },
     { tipo: "vazio", nome: "Treino pulado", msg: "Não houve treino nesse dia", onde: "apps/web/components/coach/AdherencePanel.tsx:55" },
-    { tipo: "API", nome: "Planejado × feito", acao: "Lista os treinos com desfecho dos últimos N dias (1 a 60), o mais recente primeiro.", api: "GET /coach/plan/adherence", onde: "apps/api/kactus_api/routers/coach.py:320", no: "PAPI,AREC" },
+    { tipo: "API", nome: "Planejado × feito", acao: "Lista os treinos com desfecho dos últimos N dias (1 a 60), o mais recente primeiro.", api: "GET /coach/plan/adherence", onde: "apps/api/kactus_api/routers/coach.py:336", no: "PAPI,AREC" },
     { tipo: "link", nome: "Ver treino →", onde: "apps/web/components/coach/AdherencePanel.tsx:105", no: "AVT,ADET" },
-    { tipo: "API", nome: "Listar treinos planejados", acao: "Usada pelo dashboard (35 dias) e pela Duni (14 dias).", api: "GET /coach/plan", onde: "apps/api/kactus_api/routers/coach.py:316" },
-    { tipo: "API", nome: "Plano do objetivo atual", api: "GET /coach/goal-plan", onde: "apps/api/kactus_api/routers/coach.py:188" },
-    { tipo: "API", nome: "Semana atual", acao: "Plano da semana vigente e os treinos pela data; sem plano da semana, os 7 dias do objetivo.", api: "GET /coach/plan/week", onde: "apps/api/kactus_api/routers/coach.py:203" },
-    { tipo: "API", nome: "Plano livre atual", api: "GET /coach/plan/free", onde: "apps/api/kactus_api/routers/coach.py:245" },
+    { tipo: "API", nome: "Listar treinos planejados", acao: "Usada pelo dashboard (35 dias) e pela Duni (14 dias).", api: "GET /coach/plan", onde: "apps/api/kactus_api/routers/coach.py:332" },
+    { tipo: "API", nome: "Tempo-alvo do plano", acao: "target_time_s de 600 a 86400 s, ou nulo; 404 sem plano ativo.", api: "PUT /coach/goal-plan/target", onde: "apps/api/kactus_api/routers/coach.py:208" },
+    { tipo: "API", nome: "Plano do objetivo atual", api: "GET /coach/goal-plan", onde: "apps/api/kactus_api/routers/coach.py:189" },
+    { tipo: "API", nome: "Semana atual", acao: "Plano da semana vigente e os treinos pela data; sem plano da semana, os 7 dias do objetivo.", api: "GET /coach/plan/week", onde: "apps/api/kactus_api/routers/coach.py:204" },
+    { tipo: "API", nome: "Plano livre atual", api: "GET /coach/plan/free", onde: "apps/api/kactus_api/routers/coach.py:261" },
     { tipo: "API", nome: "Último resumo salvo", api: "GET /coach/analyze", onde: "apps/api/kactus_api/routers/coach.py:132" },
-    { tipo: "API", nome: "Histórico do chat", api: "GET /coach/chat/history", onde: "apps/api/kactus_api/routers/coach.py:390" },
+    { tipo: "API", nome: "Histórico do chat", api: "GET /coach/chat/history", onde: "apps/api/kactus_api/routers/coach.py:406" },
   ],
 });

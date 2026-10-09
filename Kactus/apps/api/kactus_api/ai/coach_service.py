@@ -1276,6 +1276,7 @@ def _review_inputs(db: Session, user_id: uuid.UUID, workout: PlannedWorkout) -> 
                 f"Plano do objetivo: {goal.race_name} em {goal.race_date.isoformat()}; esta e a semana "
                 f"{wk['semana']} ({goal_plan.PHASE_LABEL.get(wk['fase'], wk['fase'])}"
                 f"{', alivio' if wk['alivio'] else ''}), {wk['km']} km na semana."
+                + (f" Alvo do atleta na prova: {fmt_clock(goal.target_time_s)}." if goal.target_time_s else "")
             )
     return (plan.status if plan else "sem plano semanal"), list(week), goal_line
 
@@ -1762,15 +1763,18 @@ def generate_goal_plan(
     db: Session, user_id: uuid.UUID, days_per_week: int = 3, today: date | None = None,
 ) -> tuple[GoalPlan, list[PlannedWorkout], str]:
     """Esqueleto pelo codigo + tipo/titulo/objetivo pela Duni. Refaz de hoje em diante:
-    treinos feitos ou pulados ficam; os planejados dai para frente sao trocados."""
+    treinos feitos ou pulados ficam; os planejados dai para frente sao trocados. O
+    tempo-alvo do atleta passa do plano anterior para o novo (mesma prova)."""
     today = today or date.today()
     memory, race_km = _goal_race(db, user_id, today)
     context = build_context(db, user_id)
     _require_sufficient_data(context)
 
+    previous = current_goal_plan(db, user_id, today)
+    target_s = previous.target_time_s if previous is not None and previous.memory_id == memory.id else None
     setup = _goal_setup(db, user_id, today, race_km, days_per_week)
     vdot = setup.vdot
-    p = goal_plan.paces(vdot, race_km)
+    p = goal_plan.paces(vdot, race_km, target_s)
     zones = resolve_hr_zones(db.execute(select(AthleteProfile).where(AthleteProfile.user_id == user_id)).scalar_one_or_none())
     weeks = goal_plan.build_skeleton(
         today, memory.event_date, race_km, days_per_week, setup.base_km, setup.base_long_km,
@@ -1792,7 +1796,8 @@ def generate_goal_plan(
         for w in setup.history.weeks
     )
     user_content = _GOAL_PLAN_INSTRUCTION.format(
-        race=f"{memory.content} em {memory.event_date.isoformat()} ({race_km:g} km)",
+        race=f"{memory.content} em {memory.event_date.isoformat()} ({race_km:g} km)"
+        + (f", com o alvo do atleta de {fmt_clock(target_s)}" if target_s else ""),
         factors="\n".join(f"- {x['tema']}: {x['texto']}" for x in setup.factors),
         history=history_txt,
         paces=paces_txt,
@@ -1834,6 +1839,7 @@ def generate_goal_plan(
         race_distance_km=race_km,
         days_per_week=days_per_week,
         vdot=vdot,
+        target_time_s=target_s,
         summary=parsed.resumo,
         phases=phases,
         weeks=[
@@ -1883,6 +1889,52 @@ def generate_goal_plan(
     db.add_all(rows)
     db.commit()
     return plan, rows, model_used
+
+
+def fmt_clock(seconds: float) -> str:
+    s = round(seconds)
+    return f"{s // 3600}:{s % 3600 // 60:02d}:{s % 60:02d}"
+
+
+def set_goal_target(
+    db: Session, user_id: uuid.UUID, target_s: int | None, today: date | None = None,
+) -> GoalPlan:
+    """Tempo-alvo do atleta no plano do objetivo ativo. Muda o ritmo de prova e, nos
+    treinos ainda planejados de hoje em diante, o ritmo, a zona e a duracao dos tipos
+    que usam o ritmo de prova. Nulo volta ao ritmo calculado pelo VDOT."""
+    today = today or date.today()
+    plan = current_goal_plan(db, user_id, today)
+    if plan is None:
+        raise PlanEditError("not_found", "Nenhum plano do objetivo ativo.", 404)
+    vdot = float(plan.vdot) if plan.vdot is not None else None
+    km = float(plan.race_distance_km)
+    if target_s is None and vdot is None:
+        raise PlanEditError("invalid_suggestion", "Sem VDOT no plano para calcular o ritmo de prova.")
+    prova = target_s / km if target_s else goal_plan.race_time_s(vdot, km) / km
+    paces = {**plan.paces, "prova": round(prova)}
+    plan.target_time_s = target_s
+    plan.paces = paces
+    zones = resolve_hr_zones(db.execute(select(AthleteProfile).where(AthleteProfile.user_id == user_id)).scalar_one_or_none())
+    p = {k: float(v) for k, v in paces.items()}
+    rows = db.execute(
+        select(PlannedWorkout).where(
+            PlannedWorkout.user_id == user_id, PlannedWorkout.goal_plan_id == plan.id,
+            PlannedWorkout.status == "planned", PlannedWorkout.date >= today,
+        )
+    ).scalars().all()
+    for w in rows:
+        kind = (w.targets or {}).get("tipo")
+        if kind not in _USES_RACE_PACE or not w.target_distance_m:
+            continue
+        t = goal_plan.workout_targets(kind, float(w.target_distance_m) / 1000, p, zones)
+        w.targets = {**w.targets, "ritmo": t["ritmo"], "zona_fc": t["zona_fc"]}
+        w.target_duration_s = t["duracao_s"]
+    db.commit()
+    db.refresh(plan)
+    return plan
+
+
+_USES_RACE_PACE = {"progressivo", "longão progressivo", "longão com ritmo de prova", "ritmo de prova", "prova"}
 
 
 def week_workouts(db: Session, user_id: uuid.UUID, plan: WeeklyPlan | None) -> list[PlannedWorkout]:

@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { Panel } from "@/components/ui/primitives";
-import type { GoalPhase, GoalPlan, GoalPlanResponse, PlannedWorkout } from "@/lib/api";
+import { setGoalTarget, type GoalPhase, type GoalPlan, type GoalPlanResponse, type PlannedWorkout } from "@/lib/api";
 import { parseLocalDate, toISODate, WEEK_LABELS } from "@/lib/athlete";
 
 export const PHASE_STYLE: Record<GoalPhase, { label: string; color: string }> = {
@@ -154,12 +154,77 @@ function WeekWorkouts({ plan, index, workouts }: { plan: GoalPlan; index: number
   );
 }
 
+/** "3:59:00", "3:59" ou "239" (min) → segundos; null se não der para ler. */
+export function parseRaceTime(text: string): number | null {
+  const parts = text.trim().split(":").map((x) => x.trim());
+  if (!parts.every((x) => /^\d+$/.test(x))) return null;
+  const n = parts.map(Number);
+  if (n.length === 3) return n[1] < 60 && n[2] < 60 ? n[0] * 3600 + n[1] * 60 + n[2] : null;
+  if (n.length === 2) return n[1] < 60 ? n[0] * 3600 + n[1] * 60 : null;
+  if (n.length === 1) return n[0] * 60;
+  return null;
+}
+
+const clock = (s: number) => `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+
+/** Tempo-alvo do atleta: muda o ritmo de prova e os treinos que usam ele. */
+function TargetEditor({ goal, onSaved }: { goal: GoalPlan; onSaved: (g: GoalPlanResponse) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(goal.target_time_s ? clock(goal.target_time_s) : "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const calculado = goal.paces.prova * goal.race_distance_km;
+
+  async function salvar(value: number | null) {
+    setBusy(true);
+    setError(null);
+    try {
+      onSaved(await setGoalTarget(value));
+      setEditing(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Não foi possível salvar o alvo");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (editing) {
+    const s = parseRaceTime(text);
+    return (
+      <form className="space-y-1.5" onSubmit={(e) => { e.preventDefault(); if (s) salvar(s); }}>
+        <label className="od-field-label" htmlFor="alvo-prova">Seu tempo-alvo (h:mm:ss)</label>
+        <div className="flex gap-1.5">
+          <input id="alvo-prova" value={text} onChange={(e) => setText(e.target.value)} placeholder="3:59:00" inputMode="numeric" className="od-input od-input-sm min-w-0 flex-1" autoFocus />
+          <button type="submit" disabled={!s || busy} className="od-btn od-btn-primary od-btn-sm">{busy ? "Salvando…" : "Salvar"}</button>
+          <button type="button" onClick={() => setEditing(false)} className="od-btn od-btn-ghost od-btn-sm">Cancelar</button>
+        </div>
+        {s ? <p className="text-[0.7rem] text-brand-muted">Ritmo de prova: {fmtPace(s / goal.race_distance_km)}/km</p> : text && <p className="text-[0.7rem] text-brand-warning">Use h:mm:ss, como 3:59:00.</p>}
+        {error && <p className="text-[0.7rem] text-brand-danger">{error}</p>}
+      </form>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white/[0.03] px-2.5 py-1.5 text-[0.74rem]">
+      <span>
+        <span className="text-[0.6rem] uppercase tracking-wider text-brand-muted">{goal.target_time_s ? "Seu alvo" : "Alvo calculado"}</span>
+        <span className="od-num ml-2 text-white">{clock(goal.target_time_s ?? calculado)}</span>
+      </span>
+      <span className="flex gap-1.5">
+        <button type="button" onClick={() => setEditing(true)} className="od-btn od-btn-ghost od-btn-sm !px-2">{goal.target_time_s ? "Mudar" : "Definir meu alvo"}</button>
+        {goal.target_time_s && <button type="button" onClick={() => salvar(null)} disabled={busy} className="od-btn od-btn-ghost od-btn-sm !px-2">Usar o calculado</button>}
+      </span>
+      {error && <p className="w-full text-[0.7rem] text-brand-danger">{error}</p>}
+    </div>
+  );
+}
+
 export function GoalPlanPanel({
-  goal, onGenerate, generating,
+  goal, onGenerate, generating, onGoalChange,
 }: {
   goal: GoalPlanResponse | null;
   onGenerate: (daysPerWeek: number) => void;
   generating: boolean;
+  onGoalChange?: (g: GoalPlanResponse) => void;
 }) {
   const plan = goal?.plan ?? null;
   const [days, setDays] = useState<number>(plan?.days_per_week ?? 3);
@@ -228,6 +293,7 @@ export function GoalPlanPanel({
               </div>
             ))}
           </div>
+          {onGoalChange && <TargetEditor key={plan.id + (plan.target_time_s ?? "")} goal={plan} onSaved={onGoalChange} />}
           <div className="flex flex-wrap items-center justify-between gap-2">
             {daysPicker}
             <button type="button" onClick={() => onGenerate(days)} disabled={generating} className="od-btn od-btn-ghost od-btn-sm">

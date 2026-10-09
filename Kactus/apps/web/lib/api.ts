@@ -909,6 +909,8 @@ export interface GoalPlan {
   race_distance_km: number;
   days_per_week: number;
   vdot: number | null;
+  /** Tempo-alvo escolhido pelo atleta (s); nulo = ritmo de prova calculado pelo VDOT. */
+  target_time_s: number | null;
   summary: string;
   phases: { fase: GoalPhase; inicio: string; fim: string; foco: string }[];
   weeks: { semana: number; inicio: string; fim: string; fase: GoalPhase; km: number; longao_km: number; alivio: boolean }[];
@@ -922,6 +924,15 @@ export interface GoalPlan {
 export interface GoalPlanResponse {
   plan: GoalPlan | null;
   workouts: PlannedWorkout[];
+}
+
+/** Tempo-alvo da prova (s) no plano do objetivo; nulo volta ao calculado. */
+export async function setGoalTarget(targetTimeS: number | null): Promise<GoalPlanResponse> {
+  return apiFetch<GoalPlanResponse>("/coach/goal-plan/target", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target_time_s: targetTimeS }),
+  });
 }
 
 export async function fetchGoalPlan(): Promise<GoalPlanResponse> {

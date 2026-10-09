@@ -203,7 +203,7 @@ function goalExample(): GoalPlanResponse {
   });
   return {
     plan: {
-      id: "gp", race_name: "Maratona do Rio", race_date: toISODate(race), race_distance_km: 42.2, days_per_week: 3, vdot: 37,
+      id: "gp", race_name: "Maratona do Rio", race_date: toISODate(race), race_distance_km: 42.2, days_per_week: 3, vdot: 37, target_time_s: null,
       summary: "Base longa e tranquila para a lombar, construção com limiar e pico com ritmo de prova e três longões de 32 km.",
       phases, weeks, paces: { leve_rapido: 383, leve_lento: 419, limiar: 334, intervalo: 308, prova: 358 }, model_used: "exemplo", created_at: NOW,
       analysis: [
