@@ -40,7 +40,11 @@ flowchart TD
   HT --> HTA[/"GET /metrics/heat"/]:::api
   HT -->|menos de 5 corridas| HTV["Poucas corridas com temperatura"]:::estado
   HT --> HTP("Clique num ponto"):::acao --> HTD["Detalhe do treino"]:::tela
-  HT --> S6["Constância · 16 semanas"]:::tela
+  HT --> TQ["Técnica de corrida<br/>5 métricas · mês a mês"]:::tela
+  TQ --> TQA[/"GET /metrics/technique?months=12"/]:::api
+  TQ -->|menos de 2 meses com dinâmica| TQV["Sem dinâmica de corrida suficiente"]:::estado
+  TQ --> TQM("Toque numa métrica"):::acao --> TQG["Gráfico mês a mês<br/>com as faixas do Garmin"]:::tela
+  TQ --> S6["Constância · 16 semanas"]:::tela
   S6 --> S7("Modo avançado ▾"):::acao
   S7 --> ADV["CTL · ATL · TSB · ACWR<br/>gráficos, simulador, fórmulas"]:::tela
   ADV --> PER("Período 30d a 1a"):::acao --> RL[/"GET /metrics/load?days=N"/]:::api
@@ -66,6 +70,7 @@ flowchart TD
     { tipo: "card", nome: "Efeito de treino · 7 dias", acao: "Média aeróbica do relógio e contagem dos benefícios.", onde: "apps/web/components/performance/TrainingQuality.tsx:45" },
     { tipo: "seção", nome: "Resumo do mês", acao: "Mês escolhido nas setas (até o mês atual): distância, tempo, treinos e dias ativos com a variação contra o mês anterior; barras por esporte; ritmo médio da corrida, maior treino (link) e recordes do mês.", api: "GET /metrics/month?month=AAAA-MM", msg: "Nenhum treino neste mês · Escolha outro mês nas setas ou importe seus treinos.", onde: "apps/web/components/performance/MonthSummary.tsx:33", no: "MS,MSA" },
     { tipo: "seção", nome: "Ritmo × calor", acao: "Corridas ao ar livre de 3 km+ do último ano com temperatura do relógio: pontos temperatura × ritmo (cor pela faixa; clique abre o treino), ritmo e FC por faixa (até 15, 15–20, 20–25, 25–30, 30 °C ou mais) e a frase de quanto a faixa mais quente pesa contra a mais fria (faixas com 3+ corridas). Aviso de que o sensor do pulso lê acima do ar.", api: "GET /metrics/heat", msg: "Poucas corridas com temperatura · São necessárias 5 corridas ao ar livre de 3 km ou mais com a temperatura do relógio.", onde: "apps/web/components/performance/HeatPanel.tsx:25", no: "HT,HTA,HTV,HTP,HTD" },
+    { tipo: "seção", nome: "Técnica de corrida", acao: "Cadência, contato com o solo, oscilação vertical, razão vertical e passada: média dos últimos 3 meses com a faixa do Garmin Connect (excelente a baixa) e a mudança desde o começo da janela (verde se melhorou). Tocar numa métrica mostra a linha mês a mês com as faixas no fundo e o ritmo do mês no tooltip.", api: "GET /metrics/technique?months=12", msg: "Sem dinâmica de corrida suficiente · Cadência, contato com o solo e oscilação vêm do arquivo .FIT de um relógio Garmin com dinâmica de corrida.", onde: "apps/web/components/performance/TechniquePanel.tsx:38", no: "TQ,TQA,TQV,TQM,TQG" },
     { tipo: "modal", nome: "Story do mês", acao: "Imagem 1080×1920 com o mês, km gigante, variação, treinos/horas/dias, barras por esporte e destaques; PNG pronto antes do toque. Compartilhar (folha do iPhone) ou Salvar.", onde: "apps/web/components/share/MonthStory.tsx:82", no: "MSS,MSST" },
     { tipo: "card", nome: "Constância · últimas 16 semanas", acao: "Mapa de calor da carga por dia.", msg: "Sem treinos nas últimas 16 semanas", onde: "apps/web/components/performance/ConsistencyHeatmap.tsx:106", no: "S6" },
     { tipo: "seção", nome: "Modo avançado", acao: "Recolhido. KPIs CTL (42 dias), ATL (7 dias), TSB, ACWR com régua 0,8–1,3; gráficos Condicionamento × cansaço, Disposição (TSB), Salto de carga (ACWR).", onde: "apps/web/components/performance/AdvancedSection.tsx:201", no: "S7,ADV" },
@@ -73,6 +78,7 @@ flowchart TD
     { tipo: "campo", nome: "Simulador de forma futura", acao: "Período 7/14/21/30 dias e TSS diário (0 a 300). Mostra CTL, ATL e TSB finais e o gráfico.", api: "POST /predictions/simulate", msg: "Calculando… · Erro na simulação", onde: "apps/web/components/performance/AdvancedSection.tsx:96", no: "SIM,PS" },
     { tipo: "seção", nome: "Como tudo é calculado", acao: "Texto com as fórmulas de TSS, CTL/ATL/TSB, risco, Riegel/VDOT e simulador.", onde: "apps/web/components/performance/AdvancedSection.tsx:338" },
     { tipo: "API", nome: "Resumo em linguagem simples", acao: "Hoje, semana, média de 4 semanas, faixa segura, intensidade 28d, efeito 7d, 16 semanas.", api: "GET /metrics/summary", onde: "apps/api/kactus_api/routers/metrics.py:57" },
+    { tipo: "API", nome: "Técnica de corrida", acao: "Médias mensais, a média dos últimos 3 meses com as faixas e a comparação com os 3 primeiros meses (months 3 a 36).", api: "GET /metrics/technique", onde: "apps/api/kactus_api/routers/metrics.py:83" },
     { tipo: "API", nome: "Ritmo × calor", acao: "Pontos, faixas de temperatura e a comparação mais fria × mais quente.", api: "GET /metrics/heat", onde: "apps/api/kactus_api/routers/metrics.py:76" },
     { tipo: "API", nome: "Resumo do mês", acao: "Totais, por esporte, corrida, maior treino, recordes, mês anterior e os meses com treino (2 anos).", api: "GET /metrics/month", onde: "apps/api/kactus_api/routers/metrics.py:65" },
     { tipo: "API", nome: "Carga diária", api: "GET /metrics/load", onde: "apps/api/kactus_api/routers/metrics.py:24" },

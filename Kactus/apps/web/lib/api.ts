@@ -212,6 +212,21 @@ export async function fetchHeat(): Promise<HeatAnalysis> {
   return apiFetch<HeatAnalysis>("/metrics/heat");
 }
 
+export type TechniqueMetric = "cadencia" | "contato_ms" | "oscilacao_mm" | "razao_vertical_pct" | "passada_m";
+export type TechniqueLevel = "excelente" | "boa" | "média" | "abaixo" | "baixa";
+type TechniqueValues = Record<TechniqueMetric, number | null> & { pace_s_km: number | null };
+
+export interface TechniqueEvolution {
+  corridas: number;
+  meses: (TechniqueValues & { mes: string; corridas: number; km: number })[];
+  atual: (TechniqueValues & { corridas: number; km: number; faixas: Record<TechniqueMetric, TechniqueLevel | null> }) | null;
+  comparacao: (TechniqueValues & { de: string; ate: string }) | null;
+}
+
+export async function fetchTechnique(months = 12): Promise<TechniqueEvolution> {
+  return apiFetch<TechniqueEvolution>(`/metrics/technique?months=${months}`);
+}
+
 export async function fetchMonthSummary(month?: string): Promise<MonthSummary> {
   return apiFetch<MonthSummary>(`/metrics/month${month ? `?month=${month}` : ""}`);
 }

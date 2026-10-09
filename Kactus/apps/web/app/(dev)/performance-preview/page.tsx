@@ -65,6 +65,20 @@ const HEAT = (() => {
   };
 })();
 
+const TECH = (() => {
+  const meses = Array.from({ length: 12 }, (_, i) => ({
+    mes: ym(i - 11), corridas: 8 + (i % 5), km: 70 + i * 9,
+    cadencia: 161 + Math.round(i * 1.1), contato_ms: 274 - i * 2, oscilacao_mm: 96 - i, razao_vertical_pct: Number((8.8 - i * 0.05).toFixed(1)),
+    passada_m: Number((1.1 - (i % 4) * 0.02).toFixed(2)), pace_s_km: 345 - i,
+  }));
+  return {
+    corridas: 120, meses,
+    atual: { cadencia: 172, contato_ms: 253, oscilacao_mm: 85, razao_vertical_pct: 8.3, passada_m: 1.05, pace_s_km: 335, corridas: 30, km: 300,
+      faixas: { cadencia: "média", contato_ms: "média", oscilacao_mm: "média", razao_vertical_pct: "média", passada_m: null } },
+    comparacao: { de: ym(-11), ate: ym(0), cadencia: 11, contato_ms: -21, oscilacao_mm: -11, razao_vertical_pct: -0.5, passada_m: -0.03, pace_s_km: -10 },
+  };
+})();
+
 function routes(url: string): unknown {
   const month = url.match(/\/metrics\/month\?month=(\d{4}-\d{2})/);
   if (month) return MONTH(month[1]);
@@ -73,7 +87,7 @@ function routes(url: string): unknown {
   if (/\/metrics\/load/.test(url)) return LOAD;
   if (/\/metrics\/heatmap/.test(url)) return [];
   if (/\/metrics\/heat$/.test(url)) return HEAT;
-  if (/\/metrics\/technique/.test(url)) return (window as unknown as { __TECH__?: unknown }).__TECH__ ?? {};
+  if (/\/metrics\/technique/.test(url)) return TECH;
   if (/\/predictions\/overview/.test(url)) return {
     race_predictions: [], risk: { level: "low", reasons: ["Carga dentro da zona segura"], recommendation: "" },
     recommendation: SUMMARY.hoje,

@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "09/10/2026",
-  commit: "plano 2026-10-09 · Fase 10",
+  commit: "plano 2026-10-09 · Fase 11",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -35,7 +35,8 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
-    { data: "09/10/2026", commit: "Fase 10", mudanca: "Ritmo × calor em Desempenho (GET /metrics/heat): pontos temperatura × ritmo, faixas e quanto o calor pesa." },
+    { data: "09/10/2026", commit: "Fase 11", mudanca: "Técnica de corrida em Desempenho (GET /metrics/technique): cadência, contato, oscilação, razão vertical e passada mês a mês, com as faixas do Garmin." },
+    { data: "09/10/2026", commit: "c23d759", mudanca: "Ritmo × calor em Desempenho (GET /metrics/heat): pontos temperatura × ritmo, faixas e quanto o calor pesa." },
     { data: "09/10/2026", commit: "67f0ab5", mudanca: "Resumo do mês em Desempenho (GET /metrics/month) com o Story do mês; página de teste /performance-preview." },
     { data: "09/10/2026", commit: "4f4ac8a", mudanca: "Backup semanal pelo Kactus Controle (.json.gz, 8 cópias); Exportar meus dados passou a levar a Duni e a carga diária." },
     { data: "09/10/2026", commit: "2d6339d", mudanca: "Cartão Próxima prova no dashboard (no lugar de Meta principal), com contagem regressiva, fase e semana do plano; página de teste /dashboard-preview." },

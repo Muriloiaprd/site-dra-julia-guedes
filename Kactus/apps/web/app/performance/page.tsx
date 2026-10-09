@@ -8,6 +8,7 @@ import { AdvancedSection } from "@/components/performance/AdvancedSection";
 import { ConsistencyHeatmap } from "@/components/performance/ConsistencyHeatmap";
 import { EvolutionChart } from "@/components/performance/EvolutionChart";
 import { HeatPanel } from "@/components/performance/HeatPanel";
+import { TechniquePanel } from "@/components/performance/TechniquePanel";
 import { MonthSummary } from "@/components/performance/MonthSummary";
 import { RacePredictions } from "@/components/performance/RacePredictions";
 import { StatusTiles } from "@/components/performance/StatusTiles";
@@ -91,6 +92,7 @@ export default function PerformancePage() {
           <TrainingQuality summary={summary} />
           <MonthSummary />
           <HeatPanel />
+          <TechniquePanel />
           <ConsistencyHeatmap data={heatmap} loading={heatmapLoading} />
           <AdvancedSection data={metrics} loading={metricsLoading} days={days} onDaysChange={setDays} />
         </div>
