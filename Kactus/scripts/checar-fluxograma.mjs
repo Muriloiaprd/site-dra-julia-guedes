@@ -145,15 +145,18 @@ function hook() {
   const comando = String(entrada?.tool_input?.command ?? "");
   if (!/\bgit\b[^\n]*\bcommit\b/.test(comando)) return 0;
 
+  // FLUXOGRAMA_TESTE_COMMIT=<sha> testa o lembrete contra um commit antigo (sem checar a idade)
+  const teste = process.env.FLUXOGRAMA_TESTE_COMMIT;
+  const ref = teste || "HEAD";
   let quando, mensagem, arquivos;
   try {
-    quando = Number(git("log", "-1", "--format=%ct"));
-    mensagem = git("log", "-1", "--format=%B");
-    arquivos = git("show", "--name-only", "--format=", "HEAD").split("\n").filter(Boolean);
+    quando = Number(git("log", "-1", "--format=%ct", ref));
+    mensagem = git("log", "-1", "--format=%B", ref);
+    arquivos = git("show", "--name-only", "--format=", ref).split("\n").filter(Boolean);
   } catch {
     return 0;
   }
-  if (Date.now() / 1000 - quando > 120) return 0; // commit velho: o comando não commitou nada agora
+  if (!teste && Date.now() / 1000 - quando > 120) return 0; // commit velho: o comando não commitou nada agora
   if (mensagem.includes(ESCAPE)) return 0;
 
   const top = git("rev-parse", "--show-toplevel");
