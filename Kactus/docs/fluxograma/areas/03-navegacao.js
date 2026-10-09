@@ -45,6 +45,7 @@ flowchart TD
     { tipo: "seção", nome: "Barra no topo (celular)", acao: "Logo (vai ao Dashboard) e foto (vai ao Perfil); respeita o entalhe do iPhone.", onde: "apps/web/components/Sidebar.tsx:184", no: "SM" },
     { tipo: "menu", nome: "Barra inferior (celular)", acao: "Quatro atalhos + Mais; o item ativo ganha um traço verde no topo.", onde: "apps/web/components/Sidebar.tsx:199", no: "BI" },
     { tipo: "botão", nome: "Mais", acao: "Abre a folha; fica verde quando a página atual está dentro dela.", onde: "apps/web/components/Sidebar.tsx:226", no: "MAIS" },
+    { tipo: "regra", nome: "Acessibilidade", acao: "Foco visível (contorno verde) em tudo que recebe Tab; textos apagados com contraste AA (cinzas #929292 e #8C8C8C, conferidos com auditoria automática no dashboard, Desempenho e Duni); gráficos com accessibilityLayer (as setas movem o tooltip); calendário com setas.", onde: "apps/web/app/globals.css:148" },
     { tipo: "modal", nome: "Folha 'Mais opções de navegação'", acao: "Prende o foco do teclado; fecha com toque fora, Esc ou ao trocar de página.", onde: "apps/web/components/Sidebar.tsx:240", no: "FOLHA,FECHA" },
     { tipo: "cálculo", nome: "Item ativo", acao: "Ativo quando a rota é igual ou começa com o endereço do item (ex.: /activities/123 acende Atividades).", onde: "apps/web/components/Sidebar.tsx:56" },
     { tipo: "carregando", nome: "Nome e foto", acao: "Até o perfil chegar, mostra a inicial do e-mail.", onde: "apps/web/components/Sidebar.tsx:92" },

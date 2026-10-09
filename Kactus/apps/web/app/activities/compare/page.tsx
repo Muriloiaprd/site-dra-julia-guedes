@@ -253,7 +253,7 @@ function Curva({ titulo, series, campo, bike }: { titulo: string; series: [Serie
     <div className="mb-3">
       <p className="od-metric-label mb-1">{titulo}</p>
       <ResponsiveContainer width="100%" height={190}>
-        <LineChart data={dados} margin={{ top: 6, right: 8, left: -6, bottom: 0 }}>
+        <LineChart accessibilityLayer data={dados} margin={{ top: 6, right: 8, left: -6, bottom: 0 }}>
           <CartesianGrid {...gridProps} />
           <XAxis {...axisProps} type="number" dataKey="km" domain={[0, "dataMax"]} tickFormatter={(v: number) => `${v.toLocaleString("pt-BR")} km`} />
           <YAxis {...axisProps} width={46} reversed={ritmo} domain={["auto", "auto"]} tickFormatter={(v: number) => (ritmo ? formatPaceShort(v) : String(Math.round(v)))} />

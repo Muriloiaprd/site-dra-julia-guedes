@@ -613,14 +613,14 @@ export default function CoachPage() {
                   <div key={i} className="flex justify-end">
                     <div className="max-w-[82%] rounded-[1.15rem] rounded-br-[0.35rem] px-3.5 py-2 text-[0.86rem] text-white" style={{ background: "linear-gradient(135deg, rgba(0,255,102,0.24), rgba(0,255,102,0.11))", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.25)" }}>
                       <span className="whitespace-pre-wrap">{m.content}</span>
-                      <span className="ml-2 inline-block translate-y-0.5 text-[0.6rem] text-white/50">{msgTime(m.created_at)} ✓✓</span>
+                      <span className="ml-2 inline-block translate-y-0.5 text-[0.6rem] text-white/70">{msgTime(m.created_at)} ✓✓</span>
                     </div>
                   </div>
                 ) : (
                   <div key={i} className="flex flex-col items-start gap-1.5">
                     <div className="max-w-[88%] rounded-[1.15rem] rounded-bl-[0.35rem] px-3.5 py-2.5 text-[0.86rem]" style={{ background: "#171a18", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)" }}>
                       <Markdown text={m.content} />
-                      <div className="mt-1 text-right text-[0.6rem] text-white/40">{msgTime(m.created_at)}</div>
+                      <div className="mt-1 text-right text-[0.6rem] text-white/60">{msgTime(m.created_at)}</div>
                     </div>
                     {m.suggestions && m.suggestions.some((s) => s.state !== "dismissed") && (
                       <div className="max-w-[88%] rounded-xl px-3 py-2.5" style={{ background: "rgba(0,255,102,0.04)", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.16)" }}>

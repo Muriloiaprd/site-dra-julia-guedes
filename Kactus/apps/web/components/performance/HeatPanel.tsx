@@ -54,7 +54,7 @@ export function HeatPanel() {
               : "Ainda não há corridas suficientes em faixas diferentes de temperatura para comparar."}
           </p>
           <ResponsiveContainer width="100%" height={240}>
-            <ScatterChart margin={{ top: 8, right: 8, left: -6, bottom: 0 }}>
+            <ScatterChart accessibilityLayer margin={{ top: 8, right: 8, left: -6, bottom: 0 }}>
               <CartesianGrid {...gridProps} />
               <XAxis {...axisProps} type="number" dataKey="temp_c" name="Temperatura" unit=" °C" domain={["dataMin - 2", "dataMax + 2"]} tickFormatter={(v: number) => `${Math.round(v)}°`} />
               <YAxis {...axisProps} type="number" dataKey="pace_s_km" name="Ritmo" reversed width={46} domain={["auto", "auto"]} tickFormatter={(v: number) => formatPaceShort(v)} />

@@ -267,7 +267,7 @@ export function AdvancedSection({ data, loading, days, onDaysChange }: {
                 <CartesianGrid {...gridProps} />
                 <XAxis {...axisProps} dataKey="date" tickFormatter={fmtDay} minTickGap={32} />
                 <YAxis {...axisProps} yAxisId="l" width={40} />
-                <YAxis {...axisProps} yAxisId="r" orientation="right" width={34} tick={{ ...axisProps.tick, fill: "#555" }} />
+                <YAxis {...axisProps} yAxisId="r" orientation="right" width={34} tick={{ ...axisProps.tick, fill: C.textTertiary }} />
                 <Tooltip content={<LoadTooltip />} cursor={{ stroke: "rgba(0,255,102,0.3)", strokeDasharray: "3 4" }} />
                 <Bar yAxisId="r" dataKey="Carga" fill="rgba(255,255,255,0.09)" radius={[3, 3, 0, 0]} maxBarSize={10} />
                 <Area yAxisId="l" type="monotone" dataKey="CTL" stroke={C.accent} strokeWidth={2.2} fill="url(#ctl-fill)" dot={false} connectNulls

@@ -102,7 +102,7 @@ export function TechniquePanel() {
 
           <p className="mt-4 text-sm text-brand-textSecondary">{cfg.dica}</p>
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={series} margin={{ top: 12, right: 10, left: -6, bottom: 0 }}>
+            <LineChart accessibilityLayer data={series} margin={{ top: 12, right: 10, left: -6, bottom: 0 }}>
               <CartesianGrid {...gridProps} />
               {cfg.faixas?.map(([lo, hi, lvl]) => (
                 <ReferenceArea key={lvl} y1={show(metric, lo)} y2={show(metric, hi)} fill={withAlpha(LEVEL_COLOR[lvl], 0.07)} stroke="none" ifOverflow="hidden" />

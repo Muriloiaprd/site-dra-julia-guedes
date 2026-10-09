@@ -58,9 +58,13 @@ function TrainingHeatmap({ data }: { data: HeatmapDay[] }) {
   }
 
   const DAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
+  const cells = weeks.flat();
+  const activeDays = cells.filter((c) => c.load > 0).length;
+  const activeWeeks = weeks.filter((w) => w.some((c) => c.load > 0)).length;
 
   return (
-    <div className="flex gap-[5px]">
+    // leitor de tela e teclado: o resumo vale pelo desenho (cada dia segue no title, no mouse)
+    <div className="flex gap-[5px]" role="img" aria-label={`Constância: ${activeDays} dias com treino em 16 semanas, treinou em ${activeWeeks} das 16 semanas.`}>
       <div className="mr-1 flex flex-col gap-[5px] pt-6">
         {DAYS.map((d, i) => (
           <div key={i} className="flex h-[15px] w-3 items-center justify-center text-[0.6rem] text-brand-textTertiary">
@@ -115,7 +119,8 @@ export function ConsistencyHeatmap({ data, loading }: { data: HeatmapDay[]; load
       {loading ? <Skeleton className="h-36" /> : data.length === 0 ? (
         <EmptyState title="Sem treinos nas últimas 16 semanas" description="Importe atividades para ver sua constância." />
       ) : (
-        <div className="overflow-x-auto pb-1">
+        // rola de lado no celular: focável para rolar pelo teclado
+        <div className="overflow-x-auto pb-1" tabIndex={0} aria-label="Constância, role para o lado">
           <div className="min-w-[420px]"><TrainingHeatmap data={data} /></div>
         </div>
       )}

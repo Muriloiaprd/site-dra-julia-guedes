@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { Panel, Skeleton } from "@/components/ui/primitives";
 import { MONTH_PT, sameDay, toISODate } from "@/lib/athlete";
 import type { ActivitySummary, PlannedWorkout } from "@/lib/api";
@@ -18,6 +18,9 @@ export function MonthCalendar({
   className?: string;
 }) {
   const [offset, setOffset] = useState(0);
+  // dia com o foco do teclado (tabindex móvel): Tab entra no calendário uma vez só
+  const [focusDay, setFocusDay] = useState<number | null>(null);
+  const dayRefs = useRef<Record<number, HTMLButtonElement | null>>({});
   const today = new Date();
   const ref = new Date(today.getFullYear(), today.getMonth() + offset, 1);
   const year = ref.getFullYear(), month = ref.getMonth();
@@ -32,6 +35,19 @@ export function MonthCalendar({
   const planByDate = new Map(plan.map((w) => [w.date, w]));
 
   const monthActs = Array.from(byDay.values()).flat();
+  const tabDay = focusDay != null && focusDay <= lastDay ? focusDay : today.getMonth() === month && today.getFullYear() === year ? today.getDate() : 1;
+
+  function onGridKey(e: KeyboardEvent<HTMLDivElement>) {
+    const step: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+    let next: number | null = null;
+    if (e.key in step) next = Math.min(lastDay, Math.max(1, tabDay + step[e.key]));
+    else if (e.key === "Home") next = 1;
+    else if (e.key === "End") next = lastDay;
+    if (next == null) return;
+    e.preventDefault();
+    setFocusDay(next);
+    dayRefs.current[next]?.focus();
+  }
   const monthKm = monthActs.reduce((s, a) => s + (a.distance_m ?? 0), 0) / 1000;
 
   return (
@@ -54,7 +70,7 @@ export function MonthCalendar({
           <div className="mb-1.5 grid grid-cols-7 gap-1">
             {DOW.map((d, i) => <div key={i} className="text-center text-[0.6rem] font-bold tracking-wider text-brand-textTertiary">{d}</div>)}
           </div>
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-1" role="group" aria-label={`Dias de ${MONTH_PT[month]} ${year}. Use as setas para andar pelos dias.`} onKeyDown={onGridKey}>
             {Array.from({ length: startDow }).map((_, i) => <div key={`e${i}`} />)}
             {Array.from({ length: lastDay }, (_, i) => i + 1).map((day) => {
               const d = new Date(year, month, day);
@@ -68,18 +84,23 @@ export function MonthCalendar({
               return (
                 <button
                   key={day}
+                  ref={(el) => { dayRefs.current[day] = el; }}
                   type="button"
                   title={label}
-                  disabled={!done}
+                  tabIndex={day === tabDay ? 0 : -1}
+                  aria-disabled={!done}
+                  aria-current={isToday ? "date" : undefined}
+                  aria-label={`${day} de ${MONTH_PT[month]}${isToday ? ", hoje" : ""}${done ? ` — ${acts.length === 1 ? "1 treino, abrir" : `${acts.length} treinos, abrir o primeiro`}` : planned ? ` — planejado: ${planned.title}` : " — sem treino"}`}
+                  onFocus={() => setFocusDay(day)}
                   onClick={() => done && onSelect(acts[0])}
-                  className="relative flex aspect-square flex-col items-center justify-center gap-[3px] rounded-[9px] text-[0.7rem] transition-all duration-150 enabled:hover:scale-[1.08]"
+                  className={`relative flex aspect-square flex-col items-center justify-center gap-[3px] rounded-[9px] text-[0.7rem] transition-all duration-150 ${done ? "hover:scale-[1.08]" : ""}`}
                   style={{
                     background: isToday ? "rgba(0,255,102,0.14)" : done ? `${color}14` : "transparent",
                     boxShadow: isToday
                       ? "inset 0 0 0 1px rgba(0,255,102,0.6), 0 0 14px -4px rgba(0,255,102,0.6)"
                       : done ? `inset 0 0 0 1px ${color}33`
                       : planned ? "inset 0 0 0 1px rgba(255,255,255,0.16)" : undefined,
-                    color: isToday ? "#00FF66" : done ? "#fff" : isFuture ? "#7C7C7C" : "#8a8a8a",
+                    color: isToday ? "#00FF66" : done ? "#fff" : isFuture ? "#8C8C8C" : "#9A9A9A",
                     fontWeight: isToday || done ? 700 : 500,
                     cursor: done ? "pointer" : "default",
                   }}

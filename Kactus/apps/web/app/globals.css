@@ -67,8 +67,8 @@
 
   --od-text: #ffffff;
   --od-text-secondary: #b8b8b8;
-  --od-muted: #888888;
-  --od-text-tertiary: #7c7c7c;
+  --od-muted: #929292;
+  --od-text-tertiary: #8c8c8c;
 
   --od-accent: #00ff66;
   --od-lime: #c6ff00;
@@ -762,14 +762,14 @@ body {
 }
 .od-map .leaflet-control-attribution {
   background: rgba(10, 10, 10, 0.6) !important;
-  color: #5a5a5a !important;
+  color: #8c8c8c !important;
   font-size: 9px !important;
   line-height: 1.4;
   padding: 0 5px !important;
   border-radius: 6px 0 0 0;
 }
 .od-map .leaflet-control-attribution a {
-  color: #7a7a7a !important;
+  color: #a3a3a3 !important;
 }
 .od-map-mini .leaflet-control-attribution {
   font-size: 7px !important;
