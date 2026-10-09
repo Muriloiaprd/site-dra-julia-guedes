@@ -43,6 +43,9 @@ class Acoes(Protocol):
     def importar_relogio_agora(self) -> None: ...
     def alternar_relogio(self) -> None: ...
     def relogio_ativo(self) -> bool: ...
+    def backup_agora(self) -> None: ...
+    def abrir_backups(self) -> None: ...
+    def texto_ultimo_backup(self) -> str: ...
 
 
 def ha_quanto(desde: float | None) -> str:
@@ -182,6 +185,20 @@ class Janela:
             activeforeground=TEXTO, font=(FONTE, 9), anchor="w", highlightthickness=0, cursor="hand2",
         ).pack(fill="x", pady=(4, 0))
 
+        # backup semanal
+        tk.Label(corpo, text="BACKUP SEMANAL", bg=BG, fg=MUDO, font=(FONTE, 8, "bold")).pack(anchor="w", pady=(16, 4))
+        bk = tk.Frame(corpo, bg=BG)
+        bk.pack(fill="x")
+        self.bk_texto = tk.Label(
+            bk, text=acoes.texto_ultimo_backup(), bg=BG, fg=MUDO, font=(FONTE, 9), justify="left", wraplength=180, anchor="w",
+            cursor="hand2",
+        )
+        self.bk_texto.pack(side="left", fill="x", expand=True)
+        self.bk_texto.bind("<Button-1>", lambda _e: acoes.abrir_backups())
+        self.b_backup = Botao(bk, "Fazer agora", acoes.backup_agora)
+        self.b_backup.configure(padx=10, pady=3, font=(FONTE, 9, "bold"))
+        self.b_backup.pack(side="right")
+
         # modo
         tk.Label(corpo, text="MODO", bg=BG, fg=MUDO, font=(FONTE, 8, "bold")).pack(anchor="w", pady=(16, 4))
         self.modo = tk.StringVar(value=modo)
@@ -259,6 +276,10 @@ class Janela:
     def atualizar_relogio(self, texto: str, ocupado: bool = False) -> None:
         self.rel_texto.configure(text=texto, fg=TEXTO)
         self.b_relogio.habilitar(not ocupado)
+
+    def atualizar_backup(self, texto: str, ocupado: bool = False) -> None:
+        self.bk_texto.configure(text=texto, fg=TEXTO)
+        self.b_backup.habilitar(not ocupado)
 
     def _copiar(self) -> None:
         self.acoes.copiar_iphone()

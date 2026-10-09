@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import ctypes
+import os
 import queue
 import subprocess
 import sys
@@ -20,11 +21,12 @@ import time
 import tkinter as tk
 import webbrowser
 from collections.abc import Callable
+from pathlib import Path
 from tkinter import messagebox
 
 import pystray
 
-from . import icones, relogio, sistema, tailscale, web
+from . import backup, icones, relogio, sistema, tailscale, web
 from .config import Config
 from .janela import ROTULO, Janela
 from .servidor import Estado, Info, Servidor
@@ -60,6 +62,11 @@ class App:
             ativo=lambda: self.config.importar_relogio,
             ao_terminar=lambda texto, res: self.na_tela(lambda: self._relogio_terminou(texto, res)),
         )
+        self.backup = backup.VigiaBackup(
+            ultimo=lambda: self.config.ultimo_backup,
+            pasta=self.pasta_backup,
+            ao_terminar=lambda texto, res: self.na_tela(lambda: self._backup_terminou(texto, res)),
+        )
 
     # ── ciclo ────────────────────────────────────────────────────────────
     def rodar(self, acao: str) -> None:
@@ -67,6 +74,7 @@ class App:
         self.acordado.iniciar()
         threading.Thread(target=self._vigiar_tailscale, name="kactus-tailscale", daemon=True).start()
         self.relogio.iniciar()
+        self.backup.iniciar()
         self.icone.run_detached()
         self.comando(acao)
         self.janela.atualizar(self.servidor.info)
@@ -212,6 +220,34 @@ class App:
         if res is None or res.get("importadas") or res.get("erros"):
             self._avisar(texto)
 
+    # ── backup semanal ───────────────────────────────────────────────────
+    def pasta_backup(self) -> Path:
+        return Path(self.config.pasta_backup) if self.config.pasta_backup else backup.PASTA_PADRAO
+
+    def texto_ultimo_backup(self) -> str:
+        u = self.config.ultimo_backup
+        if not u:
+            return "Ainda sem backup: o primeiro sai alguns minutos depois de abrir o Controle."
+        return f"Último: {time.strftime('%d/%m às %H:%M', time.localtime(u))} · clique para abrir a pasta"
+
+    def backup_agora(self) -> None:
+        self.janela.atualizar_backup("Fazendo o backup… (cerca de meio minuto)", ocupado=True)
+        threading.Thread(target=self.backup.fazer, daemon=True).start()
+
+    def abrir_backups(self) -> None:
+        pasta = self.pasta_backup()
+        pasta.mkdir(parents=True, exist_ok=True)
+        os.startfile(pasta)  # noqa: S606 - abre o Explorer na pasta
+
+    def _backup_terminou(self, texto: str, res: dict | None) -> None:
+        if res is not None:
+            self.config.ultimo_backup = time.time()
+            self.config.salvar()
+            self.janela.atualizar_backup(self.texto_ultimo_backup())
+        else:
+            self.janela.atualizar_backup(texto)
+        self._avisar(texto)
+
     def _avisar(self, texto: str) -> None:
         with contextlib.suppress(Exception):
             self.icone.notify(texto, "Kactus")
@@ -282,6 +318,7 @@ class App:
         self.servidor.parar_vigia()
         self._ts_parar.set()
         self.relogio.parar()
+        self.backup.parar()
         self.acordado.parar()
         self.icone.stop()
         if self.web:
@@ -330,6 +367,8 @@ class App:
                 checked=lambda _i: self.config.importar_relogio,
             ),
             pystray.MenuItem("Importar do relógio agora", tela(self.importar_relogio_agora)),
+            pystray.MenuItem("Fazer backup agora", tela(self.backup_agora)),
+            pystray.MenuItem("Abrir pasta de backups", tela(self.abrir_backups)),
             pystray.MenuItem("Ver log", tela(self.ver_log)),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Sair", tela(self.sair)),

@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "09/10/2026",
-  commit: "plano 2026-10-09 · Fase 7",
+  commit: "plano 2026-10-09 · Fase 8",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -17,7 +17,7 @@ KACTUS_MAPA.meta = {
     { existe: false, nome: "Strava", detalhe: "Descartado (exige OAuth). A rota /activities/import-normalized já aceitaria os dados." },
     { existe: false, nome: "Funcionar com o PC desligado", detalhe: "Tudo roda no PC; com ele desligado o iPhone mostra 'Kactus desligado'." },
     { existe: true, nome: "Lixeira de atividades", detalhe: "Excluir é reversível até limpar a lixeira; reimportar tira da lixeira.", onde: "apps/web/components/activities/TrashPanel.tsx" },
-    { existe: true, nome: "Exportar dados", detalhe: "JSON com perfil, equipamentos, recordes e atividades (sem os dados da Duni).", onde: "apps/api/kactus_api/routers/profile.py:61" },
+    { existe: true, nome: "Exportar dados", detalhe: "JSON com perfil, equipamentos, recordes, atividades, dados da Duni e carga diária; o Kactus Controle faz um backup .json.gz por semana.", onde: "apps/api/kactus_api/routers/profile.py:61" },
     { existe: true, nome: "App na Tela de Início do iPhone", detalhe: "Manifest + ícones + service worker mínimo, via Tailscale.", onde: "apps/web/app/manifest.ts" },
     { existe: true, nome: "Limite de tentativas de login", detalhe: "5 por minuto por IP.", onde: "apps/api/kactus_api/routers/auth.py:19" },
   ],
@@ -29,14 +29,14 @@ KACTUS_MAPA.meta = {
     { gravidade: "baixa", titulo: "Filtros e totais só valem para o que foi carregado", detalhe: "A lista traz 100 por vez e filtra no navegador; o '+' no total avisa, mas os filtros não.", onde: "apps/web/app/activities/page.tsx:174" },
     { gravidade: "baixa", titulo: "Rotas de desenvolvimento abertas em produção", detalhe: "As quatro páginas de (dev) não conferem o ambiente; só usam dados falsos, mas ficam acessíveis no modo rápido.", onde: "apps/web/app/(dev)/" },
     { gravidade: "baixa", titulo: "Confirmações misturadas", detalhe: "Excluir atividade, equipamento e memória usam o confirm() do navegador; lixeira, conversa e zona de perigo confirmam na tela.", onde: "apps/web/components/coach/MemoryPanel.tsx:98" },
-    { gravidade: "baixa", titulo: "Exportar não leva os dados da Duni", detalhe: "Ficam de fora memórias, conversa, planos e métricas diárias.", onde: "apps/api/kactus_api/routers/profile.py:72" },
     { gravidade: "baixa", titulo: "Data de nascimento e altura sem campo", detalhe: "Existem no perfil do banco, mas a tela não mostra.", onde: "apps/web/app/profile/page.tsx:370" },
     { gravidade: "baixa", titulo: "Código sem uso e comentário velho", detalhe: "uploadActivity (um arquivo) não é chamado por nenhuma tela; o comentário do manifest diz 'sem service worker', mas existe o sw.js.", onde: "apps/web/lib/api.ts:1066 · apps/web/app/manifest.ts:3" },
     { gravidade: "baixa", titulo: "Documentos desatualizados", detalhe: "ESTADO_DO_PROJETO cita mapas CARTO (hoje é Stadia) e migrations até 018 (já há 021 e 023); o item 14 do BACKLOG lista como faltando coisas que já existem no Perfil.", onde: "docs/ESTADO_DO_PROJETO.md:87 · :189 · docs/BACKLOG.md:29" },
   ],
 
   historico: [
-    { data: "09/10/2026", commit: "Fase 7", mudanca: "Cartão Próxima prova no dashboard (no lugar de Meta principal), com contagem regressiva, fase e semana do plano; página de teste /dashboard-preview." },
+    { data: "09/10/2026", commit: "Fase 8", mudanca: "Backup semanal pelo Kactus Controle (.json.gz, 8 cópias); Exportar meus dados passou a levar a Duni e a carga diária." },
+    { data: "09/10/2026", commit: "2d6339d", mudanca: "Cartão Próxima prova no dashboard (no lugar de Meta principal), com contagem regressiva, fase e semana do plano; página de teste /dashboard-preview." },
     { data: "09/10/2026", commit: "69de3e5", mudanca: "Meta de km de corrida por semana no Perfil, com barra no dashboard e aviso da faixa segura em Desempenho." },
     { data: "09/10/2026", commit: "7d07804", mudanca: "Botão 📤 Story no cartão Última atividade do dashboard." },
     { data: "09/10/2026", commit: "d68d19a", mudanca: "Kactus Controle importa sozinho os treinos do relógio Garmin ligado no USB (pendrive ou MTP); a importação em lote virou o serviço batch_import, usado também pela tela Importar." },

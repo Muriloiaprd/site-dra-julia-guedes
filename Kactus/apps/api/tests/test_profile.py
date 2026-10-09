@@ -96,3 +96,13 @@ def test_export_empty_account_has_no_activities(auth_client: tuple[TestClient, d
     assert body["activities"] == []
     assert body["equipment"] == []
     assert body["records"] == []
+
+
+def test_export_includes_what_the_duni_knows(auth_client: tuple[TestClient, dict]) -> None:
+    client, _user = auth_client
+    client.post("/coach/memories", json={"kind": "prova", "content": "Maratona do Rio", "event_date": "2027-05-30"})
+    body = client.get("/profile/export").json()
+    assert body["export_version"] == 2
+    assert [m["content"] for m in body["duni"]["memories"]] == ["Maratona do Rio"]
+    assert body["duni"]["memories"][0]["event_date"] == "2027-05-30" and "user_id" not in body["duni"]["memories"][0]
+    assert body["duni"]["planned_workouts"] == [] and isinstance(body["daily_metrics"], list)

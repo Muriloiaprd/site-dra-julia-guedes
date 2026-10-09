@@ -1,14 +1,12 @@
 import json
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Response
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
 from kactus_api.deps import CurrentUser, DbSession
-from kactus_api.models import Activity, AthleteProfile, Equipment, PersonalRecord
-from kactus_api.schemas.activity import ActivityDetail
+from kactus_api.models import AthleteProfile, PersonalRecord
 from kactus_api.schemas.profile import ProfileOut, ProfileUpdate, RecordOut
+from kactus_api.services.export import build_export
 
 router = APIRouter(tags=["profile"])
 
@@ -60,61 +58,9 @@ def list_records(current_user: CurrentUser, db: DbSession) -> list[PersonalRecor
 
 @router.get("/profile/export")
 def export_data(current_user: CurrentUser, db: DbSession) -> Response:
-    """Exporta todos os dados do usuario em JSON (portabilidade/LGPD).
-
-    Monta o payload inteiro em memoria antes de responder -- de proposito NAO
-    usa StreamingResponse: a dependency `db` fecha a sessao no teardown antes
-    do generator de um streaming rodar, um erro classico de "Session is
-    closed" no meio do arquivo. Para o volume de dados de um uso pessoal isso
-    e rapido o bastante; se um dia o historico ficar grande demais pra caber
-    em memoria, ai sim vale paginar/streamar de verdade.
-    """
-    activities = db.execute(
-        select(Activity)
-        .where(Activity.user_id == current_user.id, Activity.deleted_at.is_(None))
-        .options(selectinload(Activity.points), selectinload(Activity.laps))
-        .order_by(Activity.start_time)
-    ).scalars().all()
-
-    records = db.execute(
-        select(PersonalRecord).where(PersonalRecord.user_id == current_user.id)
-    ).scalars().all()
-
-    equipment = db.execute(
-        select(Equipment).where(Equipment.user_id == current_user.id)
-    ).scalars().all()
-
-    payload = {
-        "exported_at": datetime.now(UTC).isoformat(),
-        "user": {
-            "id": str(current_user.id),
-            "email": current_user.email,
-            "created_at": current_user.created_at.isoformat(),
-        },
-        "profile": (
-            ProfileOut.model_validate(current_user.profile).model_dump(mode="json")
-            if current_user.profile
-            else None
-        ),
-        "equipment": [
-            {
-                "id": str(e.id),
-                "name": e.name,
-                "type": e.type,
-                "brand": e.brand,
-                "model": e.model,
-                "purchase_date": e.purchase_date.isoformat() if e.purchase_date else None,
-                "retired_at": e.retired_at.isoformat() if e.retired_at else None,
-                "initial_distance_m": float(e.initial_distance_m),
-                "notes": e.notes,
-            }
-            for e in equipment
-        ],
-        "records": [RecordOut.model_validate(r).model_dump(mode="json") for r in records],
-        "activities": [ActivityDetail.model_validate(a).model_dump(mode="json") for a in activities],
-    }
-
-    body = json.dumps(payload, ensure_ascii=False)
+    """Exporta todos os dados do usuario em JSON (portabilidade/LGPD): perfil,
+    equipamentos, recordes, atividades, o que a Duni sabe e planejou, e a carga diaria."""
+    body = json.dumps(build_export(db, current_user), ensure_ascii=False)
     return Response(
         content=body,
         media_type="application/json",

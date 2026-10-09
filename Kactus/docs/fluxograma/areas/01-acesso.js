@@ -16,6 +16,7 @@ KACTUS_MAPA.areas.push({
     "apps/controle/kactus_controle/sistema.py",
     "apps/controle/kactus_controle/config.py",
     "apps/controle/kactus_controle/relogio.py",
+    "apps/controle/kactus_controle/backup.py",
     "apps/controle/kactus_controle/relogio.ps1",
     "apps/web/public/sw.js",
     "apps/web/public/desligado.html",
@@ -104,9 +105,23 @@ flowchart TD
   AGORA("Importar agora · janela ou menu"):::acao --> FORCA[["Reimporta tudo o que está no relógio<br/>o import ignora duplicados"]]:::calc --> COP
 `,
     },
+    {
+      titulo: "Backup semanal",
+      mermaid: `
+flowchart TD
+  BINI(["2 min depois de abrir o Controle,<br/>depois de hora em hora"]):::estado --> BVENC{"Passou uma semana<br/>do último backup?"}:::decisao
+  BVENC -->|não| BINI
+  BVENC -->|sim| BRUN[/"uv run … scripts.backup --json"/]:::api
+  BAGORA("Fazer backup agora · janela ou menu"):::acao --> BRUN
+  BRUN --> BGZ[["Exporta tudo em .json.gz<br/>guarda as últimas 8 cópias"]]:::calc
+  BGZ --> BOK["Backup do Kactus salvo (X MB)"]:::ok
+  BRUN -->|erro| BERR["Não consegui fazer o backup do Kactus: …<br/>tenta de novo na próxima hora"]:::erro
+  BOK --> BPASTA("Abrir pasta de backups<br/>Documentos/Kactus backups"):::acao
+`,
+    },
   ],
   inventario: [
-    { tipo: "menu", nome: "Ícone no relógio", acao: "Menu com Abrir o painel, Ligar, Desligar, Reiniciar, Abrir no PC, Copiar endereço do iPhone, modo, Iniciar com o Windows, Manter o PC acordado, Importar do relógio no USB, Importar do relógio agora, Ver log e Sair.", onde: "apps/controle/kactus_controle/app.py:265" },
+    { tipo: "menu", nome: "Ícone no relógio", acao: "Menu com Abrir o painel, Ligar, Desligar, Reiniciar, Abrir no PC, Copiar endereço do iPhone, modo, Iniciar com o Windows, Manter o PC acordado, Importar do relógio no USB, Importar do relógio agora, Fazer backup agora, Abrir pasta de backups, Ver log e Sair.", onde: "apps/controle/kactus_controle/app.py:265" },
     { tipo: "botão", nome: "Ligar", acao: "Sobe API e site no modo escolhido. Só fica ativo com o servidor desligado ou com erro.", onde: "apps/controle/kactus_controle/app.py:273", no: "MODO" },
     { tipo: "botão", nome: "Desligar", acao: "Mata os processos nas portas 3003 e 8000 e os .bat que os lançaram.", onde: "apps/controle/kactus_controle/servidor.py:221" },
     { tipo: "botão", nome: "Reiniciar", acao: "Desliga e liga de novo. Necessário no modo rápido para pegar código novo.", onde: "apps/controle/kactus_controle/servidor.py:243" },
@@ -124,6 +139,13 @@ flowchart TD
     { tipo: "API", nome: "Importação direto no banco", acao: "O Controle roda o script da API com os arquivos; a conta é a INITIAL_USER_EMAIL do .env. Mesmo caminho da tela Importar (duplicados ignorados, carga recalculada uma vez).", api: "uv run python -m kactus_api.scripts.import_files --json", onde: "apps/controle/kactus_controle/relogio.py:116", no: "IMP" },
     { tipo: "sucesso", nome: "Treinos do relógio importados", acao: "Aviso no Windows e na janela, com a hora.", msg: "N treinos novos do relógio no Kactus · N já estavam lá · N com erro", onde: "apps/controle/kactus_controle/app.py:209", no: "AV" },
     { tipo: "erro", nome: "Falha ao importar do relógio", acao: "Nada é marcado como visto: tenta de novo na próxima conferência.", msg: "Não consegui importar do relógio: …", onde: "apps/controle/kactus_controle/relogio.py:189", no: "RERR" },
+    { tipo: "seção", nome: "Backup semanal", acao: "Na janela: quando foi o último backup (clique abre a pasta) e o botão Fazer agora.", msg: "Ainda sem backup: o primeiro sai alguns minutos depois de abrir o Controle. · Último: dd/mm às HH:MM", onde: "apps/controle/kactus_controle/janela.py:189", no: "BINI" },
+    { tipo: "cálculo", nome: "Quando fazer o backup", acao: "2 min depois de abrir o Controle e depois de hora em hora: se passou uma semana do último (salvo em config.json), roda.", onde: "apps/controle/kactus_controle/backup.py:43", no: "BVENC" },
+    { tipo: "integração", nome: "Script de backup", acao: "Exporta tudo (o mesmo do Exportar meus dados) em kactus_backup_AAAA-MM-DD_HHMMSS.json.gz e apaga as cópias além das 8 mais novas. Com os dados reais: ~8 MB e ~25 s.", api: "uv run python -m kactus_api.scripts.backup --pasta … --json", onde: "apps/controle/kactus_controle/backup.py:22", no: "BRUN,BGZ" },
+    { tipo: "botão", nome: "Fazer backup agora", acao: "Na janela e no menu do ícone.", msg: "Fazendo o backup… (cerca de meio minuto)", onde: "apps/controle/kactus_controle/app.py:233", no: "BAGORA" },
+    { tipo: "sucesso", nome: "Backup salvo", msg: "Backup do Kactus salvo (X MB)", onde: "apps/controle/kactus_controle/backup.py:38", no: "BOK" },
+    { tipo: "erro", nome: "Backup falhou", msg: "Não consegui fazer o backup do Kactus: …", onde: "apps/controle/kactus_controle/backup.py", no: "BERR" },
+    { tipo: "botão", nome: "Abrir pasta de backups", acao: "Abre Documentos/Kactus backups no Explorer.", onde: "apps/controle/kactus_controle/app.py", no: "BPASTA" },
     { tipo: "botão", nome: "Importar agora", acao: "Na janela e no menu: confere o USB na hora e reimporta tudo o que está no relógio.", msg: "Procurando o relógio no USB… · Nenhum relógio com treinos encontrado no USB.", onde: "apps/controle/kactus_controle/app.py:205", no: "AGORA,FORCA" },
     { tipo: "modal", nome: "Sair do Controle", acao: "Pergunta se desliga o servidor também.", msg: "Desligar o servidor do Kactus também? Sim: desliga tudo. Não: o Kactus continua no ar, sem o controle.", onde: "apps/controle/kactus_controle/app.py:242" },
     { tipo: "carregando", nome: "Preparando", acao: "Build da versão rápida quando o código do site mudou.", msg: "Preparando a versão rápida do site (1–2 min)…", onde: "apps/controle/kactus_controle/app.py:35", no: "PREP" },
