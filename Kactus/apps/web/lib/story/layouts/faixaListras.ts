@@ -7,6 +7,8 @@ import { drawPhotoAndScrims, drawStatBand } from "./shared";
 export const faixaListras: StoryLayout = {
   id: "faixa-listras",
   label: "Faixa + listras",
+  // conteúdo de cima a baixo do Story: no 4:5 ficaria pequeno demais
+  feed: false,
   art: R.art,
   draw(ctx, data) {
     drawPhotoAndScrims(ctx, data, [

@@ -10,6 +10,8 @@ import { drawPhotoAndScrims, drawStatBand } from "./shared";
 export const faixaSimples: StoryLayout = {
   id: "faixa-simples",
   label: "Só a faixa",
+  // conteúdo de cima a baixo do Story: no 4:5 ficaria pequeno demais
+  feed: false,
   art: R.art,
   draw(ctx, data) {
     drawPhotoAndScrims(ctx, data, [{ box: { x: 0, y: 1350, w: 1080, h: 570 }, direction: "bottom", strength: 0.85 }]);

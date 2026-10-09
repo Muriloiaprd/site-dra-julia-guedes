@@ -1,10 +1,10 @@
-// Área 07 — Compartilhar: gerador de Story (imagem 1080×1920 e vídeo).
+// Área 07 — Compartilhar: gerador de Story (imagem 1080×1920 ou Feed 1080×1350, e vídeo).
 KACTUS_MAPA.areas.push({
   id: "stories",
   n: 7,
   titulo: "Compartilhar (Stories)",
   resumo:
-    "O botão Compartilhar do treino abre um gerador de Story no próprio navegador, sem servidor. São 25 modelos: 6 desenhados com os dados do treino e 19 artes da marca Kactus. Cada modelo só aparece se o treino tiver o que ele precisa (rota, FC, splits, subida). Três modelos viram vídeo. Dá para pôr foto de fundo, deixar o fundo transparente e salvar, copiar ou compartilhar.",
+    "O botão Compartilhar do treino abre um gerador de Story no próprio navegador, sem servidor. São 25 modelos: 6 desenhados com os dados do treino e 19 artes da marca Kactus. Cada modelo só aparece se o treino tiver o que ele precisa (rota, FC, splits, subida). Três modelos viram vídeo. Dá para trocar para o Feed 4:5 (15 modelos que cabem), pôr foto de fundo, deixar o fundo transparente e salvar, copiar ou compartilhar.",
   rotas: ["/activities/[id] → Compartilhar"],
   arquivos: [
     "apps/web/components/share/StoryGenerator.tsx",
@@ -13,6 +13,7 @@ KACTUS_MAPA.areas.push({
     "apps/web/lib/story/layouts/index.ts",
     "apps/web/lib/story/layouts/*.ts",
     "apps/web/lib/story/engine.ts",
+    "apps/web/lib/story/feed.ts",
     "apps/web/lib/story/art.ts",
     "apps/web/lib/story/metrics.ts",
     "apps/web/public/story-art/",
@@ -34,6 +35,9 @@ flowchart TD
   FT -->|não| FE["Formato não suportado, use JPG ou PNG"]:::erro
   FT -->|sim| AJ("Arrastar e zoom 1× a 2,5×"):::acao
   MOD --> TR("Fundo transparente"):::acao
+  MOD --> FMT("Story 9:16 · Feed 4:5"):::acao
+  FMT -->|Feed| FD[["Desenha o modelo em 9:16 sem fundo,<br/>recorta o que tem tinta e centraliza em 1080×1350;<br/>foto cobre o 4:5 com um véu escuro"]]:::calc
+  FD --> F15["Só os 15 modelos que cabem<br/>miniaturas em 4:5"]:::tela
   MOD --> PNG[["Desenha no canvas<br/>e prepara o PNG em 300 ms"]]:::calc
   PNG --> SH("Compartilhar"):::acao
   PNG --> SV("Salvar"):::acao
@@ -41,7 +45,7 @@ flowchart TD
   SH --> CAN{"navigator.share<br/>aceita arquivo?"}:::decisao
   CAN -->|sim| SHEET["Folha de compartilhar do iPhone<br/>Instagram, Salvar imagem"]:::ok
   CAN -->|não| SV
-  SV --> DL["Baixa kactus_story_id.png<br/>no iPhone vai para Arquivos"]:::ok
+  SV --> DL["Baixa kactus_story_id.png ou kactus_feed_id.png<br/>no iPhone vai para Arquivos"]:::ok
   CP --> CL{"Navegador copia imagem?"}:::decisao
   CL -->|sim| OKC["Copiado!"]:::ok
   CL -->|não| CE["Copiar não é suportado neste navegador"]:::erro
@@ -70,27 +74,28 @@ flowchart LR
     },
   ],
   inventario: [
-    { tipo: "modal", nome: "Compartilhar", acao: "Prévia 1080×1920 em até 280 px de largura; fecha com ✕, clique fora ou Esc. Trava a rolagem da página.", onde: "apps/web/components/share/StoryGenerator.tsx:408", no: "MOD" },
-    { tipo: "API", nome: "Perfil para o Story", acao: "Nome (passageiro do Bilhete) e zonas de FC (cores do Batimento).", api: "GET /profile", onde: "apps/web/components/share/StoryGenerator.tsx:88", no: "PRF" },
+    { tipo: "modal", nome: "Compartilhar", acao: "Prévia 1080×1920 em até 280 px de largura; fecha com ✕, clique fora ou Esc. Trava a rolagem da página.", onde: "apps/web/components/share/StoryGenerator.tsx:414", no: "MOD" },
+    { tipo: "API", nome: "Perfil para o Story", acao: "Nome (passageiro do Bilhete) e zonas de FC (cores do Batimento).", api: "GET /profile", onde: "apps/web/components/share/StoryGenerator.tsx:93", no: "PRF" },
     { tipo: "cálculo", nome: "Modelos disponíveis", acao: "Filtra os 25 pela rota (requiresRoute) e pela regra de cada modelo de dados.", onde: "apps/web/lib/story/layouts/index.ts:58", no: "AV,V" },
-    { tipo: "seção", nome: "Grupos do carrossel", acao: "🎬 Viram vídeo · Feitos com seus dados · Artes Kactus, nessa ordem.", onde: "apps/web/components/share/StoryGenerator.tsx:103", no: "GR" },
-    { tipo: "botão", nome: "‹ Modelo anterior · Próximo modelo ›", acao: "Também pelas setas do teclado e arrastando a prévia para o lado (quando não há foto).", onde: "apps/web/components/share/StoryGenerator.tsx:465", no: "NAV" },
-    { tipo: "botão", nome: "Ver todos", acao: "Abre a galeria com miniaturas de todos os modelos.", onde: "apps/web/components/share/StoryGenerator.tsx:492", no: "ALL" },
-    { tipo: "modal", nome: "Galeria 'Modelos'", acao: "Grade por grupo; ‹ volta para a prévia; Esc fecha a galeria.", onde: "apps/web/components/share/StoryGenerator.tsx:436", no: "GAL" },
+    { tipo: "seção", nome: "Grupos do carrossel", acao: "🎬 Viram vídeo · Feitos com seus dados · Artes Kactus, nessa ordem.", onde: "apps/web/components/share/StoryGenerator.tsx:111", no: "GR" },
+    { tipo: "botão", nome: "‹ Modelo anterior · Próximo modelo ›", acao: "Também pelas setas do teclado e arrastando a prévia para o lado (quando não há foto).", onde: "apps/web/components/share/StoryGenerator.tsx:471", no: "NAV" },
+    { tipo: "botão", nome: "Ver todos", acao: "Abre a galeria com miniaturas de todos os modelos.", onde: "apps/web/components/share/StoryGenerator.tsx:498", no: "ALL" },
+    { tipo: "modal", nome: "Galeria 'Modelos'", acao: "Grade por grupo; ‹ volta para a prévia; Esc fecha a galeria.", onde: "apps/web/components/share/StoryGenerator.tsx:442", no: "GAL" },
     { tipo: "seção", nome: "Trilho de miniaturas", acao: "Miniaturas desenhadas em segundo plano (no celular guarda só 6 de cada vez).", onde: "apps/web/components/share/useStoryThumbs.ts" },
-    { tipo: "campo", nome: "Escolher foto / Trocar foto", acao: "Qualquer imagem do aparelho vira fundo.", onde: "apps/web/components/share/StoryGenerator.tsx:505", no: "FOTO,FT" },
-    { tipo: "erro", nome: "Foto inválida", msg: "Formato não suportado, use JPG ou PNG", onde: "apps/web/components/share/StoryGenerator.tsx:301", no: "FE" },
-    { tipo: "campo", nome: "Arrastar a foto + Zoom", acao: "Arrastar reposiciona; o controle deslizante vai de 1× a 2,5×.", msg: "Arraste a foto pra reposicionar", onde: "apps/web/components/share/StoryGenerator.tsx:519", no: "AJ" },
-    { tipo: "botão", nome: "Fundo transparente", acao: "Tira o fundo (prévia em xadrez). O vídeo sempre sai com fundo.", onde: "apps/web/components/share/StoryGenerator.tsx:509", no: "TR" },
-    { tipo: "cálculo", nome: "PNG pronto antes do toque", acao: "Gera o PNG 300 ms depois da última mudança, porque o Safari do iPhone só abre o compartilhar se nada for esperado no toque.", onde: "apps/web/components/share/StoryGenerator.tsx:193", no: "PNG" },
-    { tipo: "botão", nome: "Compartilhar", acao: "Abre a folha de compartilhar; sem suporte, baixa o arquivo.", msg: "Não foi possível compartilhar a imagem", onde: "apps/web/components/share/StoryGenerator.tsx:364", no: "SH,CAN,SHEET" },
-    { tipo: "botão", nome: "Salvar", acao: "Baixa kactus_story_<id>.png. No iPhone vai para o app Arquivos.", msg: "Não foi possível salvar a imagem", onde: "apps/web/components/share/StoryGenerator.tsx:352", no: "SV,DL" },
-    { tipo: "botão", nome: "Copiar", acao: "Copia a imagem para a área de transferência.", msg: "Copiado! · Copiar não é suportado neste navegador", onde: "apps/web/components/share/StoryGenerator.tsx:392", no: "CP,CL,OKC,CE" },
-    { tipo: "aviso", nome: "Dica no celular", msg: "Para a galeria: Compartilhar → Salvar imagem/vídeo. \"Salvar\" guarda no app Arquivos.", onde: "apps/web/components/share/StoryGenerator.tsx:571" },
-    { tipo: "botão", nome: "🎬 Gravar vídeo", acao: "Só nos modelos que se animam. Grava o canvas a 30 fps, MP4 se o navegador deixar, senão WebM.", msg: "Gravando… N%", onde: "apps/web/components/share/StoryGenerator.tsx:207", no: "REC,MR,GRAV" },
-    { tipo: "erro", nome: "Vídeo não suportado ou vazio", msg: "Este navegador não grava o vídeo do Story; use a imagem · O vídeo saiu vazio; tente de novo ou use a imagem", onde: "apps/web/components/share/StoryGenerator.tsx:220", no: "VE" },
-    { tipo: "sucesso", nome: "Vídeo pronto", acao: "Prévia em loop com duração (7,5 s), formato e tamanho; Compartilhar vídeo e Salvar.", onde: "apps/web/components/share/StoryGenerator.tsx:544", no: "VID" },
-    { tipo: "erro", nome: "Aparelho bloqueou", acao: "O nome do erro aparece na tela porque o iPhone não tem console.", msg: "O aparelho bloqueou a ação; toque de novo. (NotAllowedError)", onde: "apps/web/components/share/StoryGenerator.tsx:26" },
+    { tipo: "campo", nome: "Escolher foto / Trocar foto", acao: "Qualquer imagem do aparelho vira fundo.", onde: "apps/web/components/share/StoryGenerator.tsx:526", no: "FOTO,FT" },
+    { tipo: "erro", nome: "Foto inválida", msg: "Formato não suportado, use JPG ou PNG", onde: "apps/web/components/share/StoryGenerator.tsx:307", no: "FE" },
+    { tipo: "campo", nome: "Arrastar a foto + Zoom", acao: "Arrastar reposiciona; o controle deslizante vai de 1× a 2,5×.", msg: "Arraste a foto pra reposicionar", onde: "apps/web/components/share/StoryGenerator.tsx:540", no: "AJ" },
+    { tipo: "botão", nome: "Story 9:16 · Feed 4:5", acao: "Troca o formato. No Feed (1080×1350) o modelo é desenhado sem fundo em 9:16, a área com tinta é recortada e centralizada (reduzida só se não couber) e a foto cobre o 4:5 inteiro com um véu escuro no lugar dos escurecimentos do modelo. Ficam fora os 10 modelos com conteúdo de cima a baixo (Ícones à direita, Logo lateral, Só a faixa, Rota + faixa, Faixa + listras, Mão, Símbolo, Tênis, Bandeiras, Desafio). O vídeo também sai em 4:5; o arquivo vira kactus_feed_<id>.png.", onde: "apps/web/components/share/StoryGenerator.tsx:511", no: "FMT,FD,F15" },
+    { tipo: "botão", nome: "Fundo transparente", acao: "Tira o fundo (prévia em xadrez). O vídeo sempre sai com fundo.", onde: "apps/web/components/share/StoryGenerator.tsx:530", no: "TR" },
+    { tipo: "cálculo", nome: "PNG pronto antes do toque", acao: "Gera o PNG 300 ms depois da última mudança, porque o Safari do iPhone só abre o compartilhar se nada for esperado no toque.", onde: "apps/web/components/share/StoryGenerator.tsx:200", no: "PNG" },
+    { tipo: "botão", nome: "Compartilhar", acao: "Abre a folha de compartilhar; sem suporte, baixa o arquivo.", msg: "Não foi possível compartilhar a imagem", onde: "apps/web/components/share/StoryGenerator.tsx:370", no: "SH,CAN,SHEET" },
+    { tipo: "botão", nome: "Salvar", acao: "Baixa kactus_story_<id>.png. No iPhone vai para o app Arquivos.", msg: "Não foi possível salvar a imagem", onde: "apps/web/components/share/StoryGenerator.tsx:358", no: "SV,DL" },
+    { tipo: "botão", nome: "Copiar", acao: "Copia a imagem para a área de transferência.", msg: "Copiado! · Copiar não é suportado neste navegador", onde: "apps/web/components/share/StoryGenerator.tsx:398", no: "CP,CL,OKC,CE" },
+    { tipo: "aviso", nome: "Dica no celular", msg: "Para a galeria: Compartilhar → Salvar imagem/vídeo. \"Salvar\" guarda no app Arquivos.", onde: "apps/web/components/share/StoryGenerator.tsx:592" },
+    { tipo: "botão", nome: "🎬 Gravar vídeo", acao: "Só nos modelos que se animam. Grava o canvas a 30 fps, MP4 se o navegador deixar, senão WebM.", msg: "Gravando… N%", onde: "apps/web/components/share/StoryGenerator.tsx:214", no: "REC,MR,GRAV" },
+    { tipo: "erro", nome: "Vídeo não suportado ou vazio", msg: "Este navegador não grava o vídeo do Story; use a imagem · O vídeo saiu vazio; tente de novo ou use a imagem", onde: "apps/web/components/share/StoryGenerator.tsx:227", no: "VE" },
+    { tipo: "sucesso", nome: "Vídeo pronto", acao: "Prévia em loop com duração (7,5 s), formato e tamanho; Compartilhar vídeo e Salvar.", onde: "apps/web/components/share/StoryGenerator.tsx:565", no: "VID" },
+    { tipo: "erro", nome: "Aparelho bloqueou", acao: "O nome do erro aparece na tela porque o iPhone não tem console.", msg: "O aparelho bloqueou a ação; toque de novo. (NotAllowedError)", onde: "apps/web/components/share/StoryGenerator.tsx:27" },
     { tipo: "card", nome: "Batimento 🎬", acao: "Curva de FC colorida pelas zonas. Precisa de FC média e 60+ pontos com FC.", onde: "apps/web/lib/story/layouts/batimento.ts:62", no: "B1" },
     { tipo: "card", nome: "Parciais 🎬", acao: "Barras por km. Precisa de 2+ splits válidos.", onde: "apps/web/lib/story/layouts/parciais.ts:19", no: "B2" },
     { tipo: "card", nome: "Rota pelo ritmo 🎬", acao: "Percurso colorido pelo ritmo. Precisa de 30+ pontos de rota com velocidade ou distância.", onde: "apps/web/lib/story/layouts/rotaRitmo.ts:113", no: "B3" },

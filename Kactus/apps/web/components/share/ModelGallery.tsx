@@ -28,7 +28,8 @@ function Thumb({ src, transparent, label }: { src?: string; transparent: boolean
  * Trilho de miniaturas abaixo da prévia: rola na horizontal sem barra aparente,
  * esmaece nas bordas e separa os grupos com um fio. O escolhido vem para o centro.
  */
-export function ModelRail({ groups, selectedId, thumbs, transparent, onSelect, disabled }: {
+export function ModelRail({ groups, selectedId, thumbs, transparent, onSelect, disabled, aspect = "9 / 16" }: {
+  aspect?: string;
   groups: ModelGroup[];
   selectedId: string;
   thumbs: Record<string, string>;
@@ -69,7 +70,7 @@ export function ModelRail({ groups, selectedId, thumbs, transparent, onSelect, d
                 title={l.label}
                 className="relative w-[54px] shrink-0 overflow-hidden rounded-lg transition-all duration-200 disabled:cursor-not-allowed"
                 style={{
-                  aspectRatio: "9 / 16",
+                  aspectRatio: aspect,
                   opacity: on ? 1 : 0.62,
                   transform: on ? "scale(1.08)" : undefined,
                   boxShadow: on ? `0 0 0 2px ${ACCENT}, 0 6px 18px rgba(0,255,102,0.25)` : "inset 0 0 0 1px rgba(255,255,255,0.1)",
@@ -91,7 +92,8 @@ export function ModelRail({ groups, selectedId, thumbs, transparent, onSelect, d
 }
 
 /** Galeria com todos os modelos em grade, por grupo, para escolher vendo tudo de uma vez. */
-export function ModelGrid({ groups, selectedId, thumbs, transparent, onSelect }: {
+export function ModelGrid({ groups, selectedId, thumbs, transparent, onSelect, aspect = "9 / 16" }: {
+  aspect?: string;
   groups: ModelGroup[];
   selectedId: string;
   thumbs: Record<string, string>;
@@ -114,7 +116,7 @@ export function ModelGrid({ groups, selectedId, thumbs, transparent, onSelect }:
                   <div
                     className="relative overflow-hidden rounded-xl transition-transform duration-200 group-hover:-translate-y-0.5"
                     style={{
-                      aspectRatio: "9 / 16",
+                      aspectRatio: aspect,
                       boxShadow: on ? `0 0 0 2px ${ACCENT}, 0 10px 28px rgba(0,255,102,0.22)` : "inset 0 0 0 1px rgba(255,255,255,0.08)",
                     }}
                   >

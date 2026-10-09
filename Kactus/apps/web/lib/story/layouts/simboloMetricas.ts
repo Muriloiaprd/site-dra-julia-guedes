@@ -12,6 +12,8 @@ import { drawPhotoAndScrims, INTER_BOLD, LINE_KEYS, metricText } from "./shared"
 export const simboloMetricas: StoryLayout = {
   id: "simbolo-metricas",
   label: "Símbolo",
+  // conteúdo de cima a baixo do Story: no 4:5 ficaria pequeno demais
+  feed: false,
   art: R.art,
   draw(ctx, data) {
     drawPhotoAndScrims(ctx, data, [{ box: { x: 0, y: 1250, w: 1080, h: 670 }, direction: "bottom", strength: 0.75 }]);

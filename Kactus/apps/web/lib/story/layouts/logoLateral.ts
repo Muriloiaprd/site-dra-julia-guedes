@@ -11,6 +11,8 @@ import { drawPhotoAndScrims, drawValueColumn, INTER_BOLD } from "./shared";
 export const logoLateral: StoryLayout = {
   id: "logo-lateral",
   label: "Logo lateral",
+  // conteúdo de cima a baixo do Story: no 4:5 ficaria pequeno demais
+  feed: false,
   art: R.art,
   draw(ctx, data) {
     drawPhotoAndScrims(ctx, data, [

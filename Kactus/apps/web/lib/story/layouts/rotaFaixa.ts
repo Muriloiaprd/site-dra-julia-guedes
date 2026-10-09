@@ -11,6 +11,8 @@ import { drawPhotoAndScrims, drawStatBand } from "./shared";
 export const rotaFaixa: StoryLayout = {
   id: "rota-faixa",
   label: "Rota + faixa",
+  // conteúdo de cima a baixo do Story: no 4:5 ficaria pequeno demais
+  feed: false,
   art: R.art,
   requiresRoute: true,
   draw(ctx, data) {

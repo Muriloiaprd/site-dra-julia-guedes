@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchProfile, type ActivityDetail, type HrZones, type Split, type ZoneBucket } from "@/lib/api";
 import { resolveHrZones } from "@/lib/athlete";
 import { loadArt, storyColor } from "@/lib/story/art";
-import { loadStoryFonts, prepareCanvas, STORY_H, STORY_W } from "@/lib/story/engine";
+import { loadStoryFonts, STORY_W } from "@/lib/story/engine";
+import { drawInFormat, feedLayouts, formatSize, type StoryFormat } from "@/lib/story/feed";
 import { availableLayouts, DATA_LAYOUTS } from "@/lib/story/layouts";
 import { resolveStoryMetrics } from "@/lib/story/metrics";
 import type { StoryPhoto } from "@/lib/story/types";
@@ -68,6 +69,10 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
   const [photo, setPhoto] = useState<{ image: HTMLImageElement; offsetX: number; offsetY: number; zoom: number } | null>(null);
   const [art, setArt] = useState<{ layoutId: string; image: HTMLImageElement } | null>(null);
   const [transparent, setTransparent] = useState(false);
+  // Story 9:16 ou Feed 4:5 (lib/story/feed.ts)
+  const [format, setFormat] = useState<StoryFormat>("story");
+  const size = formatSize(format);
+  const fileBase = `kactus_${format === "feed" ? "feed" : "story"}_${activity.id}`;
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"share" | "save" | "copy" | "video" | null>(null);
@@ -98,7 +103,10 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
   );
   const metrics = useMemo(() => resolveStoryMetrics(activity), [activity]);
   const color = storyColor(activity.sport);
-  const available = useMemo(() => availableLayouts({ activity, routePoints, splits }), [activity, routePoints, splits]);
+  const available = useMemo(() => {
+    const all = availableLayouts({ activity, routePoints, splits });
+    return format === "feed" ? feedLayouts(all) : all;
+  }, [activity, routePoints, splits, format]);
   // grupos da galeria; o trilho e as setas seguem a mesma ordem
   const groups = useMemo<ModelGroup[]>(() => [
     { id: "video", title: "🎬 Viram vídeo", hint: "Imagem ou vídeo animado", items: available.filter((l) => l.animated) },
@@ -150,7 +158,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
     } : null),
     [fontsReady, activity, metrics, routePoints, photo, transparent, color, splits, zones, profile]
   );
-  const thumbs = useStoryThumbs(layouts, thumbData, busy === "video");
+  const thumbs = useStoryThumbs(layouts, thumbData, busy === "video", format);
 
   // carrega a arte do layout ativo (pré-carrega os vizinhos ocioso, sem travar a troca)
   useEffect(() => {
@@ -176,8 +184,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
     if (!canvas || !layout || !artForLayout || recordingRef.current) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    prepareCanvas(ctx, transparent);
-    layout.draw(ctx, {
+    drawInFormat(ctx, format, layout, {
       activity,
       metrics,
       routePoints,
@@ -195,11 +202,11 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
     const timer = setTimeout(() => {
       canvas.toBlob((blob) => {
         if (!blob || seq !== pngSeq.current) return;
-        pngRef.current = { blob, file: new File([blob], `kactus_story_${activity.id}.png`, { type: "image/png" }) };
+        pngRef.current = { blob, file: new File([blob], `${fileBase}.png`, { type: "image/png" }) };
       }, "image/png");
     }, PNG_READY_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [layout, artForLayout, activity, metrics, routePoints, photo, transparent, color, fontsReady, splits, zones, profile, redrawTick]);
+  }, [layout, artForLayout, activity, metrics, routePoints, photo, transparent, color, fontsReady, splits, zones, profile, redrawTick, format, size.h, fileBase]);
 
   useEffect(() => () => { if (video) URL.revokeObjectURL(video.url); }, [video]);
 
@@ -221,9 +228,8 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
       const [art] = await Promise.all([loadArt(vl.art), loadStoryFonts()]);
       const ctx = canvas.getContext("2d")!;
       const frame = (progress: number) => {
-        prepareCanvas(ctx, false);
         // video nao tem canal alfa: sempre com fundo (foto ou o preto da marca)
-        vl.draw(ctx, {
+        drawInFormat(ctx, format, vl, {
           activity, metrics, routePoints, photo: photo as StoryPhoto | null, art, transparent: false, color,
           splits, zones, hrZones: profile.hrZones, athleteName: profile.name, progress,
         });
@@ -353,7 +359,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
     setBusy("save");
     setActionError(null);
     try {
-      downloadBlob(await pngBlob(), `kactus_story_${activity.id}.png`);
+      downloadBlob(await pngBlob(), `${fileBase}.png`);
     } catch (e) {
       setActionError(errorText(e, "Não foi possível salvar a imagem"));
     } finally {
@@ -379,7 +385,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
     setBusy("share");
     try {
       const blob = await pngBlob();
-      const file = new File([blob], `kactus_story_${activity.id}.png`, { type: "image/png" });
+      const file = new File([blob], `${fileBase}.png`, { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: "Kactus" });
       else downloadBlob(blob, file.name);
     } catch (e) {
@@ -434,7 +440,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
         </div>
 
         {gallery && (
-          <ModelGrid groups={groups} selectedId={layout.id} thumbs={thumbs} transparent={transparent} onSelect={pickFromGallery} />
+          <ModelGrid groups={groups} selectedId={layout.id} thumbs={thumbs} transparent={transparent} onSelect={pickFromGallery} aspect={`${size.w} / ${size.h}`} />
         )}
 
         {/* editor: fica montado (escondido) durante a galeria para o canvas nao perder o desenho */}
@@ -447,7 +453,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
           onPointerCancel={handlePointerUp}
           className="relative mx-auto w-full max-w-[280px] touch-none select-none overflow-hidden rounded-tile"
           style={{
-            aspectRatio: `${STORY_W} / ${STORY_H}`,
+            aspectRatio: `${size.w} / ${size.h}`,
             cursor: photo ? "grab" : "default",
             boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)",
             backgroundImage: transparent
@@ -456,7 +462,7 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
             backgroundSize: transparent ? "16px 16px" : undefined,
           }}
         >
-          <canvas ref={canvasRef} width={STORY_W} height={STORY_H} className="h-full w-full" />
+          <canvas ref={canvasRef} width={size.w} height={size.h} className="h-full w-full" />
           {!artForLayout && (
             <div className="od-skeleton absolute inset-0" aria-hidden />
           )}
@@ -498,10 +504,25 @@ export function StoryGenerator({ activity, splits, zones, onClose }: {
           )}
         </div>
         {layouts.length > 1 && (
-          <ModelRail groups={groups} selectedId={layout.id} thumbs={thumbs} transparent={transparent} onSelect={setLayoutId} disabled={busy === "video"} />
+          <ModelRail groups={groups} selectedId={layout.id} thumbs={thumbs} transparent={transparent} onSelect={setLayoutId} disabled={busy === "video"} aspect={`${size.w} / ${size.h}`} />
         )}
 
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+          <div className="inline-flex rounded-full p-0.5" style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12)" }} role="radiogroup" aria-label="Formato">
+            {([["story", "Story 9:16"], ["feed", "Feed 4:5"]] as const).map(([f, label]) => (
+              <button
+                key={f}
+                role="radio"
+                aria-checked={format === f}
+                disabled={busy === "video"}
+                onClick={() => { setFormat(f); setVideo(null); }}
+                className="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
+                style={format === f ? { background: "#00FF66", color: "#000" } : { color: "#B8B8B8" }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <label className="od-btn od-btn-secondary od-btn-sm cursor-pointer">
             {photo ? "Trocar foto" : "Escolher foto"}
             <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />

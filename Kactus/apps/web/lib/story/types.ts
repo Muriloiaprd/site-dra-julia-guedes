@@ -50,5 +50,7 @@ export interface StoryLayout {
   isNew?: boolean;
   /** Sabe desenhar quadros intermediários (`data.progress`): pode virar vídeo. */
   animated?: boolean;
+  /** false: o conteúdo ocupa o Story de cima a baixo e ficaria pequeno no Feed 4:5 (lib/story/feed.ts). */
+  feed?: boolean;
   draw(ctx: CanvasRenderingContext2D, data: StoryLayoutData): void;
 }

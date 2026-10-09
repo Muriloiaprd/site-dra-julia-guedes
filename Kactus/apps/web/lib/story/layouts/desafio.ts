@@ -16,6 +16,8 @@ const KEYS = ["duration", "pace", "distance"] as const;
 export const desafio: StoryLayout = {
   id: "desafio",
   label: "Desafio",
+  // conteúdo de cima a baixo do Story: no 4:5 ficaria pequeno demais
+  feed: false,
   art: R.art,
   draw(ctx, data) {
     drawPhotoAndScrims(ctx, data, [{ box: { x: 0, y: 900, w: 1080, h: 1020 }, direction: "bottom", strength: 0.9 }]);
