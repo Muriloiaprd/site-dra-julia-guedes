@@ -2,6 +2,7 @@ import type { StoryAvailability, StoryLayout } from "../types";
 import { bandeiras } from "./bandeiras";
 import { batimento } from "./batimento";
 import { bilhete } from "./bilhete";
+import { capaRevista } from "./capaRevista";
 import { desafio } from "./desafio";
 import { faixaListras } from "./faixaListras";
 import { faixaSimples } from "./faixaSimples";
@@ -53,7 +54,7 @@ export const STORY_LAYOUTS: StoryLayout[] = [
  * Vêm primeiro no carrossel. Ficam fora de STORY_LAYOUTS porque não têm arte do Canva
  * para comparar no /story-calibrate.
  */
-export const DATA_LAYOUTS: StoryLayout[] = [batimento, parciais, montanha, rotaRitmo, recibo, bilhete];
+export const DATA_LAYOUTS: StoryLayout[] = [batimento, parciais, montanha, rotaRitmo, recibo, bilhete, capaRevista];
 
 export function availableLayouts(input: StoryAvailability): StoryLayout[] {
   const hasRoute = input.routePoints.length >= 2;

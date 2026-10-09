@@ -4,7 +4,7 @@ KACTUS_MAPA.areas.push({
   n: 7,
   titulo: "Compartilhar (Stories)",
   resumo:
-    "O botão Compartilhar do treino abre um gerador de Story no próprio navegador, sem servidor. São 25 modelos: 6 desenhados com os dados do treino e 19 artes da marca Kactus. Cada modelo só aparece se o treino tiver o que ele precisa (rota, FC, splits, subida). Três modelos viram vídeo. Dá para trocar para o Feed 4:5 (15 modelos que cabem), pôr foto de fundo, deixar o fundo transparente e salvar, copiar ou compartilhar.",
+    "O botão Compartilhar do treino abre um gerador de Story no próprio navegador, sem servidor. São 26 modelos: 7 desenhados com os dados do treino e 19 artes da marca Kactus. Cada modelo só aparece se o treino tiver o que ele precisa (rota, FC, splits, subida). Três modelos viram vídeo. Dá para trocar para o Feed 4:5 (15 modelos que cabem), pôr foto de fundo, deixar o fundo transparente e salvar, copiar ou compartilhar.",
   rotas: ["/activities/[id] → Compartilhar"],
   arquivos: [
     "apps/web/components/share/StoryGenerator.tsx",
@@ -68,6 +68,7 @@ flowchart LR
   V -->|subida de 20 m e 30+ pontos com altitude| B4["Montanha"]:::ok
   V -->|1+ split válido| B5["Recibo"]:::ok
   V -->|500 m ou mais| B6["Bilhete de embarque"]:::ok
+  V -->|500 m ou mais| B9["Capa de revista<br/>(fora do Feed 4:5)"]:::ok
   V -->|rota com GPS| B7["Minimalista · Rota limpa · Rota + faixa<br/>Rota + ícones · Stats à direita · Rota grande"]:::ok
   V -->|sempre| B8["Ícones à direita · Ícones à esquerda · Logo lateral<br/>Só a faixa · Faixa + listras · Mão · Símbolo · Tênis<br/>Bandeiras · Ícones sólidos · Centralizado · Moldura · Desafio"]:::ok
 `,
@@ -76,7 +77,7 @@ flowchart LR
   inventario: [
     { tipo: "modal", nome: "Compartilhar", acao: "Prévia 1080×1920 em até 280 px de largura; fecha com ✕, clique fora ou Esc. Trava a rolagem da página.", onde: "apps/web/components/share/StoryGenerator.tsx:414", no: "MOD" },
     { tipo: "API", nome: "Perfil para o Story", acao: "Nome (passageiro do Bilhete) e zonas de FC (cores do Batimento).", api: "GET /profile", onde: "apps/web/components/share/StoryGenerator.tsx:93", no: "PRF" },
-    { tipo: "cálculo", nome: "Modelos disponíveis", acao: "Filtra os 25 pela rota (requiresRoute) e pela regra de cada modelo de dados.", onde: "apps/web/lib/story/layouts/index.ts:58", no: "AV,V" },
+    { tipo: "cálculo", nome: "Modelos disponíveis", acao: "Filtra os 26 pela rota (requiresRoute) e pela regra de cada modelo de dados.", onde: "apps/web/lib/story/layouts/index.ts:59", no: "AV,V" },
     { tipo: "seção", nome: "Grupos do carrossel", acao: "🎬 Viram vídeo · Feitos com seus dados · Artes Kactus, nessa ordem.", onde: "apps/web/components/share/StoryGenerator.tsx:111", no: "GR" },
     { tipo: "botão", nome: "‹ Modelo anterior · Próximo modelo ›", acao: "Também pelas setas do teclado e arrastando a prévia para o lado (quando não há foto).", onde: "apps/web/components/share/StoryGenerator.tsx:471", no: "NAV" },
     { tipo: "botão", nome: "Ver todos", acao: "Abre a galeria com miniaturas de todos os modelos.", onde: "apps/web/components/share/StoryGenerator.tsx:498", no: "ALL" },
@@ -102,6 +103,7 @@ flowchart LR
     { tipo: "card", nome: "Montanha", acao: "Perfil de subida. Precisa de 20 m de subida e 30+ pontos com altitude e distância.", onde: "apps/web/lib/story/layouts/montanha.ts:15", no: "B4" },
     { tipo: "card", nome: "Recibo", acao: "Cada km como item de nota fiscal. Precisa de 1+ split.", onde: "apps/web/lib/story/layouts/recibo.ts:47", no: "B5" },
     { tipo: "card", nome: "Bilhete de embarque", acao: "Precisa de 500 m ou mais.", onde: "apps/web/lib/story/layouts/bilhete.ts:33", no: "B6" },
+    { tipo: "card", nome: "Capa de revista", acao: "Precisa de 500 m ou mais. KACTUS como nome da revista na cor do esporte, edição do mês e Nº (dia do ano), até 3 chamadas (ritmo ou velocidade, FC, subida de 30 m+, tempo), selo Edição especial com a data, a distância como manchete com o título do treino e código de barras feito das parciais. Com foto, a foto é a capa; sem foto, a rota faz o papel da imagem. Não entra no Feed 4:5.", onde: "apps/web/lib/story/layouts/capaRevista.ts:35", no: "B9" },
     { tipo: "card", nome: "Artes com rota (6)", acao: "Minimalista, Rota limpa, Rota + faixa, Rota + ícones, Stats à direita, Rota grande. Só com GPS.", onde: "apps/web/lib/story/layouts/index.ts:29", no: "B7" },
     { tipo: "card", nome: "Artes sempre disponíveis (13)", acao: "Ícones à direita, Ícones à esquerda, Logo lateral, Só a faixa, Faixa + listras, Mão, Símbolo, Tênis, Bandeiras, Ícones sólidos, Centralizado, Moldura, Desafio.", onde: "apps/web/lib/story/layouts/index.ts:29", no: "B8" },
     { tipo: "cálculo", nome: "Cor por esporte", acao: "A arte é recolorida conforme o esporte do treino.", onde: "apps/web/lib/story/art.ts" },

@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "09/10/2026",
-  commit: "plano 2026-10-09 · Fase 13",
+  commit: "plano 2026-10-09 · Fase 14",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -35,7 +35,8 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
-    { data: "09/10/2026", commit: "Fase 13", mudanca: "Gerador de Story com o formato Feed 4:5 (1080×1350): reenquadra os 15 modelos que cabem, inclusive no vídeo." },
+    { data: "09/10/2026", commit: "Fase 14", mudanca: "Novo modelo de Story Capa de revista (7º modelo feito com os dados)." },
+    { data: "09/10/2026", commit: "a98b465", mudanca: "Gerador de Story com o formato Feed 4:5 (1080×1350): reenquadra os 15 modelos que cabem, inclusive no vídeo." },
     { data: "09/10/2026", commit: "a279b33", mudanca: "Comparar dois treinos: ⇄ Comparar na lista e no detalhe abre /activities/compare com métricas, curvas de ritmo e FC sobrepostas e parciais lado a lado; página de teste /compare-preview." },
     { data: "09/10/2026", commit: "635c6bd", mudanca: "Técnica de corrida em Desempenho (GET /metrics/technique): cadência, contato, oscilação, razão vertical e passada mês a mês, com as faixas do Garmin." },
     { data: "09/10/2026", commit: "c23d759", mudanca: "Ritmo × calor em Desempenho (GET /metrics/heat): pontos temperatura × ritmo, faixas e quanto o calor pesa." },
