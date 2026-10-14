@@ -1,4 +1,4 @@
-"""Preferencias do Kactus Controle (fora do git): modo, manter o PC acordado e importar do relogio."""
+"""Preferencias do Kactus Controle (fora do git): modo, manter o PC acordado, relogio e Financas."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ class Config:
     importar_relogio: bool = True  # importa sozinho os treinos do relogio ligado no USB
     ultimo_backup: float | None = None  # epoch do ultimo backup semanal
     pasta_backup: str | None = None  # None = Documentos/Kactus backups
+    financas_no_inicio: bool = True  # liga as Financas junto com o Kactus no inicio do Windows
 
     @classmethod
     def carregar(cls, arquivo: Path = ARQUIVO) -> Config:
@@ -32,6 +33,7 @@ class Config:
         c.ultimo_backup = float(u) if isinstance(u, int | float) else None
         p = dados.get("pasta_backup")
         c.pasta_backup = p if isinstance(p, str) and p else None
+        c.financas_no_inicio = bool(dados.get("financas_no_inicio", True))
         return c
 
     def salvar(self, arquivo: Path = ARQUIVO) -> None:

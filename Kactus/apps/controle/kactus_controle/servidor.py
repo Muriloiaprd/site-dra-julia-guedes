@@ -1,8 +1,10 @@
-"""Ciclo de vida do servidor do Kactus (API + site), sem nenhuma tela.
+"""Ciclo de vida dos servidores do Kactus (API + site) e das Financas, sem nenhuma tela.
 
 Liga (modo rapido = build de producao, ou dev), desliga a arvore de processos,
 religa sozinho se cair e acompanha o estado conferindo o site e a API. Tudo que
 toca o sistema (comandos, checagem, portas) e injetavel para os testes.
+
+As Financas (Gestao-Financeira, Flask) usam a mesma classe, sem build: um comando so.
 """
 
 from __future__ import annotations
@@ -21,6 +23,9 @@ from pathlib import Path
 
 # C:\Cloude Code\Kactus (apps/controle/kactus_controle/servidor.py -> 3 niveis acima)
 RAIZ = Path(__file__).resolve().parents[3]
+# C:\Cloude Code\Gestao-Financeira (Mago das Financas), irma da pasta do Kactus
+FINANCAS = RAIZ.parent / "Gestao-Financeira"
+PORTA_FINANCAS = 5000
 SEM_JANELA = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 LOG_MAX_BYTES = 5 * 1024 * 1024
 
@@ -49,7 +54,7 @@ class Info:
 class Comandos:
     rapido: list[str]
     dev: list[str]
-    build: list[str]
+    build: list[str] | None = None  # None = sem build (Financas): liga direto
     # saida 0 = build em dia; qualquer outra = precisa refazer
     precisa_build: list[str] | None = None
 
@@ -69,6 +74,12 @@ def comandos_kactus(raiz: Path = RAIZ) -> Comandos:
             str(raiz / "scripts" / "precisa-build.ps1"),
         ],
     )
+
+
+def comandos_financas(raiz: Path = FINANCAS) -> Comandos:
+    """waitress (servir.py) com o Python do venv das Financas; o mesmo comando nos dois modos."""
+    cmd = [str(raiz / "venv" / "Scripts" / "python.exe"), "-u", "servir.py"]
+    return Comandos(rapido=cmd, dev=cmd)
 
 
 def ambiente() -> dict[str, str]:
@@ -95,6 +106,11 @@ def responde(url: str, timeout: float = 2.0) -> bool:
 
 def checar_kactus() -> bool:
     return responde("http://127.0.0.1:3003/") and responde("http://127.0.0.1:8000/health")
+
+
+def checar_financas() -> bool:
+    # /saude nao toca no banco: o Neon acordando nao derruba a checagem
+    return responde(f"http://127.0.0.1:{PORTA_FINANCAS}/saude")
 
 
 def pids_nas_portas(portas: tuple[int, ...]) -> set[int]:
@@ -320,7 +336,7 @@ class Servidor:
                 return
             modo = self.modo
             aviso = ""
-            if modo == "rapido" and self._precisa_build():
+            if modo == "rapido" and self.comandos.build and self._precisa_build():
                 self._mudar(
                     Estado.PREPARANDO, "Preparando a versão rápida (1–2 min)", evento="preparando", externo=False
                 )
@@ -404,8 +420,11 @@ class Servidor:
             with self._lock:
                 self._falhas_checagem = 0
             if self._estado != Estado.LIGADO:
-                modo = "modo rápido" if self._modo_atual == "rapido" else "modo dev"
-                self._mudar(Estado.LIGADO, f"Ligado · {modo}", evento="ligado", externo=False)
+                if self.comandos.build is None:  # sem modos (Financas)
+                    mensagem = "Ligado"
+                else:
+                    mensagem = "Ligado · " + ("modo rápido" if self._modo_atual == "rapido" else "modo dev")
+                self._mudar(Estado.LIGADO, mensagem, evento="ligado", externo=False)
             return
 
         with self._lock:

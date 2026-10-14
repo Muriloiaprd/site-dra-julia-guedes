@@ -4,8 +4,8 @@ KACTUS_MAPA.areas.push({
   n: 1,
   titulo: "Acesso e servidor",
   resumo:
-    "O Kactus Controle é um programa em Python com ícone perto do relógio e uma janelinha. Também importa sozinho os treinos do relógio Garmin ligado no USB. Ele liga o site (porta 3003) e a API (porta 8000), vigia os dois e religa se caírem. No modo rápido o site roda o build de produção, bem mais leve no iPhone; no modo desenvolvimento mostra mudanças de código na hora. O iPhone entra pelo Tailscale. Se o servidor estiver fora do ar, o service worker mostra a tela 'Kactus desligado', que fala com o Controle na porta 8443 para ligar e, se o aparelho já abriu o dashboard antes, mostra o último painel visto com a faixa 'Sem conexão com o PC'.",
-  rotas: ["/desligado.html", "Controle :3010 (PC)", "Controle :8443 (iPhone)"],
+    "O Kactus Controle é um programa em Python com ícone perto do relógio e uma janelinha. Também importa sozinho os treinos do relógio Garmin ligado no USB. Ele liga o site (porta 3003) e a API (porta 8000), vigia os dois e religa se caírem. No modo rápido o site roda o build de produção, bem mais leve no iPhone; no modo desenvolvimento mostra mudanças de código na hora. O iPhone entra pelo Tailscale. Se o servidor estiver fora do ar, o service worker mostra a tela 'Kactus desligado', que fala com o Controle na porta 8443 para ligar e, se o aparelho já abriu o dashboard antes, mostra o último painel visto com a faixa 'Sem conexão com o PC'. O Controle também liga e desliga as Finanças (o site Mago das Finanças, pasta Gestao-Financeira, porta 5000 no PC e 10000 no iPhone), um servidor separado com os próprios botões, que liga junto no início do Windows.",
+  rotas: ["/desligado.html", "Controle :3010 (PC)", "Controle :8443 (iPhone)", "Finanças :5000 (PC)", "Finanças :10000 (iPhone)"],
   arquivos: [
     "apps/controle/kactus_controle/app.py",
     "apps/controle/kactus_controle/servidor.py",
@@ -81,13 +81,13 @@ flowchart TD
 flowchart LR
   CHK[["tailscale status --json<br/>tailscale serve status --json"]]:::calc --> A{"BackendState = Running?"}:::decisao
   A -->|não| P["Tailscale parado —<br/>iPhone sem acesso"]:::erro
-  A -->|sim| B{"Portas 443 e 8443<br/>publicadas?"}:::decisao
+  A -->|sim| B{"Portas 443, 8443 e 10000<br/>publicadas?"}:::decisao
   B -->|não| SE["Endereço do iPhone<br/>desligado no Tailscale"]:::erro
   B -->|sim| OK["iPhone com acesso"]:::ok
   P --> CONS("Consertar"):::acao
   SE --> CONS
   CONS -->|parado| ABRE["Abre o app do Tailscale"]:::ext
-  CONS -->|sem endereço| SERVE["tailscale serve --bg<br/>refaz 443 e 8443"]:::ext
+  CONS -->|sem endereço| SERVE["tailscale serve --bg<br/>refaz 443, 8443 e 10000"]:::ext
 `,
     },
     {
@@ -118,14 +118,39 @@ flowchart TD
   BVENC -->|sim| BRUN[/"uv run … scripts.backup --json"/]:::api
   BAGORA("Fazer backup agora · janela ou menu"):::acao --> BRUN
   BRUN --> BGZ[["Exporta tudo em .json.gz<br/>guarda as últimas 8 cópias"]]:::calc
-  BGZ --> BOK["Backup do Kactus salvo (X MB)"]:::ok
+  BGZ --> BFIN[/"Finanças: venv/python scripts/backup.py --json"/]:::api
+  BFIN -->|ok| BOK["Backup salvo (Kactus X MB · Finanças Y MB)"]:::ok
+  BFIN -->|erro| BFERR["Backup do Kactus salvo (X MB) ·<br/>Finanças falhou: …"]:::erro
   BRUN -->|erro| BERR["Não consegui fazer o backup do Kactus: …<br/>tenta de novo na próxima hora"]:::erro
   BOK --> BPASTA("Abrir pasta de backups<br/>Documentos/Kactus backups"):::acao
 `,
     },
+    {
+      titulo: "Finanças no Controle",
+      mermaid: `
+flowchart TD
+  FINI("Início do Windows<br/>atalho com --inicio"):::acao --> FMARC{"Ligar junto com o Kactus<br/>marcado?"}:::decisao
+  FMARC -->|sim| FLIG
+  FMARC -->|não| FOFF
+  FBTN("Ligar · janela, menu Finanças,<br/>página :8443 ou tela de desligadas"):::acao --> FLIG
+  FOFF(["Desligadas"]):::estado
+  FLIG(["Ligando…<br/>venv/python servir.py (waitress)"]):::estado --> FCHK{"127.0.0.1:5000/saude<br/>responde?"}:::decisao
+  FCHK -->|sim| FON["Ligado"]:::ok
+  FON --> FVIG[["Vigia a cada poucos segundos"]]:::calc
+  FVIG -->|processo caiu| FCAIU["As Finanças caíram. Religando…"]:::erro
+  FCAIU --> FLIG
+  FON -->|Desligar| FOFF
+  FON -->|Reiniciar| FLIG
+  FIPH("iPhone abre<br/>:10000"):::acao --> FSW[["Service worker das Finanças"]]:::calc
+  FSW -->|200| FAPP["Dashboard das Finanças"]:::ok
+  FSW -->|502 ou sem rede| FDESL["As Finanças estão desligadas"]:::tela
+  FDESL --> FPOST[/"POST :8443/api/financas/ligar"/]:::api
+  FPOST --> FLIG
+`,
+    },
   ],
   inventario: [
-    { tipo: "menu", nome: "Ícone no relógio", acao: "Menu com Abrir o painel, Ligar, Desligar, Reiniciar, Abrir no PC, Copiar endereço do iPhone, modo, Iniciar com o Windows, Manter o PC acordado, Importar do relógio no USB, Importar do relógio agora, Fazer backup agora, Abrir pasta de backups, Ver log e Sair.", onde: "apps/controle/kactus_controle/app.py:265" },
+    { tipo: "menu", nome: "Ícone no relógio", acao: "Menu com Abrir o painel, Ligar, Desligar, Reiniciar, Abrir no PC, Copiar endereço do iPhone, Finanças (submenu), modo, Iniciar com o Windows, Manter o PC acordado, Importar do relógio no USB, Importar do relógio agora, Fazer backup agora, Abrir pasta de backups, Ver log e Sair.", onde: "apps/controle/kactus_controle/app.py:265" },
     { tipo: "botão", nome: "Ligar", acao: "Sobe API e site no modo escolhido. Só fica ativo com o servidor desligado ou com erro.", onde: "apps/controle/kactus_controle/app.py:273", no: "MODO" },
     { tipo: "botão", nome: "Desligar", acao: "Mata os processos nas portas 3003 e 8000 e os .bat que os lançaram.", onde: "apps/controle/kactus_controle/servidor.py:221" },
     { tipo: "botão", nome: "Reiniciar", acao: "Desliga e liga de novo. Necessário no modo rápido para pegar código novo.", onde: "apps/controle/kactus_controle/servidor.py:243" },
@@ -147,20 +172,28 @@ flowchart TD
     { tipo: "cálculo", nome: "Quando fazer o backup", acao: "2 min depois de abrir o Controle e depois de hora em hora: se passou uma semana do último (salvo em config.json), roda.", onde: "apps/controle/kactus_controle/backup.py:43", no: "BVENC" },
     { tipo: "integração", nome: "Script de backup", acao: "Exporta tudo (o mesmo do Exportar meus dados) em kactus_backup_AAAA-MM-DD_HHMMSS.json.gz e apaga as cópias além das 8 mais novas. Com os dados reais: ~8 MB e ~25 s.", api: "uv run python -m kactus_api.scripts.backup --pasta … --json", onde: "apps/controle/kactus_controle/backup.py:22", no: "BRUN,BGZ" },
     { tipo: "botão", nome: "Fazer backup agora", acao: "Na janela e no menu do ícone.", msg: "Fazendo o backup… (cerca de meio minuto)", onde: "apps/controle/kactus_controle/app.py:233", no: "BAGORA" },
-    { tipo: "sucesso", nome: "Backup salvo", msg: "Backup do Kactus salvo (X MB)", onde: "apps/controle/kactus_controle/backup.py:38", no: "BOK" },
+    { tipo: "sucesso", nome: "Backup salvo", acao: "Kactus e Finanças na mesma pasta (as das Finanças com o prefixo financas-backup-). Se só as Finanças falharem, o do Kactus vale e o aviso conta.", msg: "Backup salvo (Kactus X MB · Finanças Y MB) · Backup do Kactus salvo (X MB) · Finanças falhou: …", onde: "apps/controle/kactus_controle/backup.py:87", no: "BOK,BFERR" },
+    { tipo: "integração", nome: "Backup das Finanças", acao: "Roda o script das Finanças com o Python do venv delas: grava financas-backup-AAAA-MM-DD_HHMMSS.json.gz e guarda as 8 mais novas.", api: "Gestao-Financeira/venv/Scripts/python.exe scripts/backup.py --pasta … --json", onde: "apps/controle/kactus_controle/backup.py:62", no: "BFIN" },
     { tipo: "erro", nome: "Backup falhou", msg: "Não consegui fazer o backup do Kactus: …", onde: "apps/controle/kactus_controle/backup.py", no: "BERR" },
     { tipo: "botão", nome: "Abrir pasta de backups", acao: "Abre Documentos/Kactus backups no Explorer (a pasta Documentos de verdade: com o OneDrive, OneDrive/Documentos).", onde: "apps/controle/kactus_controle/backup.py:20", no: "BPASTA" },
     { tipo: "botão", nome: "Importar agora", acao: "Na janela e no menu: confere o USB na hora e reimporta tudo o que está no relógio.", msg: "Procurando o relógio no USB… · Nenhum relógio com treinos encontrado no USB.", onde: "apps/controle/kactus_controle/app.py:205", no: "AGORA,FORCA" },
-    { tipo: "modal", nome: "Sair do Controle", acao: "Pergunta se desliga o servidor também.", msg: "Desligar o servidor do Kactus também? Sim: desliga tudo. Não: o Kactus continua no ar, sem o controle.", onde: "apps/controle/kactus_controle/app.py:242" },
+    { tipo: "modal", nome: "Sair do Controle", acao: "Pergunta se desliga os servidores também (Kactus e Finanças).", msg: "Desligar os servidores (Kactus e Finanças) também? Sim: desliga tudo. Não: continuam no ar, sem o controle.", onde: "apps/controle/kactus_controle/app.py:395" },
     { tipo: "carregando", nome: "Preparando", acao: "Build da versão rápida quando o código do site mudou.", msg: "Preparando a versão rápida do site (1–2 min)…", onde: "apps/controle/kactus_controle/app.py:35", no: "PREP" },
     { tipo: "carregando", nome: "Ligando", acao: "Espera o site e a API responderem.", onde: "apps/controle/kactus_controle/servidor.py:315", no: "LIG" },
     { tipo: "sucesso", nome: "Ligado", acao: "Os dois responderam: aviso no Windows.", msg: "Kactus ligado. Já dá para abrir no iPhone.", onde: "apps/controle/kactus_controle/app.py:33", no: "ON" },
     { tipo: "erro", nome: "O Kactus caiu", acao: "O vigia viu o processo morrer e religa sozinho; se cair demais, para até um novo Ligar.", msg: "O Kactus caiu. Religando…", onde: "apps/controle/kactus_controle/servidor.py:394", no: "CAIU,BLOQ" },
     { tipo: "cálculo", nome: "Vigia", acao: "Confere processo e portas; se um servidor de fora cair, o Controle assume.", onde: "apps/controle/kactus_controle/servidor.py:354", no: "VIG" },
-    { tipo: "API", nome: "Página do Controle para o iPhone", acao: "Mesmo painel da janela, servido pelo Controle e publicado pelo Tailscale.", api: "GET / · GET /api/status · POST /api/ligar|desligar|reiniciar|…", onde: "apps/controle/kactus_controle/web.py:90" },
-    { tipo: "permissão", nome: "Origem permitida (CORS)", acao: "Só o próprio Controle (PC e iPhone) e o app do Kactus podem chamar a API do Controle.", onde: "apps/controle/kactus_controle/web.py:28" },
+    { tipo: "API", nome: "Página do Controle para o iPhone", acao: "Mesmo painel da janela, servido pelo Controle e publicado pelo Tailscale, com o cartão Finanças embaixo.", api: "GET / · GET /api/status · POST /api/ligar|desligar|reiniciar|… · POST /api/financas/ligar|desligar|reiniciar", onde: "apps/controle/kactus_controle/web.py:120" },
+    { tipo: "permissão", nome: "Origem permitida (CORS)", acao: "Só o próprio Controle (PC e iPhone), o app do Kactus e as Finanças (PC :5000 e iPhone :10000) podem chamar a API do Controle.", onde: "apps/controle/kactus_controle/web.py:30" },
+    { tipo: "seção", nome: "Finanças (janela)", acao: "Estado das Finanças com a bolinha, botões Ligar, Desligar, Reiniciar e Abrir, e a opção Ligar junto com o Kactus no início do Windows.", onde: "apps/controle/kactus_controle/janela.py:148", no: "FON,FOFF" },
+    { tipo: "menu", nome: "Finanças (menu do ícone)", acao: "Estado, Ligar, Desligar, Reiniciar, Abrir no PC, Ligar junto no início do Windows e Ver log das Finanças (logs/financas.log).", onde: "apps/controle/kactus_controle/app.py:466", no: "FBTN" },
+    { tipo: "campo", nome: "Ligar junto com o Kactus no início do Windows", acao: "Com --inicio, liga também as Finanças. Salvo em config.json (financas_no_inicio); vem ligado.", onde: "apps/controle/kactus_controle/app.py:127", no: "FINI,FMARC" },
+    { tipo: "integração", nome: "Servidor das Finanças", acao: "O mesmo vigia do Kactus, sem build nem modos: sobe Gestao-Financeira/venv python servir.py (waitress em 127.0.0.1:5000) e confere /saude, que não toca no banco.", onde: "apps/controle/kactus_controle/servidor.py:79", no: "FLIG,FCHK,FVIG" },
+    { tipo: "erro", nome: "As Finanças caíram", acao: "Religa sozinho, como o Kactus.", msg: "As Finanças caíram. Religando…", onde: "apps/controle/kactus_controle/app.py:51", no: "FCAIU" },
+    { tipo: "seção", nome: "Cartão Finanças (página :8443)", acao: "Estado, Ligar, Desligar (com confirmação), Reiniciar e Abrir as Finanças (:10000 no iPhone, localhost:5000 no PC).", api: "POST /api/financas/ligar|desligar|reiniciar", onde: "apps/controle/kactus_controle/pagina.html:75" },
+    { tipo: "tela", nome: "As Finanças estão desligadas", acao: "Tela do service worker das Finanças (no repo Gestao-Financeira): estado do PC e botão Ligar agora pelo Controle.", api: "GET :8443/api/status (campo financas) · POST :8443/api/financas/ligar", onde: "Gestao-Financeira/static/pwa/desligado.html", no: "FIPH,FSW,FDESL,FPOST,FAPP" },
     { tipo: "aviso", nome: "Tailscale parado", acao: "Detectado pelo status do Tailscale; botão Consertar abre o app.", msg: "Tailscale parado — iPhone sem acesso", onde: "apps/controle/kactus_controle/tailscale.py:40", no: "P" },
-    { tipo: "aviso", nome: "Endereço do iPhone desligado", acao: "Portas 443 ou 8443 sumiram do serve; Consertar refaz.", msg: "Endereço do iPhone desligado no Tailscale", onde: "apps/controle/kactus_controle/tailscale.py:47", no: "SE" },
+    { tipo: "aviso", nome: "Endereço do iPhone desligado", acao: "Portas 443, 8443 ou 10000 (Finanças) sumiram do serve; Consertar refaz.", msg: "Endereço do iPhone desligado no Tailscale", onde: "apps/controle/kactus_controle/tailscale.py:47", no: "SE" },
     { tipo: "botão", nome: "Consertar (Tailscale)", acao: "Abre o app do Tailscale ou roda tailscale serve --bg de novo.", msg: "Refiz os endereços do iPhone no Tailscale", onde: "apps/controle/kactus_controle/tailscale.py:71", no: "CONS" },
     { tipo: "integração", nome: "Service worker", acao: "Só intercepta navegação. Falha de rede ou 502/503/504 → desligado.html. Não guarda páginas do app.", onde: "apps/web/public/sw.js:30", no: "SW" },
     { tipo: "integração", nome: "Registro do service worker", acao: "Só fora do next dev (produção).", onde: "apps/web/components/RegistrarSW.tsx:6" },

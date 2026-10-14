@@ -1,6 +1,10 @@
 """Backup semanal: uma vez por semana o Controle roda o script de backup da API
 (`kactus_api.scripts.backup`), que grava um .json.gz com todos os dados e guarda as
 últimas 8 cópias. A pasta padrão é Documentos/Kactus backups (a do OneDrive, se houver).
+
+Na mesma rodada salva também as Finanças (Gestao-Financeira/scripts/backup.py), na mesma
+pasta com o prefixo financas-backup-. Se só as Finanças falharem, o do Kactus vale e o
+aviso conta a falha.
 """
 
 from __future__ import annotations
@@ -12,7 +16,7 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 
-from .servidor import RAIZ, ambiente
+from .servidor import FINANCAS, RAIZ, ambiente
 
 SEMANA_S = 7 * 24 * 3600
 
@@ -41,9 +45,13 @@ def rodar_backup(pasta: Path, manter: int = 8) -> dict:
         "cmd.exe", "/d", "/c", "uv", "run", "--directory", str(RAIZ / "apps" / "api"),
         "python", "-m", "kactus_api.scripts.backup", "--pasta", str(pasta), "--manter", str(manter), "--json",
     ]
+    return _json_do_script(cmd)
+
+
+def _json_do_script(cmd: list[str], cwd: Path | None = None) -> dict:
     r = subprocess.run(
         cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
-        env=ambiente(), timeout=900, creationflags=_SEM_JANELA,
+        env=ambiente(), cwd=cwd, timeout=900, creationflags=_SEM_JANELA,
     )
     linhas = [ln for ln in r.stdout.strip().splitlines() if ln.startswith("{")]
     if r.returncode != 0 or not linhas:
@@ -51,9 +59,38 @@ def rodar_backup(pasta: Path, manter: int = 8) -> dict:
     return json.loads(linhas[-1])
 
 
+def rodar_backup_financas(pasta: Path, manter: int = 8) -> dict:
+    """Roda o script das Finanças com o Python do venv delas."""
+    py = FINANCAS / "venv" / "Scripts" / "python.exe"
+    cmd = [str(py), "scripts/backup.py", "--pasta", str(pasta), "--manter", str(manter), "--json"]
+    return _json_do_script(cmd, cwd=FINANCAS)
+
+
+def rodar_tudo(
+    pasta: Path,
+    kactus: Callable[[Path], dict] = rodar_backup,
+    financas: Callable[[Path], dict] = rodar_backup_financas,
+) -> dict:
+    """Kactus (obrigatório) + Finanças (se falhar, vira "financas_erro")."""
+    res = dict(kactus(pasta))
+    try:
+        res["financas"] = financas(pasta)
+    except Exception as e:  # noqa: BLE001 - o backup do Kactus já saiu; só avisa
+        res["financas_erro"] = str(e)[-200:]
+    return res
+
+
+def _mb(n: int) -> str:
+    return f"{n / 1_000_000:.1f} MB".replace(".", ",")
+
+
 def texto_backup(res: dict) -> str:
-    mb = res.get("tamanho", 0) / 1_000_000
-    return f"Backup do Kactus salvo ({mb:.1f} MB)".replace(".", ",")
+    texto = f"Backup do Kactus salvo ({_mb(res.get('tamanho', 0))})"
+    if "financas" in res:
+        texto = f"Backup salvo (Kactus {_mb(res.get('tamanho', 0))} · Finanças {_mb(res['financas'].get('tamanho', 0))})"
+    elif "financas_erro" in res:
+        texto += f" · Finanças falhou: {res['financas_erro']}"
+    return texto
 
 
 class VigiaBackup:
@@ -64,7 +101,7 @@ class VigiaBackup:
         ultimo: Callable[[], float | None],
         pasta: Callable[[], Path],
         ao_terminar: Callable[[str, dict | None], None],
-        rodar: Callable[[Path], dict] = rodar_backup,
+        rodar: Callable[[Path], dict] = rodar_tudo,
         intervalo: float = 3600.0,
         primeira_espera: float = 120.0,
         agora: Callable[[], float] = time.time,

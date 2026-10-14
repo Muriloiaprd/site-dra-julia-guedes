@@ -2,8 +2,8 @@
 // achados do mapeamento e histórico. Atualizar "atualizado", "commit" e "historico"
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
-  atualizado: "09/10/2026",
-  commit: "plano 2026-10-09 · Fase 17",
+  atualizado: "13/10/2026",
+  commit: "Finanças no Controle",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -35,6 +35,7 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
+    { data: "13/10/2026", commit: "financas", mudanca: "O Kactus Controle passa a ligar, desligar e vigiar as Finanças (Gestao-Financeira, porta 5000 / 10000 no iPhone): seção na janela, submenu no ícone, cartão na página :8443, rotas /api/financas/*, opção de ligar junto no início, porta 10000 no Tailscale e backup semanal das Finanças." },
     { data: "09/10/2026", commit: "alvo", mudanca: "Tempo-alvo escolhido pelo atleta no plano do objetivo (PUT /coach/goal-plan/target, migration 027): muda o ritmo de prova e os treinos que usam ele." },
     { data: "09/10/2026", commit: "6418614", mudanca: "Backup semanal passa a ir para a pasta Documentos de verdade (OneDrive/Documentos), não a Documents escondida." },
     { data: "09/10/2026", commit: "4f55c53", mudanca: "Com o PC desligado, a tela Kactus desligado mostra o último painel visto no aparelho, com a faixa Sem conexão com o PC e a data." },

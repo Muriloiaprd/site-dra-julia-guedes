@@ -16,8 +16,8 @@ from .servidor import SEM_JANELA
 from .sistema import TAILSCALE
 
 APP_TAILSCALE = TAILSCALE.parent / "tailscale-ipn.exe"
-# porta publicada no Tailscale -> servico local
-ENDERECOS = {"443": "http://127.0.0.1:3003", "8443": "http://127.0.0.1:3010"}
+# porta publicada no Tailscale -> servico local (Kactus, Controle e Financas)
+ENDERECOS = {"443": "http://127.0.0.1:3003", "8443": "http://127.0.0.1:3010", "10000": "http://127.0.0.1:5000"}
 
 
 @dataclass(frozen=True)

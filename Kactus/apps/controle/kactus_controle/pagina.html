@@ -38,6 +38,18 @@
   #abrir { grid-column:1 / -1; background:transparent; border:1px solid var(--borda); }
   #abrir.pronto { border-color:var(--verde); color:var(--verde); }
   .nota { margin-top:22px; color:#5A5A5A; font-size:12px; text-align:center; }
+  /* Financas (Gestao-Financeira): mesmo liga/desliga, cartao mais compacto, no dourado delas */
+  .secao { margin:28px 0 10px; color:var(--mudo); font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; }
+  #fin-caixa { margin:0 0 12px; padding:14px 16px; }
+  #fin-caixa.ligado .bola { background:#f2cf7e; box-shadow:0 0 12px rgba(242,207,126,.7); }
+  #fin-rotulo { font-size:18px; font-weight:800; }
+  #fin-detalhe { margin:4px 0 0; color:var(--mudo); font-size:13px; }
+  .botoes.tres { grid-template-columns:1fr 1fr 1fr; }
+  .botoes.tres button { padding:14px 8px; font-size:15px; }
+  #fin-ligar { background:linear-gradient(100deg, #a3803c, #f2cf7e); color:#0c0a08; }
+  #fin-ligar:disabled { background:#161616; color:#4A4A4A; }
+  #fin-abrir { grid-column:1 / -1; background:transparent; border:1px solid var(--borda); }
+  #fin-abrir.pronto { border-color:#c9a24a; color:#f2cf7e; }
 </style>
 </head>
 <body>
@@ -60,6 +72,18 @@
     <a class="botao" id="abrir" href="/">Abrir o Kactus</a>
   </div>
 
+  <div class="secao">Finanças</div>
+  <section class="estado offline" id="fin-caixa" aria-live="polite">
+    <div class="linha"><span class="bola"></span><span id="fin-rotulo">…</span></div>
+    <p id="fin-detalhe"></p>
+  </section>
+  <div class="botoes tres">
+    <button id="fin-ligar" disabled>Ligar</button>
+    <button id="fin-desligar" disabled>Desligar</button>
+    <button id="fin-reiniciar" disabled>Reiniciar</button>
+    <a class="botao" id="fin-abrir" href="/">Abrir as Finanças</a>
+  </div>
+
   <p class="nota">Funciona com o PC ligado. Desligar aqui também desliga no PC.</p>
 </main>
 <script>
@@ -67,6 +91,8 @@
   // o app do Kactus fica no mesmo endereco, na porta padrao (o controle e o :8443)
   const noPc = location.hostname === "127.0.0.1" || location.hostname === "localhost";
   $("abrir").href = noPc ? "http://localhost:3003/dashboard" : `${location.protocol}//${location.hostname}/dashboard`;
+  // as Financas ficam na porta 10000 do mesmo endereco (no PC, localhost:5000)
+  $("fin-abrir").href = noPc ? "http://localhost:5000/" : `${location.protocol}//${location.hostname}:10000/`;
 
   function haQuanto(desde) {
     if (!desde) return "";
@@ -77,8 +103,21 @@
     return m ? `há ${h} h ${String(m).padStart(2, "0")}` : `há ${h} h`;
   }
 
+  function mostrarFinancas(f) {
+    $("fin-caixa").className = "estado " + (f ? f.estado : "offline");
+    $("fin-rotulo").textContent = f ? f.rotulo : "Sem conexão";
+    const partes = f ? [f.mensagem === f.rotulo || f.mensagem === "Ligado" ? "" : f.mensagem] : [];
+    if (f && f.estado === "ligado") partes.push(haQuanto(f.desde));
+    $("fin-detalhe").textContent = partes.filter(Boolean).join(" · ");
+    $("fin-ligar").disabled = !f || !["desligado", "erro"].includes(f.estado);
+    $("fin-desligar").disabled = !f || f.estado === "desligado";
+    $("fin-reiniciar").disabled = !f || !["ligado", "ligando", "erro"].includes(f.estado);
+    $("fin-abrir").classList.toggle("pronto", !!f && f.estado === "ligado");
+  }
+
   function mostrar(st) {
     $("caixa").className = "estado " + (st ? st.estado : "offline");
+    mostrarFinancas(st && st.financas);
     if (!st) {
       $("rotulo").textContent = "Sem conexão";
       $("detalhe").textContent = "O PC está desligado, dormindo ou sem internet.";
@@ -111,6 +150,14 @@
   }
 
   for (const nome of ["ligar", "desligar", "reiniciar"]) $(nome).addEventListener("click", () => acao(nome));
+
+  async function acaoFinancas(nome) {
+    if (nome === "desligar" && !confirm("Desligar as Finanças? O app delas para de abrir até ligar de novo.")) return;
+    for (const b of ["fin-ligar", "fin-desligar", "fin-reiniciar"]) $(b).disabled = true;
+    try { await fetch(`/api/financas/${nome}`, { method: "POST" }); } catch {}
+    setTimeout(status, 400);
+  }
+  for (const nome of ["ligar", "desligar", "reiniciar"]) $(`fin-${nome}`).addEventListener("click", () => acaoFinancas(nome));
   $("atualizar").addEventListener("click", status);
   status();
   setInterval(status, 2500);

@@ -46,6 +46,12 @@ class Acoes(Protocol):
     def backup_agora(self) -> None: ...
     def abrir_backups(self) -> None: ...
     def texto_ultimo_backup(self) -> str: ...
+    def financas_ligar(self) -> None: ...
+    def financas_desligar(self) -> None: ...
+    def financas_reiniciar(self) -> None: ...
+    def abrir_financas_pc(self) -> None: ...
+    def financas_no_inicio(self) -> bool: ...
+    def alternar_financas_inicio(self) -> None: ...
 
 
 def ha_quanto(desde: float | None) -> str:
@@ -138,13 +144,41 @@ class Janela:
         for i, b in enumerate((self.b_ligar, self.b_desligar, self.b_reiniciar, self.b_abrir)):
             b.grid(row=i // 2, column=i % 2, sticky="ew", padx=(0 if i % 2 == 0 else 4, 4 if i % 2 == 0 else 0), pady=4)
 
+        # Financas (Gestao-Financeira): o mesmo liga/desliga, num servidor separado
+        tk.Label(corpo, text="FINANÇAS", bg=BG, fg=MUDO, font=(FONTE, 8, "bold")).pack(anchor="w", pady=(16, 4))
+        fin = tk.Frame(corpo, bg=BG)
+        fin.pack(fill="x")
+        self.fin_bola = tk.Canvas(fin, width=12, height=12, bg=BG, highlightthickness=0)
+        self.fin_bola.pack(side="left")
+        self._fin_circulo = self.fin_bola.create_oval(1, 1, 11, 11, fill=icones.COR[Estado.DESLIGADO], outline="")
+        self.fin_rotulo = tk.Label(fin, text="…", bg=BG, fg=TEXTO, font=(FONTE, 10, "bold"))
+        self.fin_rotulo.pack(side="left", padx=(6, 0))
+        self.fin_detalhe = tk.Label(fin, text="", bg=BG, fg=MUDO, font=(FONTE, 9))
+        self.fin_detalhe.pack(side="left", padx=6)
+        fin_botoes = tk.Frame(corpo, bg=BG)
+        fin_botoes.pack(fill="x", pady=(6, 0))
+        fin_botoes.columnconfigure((0, 1, 2, 3), weight=1, uniform="f")
+        self.fin_ligar = Botao(fin_botoes, "Ligar", acoes.financas_ligar, primario=True)
+        self.fin_desligar = Botao(fin_botoes, "Desligar", acoes.financas_desligar)
+        self.fin_reiniciar = Botao(fin_botoes, "Reiniciar", acoes.financas_reiniciar)
+        self.fin_abrir = Botao(fin_botoes, "Abrir", acoes.abrir_financas_pc)
+        for i, b in enumerate((self.fin_ligar, self.fin_desligar, self.fin_reiniciar, self.fin_abrir)):
+            b.configure(padx=6, pady=5, font=(FONTE, 9, "bold"))
+            b.grid(row=0, column=i, sticky="ew", padx=(0 if i == 0 else 3, 0))
+        self.fin_inicio = tk.BooleanVar(value=acoes.financas_no_inicio())
+        tk.Checkbutton(
+            corpo, text="Ligar junto com o Kactus no início do Windows", variable=self.fin_inicio,
+            command=acoes.alternar_financas_inicio, bg=BG, fg=TEXTO, selectcolor=PAINEL, activebackground=BG,
+            activeforeground=TEXTO, font=(FONTE, 9), anchor="w", highlightthickness=0, cursor="hand2",
+        ).pack(fill="x", pady=(4, 0))
+
         # iPhone
         tk.Label(corpo, text="IPHONE", bg=BG, fg=MUDO, font=(FONTE, 8, "bold")).pack(anchor="w", pady=(16, 4))
         cel = tk.Frame(corpo, bg=BG)
         cel.pack(fill="x")
         self.endereco = tk.Label(
             cel,
-            text=acoes.endereco or "Tailscale não encontrado",
+            text=f"{acoes.endereco}  ·  Finanças :10000" if acoes.endereco else "Tailscale não encontrado",
             bg=BG,
             fg=TEXTO if acoes.endereco else MUDO,
             font=(FONTE, 10),
@@ -247,6 +281,18 @@ class Janela:
         self.b_abrir.habilitar(info.estado == Estado.LIGADO)
         if self.modo.get() != info.modo:
             self.modo.set(info.modo)
+
+    def atualizar_financas(self, info: Info) -> None:
+        self.fin_bola.itemconfigure(self._fin_circulo, fill=icones.COR[info.estado])
+        self.fin_rotulo.configure(text=ROTULO[info.estado])
+        detalhe = "" if info.mensagem in (ROTULO[info.estado], "Ligado") else info.mensagem
+        if info.estado == Estado.LIGADO and info.desde and not detalhe:
+            detalhe = ha_quanto(info.desde)
+        self.fin_detalhe.configure(text=detalhe)
+        self.fin_ligar.habilitar(info.estado in (Estado.DESLIGADO, Estado.ERRO))
+        self.fin_desligar.habilitar(info.estado != Estado.DESLIGADO)
+        self.fin_reiniciar.habilitar(info.estado in (Estado.LIGADO, Estado.LIGANDO, Estado.ERRO))
+        self.fin_abrir.habilitar(info.estado == Estado.LIGADO)
 
     def _detalhe(self) -> None:
         if not self.info:

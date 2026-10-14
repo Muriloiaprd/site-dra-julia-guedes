@@ -35,3 +35,22 @@ def test_failure_becomes_a_warning() -> None:
 
     assert _vigia(None, avisos, quebra).fazer() is None
     assert avisos == [("Não consegui fazer o backup do Kactus: banco fora do ar", None)]
+
+
+def test_backup_inclui_as_financas() -> None:
+    from kactus_controle.backup import rodar_tudo
+
+    res = rodar_tudo(Path("x"), kactus=lambda p: {"tamanho": 7_860_000}, financas=lambda p: {"tamanho": 6_000})
+    assert res["financas"] == {"tamanho": 6_000}
+    assert texto_backup(res) == "Backup salvo (Kactus 7,9 MB · Finanças 0,0 MB)"
+
+
+def test_falha_so_das_financas_nao_perde_o_do_kactus() -> None:
+    from kactus_controle.backup import rodar_tudo
+
+    def quebra(_pasta):
+        raise RuntimeError("venv sumiu")
+
+    res = rodar_tudo(Path("x"), kactus=lambda p: {"tamanho": 1_000_000}, financas=quebra)
+    assert res["tamanho"] == 1_000_000 and res["financas_erro"] == "venv sumiu"
+    assert texto_backup(res) == "Backup do Kactus salvo (1,0 MB) · Finanças falhou: venv sumiu"

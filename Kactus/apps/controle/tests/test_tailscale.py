@@ -5,7 +5,7 @@ import json
 from kactus_controle.tailscale import avaliar
 
 RODANDO = json.dumps({"BackendState": "Running"})
-SERVE_OK = json.dumps({"TCP": {"443": {"HTTPS": True}, "8443": {"HTTPS": True}}})
+SERVE_OK = json.dumps({"TCP": {"443": {"HTTPS": True}, "8443": {"HTTPS": True}, "10000": {"HTTPS": True}}})
 
 
 def test_tudo_certo():
@@ -28,3 +28,8 @@ def test_falta_um_endereco():
     assert not e.ok and e.motivo == "sem_endereco"
     assert avaliar(RODANDO, "{}").motivo == "sem_endereco"
     assert avaliar(RODANDO, "").motivo == "sem_endereco"
+
+
+def test_falta_o_endereco_das_financas():
+    sem_financas = json.dumps({"TCP": {"443": {"HTTPS": True}, "8443": {"HTTPS": True}}})
+    assert avaliar(RODANDO, sem_financas).motivo == "sem_endereco"

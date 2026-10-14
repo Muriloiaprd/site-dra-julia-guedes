@@ -1,12 +1,13 @@
 """Mini servidor do Kactus Controle em 127.0.0.1:3010.
 
 - Pagina "Kactus Controle" para o iPhone (via `tailscale serve --https=8443`).
-- API: GET /api/status, POST /api/ligar|desligar|reiniciar.
+- API: GET /api/status, POST /api/ligar|desligar|reiniciar (Kactus) e
+  POST /api/financas/ligar|desligar|reiniciar (Financas, porta 10000 no iPhone).
 - A porta tambem e a trava de instancia unica: abrir o controle de novo so manda
   um comando (POST /api/comando) para o que ja esta rodando.
 
 O Tailscale entrega tudo como se viesse de 127.0.0.1, entao a protecao contra
-outra pagina mandando comandos e o cabecalho Origin: so as origens do Kactus.
+outra pagina mandando comandos e o cabecalho Origin: so as origens do Kactus e das Financas.
 """
 
 from __future__ import annotations
@@ -20,17 +21,19 @@ from pathlib import Path
 
 PORTA = 3010
 PORTA_IPHONE = 8443  # tailscale serve --https=8443
+PORTA_FINANCAS_IPHONE = 10000  # tailscale serve --https=10000 -> Financas (127.0.0.1:5000)
 AQUI = Path(__file__).resolve().parent
 ICONE = AQUI.parents[1] / "web" / "app" / "apple-icon.png"  # apps/web/app/apple-icon.png
-ACOES_API = {"ligar", "desligar", "reiniciar"}
+ACOES_API = {"ligar", "desligar", "reiniciar", "financas/ligar", "financas/desligar", "financas/reiniciar"}
 
 
 def origens_permitidas(endereco_iphone: str | None, porta: int = PORTA) -> set[str]:
-    """O proprio controle (PC e iPhone) e o app do Kactus (tela "Kactus desligado")."""
+    """O proprio controle (PC e iPhone) e os apps (telas "Kactus desligado" e "Financas desligadas")."""
     origens = {f"http://127.0.0.1:{porta}", f"http://localhost:{porta}"}
     origens |= {"http://localhost:3003", "http://127.0.0.1:3003"}  # o Kactus aberto no proprio PC
+    origens |= {"http://localhost:5000", "http://127.0.0.1:5000"}  # as Financas abertas no proprio PC
     if endereco_iphone:
-        origens |= {endereco_iphone, f"{endereco_iphone}:{PORTA_IPHONE}"}
+        origens |= {endereco_iphone, f"{endereco_iphone}:{PORTA_IPHONE}", f"{endereco_iphone}:{PORTA_FINANCAS_IPHONE}"}
     return origens
 
 
@@ -114,7 +117,7 @@ def iniciar(
                 except ValueError:
                     return self._json(400, {"erro": "json inválido"})
             elif caminho.removeprefix("/api/") in ACOES_API:
-                acao = caminho.removeprefix("/api/")
+                acao = caminho.removeprefix("/api/").replace("/", "-")  # financas/ligar -> financas-ligar
             else:
                 return self._json(404, {"erro": "não encontrado"})
             ok = comando(acao)

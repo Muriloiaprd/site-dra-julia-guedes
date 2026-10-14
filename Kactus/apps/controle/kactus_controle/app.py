@@ -1,10 +1,12 @@
 """Kactus Controle: icone perto do relogio + janelinha.
 
     kactus-controle            abre a janelinha
-    kactus-controle --inicio   liga o Kactus sem abrir o navegador (Inicializar do Windows)
+    kactus-controle --inicio   liga o Kactus (e as Financas, se marcado) sem abrir o navegador
     kactus-controle --abrir    liga (se preciso) e abre o Kactus no navegador do PC
 
 Se ja houver um controle rodando, so manda o pedido para ele e sai.
+
+Tambem liga e desliga as Financas (Gestao-Financeira, porta 5000 / 10000 no iPhone).
 """
 
 from __future__ import annotations
@@ -29,15 +31,28 @@ import pystray
 from . import backup, icones, relogio, sistema, tailscale, web
 from .config import Config
 from .janela import ROTULO, Janela
-from .servidor import Estado, Info, Servidor
+from .servidor import (
+    FINANCAS,
+    PORTA_FINANCAS,
+    Estado,
+    Info,
+    Servidor,
+    checar_financas,
+    comandos_financas,
+)
 
 URL_PC = "http://localhost:3003"
+URL_FINANCAS_PC = f"http://localhost:{PORTA_FINANCAS}"
 AVISO = {
     "ligado": "Kactus ligado. Já dá para abrir no iPhone.",
     "caiu": "O Kactus caiu. Religando…",
     "preparando": "Preparando a versão rápida do site (1–2 min)…",
 }
-ACOES_EXTERNAS = {"mostrar", "inicio", "abrir", "ligar", "desligar", "reiniciar"}
+AVISO_FINANCAS = {"caiu": "As Finanças caíram. Religando…"}
+ACOES_EXTERNAS = {
+    "mostrar", "inicio", "abrir", "ligar", "desligar", "reiniciar",
+    "financas-ligar", "financas-desligar", "financas-reiniciar",
+}
 
 
 class App:
@@ -47,13 +62,20 @@ class App:
         self.fila: queue.Queue[Callable[[], None]] = queue.Queue()
         self._abrir_ao_ligar = False
         self.servidor = Servidor(modo=self.config.modo, ao_mudar=self._ao_mudar)
+        self.financas = Servidor(
+            raiz=FINANCAS,
+            comandos=comandos_financas(),
+            checar=checar_financas,
+            portas=(PORTA_FINANCAS,),
+            matar_lancadores=lambda: None,
+            log=self.servidor.log.with_name("financas.log"),
+            ao_mudar=self._ao_mudar_financas,
+        )
         self.root = tk.Tk()
         self.root.withdraw()
         self.janela = Janela(self.root, self, self.config.modo)
         self.icone = pystray.Icon("kactus", icones.bandeja(Estado.DESLIGADO), "Kactus: desligado", menu=self._menu())
-        self.acordado = sistema.Acordado(
-            lambda: self.config.manter_acordado and self.servidor.estado != Estado.DESLIGADO
-        )
+        self.acordado = sistema.Acordado(lambda: self.config.manter_acordado and self.algum_ligado())
         self.web: web.ThreadingHTTPServer | None = None
         self.ts: tailscale.EstadoTailscale | None = None
         self._ts_consertou = False  # tenta consertar sozinho uma vez por queda
@@ -71,6 +93,7 @@ class App:
     # ── ciclo ────────────────────────────────────────────────────────────
     def rodar(self, acao: str) -> None:
         self.servidor.iniciar_vigia()
+        self.financas.iniciar_vigia()
         self.acordado.iniciar()
         threading.Thread(target=self._vigiar_tailscale, name="kactus-tailscale", daemon=True).start()
         self.relogio.iniciar()
@@ -78,6 +101,7 @@ class App:
         self.icone.run_detached()
         self.comando(acao)
         self.janela.atualizar(self.servidor.info)
+        self.janela.atualizar_financas(self.financas.info)
         self.root.after(150, self._drenar)
         self.root.mainloop()
 
@@ -100,6 +124,8 @@ class App:
             self.janela.mostrar()
         elif acao == "inicio":
             self.servidor.ligar()
+            if self.config.financas_no_inicio:
+                self.financas.ligar()
         elif acao == "abrir":
             if self.servidor.estado == Estado.LIGADO:
                 webbrowser.open(URL_PC)
@@ -112,6 +138,12 @@ class App:
             self.desligar()
         elif acao == "reiniciar":
             self.reiniciar()
+        elif acao == "financas-ligar":
+            self.financas_ligar()
+        elif acao == "financas-desligar":
+            self.financas_desligar()
+        elif acao == "financas-reiniciar":
+            self.financas_reiniciar()
 
     def comando_externo(self, acao: str) -> bool:
         """Chamado pela thread do mini servidor."""
@@ -121,8 +153,9 @@ class App:
         return True
 
     def status(self) -> dict:
-        """Para a pagina do iPhone e a tela "Kactus desligado" do app."""
+        """Para a pagina do iPhone e as telas "Kactus desligado" e "Financas desligadas"."""
         info = self.servidor.info
+        fin = self.financas.info
         return {
             "estado": info.estado.value,
             "rotulo": ROTULO[info.estado],
@@ -131,7 +164,18 @@ class App:
             "externo": info.externo,
             "desde": info.desde,
             "tailscale": None if self.ts is None else {"ok": self.ts.ok, "texto": self.ts.texto},
+            "financas": {
+                "estado": fin.estado.value,
+                "rotulo": ROTULO[fin.estado],
+                "mensagem": fin.mensagem,
+                "externo": fin.externo,
+                "desde": fin.desde,
+                "no_inicio": self.config.financas_no_inicio,
+            },
         }
+
+    def algum_ligado(self) -> bool:
+        return self.servidor.estado != Estado.DESLIGADO or self.financas.estado != Estado.DESLIGADO
 
     def _ao_mudar(self, info: Info, evento: str | None) -> None:
         self.na_tela(lambda: self._aplicar(info, evento))
@@ -148,6 +192,18 @@ class App:
             self._abrir_ao_ligar = False
             webbrowser.open(URL_PC)
 
+    def _ao_mudar_financas(self, info: Info, evento: str | None) -> None:
+        self.na_tela(lambda: self._aplicar_financas(info, evento))
+
+    def _aplicar_financas(self, info: Info, evento: str | None) -> None:
+        self.janela.atualizar_financas(info)
+        self._atualizar_icone()
+        self.icone.update_menu()
+        texto = info.mensagem if evento == "erro" else AVISO_FINANCAS.get(evento or "")
+        if texto:
+            with contextlib.suppress(Exception):
+                self.icone.notify(texto, "Finanças")
+
     def _atualizar_icone(self) -> None:
         info = self.servidor.info
         sem_iphone = self.ts is not None and not self.ts.ok
@@ -155,7 +211,8 @@ class App:
         estado = Estado.LIGANDO if info.estado == Estado.LIGADO and sem_iphone else info.estado
         self.icone.icon = icones.bandeja(estado)
         extra = " · iPhone sem acesso" if sem_iphone else ""
-        self.icone.title = f"Kactus: {ROTULO[info.estado].lower()}{extra}"
+        fin = ROTULO[self.financas.estado].lower()
+        self.icone.title = f"Kactus: {ROTULO[info.estado].lower()}{extra} · Finanças: {fin}"
 
     # ── Tailscale (acesso do iPhone) ─────────────────────────────────────
     def _vigiar_tailscale(self) -> None:
@@ -265,6 +322,34 @@ class App:
     def abrir_pc(self) -> None:
         webbrowser.open(URL_PC)
 
+    # ── Financas ─────────────────────────────────────────────────────────
+    def financas_ligar(self) -> None:
+        self.financas.ligar()
+
+    def financas_desligar(self) -> None:
+        threading.Thread(target=self.financas.desligar, daemon=True).start()
+
+    def financas_reiniciar(self) -> None:
+        threading.Thread(target=self.financas.reiniciar, daemon=True).start()
+
+    def abrir_financas_pc(self) -> None:
+        webbrowser.open(URL_FINANCAS_PC)
+
+    def financas_no_inicio(self) -> bool:
+        return self.config.financas_no_inicio
+
+    def alternar_financas_inicio(self) -> None:
+        self.config.financas_no_inicio = not self.config.financas_no_inicio
+        self.config.salvar()
+        self.janela.fin_inicio.set(self.config.financas_no_inicio)
+        self.icone.update_menu()
+
+    def ver_log_financas(self) -> None:
+        log = self.financas.log
+        log.parent.mkdir(parents=True, exist_ok=True)
+        log.touch(exist_ok=True)
+        subprocess.Popen(["notepad.exe", str(log)])
+
     def copiar_iphone(self) -> None:
         if self.endereco:
             self.root.clipboard_clear()
@@ -304,18 +389,20 @@ class App:
     def sair(self) -> None:
         self.janela.mostrar()
         resp = True
-        if self.servidor.estado != Estado.DESLIGADO:
+        if self.algum_ligado():
             resp = messagebox.askyesnocancel(
                 "Kactus Controle",
-                "Desligar o servidor do Kactus também?\n\n"
-                "Sim: desliga tudo.\nNão: o Kactus continua no ar, sem o controle.",
+                "Desligar os servidores (Kactus e Finanças) também?\n\n"
+                "Sim: desliga tudo.\nNão: continuam no ar, sem o controle.",
                 parent=self.root,
             )
             if resp is None:
                 return
         if resp:
             self.servidor.desligar()
+            self.financas.desligar()
         self.servidor.parar_vigia()
+        self.financas.parar_vigia()
         self._ts_parar.set()
         self.relogio.parar()
         self.backup.parar()
@@ -339,6 +426,7 @@ class App:
             pystray.MenuItem("Reiniciar", tela(self.reiniciar)),
             pystray.MenuItem("Abrir no PC", tela(self.abrir_pc), enabled=lambda _i: estado() == Estado.LIGADO),
             pystray.MenuItem("Copiar endereço do iPhone", tela(self.copiar_iphone), visible=bool(self.endereco)),
+            pystray.MenuItem("Finanças", self._menu_financas()),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(
                 "Modo rápido (iPhone)",
@@ -372,6 +460,29 @@ class App:
             pystray.MenuItem("Ver log", tela(self.ver_log)),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Sair", tela(self.sair)),
+        )
+
+
+    def _menu_financas(self) -> pystray.Menu:
+        def tela(f: Callable[[], None]):
+            return lambda: self.na_tela(f)
+
+        estado = lambda: self.financas.estado  # noqa: E731
+        return pystray.Menu(
+            pystray.MenuItem(lambda _i: f"Finanças: {ROTULO[estado()].lower()}", None, enabled=False),
+            pystray.MenuItem(
+                "Ligar", tela(self.financas_ligar), enabled=lambda _i: estado() in (Estado.DESLIGADO, Estado.ERRO)
+            ),
+            pystray.MenuItem("Desligar", tela(self.financas_desligar), enabled=lambda _i: estado() != Estado.DESLIGADO),
+            pystray.MenuItem("Reiniciar", tela(self.financas_reiniciar)),
+            pystray.MenuItem("Abrir no PC", tela(self.abrir_financas_pc), enabled=lambda _i: estado() == Estado.LIGADO),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem(
+                "Ligar junto no início do Windows",
+                tela(self.alternar_financas_inicio),
+                checked=lambda _i: self.config.financas_no_inicio,
+            ),
+            pystray.MenuItem("Ver log das Finanças", tela(self.ver_log_financas)),
         )
 
 

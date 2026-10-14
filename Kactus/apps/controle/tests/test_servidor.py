@@ -7,7 +7,7 @@ import time
 
 import pytest
 
-from kactus_controle.servidor import Comandos, Estado, Servidor, responde
+from kactus_controle.servidor import Comandos, Estado, Servidor, comandos_financas, responde
 
 PY = sys.executable
 
@@ -214,3 +214,21 @@ def test_ligar_com_servidor_de_fora_adota_em_vez_de_subir_outro(tmp_path, porta)
     finally:
         if de_fora.poll() is None:
             de_fora.kill()
+
+
+def test_sem_build_liga_direto_no_modo_rapido(tmp_path, porta):
+    """Financas: Comandos sem build sobem direto, mesmo com o modo "rapido"."""
+    s = criar(tmp_path, porta, Comandos(rapido=fake_server(porta), dev=py("raise SystemExit(9)")))
+    s.ligar("rapido")
+    rodar_ate(s, lambda: s.estado == Estado.LIGADO)
+    assert s.info.mensagem == "Ligado"  # sem "modo rapido/dev": as Financas nao tem modos
+    assert s.info.modo_atual == "rapido"
+    s.desligar()
+    assert s.estado == Estado.DESLIGADO
+
+
+def test_comandos_das_financas_usam_o_venv_e_o_waitress(tmp_path):
+    c = comandos_financas(tmp_path)
+    assert c.build is None and c.rapido == c.dev
+    assert c.rapido[0] == str(tmp_path / "venv" / "Scripts" / "python.exe")
+    assert c.rapido[-1] == "servir.py"

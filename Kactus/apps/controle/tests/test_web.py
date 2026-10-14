@@ -24,7 +24,7 @@ def servidor():
 
     def comando(acao: str) -> bool:
         recebidos.append(acao)
-        return acao in {"ligar", "desligar", "reiniciar", "mostrar"}
+        return acao in {"ligar", "desligar", "reiniciar", "mostrar", "financas-ligar", "financas-desligar", "financas-reiniciar"}
 
     porta = porta_livre()
     srv = web.iniciar(comando, lambda: {"estado": "ligado"}, web.origens_permitidas(APP, porta), porta)
@@ -98,3 +98,23 @@ def test_trava_de_instancia_unica_e_enviar(servidor):
     assert web.enviar("mostrar", porta)
     assert not web.enviar("qualquer", porta)
     assert recebidos == ["mostrar", "qualquer"]
+
+
+@pytest.mark.parametrize("acao", ["ligar", "desligar", "reiniciar"])
+def test_comandos_das_financas_por_post(servidor, acao):
+    base, recebidos, _ = servidor
+    status, _, corpo = chamar(f"{base}/api/financas/{acao}", "POST")
+    assert status == 200 and json.loads(corpo)["ok"]
+    assert recebidos == [f"financas-{acao}"]
+    assert chamar(f"{base}/api/financas/{acao}")[0] == 405  # GET nao liga nada
+
+
+def test_tela_das_financas_desligadas_pode_ligar(servidor):
+    """A tela "Financas desligadas" (porta 10000 no iPhone) chama o controle com CORS."""
+    base, recebidos, _ = servidor
+    origem = f"{APP}:10000"
+    status, headers, _ = chamar(base + "/api/financas/ligar", "POST", origem=origem)
+    assert status == 200 and headers["Access-Control-Allow-Origin"] == origem
+    status, headers, _ = chamar(base + "/api/status", origem="http://127.0.0.1:5000")
+    assert status == 200 and headers["Access-Control-Allow-Origin"] == "http://127.0.0.1:5000"
+    assert recebidos == ["financas-ligar"]
