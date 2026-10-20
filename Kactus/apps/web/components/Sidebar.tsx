@@ -19,6 +19,7 @@ const ico = (children: ReactNode) => (
 const ICONS = {
   dashboard: ico(<><rect x="3" y="3" width="8" height="10" rx="2" /><rect x="13" y="3" width="8" height="6" rx="2" /><rect x="13" y="11" width="8" height="10" rx="2" /><rect x="3" y="15" width="8" height="6" rx="2" /></>),
   activities: ico(<path d="M3 12h4l3 8 4-16 3 8h4" />),
+  calendar: ico(<><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></>),
   load: ico(<><path d="M3 20h18" /><path d="M6 16v-4" /><path d="M10 16V8" /><path d="M14 16v-6" /><path d="M18 16V5" /></>),
   coach: ico(<><path d="M12 3a3 3 0 0 0-3 3 3 3 0 0 0-3 3 3 3 0 0 0 0 6 3 3 0 0 0 3 3 3 3 0 0 0 3 3" /><path d="M12 3a3 3 0 0 1 3 3 3 3 0 0 1 3 3 3 3 0 0 1 0 6 3 3 0 0 1-3 3 3 3 0 0 1-3 3" /><path d="M12 3v18" /><path d="M9 9.5h1.5M13.5 14.5H15" /></>),
   profile: ico(<><circle cx="12" cy="8" r="4" /><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" /></>),
@@ -32,6 +33,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", short: "Início", icon: ICONS.dashboard },
       { href: "/activities", label: "Atividades", icon: ICONS.activities },
+      { href: "/calendar", label: "Calendário", icon: ICONS.calendar },
       { href: "/performance", label: "Desempenho", icon: ICONS.load },
     ],
   },
@@ -43,7 +45,8 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 
 const PROFILE_ITEM: NavItem = { href: "/profile", label: "Perfil", icon: ICONS.profile };
 const ALL_ITEMS = [...NAV_GROUPS.flatMap((g) => g.items), PROFILE_ITEM];
-const MOBILE_PRIMARY = ["/dashboard", "/activities", "/coach", "/performance"];
+// Desempenho fica na folha "Mais"; o calendário de treinos ganhou o lugar na barra
+const MOBILE_PRIMARY = ["/dashboard", "/activities", "/calendar", "/coach"];
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");

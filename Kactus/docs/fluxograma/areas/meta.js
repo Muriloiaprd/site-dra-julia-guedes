@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "20/10/2026",
-  commit: "Plano por intervalo de datas",
+  commit: "Calendário de treinos",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -35,6 +35,7 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
+    { data: "20/10/2026", commit: "calendario", mudanca: "Nova aba Calendário de treinos (/calendar, área 16): mês com o planejado e o feito, situação de cada treino, detalhe do dia e lista por semana no celular; recebe os botões e quadros do plano. No celular, Calendário entra na barra de baixo e Desempenho vai para Mais. Página de teste /calendar-preview." },
     { data: "20/10/2026", commit: "plano-intervalo", mudanca: "GET /coach/plan aceita start e end (até 400 dias, passado incluído) para o calendário de treinos; sem eles continua de hoje em diante." },
     { data: "20/10/2026", commit: "importar-perfil", mudanca: "Importar saiu do menu e virou a seção Importar atividades do Perfil (/profile#importar); /import redireciona e os links Importar do site apontam para lá. Nova página de teste /import-preview." },
     { data: "20/10/2026", commit: "equip-atividades", mudanca: "Equipamentos saiu do menu e virou a sub-aba Equipamentos de Atividades (/activities?aba=equipamentos); /equipment redireciona para ela." },

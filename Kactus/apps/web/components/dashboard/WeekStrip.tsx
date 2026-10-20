@@ -11,7 +11,7 @@ type DayState = "done" | "today" | "planned" | "rest" | "open";
 
 const RUN_SPORTS = new Set(["run", "trail_run", "treadmill"]);
 
-function isRestWorkout(w: PlannedWorkout) {
+export function isRestWorkout(w: PlannedWorkout) {
   return /rest|descanso|off/i.test(w.sport) || /descanso|folga/i.test(w.title);
 }
 

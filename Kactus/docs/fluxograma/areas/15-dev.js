@@ -4,8 +4,8 @@ KACTUS_MAPA.areas.push({
   n: 15,
   titulo: "Rotas de desenvolvimento",
   resumo:
-    "Oito páginas feitas para conferir telas sem login e sem gastar a IA: elas trocam o fetch do navegador por respostas fixas. Não aparecem no menu, mas também não são bloqueadas no modo rápido (produção).",
-  rotas: ["/activities-preview", "/dashboard-preview", "/equipment-preview", "/import-preview", "/performance-preview", "/compare-preview", "/coach-preview", "/story-art-probe", "/story-calibrate"],
+    "Nove páginas feitas para conferir telas sem login e sem gastar a IA: elas trocam o fetch do navegador por respostas fixas. Não aparecem no menu, mas também não são bloqueadas no modo rápido (produção).",
+  rotas: ["/activities-preview", "/dashboard-preview", "/equipment-preview", "/import-preview", "/performance-preview", "/compare-preview", "/calendar-preview", "/coach-preview", "/story-art-probe", "/story-calibrate"],
   arquivos: [
     "apps/web/app/(dev)/activities-preview/page.tsx",
     "apps/web/app/(dev)/dashboard-preview/page.tsx",
@@ -14,6 +14,8 @@ KACTUS_MAPA.areas.push({
     "apps/web/app/(dev)/performance-preview/page.tsx",
     "apps/web/app/(dev)/compare-preview/page.tsx",
     "apps/web/app/(dev)/coach-preview/page.tsx",
+    "apps/web/app/(dev)/coach-preview/mock.ts",
+    "apps/web/app/(dev)/calendar-preview/page.tsx",
     "apps/web/app/(dev)/story-art-probe/page.tsx",
     "apps/web/app/(dev)/story-calibrate/page.tsx",
   ],
@@ -29,6 +31,7 @@ flowchart LR
   F["/performance-preview"]:::tela --> F1[["fetch falso: resumo, carga,<br/>mês, calor, técnica"]]:::calc --> F2["Desempenho para testar o resumo,<br/>o Story do mês, calor e técnica"]:::ok
   M["/compare-preview?a=a1&b=a2"]:::tela --> M1[["fetch falso: duas corridas<br/>de 10 km com pontos e parciais"]]:::calc --> M2["Comparar treinos sem login"]:::ok
   C["/coach-preview"]:::tela --> C1[["fetch falso com plano,<br/>memórias e conversa"]]:::calc --> C2["Página da Duni sem IA"]:::ok
+  CL["/calendar-preview"]:::tela --> CL1[["mesmo fetch falso da Duni<br/>+ treinos passados e atividades"]]:::calc --> CL2["Calendário de treinos sem login"]:::ok
   P["/story-art-probe"]:::tela --> P1[["Mede as regiões transparentes<br/>das artes PNG"]]:::calc --> P2["Imprime o código de regions.ts"]:::ok
   K["/story-calibrate?id=modelo"]:::tela --> K1[["Desenha o modelo e compara<br/>com a arte pixel a pixel"]]:::calc --> K2["Branco igual · vermelho só no novo<br/>ciano só na arte"]:::ok
 `,
@@ -42,6 +45,7 @@ flowchart LR
     { tipo: "tela", nome: "/performance-preview", acao: "Desempenho com dados de exemplo (resumo da carga, meta, mês com 142,6 km e Story do mês, ritmo × calor e técnica de corrida).", onde: "apps/web/app/(dev)/performance-preview/page.tsx", no: "F,F1,F2" },
     { tipo: "tela", nome: "/compare-preview", acao: "Comparar treinos com duas corridas de exemplo (a1 e a2), com pontos, parciais e métricas.", onde: "apps/web/app/(dev)/compare-preview/page.tsx:66", no: "M,M1,M2" },
     { tipo: "tela", nome: "/coach-preview", acao: "Página da Duni com plano, memórias, conversa e planejado × feito falsos; não chama a API nem a IA.", onde: "apps/web/app/(dev)/coach-preview/page.tsx", no: "C,C1,C2" },
+    { tipo: "tela", nome: "/calendar-preview", acao: "Calendário de treinos com treinos feitos, pulados, a semana e o plano do objetivo de exemplo, e cinco atividades. Usa as respostas falsas de coach-preview/mock.ts (as mesmas da /coach-preview).", onde: "apps/web/app/(dev)/calendar-preview/page.tsx", no: "CL,CL1,CL2" },
     { tipo: "tela", nome: "/story-art-probe", acao: "Mede as faixas de transparência dos PNGs em public/story-art e imprime literais para lib/story/regions.ts.", onde: "apps/web/app/(dev)/story-art-probe/page.tsx", no: "P,P1,P2" },
     { tipo: "tela", nome: "/story-calibrate", acao: "?id=<modelo> compara o desenho com a arte; &color=%23RRGGBB mostra o modelo recolorido.", onde: "apps/web/app/(dev)/story-calibrate/page.tsx", no: "K,K1,K2" },
     { tipo: "permissão", nome: "Abertas em produção", acao: "Nenhuma confere NODE_ENV; no modo rápido continuam acessíveis (só com dados falsos).", onde: "apps/web/app/(dev)/" },
