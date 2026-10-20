@@ -339,17 +339,37 @@ def get_plan_adherence(current_user: CurrentUser, db: DbSession, days: int = Que
     return recent_adherence(db, current_user.id, days)
 
 
+PLAN_RANGE_MAX_DAYS = 400
+
+
 @router.get("/plan", response_model=list[PlannedWorkoutOut])
-def get_plan(current_user: CurrentUser, db: DbSession, days_ahead: int = Query(default=14, ge=1, le=90)) -> list:
+def get_plan(
+    current_user: CurrentUser,
+    db: DbSession,
+    days_ahead: int = Query(default=14, ge=1, le=90),
+    start: date | None = Query(default=None),
+    end: date | None = Query(default=None),
+) -> list:
+    """Treinos planejados de hoje ate `days_ahead`; com `start` e `end`, o intervalo pedido
+    (passado incluido), usado pelo calendario de treinos."""
     coach_service.reconcile_plan(db, current_user.id)
-    today = date.today()
-    horizon = today + timedelta(days=days_ahead)
+    if start is not None or end is not None:
+        if start is None or end is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe start e end juntos")
+        if end < start:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="end antes de start")
+        if (end - start).days > PLAN_RANGE_MAX_DAYS:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Intervalo maior que {PLAN_RANGE_MAX_DAYS} dias")
+        first, last = start, end
+    else:
+        first = date.today()
+        last = first + timedelta(days=days_ahead)
     rows = db.execute(
         select(PlannedWorkout)
         .where(
             PlannedWorkout.user_id == current_user.id,
-            PlannedWorkout.date >= today,
-            PlannedWorkout.date <= horizon,
+            PlannedWorkout.date >= first,
+            PlannedWorkout.date <= last,
         )
         .order_by(PlannedWorkout.date.asc())
     ).scalars().all()

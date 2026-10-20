@@ -890,6 +890,11 @@ export async function fetchCoachPlan(daysAhead = 14): Promise<PlannedWorkout[]> 
   return coachFetch<PlannedWorkout[]>(`/coach/plan?days_ahead=${daysAhead}`);
 }
 
+/** Treinos planejados de `start` a `end` (AAAA-MM-DD), passado incluído: o calendário de treinos. */
+export async function fetchPlanRange(start: string, end: string): Promise<PlannedWorkout[]> {
+  return coachFetch<PlannedWorkout[]>(`/coach/plan?start=${start}&end=${end}`);
+}
+
 /** Plano da proxima semana (7 dias a partir de amanha), com status e relatorio. */
 export async function postCoachGeneratePlan(): Promise<WeeklyPlanResponse> {
   return coachFetch<WeeklyPlanResponse>("/coach/plan/generate", { method: "POST" });
