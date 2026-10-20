@@ -80,7 +80,7 @@ flowchart LR
     { tipo: "tela", nome: "Duni", acao: "Resumo, planos, chat e memórias.", onde: "apps/web/app/coach/page.tsx:189", no: "DUNI" },
     { tipo: "tela", nome: "Equipamentos", acao: "Tênis e acessórios, alertas de troca e recomendados.", onde: "apps/web/app/equipment/page.tsx:56", no: "EQ" },
     { tipo: "tela", nome: "Importar", acao: "Arrastar arquivos do relógio.", onde: "apps/web/app/import/page.tsx:23", no: "IMP" },
-    { tipo: "tela", nome: "Perfil", acao: "Dados, zonas, senha, exportar e zona de perigo.", onde: "apps/web/app/profile/page.tsx:52", no: "PROF" },
+    { tipo: "tela", nome: "Perfil", acao: "Dados, zonas, senha, exportar e zona de perigo.", onde: "apps/web/app/profile/page.tsx:53", no: "PROF" },
     { tipo: "modal", nome: "Compartilhar (Story)", acao: "Gerador de Story aberto do detalhe da atividade.", onde: "apps/web/components/share/StoryGenerator.tsx:53", no: "STORY" },
     { tipo: "tela", nome: "Kactus desligado", acao: "Página de reserva servida pelo service worker quando o servidor não responde.", onde: "apps/web/public/desligado.html", no: "OFF" },
     { tipo: "integração", nome: "Redirecionamento /metrics e /predictions", acao: "As antigas abas Carga e Previsões viraram Desempenho; o Next redireciona.", onde: "apps/web/next.config.mjs:16", no: "MET,PRED" },

@@ -4,12 +4,13 @@ KACTUS_MAPA.areas.push({
   n: 15,
   titulo: "Rotas de desenvolvimento",
   resumo:
-    "Sete páginas feitas para conferir telas sem login e sem gastar a IA: elas trocam o fetch do navegador por respostas fixas. Não aparecem no menu, mas também não são bloqueadas no modo rápido (produção).",
-  rotas: ["/activities-preview", "/dashboard-preview", "/equipment-preview", "/performance-preview", "/compare-preview", "/coach-preview", "/story-art-probe", "/story-calibrate"],
+    "Oito páginas feitas para conferir telas sem login e sem gastar a IA: elas trocam o fetch do navegador por respostas fixas. Não aparecem no menu, mas também não são bloqueadas no modo rápido (produção).",
+  rotas: ["/activities-preview", "/dashboard-preview", "/equipment-preview", "/import-preview", "/performance-preview", "/compare-preview", "/coach-preview", "/story-art-probe", "/story-calibrate"],
   arquivos: [
     "apps/web/app/(dev)/activities-preview/page.tsx",
     "apps/web/app/(dev)/dashboard-preview/page.tsx",
     "apps/web/app/(dev)/equipment-preview/page.tsx",
+    "apps/web/app/(dev)/import-preview/page.tsx",
     "apps/web/app/(dev)/performance-preview/page.tsx",
     "apps/web/app/(dev)/compare-preview/page.tsx",
     "apps/web/app/(dev)/coach-preview/page.tsx",
@@ -24,6 +25,7 @@ flowchart LR
   A["/activities-preview"]:::tela --> A1[["fetch falso: 2 atividades<br/>e 2 itens na lixeira"]]:::calc --> A2["Página de Atividades<br/>para testar a lixeira"]:::ok
   D["/dashboard-preview"]:::tela --> D1[["fetch falso: treinos da semana,<br/>meta 30 km, Maratona do Rio"]]:::calc --> D2["Dashboard para testar meta,<br/>próxima prova e Story"]:::ok
   E["/equipment-preview"]:::tela --> E1[["fetch falso: 3 equipamentos<br/>e token de mentira"]]:::calc --> E2["Equipamentos para testar<br/>o tênis padrão"]:::ok
+  I["/import-preview"]:::tela --> I1[["envio falso: cada arquivo<br/>vira corrida de 10 km"]]:::calc --> I2["Importar do Perfil para testar<br/>a fila e os totais"]:::ok
   F["/performance-preview"]:::tela --> F1[["fetch falso: resumo, carga,<br/>mês, calor, técnica"]]:::calc --> F2["Desempenho para testar o resumo,<br/>o Story do mês, calor e técnica"]:::ok
   M["/compare-preview?a=a1&b=a2"]:::tela --> M1[["fetch falso: duas corridas<br/>de 10 km com pontos e parciais"]]:::calc --> M2["Comparar treinos sem login"]:::ok
   C["/coach-preview"]:::tela --> C1[["fetch falso com plano,<br/>memórias e conversa"]]:::calc --> C2["Página da Duni sem IA"]:::ok
@@ -36,6 +38,7 @@ flowchart LR
     { tipo: "tela", nome: "/activities-preview", acao: "Atividades com dados de exemplo para testar excluir, restaurar e limpar a lixeira.", onde: "apps/web/app/(dev)/activities-preview/page.tsx:68", no: "A,A1,A2" },
     { tipo: "tela", nome: "/dashboard-preview", acao: "Dashboard com dados de exemplo (meta de 30 km, Maratona do Rio em 200 dias, planejado × feito, Story do último treino). ?sem-prova mostra o cartão sem plano do objetivo.", onde: "apps/web/app/(dev)/dashboard-preview/page.tsx", no: "D,D1,D2" },
     { tipo: "tela", nome: "/equipment-preview", acao: "Equipamentos com dados de exemplo para testar o tênis padrão por esporte e o Aplicar aos treinos antigos. Grava um token de mentira (apagado ao fechar a aba) para passar pela checagem de sessão.", onde: "apps/web/app/(dev)/equipment-preview/page.tsx", no: "E,E1,E2" },
+    { tipo: "tela", nome: "/import-preview", acao: "A seção Importar do Perfil sem login: o envio em lote é falso (o primeiro arquivo de cada lote volta como duplicado, os outros como corrida de 10 km).", onde: "apps/web/app/(dev)/import-preview/page.tsx", no: "I,I1,I2" },
     { tipo: "tela", nome: "/performance-preview", acao: "Desempenho com dados de exemplo (resumo da carga, meta, mês com 142,6 km e Story do mês, ritmo × calor e técnica de corrida).", onde: "apps/web/app/(dev)/performance-preview/page.tsx", no: "F,F1,F2" },
     { tipo: "tela", nome: "/compare-preview", acao: "Comparar treinos com duas corridas de exemplo (a1 e a2), com pontos, parciais e métricas.", onde: "apps/web/app/(dev)/compare-preview/page.tsx:66", no: "M,M1,M2" },
     { tipo: "tela", nome: "/coach-preview", acao: "Página da Duni com plano, memórias, conversa e planejado × feito falsos; não chama a API nem a IA.", onde: "apps/web/app/(dev)/coach-preview/page.tsx", no: "C,C1,C2" },

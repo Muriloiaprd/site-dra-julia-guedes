@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { ImportSection } from "@/components/profile/ImportSection";
 import { NotificationsPanel } from "@/components/profile/NotificationsPanel";
 import { Alert, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
 import {
@@ -311,6 +312,7 @@ export default function ProfilePage() {
         kicker="Atleta"
         title="Perfil do atleta"
         description="Seus dados fisiológicos alimentam zonas, carga (TSS), previsões e a Duni."
+        actions={<a href="#importar" className="od-btn od-btn-secondary">Importar atividades ↓</a>}
       />
 
       <form onSubmit={handleSave} className="grid gap-4 lg:grid-cols-12">
@@ -545,6 +547,11 @@ export default function ProfilePage() {
           </div>
         </div>
       </form>
+
+      {/* fora do <form> do perfil: os botões da importação não podem enviar o perfil */}
+      <div className="mt-4">
+        <ImportSection />
+      </div>
 
       <div className="mt-4">
         <NotificationsPanel />

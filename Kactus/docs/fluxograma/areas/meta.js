@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "20/10/2026",
-  commit: "Equipamentos dentro de Atividades",
+  commit: "Importar dentro do Perfil",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -29,12 +29,13 @@ KACTUS_MAPA.meta = {
     { gravidade: "baixa", titulo: "Filtros e totais só valem para o que foi carregado", detalhe: "A lista traz 100 por vez e filtra no navegador; o '+' no total avisa, mas os filtros não.", onde: "apps/web/app/activities/page.tsx:208" },
     { gravidade: "baixa", titulo: "Rotas de desenvolvimento abertas em produção", detalhe: "As quatro páginas de (dev) não conferem o ambiente; só usam dados falsos, mas ficam acessíveis no modo rápido.", onde: "apps/web/app/(dev)/" },
     { gravidade: "baixa", titulo: "Confirmações misturadas", detalhe: "Excluir atividade, equipamento e memória usam o confirm() do navegador; lixeira, conversa e zona de perigo confirmam na tela.", onde: "apps/web/components/coach/MemoryPanel.tsx:98" },
-    { gravidade: "baixa", titulo: "Data de nascimento e altura sem campo", detalhe: "Existem no perfil do banco, mas a tela não mostra.", onde: "apps/web/app/profile/page.tsx:370" },
+    { gravidade: "baixa", titulo: "Data de nascimento e altura sem campo", detalhe: "Existem no perfil do banco, mas a tela não mostra.", onde: "apps/web/app/profile/page.tsx:372" },
     { gravidade: "baixa", titulo: "Código sem uso e comentário velho", detalhe: "uploadActivity (um arquivo) não é chamado por nenhuma tela; o comentário do manifest diz 'sem service worker', mas existe o sw.js.", onde: "apps/web/lib/api.ts:1066 · apps/web/app/manifest.ts:3" },
     { gravidade: "baixa", titulo: "Documentos desatualizados", detalhe: "ESTADO_DO_PROJETO cita mapas CARTO (hoje é Stadia) e migrations até 018 (já há 021 e 023); o item 14 do BACKLOG lista como faltando coisas que já existem no Perfil.", onde: "docs/ESTADO_DO_PROJETO.md:87 · :189 · docs/BACKLOG.md:29" },
   ],
 
   historico: [
+    { data: "20/10/2026", commit: "importar-perfil", mudanca: "Importar saiu do menu e virou a seção Importar atividades do Perfil (/profile#importar); /import redireciona e os links Importar do site apontam para lá. Nova página de teste /import-preview." },
     { data: "20/10/2026", commit: "equip-atividades", mudanca: "Equipamentos saiu do menu e virou a sub-aba Equipamentos de Atividades (/activities?aba=equipamentos); /equipment redireciona para ela." },
     { data: "13/10/2026", commit: "financas", mudanca: "O Kactus Controle passa a ligar, desligar e vigiar as Finanças (Gestao-Financeira, porta 5000 / 10000 no iPhone): seção na janela, submenu no ícone, cartão na página :8443, rotas /api/financas/*, opção de ligar junto no início, porta 10000 no Tailscale e backup semanal das Finanças." },
     { data: "09/10/2026", commit: "alvo", mudanca: "Tempo-alvo escolhido pelo atleta no plano do objetivo (PUT /coach/goal-plan/target, migration 027): muda o ritmo de prova e os treinos que usam ele." },

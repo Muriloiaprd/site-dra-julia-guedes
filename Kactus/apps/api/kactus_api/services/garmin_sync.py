@@ -314,7 +314,7 @@ def build_client(email: str | None = None, password: str | None = None):
             "pelo menos 1 hora (as vezes algumas horas) e rode outra vez.\n"
             "O bloqueio e por IP, nao por conta: trocar de senha ou de e-mail nao resolve. "
             "Se tiver pressa, trocar de rede (4G do celular, por exemplo) costuma dar outro IP.\n"
-            "Enquanto isso, o upload manual em /import continua funcionando normalmente."
+            "Enquanto isso, o upload manual em Perfil › Importar atividades continua funcionando normalmente."
         ) from e
     except GarminConnectAuthenticationError as e:
         raise GarminSyncError(

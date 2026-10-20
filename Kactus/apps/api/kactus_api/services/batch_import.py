@@ -1,4 +1,4 @@
-"""Importação de vários arquivos de uma vez: a tela /import e o relógio pelo USB.
+"""Importação de vários arquivos de uma vez: o Importar do Perfil e o relógio pelo USB.
 
 O recálculo de CTL/ATL/TSB (varre todo o histórico) roda UMA vez ao final, a partir
 da menor data afetada no lote. Um arquivo com erro fica registrado no próprio item

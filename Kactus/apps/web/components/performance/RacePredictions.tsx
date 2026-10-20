@@ -41,7 +41,7 @@ export function RacePredictions({ predictions, loading }: { predictions: RacePre
           <EmptyState
             title="Nenhum recorde de corrida encontrado"
             description="Importe atividades de corrida para gerar previsões."
-            action={<Link href="/import" className="od-btn od-btn-secondary">Importar atividades →</Link>}
+            action={<Link href="/profile#importar" className="od-btn od-btn-secondary">Importar atividades →</Link>}
           />
         </Panel>
       ) : (

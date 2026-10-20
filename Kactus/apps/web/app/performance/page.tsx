@@ -80,7 +80,7 @@ export default function PerformancePage() {
             icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M3 12h4l3 8 4-16 3 8h4" /></svg>}
             title="Ainda não há treinos para analisar"
             description="Importe seus treinos: com algumas semanas de histórico, esta página diz o que fazer hoje, quanto dá para treinar com segurança e prevê seus tempos de prova."
-            action={<Link href="/import" className="od-btn od-btn-primary">Importar atividades →</Link>}
+            action={<Link href="/profile#importar" className="od-btn od-btn-primary">Importar atividades →</Link>}
           />
         </Panel>
       ) : (
