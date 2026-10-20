@@ -125,7 +125,7 @@ export function GoalCard({
         </ul>
       )}
 
-      <Link href="/coach" className="od-btn od-btn-secondary relative mt-4 w-full">
+      <Link href={main || first ? "/calendar" : "/coach"} className="od-btn od-btn-secondary relative mt-4 w-full">
         {main ? "Ver o plano até a prova" : first ? "Montar o plano com a Duni" : "Cadastrar a prova na Duni"} <span aria-hidden>→</span>
       </Link>
     </Panel>

@@ -182,7 +182,7 @@ export default function DashboardPage() {
     if (risk?.level === "high") out.push({ id: "risk", tone: "danger", title: "Risco de lesão elevado", detail: risk.reasons[0] ?? risk.recommendation, href: "/performance" });
     else if (risk?.level === "moderate") out.push({ id: "risk", tone: "warning", title: "Atenção à carga de treino", detail: risk.reasons[0] ?? risk.recommendation, href: "/performance" });
     const todayPlan = plan.find((w) => w.date === toISODate(new Date()) && w.status === "planned");
-    if (todayPlan) out.push({ id: "today", tone: "accent", title: `Treino de hoje: ${todayPlan.title}`, detail: todayPlan.description ?? undefined, href: "/coach" });
+    if (todayPlan) out.push({ id: "today", tone: "accent", title: `Treino de hoje: ${todayPlan.title}`, detail: todayPlan.description ?? undefined, href: "/calendar" });
     if (syncState === "ok" && activities[0]) {
       const days = Math.floor((Date.now() - new Date(activities[0].start_time).getTime()) / 86400000);
       if (days >= 7) out.push({ id: "idle", tone: "warning", title: `Sem atividades há ${days} dias`, detail: "Importe seus treinos recentes para manter as métricas atualizadas.", href: "/profile#importar" });

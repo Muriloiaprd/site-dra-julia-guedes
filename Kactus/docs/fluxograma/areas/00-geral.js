@@ -5,7 +5,7 @@ KACTUS_MAPA.areas.push({
   titulo: "Mapa geral",
   resumo:
     "O Kactus roda no PC do Murilo. Abre no navegador do PC (localhost:3003) ou no iPhone pelo Tailscale, como app na Tela de Início. Quem liga e desliga o servidor é o Kactus Controle, o ícone perto do relógio. Sem sessão, tudo leva ao login; com sessão, ao dashboard. Daí saem as seis áreas do menu.",
-  rotas: ["/", "/login", "/dashboard", "/activities", "/activities/[id]", "/performance", "/coach", "/equipment", "/import", "/profile"],
+  rotas: ["/", "/login", "/dashboard", "/activities", "/activities/[id]", "/calendar", "/performance", "/coach", "/profile"],
   arquivos: [
     "apps/web/app/layout.tsx",
     "apps/web/app/page.tsx",
@@ -37,13 +37,18 @@ flowchart TD
   ROOT -.->|já conectado| DASH
   subgraph MENU["Menu lateral ou barra inferior"]
     DASH
-    ACT["/activities"]:::tela
+    ACT["/activities<br/>Histórico · Equipamentos"]:::tela
+    CALT["/calendar · Calendário de treinos"]:::tela
     PERF["/performance"]:::tela
     DUNI["/coach · Duni"]:::tela
-    EQ["/equipment"]:::tela
-    IMP["/import"]:::tela
     PROF["/profile"]:::tela
   end
+  ACT --> EQ["sub-aba Equipamentos"]:::tela
+  PROF --> IMP["seção Importar atividades"]:::tela
+  EQO["/equipment"]:::estado -.-> EQ
+  IMPO["/import"]:::estado -.-> IMP
+  DUNI -->|Ver o plano de treino| CALT
+  DASH -->|treino de hoje| CALT
   ACT --> DET["/activities/id"]:::tela
   DASH --> DET
   DET --> STORY["Compartilhar<br/>Story"]:::tela
@@ -58,7 +63,7 @@ flowchart TD
       mermaid: `
 flowchart LR
   W["Treino no relógio Garmin"]:::ext --> EXP("Exportar .fit<br/>do Garmin Connect"):::acao
-  EXP --> UP("Arrastar em /import"):::acao
+  EXP --> UP("Arrastar em Perfil › Importar"):::acao
   UP --> API1[/"POST /activities/upload/batch"/]:::api
   API1 --> CALC[["Tempo em movimento, pace,<br/>GAP, TSS, recordes, carga"]]:::calc
   CALC --> CK("Como foi? → check-in"):::acao
@@ -67,6 +72,7 @@ flowchart LR
   CALC --> PAINEL["Dashboard e Desempenho<br/>atualizados"]:::tela
   PAINEL --> PLAN{{"Duni: plano da semana<br/>e plano do objetivo"}}:::ia
   PLAN --> REC[["Treino feito casa com<br/>o planejado do dia"]]:::calc
+  REC --> CALV["Calendário de treinos:<br/>✓ cumprido · ✕ perdido"]:::tela
 `,
     },
   ],
@@ -74,12 +80,13 @@ flowchart LR
     { tipo: "tela", nome: "Landing", acao: "Página pública de apresentação. Com sessão válida, mostra o aviso 'Você já está conectado'.", onde: "apps/web/app/LandingPage.tsx:6", no: "ROOT" },
     { tipo: "tela", nome: "Login", acao: "E-mail e senha. Salva o token e vai ao dashboard.", onde: "apps/web/app/login/page.tsx:8", no: "LOGIN" },
     { tipo: "tela", nome: "Dashboard", acao: "Centro de comando: prontidão, Duni, semana, evolução, recordes, calendário.", onde: "apps/web/app/dashboard/page.tsx:32", no: "DASH" },
-    { tipo: "tela", nome: "Atividades", acao: "Lista com filtros, exclusão e lixeira.", onde: "apps/web/app/activities/page.tsx:57", no: "ACT" },
+    { tipo: "tela", nome: "Atividades", acao: "Sub-abas Histórico (lista com filtros, exclusão e lixeira) e Equipamentos.", onde: "apps/web/app/activities/page.tsx:57", no: "ACT" },
     { tipo: "tela", nome: "Detalhe da atividade", acao: "Métricas, check-in, comentário da Duni, mapa, gráficos, splits, Story.", onde: "apps/web/app/activities/[id]/page.tsx:88", no: "DET" },
+    { tipo: "tela", nome: "Calendário de treinos", acao: "O mês com o planejado e o feito, e onde se gera o plano (área 16).", onde: "apps/web/app/calendar/page.tsx:45", no: "CALT" },
     { tipo: "tela", nome: "Desempenho", acao: "Hoje, forma, risco, previsões, evolução e modo avançado.", onde: "apps/web/app/performance/page.tsx:24", no: "PERF" },
-    { tipo: "tela", nome: "Duni", acao: "Resumo, planos, chat e memórias.", onde: "apps/web/app/coach/page.tsx:189", no: "DUNI" },
-    { tipo: "tela", nome: "Equipamentos", acao: "Tênis e acessórios, alertas de troca e recomendados.", onde: "apps/web/app/equipment/page.tsx:56", no: "EQ" },
-    { tipo: "tela", nome: "Importar", acao: "Arrastar arquivos do relógio.", onde: "apps/web/app/import/page.tsx:23", no: "IMP" },
+    { tipo: "tela", nome: "Duni", acao: "Resumo, chat e memórias (o plano fica no Calendário de treinos).", onde: "apps/web/app/coach/page.tsx:94", no: "DUNI" },
+    { tipo: "tela", nome: "Equipamentos", acao: "Sub-aba de Atividades: tênis e acessórios, alertas de troca e recomendados. /equipment redireciona para ela.", onde: "apps/web/components/equipment/EquipmentSection.tsx:64", no: "EQ,EQO" },
+    { tipo: "tela", nome: "Importar", acao: "Seção do Perfil: arrastar arquivos do relógio. /import redireciona para ela.", onde: "apps/web/components/profile/ImportSection.tsx:23", no: "IMP,IMPO" },
     { tipo: "tela", nome: "Perfil", acao: "Dados, zonas, senha, exportar e zona de perigo.", onde: "apps/web/app/profile/page.tsx:53", no: "PROF" },
     { tipo: "modal", nome: "Compartilhar (Story)", acao: "Gerador de Story aberto do detalhe da atividade.", onde: "apps/web/components/share/StoryGenerator.tsx:53", no: "STORY" },
     { tipo: "tela", nome: "Kactus desligado", acao: "Página de reserva servida pelo service worker quando o servidor não responde.", onde: "apps/web/public/desligado.html", no: "OFF" },

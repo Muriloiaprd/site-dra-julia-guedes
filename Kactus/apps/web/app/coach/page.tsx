@@ -5,55 +5,32 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { kindLabel, MemoryPanel, whenLabel } from "@/components/coach/MemoryPanel";
-import { AdherencePanel } from "@/components/coach/AdherencePanel";
+import { ActionButton, ProcessingPanel } from "@/components/coach/ProcessingPanel";
 import { SummaryBody } from "@/components/coach/SummaryBody";
-import { GoalPlanPanel } from "@/components/coach/GoalPlanPanel";
-import { WeekPlans } from "@/components/coach/WeekPlans";
 import { AiOrb } from "@/components/dashboard/CoachCard";
 import { Markdown } from "@/components/ui/Markdown";
 import { Alert, PageContainer, Panel, StatusDot } from "@/components/ui/primitives";
 import {
-  applyFreeWeek,
   CoachApiError,
   clearCoachHistory,
   createMemory,
   fetchCoachHistory,
   fetchMemories,
-  fetchCoachPlan,
   fetchLoadMetrics,
   fetchMe,
   fetchPredictionsOverview,
-  fetchFreeWeek,
-  fetchGoalPlan,
-  fetchWeekPlan,
   fetchLastCoachReport,
   postCoachAnalyze,
   postCoachChat,
-  postCoachGeneratePlan,
-  postFreeWeekGenerate,
-  postGoalPlanGenerate,
   type AthleteMemory,
   type CoachChatMessage,
   type CoachSummary,
   type DailyMetric,
   type MemorySuggestion,
-  type PlannedWorkout,
   type PredictionsOverview,
-  type FreeWeekResponse,
-  type GoalPlanResponse,
-  type WeeklyPlanResponse,
 } from "@/lib/api";
 import { coachErrorMessage } from "@/lib/coachErrors";
-import { formFromTsb, latestMetric, riskFromAcwr, toISODate } from "@/lib/athlete";
-
-/** O que a Duni realmente le do seu contexto (ai/coach_service.build_context). */
-const ANALYSIS_STEPS = [
-  "Volume de 7, 14 e 28 dias",
-  "Tendência de 8 semanas",
-  "Sinais de fadiga",
-  "Check-ins e memórias",
-  "Plano feito × pulado",
-];
+import { formFromTsb, latestMetric, riskFromAcwr } from "@/lib/athlete";
 
 const SUGGESTIONS = [
   "Como está minha recuperação esta semana?",
@@ -61,42 +38,6 @@ const SUGGESTIONS = [
   "Estou evoluindo nas corridas parecidas?",
   "Minha carga está segura para aumentar o volume?",
 ];
-
-function ProcessingPanel({ title }: { title: string }) {
-  const [step, setStep] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setStep((s) => Math.min(s + 1, ANALYSIS_STEPS.length - 1)), 1400);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <Panel variant="hero" className="overflow-hidden" aria-live="polite">
-      <div className="od-scanline" />
-      <div className="relative flex items-center gap-4">
-        <AiOrb size={56} />
-        <div>
-          <div className="font-mono text-[0.62rem] tracking-[0.18em] text-brand-accent">DUNI · ANALISANDO</div>
-          <p className="mt-1 font-display text-xl font-bold">{title}</p>
-        </div>
-      </div>
-      <ul className="relative mt-5 grid gap-2 sm:grid-cols-5">
-        {ANALYSIS_STEPS.map((s, i) => {
-          const state = i < step ? "done" : i === step ? "active" : "wait";
-          return (
-            <li key={s} className="od-tile flex items-center gap-2 px-3 py-2.5 text-xs transition-all duration-300"
-              style={state === "active" ? { boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.4)", background: "rgba(0,255,102,0.06)" } : undefined}>
-              {state === "done"
-                ? <span className="text-brand-accent">✓</span>
-                : state === "active"
-                  ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-brand-accent/25 border-t-brand-accent" />
-                  : <span className="h-1.5 w-1.5 rounded-full bg-white/15" />}
-              <span className={state === "wait" ? "text-brand-textTertiary" : "text-brand-textSecondary"}>{s}</span>
-            </li>
-          );
-        })}
-      </ul>
-    </Panel>
-  );
-}
 
 /** "14:32" da mensagem. */
 function msgTime(iso: string) {
@@ -147,43 +88,6 @@ function PhoneFrame({ children }: { children: ReactNode }) {
 }
 
 /** Botao grande do topo: as duas acoes principais da Duni precisam saltar aos olhos. */
-function ActionButton({ onClick, disabled, color, title, text, icon }: {
-  onClick: () => void;
-  disabled: boolean;
-  color: string;
-  title: string;
-  text: string;
-  icon: ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="group relative overflow-hidden rounded-2xl p-4 text-left transition-all duration-200 enabled:hover:-translate-y-1 disabled:opacity-50 sm:p-5"
-      style={{
-        background: `radial-gradient(220px 120px at 0% 0%, ${color}30, transparent 70%), linear-gradient(160deg, ${color}1c, ${color}08)`,
-        boxShadow: `inset 0 0 0 1.5px ${color}70, 0 14px 40px -18px ${color}`,
-      }}
-    >
-      <div className="flex items-start gap-3">
-        <span
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#041a0b] transition-transform duration-200 group-enabled:group-hover:scale-110"
-          style={{ background: `linear-gradient(135deg, ${color}, ${color}bb)`, boxShadow: `0 0 22px -4px ${color}` }}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>{icon}</svg>
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-display text-[1.05rem] font-bold leading-tight text-white">{title}</span>
-            <span className="text-lg transition-transform duration-200 group-enabled:group-hover:translate-x-1" style={{ color }} aria-hidden>→</span>
-          </div>
-          <p className="mt-1 text-[0.78rem] leading-snug text-brand-textSecondary">{text}</p>
-        </div>
-      </div>
-    </button>
-  );
-}
-
 /** Mensagem na tela: as sugestoes de memoria so existem na sessao (nao voltam no historico). */
 type ChatMessage = CoachChatMessage & { suggestions?: (MemorySuggestion & { state?: "saved" | "dismissed" })[] };
 
@@ -197,19 +101,9 @@ export default function CoachPage() {
   const [report, setReport] = useState<string | null>(null);
   const [reportMeta, setReportMeta] = useState<{ model: string; at: string } | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [goal, setGoal] = useState<GoalPlanResponse | null>(null);
-  const [generatingGoal, setGeneratingGoal] = useState(false);
-  const [goalCount, setGoalCount] = useState<number | null>(null);
-  const [free, setFree] = useState<FreeWeekResponse | null>(null);
-  const [generatingFree, setGeneratingFree] = useState(false);
-  const [usingFree, setUsingFree] = useState<string | null>(null);
-  const [planCount, setPlanCount] = useState<number | null>(null);
   const [error, setError] = useState<{ title: string; detail: string } | null>(null);
   const [overview, setOverview] = useState<PredictionsOverview | null>(null);
   const [metrics, setMetrics] = useState<DailyMetric[]>([]);
-  const [plan, setPlan] = useState<PlannedWorkout[] | null>(null);
-  const [week, setWeek] = useState<WeeklyPlanResponse | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -223,11 +117,7 @@ export default function CoachPage() {
     fetchCoachHistory().then(setMessages).catch(() => {});
     fetchPredictionsOverview().then(setOverview).catch(() => {});
     fetchLoadMetrics(30).then(setMetrics).catch(() => {});
-    fetchCoachPlan(14).then(setPlan).catch(() => setPlan([]));
     fetchMemories().then(setMemories).catch(() => {});
-    fetchWeekPlan().then(setWeek).catch(() => setWeek({ plan: null, workouts: [] }));
-    fetchGoalPlan().then(setGoal).catch(() => setGoal({ plan: null, workouts: [] }));
-    fetchFreeWeek().then(setFree).catch(() => setFree({ plan: null, workouts: [], comparison: null }));
     fetchLastCoachReport()
       .then((r) => {
         // nao sobrescreve um resumo pedido enquanto este carregava
@@ -238,12 +128,6 @@ export default function CoachPage() {
       })
       .catch(() => {});
   }, [router]);
-
-  async function refreshPlans() {
-    const [w, p] = await Promise.all([fetchWeekPlan(), fetchCoachPlan(14)]);
-    setWeek(w);
-    setPlan(p);
-  }
 
   function setSuggestionState(msgIndex: number, sIndex: number, state: "saved" | "dismissed") {
     setMessages((ms) => ms.map((m, i) => i !== msgIndex || !m.suggestions ? m : {
@@ -324,65 +208,6 @@ export default function CoachPage() {
     }
   }
 
-  async function handleGenerateGoal(daysPerWeek: number) {
-    setGeneratingGoal(true);
-    setError(null);
-    setGoalCount(null);
-    try {
-      const res = await postGoalPlanGenerate(daysPerWeek);
-      setGoal(res);
-      setGoalCount(res.workouts.length);
-      // os treinos planejados de hoje em diante mudaram
-      await refreshPlans().catch(() => {});
-    } catch (e) {
-      handleError(e);
-    } finally {
-      setGeneratingGoal(false);
-    }
-  }
-
-  async function handleGenerateFree() {
-    setGeneratingFree(true);
-    setError(null);
-    try {
-      setFree(await postFreeWeekGenerate());
-    } catch (e) {
-      handleError(e);
-    } finally {
-      setGeneratingFree(false);
-    }
-  }
-
-  async function handleUseFree(dates?: string[]) {
-    setUsingFree(dates?.length === 1 ? dates[0] : "all");
-    setError(null);
-    try {
-      setWeek(await applyFreeWeek(dates));
-      fetchCoachPlan(14).then(setPlan).catch(() => {});
-      fetchGoalPlan().then(setGoal).catch(() => {});
-    } catch (e) {
-      handleError(e);
-    } finally {
-      setUsingFree(null);
-    }
-  }
-
-  async function handleGeneratePlan() {
-    setGenerating(true);
-    setError(null);
-    setPlanCount(null);
-    try {
-      const res = await postCoachGeneratePlan();
-      setWeek(res);
-      setPlanCount(res.workouts.length);
-      fetchCoachPlan(14).then(setPlan).catch(() => {});
-    } catch (e) {
-      handleError(e);
-    } finally {
-      setGenerating(false);
-    }
-  }
-
   function answerInChat(question: string) {
     setReplyTo(question);
     inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -392,8 +217,7 @@ export default function CoachPage() {
   const latest = latestMetric(metrics);
   const form = formFromTsb(latest?.tsb ?? null);
   const risk = riskFromAcwr(latest?.acwr ?? null);
-  const upcoming = (plan ?? []).filter((w) => w.date >= toISODate(new Date()));
-  const busy = analyzing || generating || generatingGoal || generatingFree;
+  const busy = analyzing;
 
   const insights = [
     {
@@ -404,7 +228,8 @@ export default function CoachPage() {
     },
     { k: "Forma", v: form.label, s: form.hint ?? "", c: form.color, t: latest?.tsb != null ? `Disposição (TSB) ${latest.tsb.toFixed(1)}` : undefined },
     { k: "Risco de lesão", v: risk.label, s: risk.hint ?? "", c: risk.color, t: latest?.acwr != null ? `Salto de carga (ACWR) ${latest.acwr.toFixed(2)}` : undefined },
-    { k: "Treinos planejados", v: plan == null ? "—" : `${upcoming.length}`, s: "Nos próximos 14 dias", c: upcoming.length ? "#00FF66" : "#888" },
+    // o plano fica só no calendário de treinos e no dashboard: aqui, só o caminho até ele
+    { k: "Treinos", v: "Calendário →", s: "O plano e o que você fez, dia a dia", c: "#C6FF00", href: "/calendar" },
   ];
 
   return (
@@ -440,7 +265,7 @@ export default function CoachPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2">
             <ActionButton
               onClick={handleAnalyze}
               disabled={busy}
@@ -450,20 +275,12 @@ export default function CoachPage() {
               icon={<><path d="M3 3v18h18" /><path d="m7 15 4-4 3 3 6-6" /></>}
             />
             <ActionButton
-              onClick={handleGeneratePlan}
-              disabled={busy}
+              onClick={() => router.push("/calendar")}
+              disabled={false}
               color="#C6FF00"
-              title={generating ? "Gerando…" : "Gerar plano da semana"}
-              text="Os treinos dos próximos 7 dias, do seu jeito."
-              icon={<><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="m9 16 2 2 4-4" /></>}
-            />
-            <ActionButton
-              onClick={() => handleGenerateGoal(goal?.plan?.days_per_week ?? 3)}
-              disabled={busy}
-              color="#00BFFF"
-              title={generatingGoal ? "Montando…" : "Gerar plano do objetivo"}
-              text="Todos os treinos até a sua prova, em fases."
-              icon={<><path d="M4 22V4" /><path d="M4 4h12l-2 4 2 4H4" /></>}
+              title="Ver o plano de treino"
+              text="O plano da semana e o do objetivo ficam no calendário de treinos."
+              icon={<><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></>}
             />
           </div>
         </div>
@@ -475,20 +292,6 @@ export default function CoachPage() {
         )}
 
         {analyzing && <ProcessingPanel title="Analisando sua semana…" />}
-        {generating && <ProcessingPanel title="Montando o plano da semana…" />}
-        {generatingGoal && <ProcessingPanel title="Montando o plano até a prova…" />}
-
-        {goalCount !== null && goal?.plan && (
-          <Alert tone="accent" title={`Plano até a prova pronto: ${goalCount} treinos`}>
-            Veja as fases e as semanas no quadro &quot;Plano do objetivo&quot;. O passo a passo de cada semana sai no &quot;Gerar plano da semana&quot;.
-          </Alert>
-        )}
-
-        {planCount !== null && (
-          <Alert tone="accent" title={`Plano da semana pronto: ${planCount} treino${planCount === 1 ? "" : "s"}`}>
-            Veja o status e cada treino no quadro logo abaixo. Também aparece no card da Duni no <Link href="/dashboard" className="underline">dashboard</Link>.
-          </Alert>
-        )}
 
         {/* ───────── Resumo + indicadores, no mesmo quadro ───────── */}
         <Panel variant="accent" className="space-y-4">
@@ -517,42 +320,25 @@ export default function CoachPage() {
             </div>
 
             <div className="od-stagger grid content-start grid-cols-2 gap-2.5 lg:grid-cols-1">
-              {insights.map((it) => (
-                <div key={it.k} className="od-tile px-4 py-3" style={{ boxShadow: `inset 0 0 0 1px ${it.c}2e` }}>
-                  <div className="flex items-center gap-2" title={it.t}>
-                    <StatusDot color={it.c} size={6} />
-                    <span className="od-metric-label">{it.k}</span>
-                  </div>
-                  <div className="od-num mt-1.5 truncate text-[1.2rem] leading-tight" style={{ color: it.c === "#888" || it.c === "#888888" ? "#fff" : it.c }}>{it.v}</div>
-                  <p className="mt-0.5 line-clamp-2 text-[0.72rem] leading-snug text-brand-muted">{it.s}</p>
-                </div>
-              ))}
+              {insights.map((it) => {
+                const body = (
+                  <>
+                    <div className="flex items-center gap-2" title={it.t}>
+                      <StatusDot color={it.c} size={6} />
+                      <span className="od-metric-label">{it.k}</span>
+                    </div>
+                    <div className="od-num mt-1.5 truncate text-[1.2rem] leading-tight" style={{ color: it.c === "#888" || it.c === "#888888" ? "#fff" : it.c }}>{it.v}</div>
+                    <p className="mt-0.5 line-clamp-2 text-[0.72rem] leading-snug text-brand-muted">{it.s}</p>
+                  </>
+                );
+                const style = { boxShadow: `inset 0 0 0 1px ${it.c}2e` };
+                return it.href
+                  ? <Link key={it.k} href={it.href} className="od-tile block px-4 py-3 transition-colors hover:bg-white/[0.05]" style={style}>{body}</Link>
+                  : <div key={it.k} className="od-tile px-4 py-3" style={style}>{body}</div>;
+              })}
             </div>
           </div>
         </Panel>
-
-        {/* ───────── Plano do objetivo (ate a prova) ───────── */}
-        {goal && <GoalPlanPanel goal={goal} onGenerate={handleGenerateGoal} generating={generatingGoal} onGoalChange={setGoal} />}
-
-        {/* ───────── Planejado × feito ───────── */}
-        <AdherencePanel days={14} />
-
-        {/* ───────── Plano da semana ───────── */}
-        {week && (
-          <WeekPlans
-            week={week}
-            goalWorkouts={(goal?.workouts ?? []).filter((w) => w.date >= toISODate(new Date()) && w.date <= toISODate(new Date(Date.now() + 6 * 86_400_000)))}
-            hasGoal={!!goal?.plan}
-            free={free}
-            onRefresh={refreshPlans}
-            onGenerate={handleGeneratePlan}
-            generating={generating}
-            onGenerateFree={handleGenerateFree}
-            generatingFree={generatingFree}
-            onUseFree={handleUseFree}
-            usingFree={usingFree}
-          />
-        )}
 
         {/* ───────── Chat (formato celular) + o que a Duni sabe ───────── */}
         <div className="grid gap-4 lg:grid-cols-[400px_minmax(0,1fr)]">

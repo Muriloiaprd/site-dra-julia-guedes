@@ -131,8 +131,9 @@ export function CoachCard({
       )}
 
       <div className="relative mt-4 flex items-center gap-3">
-        <Link href="/coach" className="od-btn od-btn-primary flex-1">
-          {next ? "Ver treino" : "Falar com a Duni"} <span aria-hidden>→</span>
+        {/* o plano mora no calendário de treinos */}
+        <Link href="/calendar" className="od-btn od-btn-primary flex-1">
+          {next ? "Ver no calendário" : "Montar o plano"} <span aria-hidden>→</span>
         </Link>
         {online && countWeek > 0 && (
           <span className="text-[0.7rem] leading-tight text-brand-muted"><strong className="text-white">{countWeek}</strong> treinos<br />nos próx. 7 dias</span>

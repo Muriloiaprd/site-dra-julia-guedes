@@ -48,15 +48,15 @@ flowchart LR
   H --> SINO("Sino de alertas"):::acao
   SINO --> AL{"Qual alerta"}:::decisao
   AL -->|risco| PERF["/performance"]:::tela
-  AL -->|treino de hoje| DUNI["/coach"]:::tela
-  AL -->|sem treinos há 7+ dias| IMP["/import"]:::tela
+  AL -->|treino de hoje| CALT["/calendar"]:::tela
+  AL -->|sem treinos há 7+ dias| IMP["/profile#importar"]:::tela
   AL -->|novo recorde| DET["/activities/id"]:::tela
   H --> ENG("Engrenagem e foto"):::acao --> PROF["/profile"]:::tela
   ST["Status do atleta<br/>prontidão e 4 indicadores"]:::tela -->|Análise completa| PERF
-  ST -->|Status da Duni| DUNI
-  CC["Duni · sua treinadora<br/>próximo treino"]:::tela -->|Ver treino ou Falar com a Duni| DUNI
+  ST -->|Status da Duni| DUNI["/coach"]:::tela
+  CC["Duni · sua treinadora<br/>próximo treino"]:::tela -->|Ver no calendário ou Montar o plano| CALT
   WK["Visão semanal<br/>7 dias"]:::tela -->|Atividades| ACTL["/activities"]:::tela
-  ADH["Planejado × feito<br/>últimos 3 dias"]:::tela -->|Ver todos na Duni| DUNI
+  ADH["Planejado × feito<br/>últimos 3 dias"]:::tela -->|Ver todos no calendário| CALT
   EV["Evolução do desempenho<br/>gráfico"]:::tela -->|clique num ponto| MOD
   LA["Última atividade"]:::tela -->|clique| MOD
   LA -->|📤 Story| STY["Gerador de Story<br/>do último treino"]:::tela
@@ -64,7 +64,8 @@ flowchart LR
   RC["Atividades recentes"]:::tela -->|clique| MOD
   RC -->|Ver todas| ACTL
   REC["Recordes pessoais"]:::tela -->|clique| DET
-  GOAL["Próxima prova"]:::tela -->|Ver o plano até a prova| DUNI
+  GOAL["Próxima prova"]:::tela -->|Ver o plano até a prova| CALT
+  GOAL -->|Cadastrar a prova na Duni| DUNI
   MOD["Modal da atividade"]:::tela -->|Ver página completa| DET
 `,
     },
@@ -80,7 +81,7 @@ flowchart LR
     { tipo: "erro", nome: "Atividades não carregaram", acao: "Mostra o painel mesmo assim e oferece tentar de novo.", msg: "Não foi possível carregar suas atividades · Verifique sua conexão ou se a API está rodando.", onde: "apps/web/app/dashboard/page.tsx:211", no: "ERR" },
     { tipo: "seção", nome: "Cabeçalho", acao: "'Olá, primeiro nome' (esqueleto até o perfil chegar), estado da sincronização e data por extenso.", msg: "Sincronizando dados… · Falha na sincronização · Dados sincronizados · última atividade há N dias", onde: "apps/web/components/dashboard/DashboardHeader.tsx:298", no: "H" },
     { tipo: "botão", nome: "Sino de alertas", acao: "Abre o painel 'Alertas do sistema'; o número fica amarelo se houver alerta urgente. Fecha com clique fora ou Esc.", msg: "Tudo em ordem. Nenhum alerta no momento.", onde: "apps/web/components/dashboard/DashboardHeader.tsx:330", no: "SINO" },
-    { tipo: "cálculo", nome: "Regras dos alertas", acao: "1) risco alto → 'Risco de lesão elevado'; 2) risco moderado → 'Atenção à carga de treino'; 3) treino planejado hoje → 'Treino de hoje: título'; 4) última atividade há 7+ dias → 'Sem atividades há N dias'; 5) recordes dos últimos 7 dias (até 2) → 'Novo recorde: …'.", onde: "apps/web/app/dashboard/page.tsx:135", no: "ALERT,AL" },
+    { tipo: "cálculo", nome: "Regras dos alertas", acao: "1) risco alto → 'Risco de lesão elevado'; 2) risco moderado → 'Atenção à carga de treino'; 3) treino planejado hoje → 'Treino de hoje: título' (abre o Calendário); 4) última atividade há 7+ dias → 'Sem atividades há N dias' (abre Perfil › Importar); 5) recordes dos últimos 7 dias (até 2) → 'Novo recorde: …'.", onde: "apps/web/app/dashboard/page.tsx:135", no: "ALERT,AL" },
     { tipo: "link", nome: "Engrenagem e foto", acao: "Vão ao Perfil.", onde: "apps/web/components/dashboard/DashboardHeader.tsx:374", no: "ENG" },
     { tipo: "card", nome: "Status do atleta", acao: "Medidor de prontidão (0–100%), frase do dia e quatro indicadores: Carga (horas/8 h), Recuperação, Risco de lesão (pelo ACWR) e Treinos (sessões/5).", onde: "apps/web/components/dashboard/AthleteStatus.tsx:38", no: "ST" },
     { tipo: "cálculo", nome: "Prontidão", acao: "72 + 1,1 × TSB, menos (ACWR − 1,3) × 80 se ACWR > 1,3, limitada a 8–98. Sem carga: usa a recomendação do dia (85/68/50/28).", onde: "apps/web/lib/athlete.ts:116" },
@@ -88,7 +89,7 @@ flowchart LR
     { tipo: "link", nome: "Status da Duni", acao: "Mostra o status salvo com o plano da semana; explica quando difere da prontidão.", msg: "A prontidão acima olha só a carga. A Duni também pesa cansaço, check-ins e tendência, por isso a leitura dela é diferente.", onde: "apps/web/components/dashboard/AthleteStatus.tsx:112" },
     { tipo: "link", nome: "Análise completa →", acao: "Vai para Desempenho.", onde: "apps/web/components/dashboard/AthleteStatus.tsx:78" },
     { tipo: "card", nome: "Duni · sua treinadora", acao: "Próximo treino planejado (distância, duração, intensidade) e a recomendação de hoje; selo AI ANALYSIS · SYNC/ACTIVE/OFFLINE.", msg: "Seu próximo treino está pronto. · Nenhum plano ativo. · A Duni está indisponível agora.", onde: "apps/web/components/dashboard/CoachCard.tsx:44", no: "CC" },
-    { tipo: "botão", nome: "Ver treino / Falar com a Duni", acao: "Vai para /coach.", onde: "apps/web/components/dashboard/CoachCard.tsx:134" },
+    { tipo: "botão", nome: "Ver no calendário / Montar o plano", acao: "Vai para o Calendário de treinos (/calendar), onde o plano fica.", onde: "apps/web/components/dashboard/CoachCard.tsx:134" },
     { tipo: "card", nome: "Visão semanal", acao: "Segunda a domingo: Feito, Hoje, Planejado (Duni), Descanso ou Livre; barra = duração relativa; total de km, tempo, sessões e comparação com a semana passada até o mesmo dia.", onde: "apps/web/components/dashboard/WeekStrip.tsx:16", no: "WK" },
     { tipo: "card", nome: "Meta de corrida (Visão semanal)", acao: "Com meta no Perfil: barra com os km de corrida da semana (segunda a domingo) contra a meta; ✓ quando bate.", onde: "apps/web/components/dashboard/WeekStrip.tsx:77" },
     { tipo: "card", nome: "Planejado × feito", acao: "Os 2 treinos planejados mais recentes dos últimos 3 dias, com o feito ao lado e os selos; some sem plano. Detalhes na área Duni.", api: "GET /coach/plan/adherence?days=3", onde: "apps/web/app/dashboard/page.tsx:240", no: "ADH" },
@@ -103,7 +104,7 @@ flowchart LR
     { tipo: "card", nome: "Recordes pessoais", acao: "Destaque para o maior longão (ou pedal, ou nado) e grade com 4 recordes; 'Novo' se tiver menos de 30 dias.", onde: "apps/web/components/dashboard/Records.tsx:51", no: "REC" },
     { tipo: "botão", nome: "Ver todos (N) / Mostrar menos", acao: "Expande a grade de recordes.", onde: "apps/web/components/dashboard/Records.tsx:140" },
     { tipo: "vazio", nome: "Sem recordes ainda", msg: "Seus melhores esforços aparecem aqui automaticamente.", onde: "apps/web/components/dashboard/Records.tsx:73" },
-    { tipo: "card", nome: "Próxima prova", acao: "Com plano do objetivo: nome, data, dias que faltam, fase e semana do plano (barra de progresso), km da semana e o alvo: Seu alvo, quando você escolheu um tempo no plano da Duni, ou Alvo do plano (ritmo de prova × distância). Sem plano mas com prova cadastrada: a prova e os dias. Sem prova: convite e o potencial atual (VDOT). Embaixo, até 3 outras provas com data.", api: "GET /coach/goal-plan · GET /coach/memories", msg: "Ver o plano até a prova · Montar o plano com a Duni · Cadastrar a prova na Duni", onde: "apps/web/components/dashboard/GoalCard.tsx:25", no: "GOAL" },
+    { tipo: "card", nome: "Próxima prova", acao: "Com plano do objetivo: nome, data, dias que faltam, fase e semana do plano (barra de progresso), km da semana e o alvo: Seu alvo, quando você escolheu um tempo no plano da Duni, ou Alvo do plano (ritmo de prova × distância). Sem plano mas com prova cadastrada: a prova e os dias. Sem prova: convite e o potencial atual (VDOT). Embaixo, até 3 outras provas com data.", api: "GET /coach/goal-plan · GET /coach/memories", msg: "Ver o plano até a prova · Montar o plano com a Duni (os dois abrem o Calendário) · Cadastrar a prova na Duni (abre a Duni)", onde: "apps/web/components/dashboard/GoalCard.tsx:25", no: "GOAL" },
     { tipo: "card", nome: "Calendário", acao: "Mês com pontos coloridos por esporte e anel para treinos planejados; navega até 11 meses para trás e 1 para frente. Teclado: o Tab para uma vez só no calendário (no dia de hoje), as setas andam pelos dias (↑↓ uma semana), Home/End vão ao primeiro e ao último dia e Enter abre o treino do dia. Cada dia tem nome completo para o leitor de tela (data, hoje, treino ou planejado).", onde: "apps/web/components/dashboard/MonthCalendar.tsx:11", no: "CAL" },
     { tipo: "botão", nome: "Mês anterior / Próximo mês", onde: "apps/web/components/dashboard/MonthCalendar.tsx:58" },
     { tipo: "card", nome: "Atividades recentes", acao: "As 5 últimas com minimapa e selo PR, Longão, 10K+ ou 5K+.", onde: "apps/web/components/dashboard/RecentActivities.tsx:34", no: "RC" },

@@ -4,7 +4,7 @@ KACTUS_MAPA.areas.push({
   n: 10,
   titulo: "Duni (treinadora de IA)",
   resumo:
-    "A Duni lê os dados calculados do Kactus (volumes, tendência, fadiga, check-ins, memórias, plano feito × pulado) e responde por um modelo de linguagem: Anthropic se houver chave, senão Gemini grátis com uma lista de modelos e um orçamento total de 200 s. Na página há três ações grandes (relatório, plano da semana, plano do objetivo), o resumo com quatro indicadores, o plano do objetivo em fases, o plano da semana com três vistas, o chat em formato de celular e o painel do que ela sabe de você. A IA só é chamada quando o atleta pede.",
+    "A Duni lê os dados calculados do Kactus (volumes, tendência, fadiga, check-ins, memórias, plano feito × pulado) e responde por um modelo de linguagem: Anthropic se houver chave, senão Gemini grátis com uma lista de modelos e um orçamento total de 200 s. Na página da Duni ficam o relatório, o resumo com quatro indicadores, o chat em formato de celular e o painel do que ela sabe de você. O plano (gerar o da semana e o do objetivo, o plano do objetivo em fases, o planejado × feito e o plano da semana com três vistas) mudou para o Calendário de treinos (área 16): a Duni só mostra o caminho até lá. Os quadros do plano continuam descritos aqui. A IA só é chamada quando o atleta pede.",
   rotas: ["/coach"],
   arquivos: [
     "apps/web/app/coach/page.tsx",
@@ -23,15 +23,16 @@ KACTUS_MAPA.areas.push({
   ],
   diagramas: [
     {
-      titulo: "Página da Duni: o que carrega e as três ações",
+      titulo: "Página da Duni e o plano no Calendário",
       mermaid: `
 flowchart TD
-  IN("Abre /coach"):::acao --> LD[/"GET /coach/chat/history · /coach/memories<br/>/coach/plan/week · /coach/goal-plan · /coach/plan/free<br/>/coach/analyze · /coach/plan?days_ahead=14<br/>/predictions/overview · /metrics/load?days=30"/]:::api
+  IN("Abre /coach"):::acao --> LD[/"GET /coach/chat/history · /coach/memories<br/>/coach/analyze · /predictions/overview<br/>/metrics/load?days=30"/]:::api
   LD --> REC[["reconcile_plan: casa treinos feitos<br/>e marca pulados os dias que passaram"]]:::calc
   LD --> PG["Topo: Duni, sua treinadora<br/>PRONTO · ANALISANDO · NÃO CONFIGURADO"]:::tela
   PG --> A1("Gerar relatório"):::acao
-  PG --> A2("Gerar plano da semana"):::acao
-  PG --> A3("Gerar plano do objetivo"):::acao
+  PG --> VP("Ver o plano de treino · Treinos"):::acao --> CALP["Calendário de treinos (área 16)"]:::tela
+  CALP --> A2("Gerar plano da semana"):::acao
+  CALP --> A3("Gerar plano do objetivo"):::acao
   A1 --> P1(["Analisando sua semana…<br/>5 passos animados"]):::estado --> IA1{{"POST /coach/analyze"}}:::ia
   IA1 --> RES["Resumo da Duni<br/>status, pontos, ações, pergunta"]:::ok
   RES --> RESP("Responder à pergunta"):::acao --> CHAT
@@ -42,7 +43,7 @@ flowchart TD
   IA1 -->|erro| ERR["Caixa vermelha com<br/>título e explicação do erro"]:::erro
   IA2 -->|erro| ERR
   IA3 -->|erro| ERR
-  PG --> IND["Hoje · Forma · Risco de lesão ·<br/>Treinos planejados em 14 dias"]:::tela
+  PG --> IND["Hoje · Forma · Risco de lesão ·<br/>Treinos → Calendário"]:::tela
   PG --> CHAT["Chat em moldura de celular"]:::tela
   PG --> MEM["O que a Duni sabe de você"]:::tela
 `,
@@ -177,17 +178,18 @@ flowchart TD
     },
   ],
   inventario: [
-    { tipo: "API", nome: "Carregamento da página", acao: "Nove chamadas em paralelo; falhas viram estado vazio.", api: "GET /coach/chat/history · /coach/memories · /coach/plan/week · /coach/goal-plan · /coach/plan/free · /coach/analyze · /coach/plan?days_ahead=14 · /predictions/overview · /metrics/load?days=30", onde: "apps/web/app/coach/page.tsx:220", no: "LD" },
+    { tipo: "API", nome: "Carregamento da página", acao: "Cinco chamadas em paralelo; falhas viram estado vazio. (Os planos não são mais lidos aqui.)", api: "GET /coach/chat/history · /coach/memories · /coach/analyze · /predictions/overview · /metrics/load?days=30", onde: "apps/web/app/coach/page.tsx:117", no: "LD" },
     { tipo: "cálculo", nome: "Aderência automática", acao: "Ao ler os planos, casa cada treino planejado com uma atividade do mesmo dia e esporte compatível (feito) e marca como pulado o que passou sem atividade.", onde: "apps/api/kactus_api/ai/coach_service.py:649", no: "REC" },
-    { tipo: "seção", nome: "Topo da Duni", acao: "Orbe, selo PRONTO / ANALISANDO / NÃO CONFIGURADO.", msg: "Lê seus treinos de verdade e diz, sem enrolar, o que fazer.", onde: "apps/web/app/coach/page.tsx:412", no: "PG" },
-    { tipo: "botão", nome: "Gerar relatório", acao: "Resumo da semana. Exige 2 semanas de dados.", api: "POST /coach/analyze", msg: "Como você está e o que fazer, em 20 segundos.", onde: "apps/web/app/coach/page.tsx:443", no: "A1,IA1" },
-    { tipo: "botão", nome: "Gerar plano da semana", acao: "Os 7 dias a partir de hoje; com plano do objetivo, detalha os treinos dele.", api: "POST /coach/plan/generate", msg: "Os treinos dos próximos 7 dias, do seu jeito.", onde: "apps/web/app/coach/page.tsx:451", no: "A2,IA2" },
-    { tipo: "botão", nome: "Gerar plano do objetivo", acao: "Todos os treinos até a prova, em fases.", api: "POST /coach/goal-plan/generate", msg: "Todos os treinos até a sua prova, em fases.", onde: "apps/web/app/coach/page.tsx:459", no: "A3,IA3" },
-    { tipo: "carregando", nome: "Duni analisando", acao: "Painel com os 5 passos (volume, tendência, fadiga, check-ins e memórias, feito × pulado) acendendo a cada 1,4 s.", msg: "Analisando sua semana… · Montando o plano da semana… · Montando o plano até a prova…", onde: "apps/web/app/coach/page.tsx:64", no: "P1,P2,P3" },
-    { tipo: "sucesso", nome: "Planos prontos", msg: "Plano até a prova pronto: N treinos · Plano da semana pronto: N treinos", onde: "apps/web/app/coach/page.tsx:480", no: "OKW,OKG" },
-    { tipo: "seção", nome: "Resumo da Duni", acao: "Status da semana, pontos (bom, atenção, risco), ações e uma pergunta. Resumos antigos aparecem como texto.", msg: "A Duni ainda não fez o resumo. Peça o relatório para ela dizer como você está e o que fazer.", onde: "apps/web/app/coach/page.tsx:493", no: "RES" },
-    { tipo: "botão", nome: "Responder à pergunta do resumo", acao: "Põe a pergunta como 'Respondendo:' no chat e foca a caixa.", onde: "apps/web/app/coach/page.tsx:385", no: "RESP" },
-    { tipo: "card", nome: "Hoje · Forma · Risco de lesão · Treinos planejados", acao: "Indicadores calculados (sem IA) ao lado do resumo.", onde: "apps/web/app/coach/page.tsx:397", no: "IND" },
+    { tipo: "seção", nome: "Topo da Duni", acao: "Orbe, selo PRONTO / ANALISANDO / NÃO CONFIGURADO.", msg: "Lê seus treinos de verdade e diz, sem enrolar, o que fazer.", onde: "apps/web/app/coach/page.tsx:237", no: "PG" },
+    { tipo: "botão", nome: "Gerar relatório", acao: "Resumo da semana. Exige 2 semanas de dados.", api: "POST /coach/analyze", msg: "Como você está e o que fazer, em 20 segundos.", onde: "apps/web/app/coach/page.tsx:273", no: "A1,IA1" },
+    { tipo: "botão", nome: "Ver o plano de treino", acao: "Leva ao Calendário de treinos, onde ficam o plano da semana e o do objetivo.", msg: "O plano da semana e o do objetivo ficam no calendário de treinos.", onde: "apps/web/app/coach/page.tsx:281", no: "VP,CALP" },
+    { tipo: "botão", nome: "Gerar plano da semana", acao: "No Calendário de treinos. Os 7 dias a partir de hoje; com plano do objetivo, detalha os treinos dele.", api: "POST /coach/plan/generate", msg: "Os treinos dos próximos 7 dias, do seu jeito.", onde: "apps/web/app/calendar/page.tsx:157", no: "A2,IA2" },
+    { tipo: "botão", nome: "Gerar plano do objetivo", acao: "No Calendário de treinos. Todos os treinos até a prova, em fases.", api: "POST /coach/goal-plan/generate", msg: "Todos os treinos até a sua prova, em fases.", onde: "apps/web/app/calendar/page.tsx:114", no: "A3,IA3" },
+    { tipo: "carregando", nome: "Duni analisando", acao: "Painel com os 5 passos (volume, tendência, fadiga, check-ins e memórias, feito × pulado) acendendo a cada 1,4 s.", msg: "Analisando sua semana… · Montando o plano da semana… · Montando o plano até a prova…", onde: "apps/web/components/coach/ProcessingPanel.tsx:18", no: "P1,P2,P3" },
+    { tipo: "sucesso", nome: "Planos prontos", msg: "Plano até a prova pronto: N treinos · Plano da semana pronto: N treinos", onde: "apps/web/app/calendar/page.tsx:233", no: "OKW,OKG" },
+    { tipo: "seção", nome: "Resumo da Duni", acao: "Status da semana, pontos (bom, atenção, risco), ações e uma pergunta. Resumos antigos aparecem como texto.", msg: "A Duni ainda não fez o resumo. Peça o relatório para ela dizer como você está e o que fazer.", onde: "apps/web/app/coach/page.tsx:296", no: "RES" },
+    { tipo: "botão", nome: "Responder à pergunta do resumo", acao: "Põe a pergunta como 'Respondendo:' no chat e foca a caixa.", onde: "apps/web/app/coach/page.tsx:211", no: "RESP" },
+    { tipo: "card", nome: "Hoje · Forma · Risco de lesão · Treinos", acao: "Indicadores calculados (sem IA) ao lado do resumo; o quarto, Treinos → Calendário, leva ao calendário de treinos (o plano não aparece mais aqui).", onde: "apps/web/app/coach/page.tsx:222", no: "IND" },
     { tipo: "seção", nome: "Plano do objetivo (vazio)", msg: "A Duni monta todos os treinos até a sua prova… Ela usa a prova com data que estiver em \"O que a Duni sabe de você\".", onde: "apps/web/components/coach/GoalPlanPanel.tsx:246", no: "EXP" },
     { tipo: "campo", nome: "Dias/semana", acao: "3, 4 ou 5 dias de corrida.", onde: "apps/web/components/coach/GoalPlanPanel.tsx:235", no: "DPW" },
     { tipo: "seção", nome: "Plano do objetivo", acao: "Nome e data da prova, dias que faltam, distância, resumo; ritmos Leve, Limiar, Intervalo e Ritmo de prova.", onde: "apps/web/components/coach/GoalPlanPanel.tsx:206", no: "GP,HAS,SHOW" },
@@ -217,12 +219,12 @@ flowchart TD
     { tipo: "seção", nome: "Comparar · Objetivo × Agora", acao: "Totais (km, treinos, longão, fortes) e dia a dia; dias diferentes destacados; recomendação da Duni: seguir o objetivo, seguir a semana ou misturar.", onde: "apps/web/components/coach/WeekPlans.tsx:60", no: "CMP" },
     { tipo: "botão", nome: "Usar o da semana · Usar a semana toda", acao: "Leva para a agenda os dias escolhidos (ou todos de hoje em diante); feito e pulado não mudam.", api: "POST /coach/plan/free/use", onde: "apps/web/components/coach/WeekPlans.tsx:109", no: "USE,UF" },
     { tipo: "erro", nome: "Sem plano livre", msg: "Gere o plano da semana pelo estado de agora antes.", onde: "apps/api/kactus_api/ai/coach_service.py:2073" },
-    { tipo: "seção", nome: "Chat em formato de celular", acao: "Barra de status, cabeçalho 'Duni · online / digitando… / não configurada', balões com hora.", onde: "apps/web/app/coach/page.tsx:555", no: "CHAT" },
-    { tipo: "vazio", nome: "Chat vazio", acao: "Quatro perguntas prontas.", msg: "Pergunte sobre seus treinos, carga ou recuperação. Conte também seu objetivo e suas provas.", onde: "apps/web/app/coach/page.tsx:596", no: "C0,SUG" },
-    { tipo: "campo", nome: "Mensagem", acao: "Enter ou ➤ envia. Respondendo a uma pergunta, a mensagem vai como 'Sobre \"pergunta\": resposta'.", api: "POST /coach/chat", onde: "apps/web/app/coach/page.tsx:666", no: "TXT,SEND,TYP" },
+    { tipo: "seção", nome: "Chat em formato de celular", acao: "Barra de status, cabeçalho 'Duni · online / digitando… / não configurada', balões com hora.", onde: "apps/web/app/coach/page.tsx:343", no: "CHAT" },
+    { tipo: "vazio", nome: "Chat vazio", acao: "Quatro perguntas prontas.", msg: "Pergunte sobre seus treinos, carga ou recuperação. Conte também seu objetivo e suas provas.", onde: "apps/web/app/coach/page.tsx:386", no: "C0,SUG" },
+    { tipo: "campo", nome: "Mensagem", acao: "Enter ou ➤ envia. Respondendo a uma pergunta, a mensagem vai como 'Sobre \"pergunta\": resposta'.", api: "POST /coach/chat", onde: "apps/web/app/coach/page.tsx:457", no: "TXT,SEND,TYP" },
     { tipo: "IA", nome: "Resposta da Duni", acao: "Usa o contexto calculado, as memórias e as últimas mensagens; devolve sugestões do que guardar.", onde: "apps/api/kactus_api/ai/coach_service.py:846", no: "CTX,IA,MSG" },
-    { tipo: "botão", nome: "Guardar · Ignorar", acao: "Sugestões de memória abaixo da resposta; somem ao recarregar se não forem guardadas.", msg: "Guardar para as próximas conversas? · ✓ Guardado", onde: "apps/web/app/coach/page.tsx:621", no: "GS,GUARD,CM" },
-    { tipo: "botão", nome: "Limpar conversa", acao: "Confirmação dentro do celular; memórias e resumos ficam.", api: "DELETE /coach/chat/history", msg: "Apagar toda a conversa? O que a Duni sabe de você continua guardado.", onde: "apps/web/app/coach/page.tsx:565", no: "CLR,CCL,DEL" },
+    { tipo: "botão", nome: "Guardar · Ignorar", acao: "Sugestões de memória abaixo da resposta; somem ao recarregar se não forem guardadas.", msg: "Guardar para as próximas conversas? · ✓ Guardado", onde: "apps/web/app/coach/page.tsx:426", no: "GS,GUARD,CM" },
+    { tipo: "botão", nome: "Limpar conversa", acao: "Confirmação dentro do celular; memórias e resumos ficam.", api: "DELETE /coach/chat/history", msg: "Apagar toda a conversa? O que a Duni sabe de você continua guardado.", onde: "apps/web/app/coach/page.tsx:360", no: "CLR,CCL,DEL" },
     { tipo: "seção", nome: "O que a Duni sabe de você", acao: "Memórias agrupadas por tipo, com data e quem adicionou.", msg: "Ela usa isso em toda conversa e em todo plano. Você pode editar ou arquivar quando quiser.", onde: "apps/web/components/coach/MemoryPanel.tsx:43", no: "MEMP" },
     { tipo: "aviso", nome: "Sem objetivo nem prova", msg: "Nenhum objetivo ou prova cadastrados. Sem isso, a Duni monta semanas de base aeróbica em vez de treinar para algo específico.", onde: "apps/web/components/coach/MemoryPanel.tsx:135", no: "AV" },
     { tipo: "botão", nome: "+ Adicionar / Editar", acao: "Tipo (Objetivo, Prova, Lesão/dor, Disponibilidade, Preferência, Outro), texto até 500 caracteres e data quando o tipo pede.", api: "POST /coach/memories · PATCH /coach/memories/{id}", onde: "apps/web/components/coach/MemoryPanel.tsx:127", no: "ADD,KIND,SAVEM" },
