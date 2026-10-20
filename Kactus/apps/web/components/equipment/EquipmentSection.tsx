@@ -1,0 +1,507 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { Recommendations, ShoeAlerts } from "@/components/equipment/Recommendations";
+import { Alert, EmptyState, Panel, Skeleton } from "@/components/ui/primitives";
+import { resizePhotoToJpegDataUrl } from "@/lib/image";
+import { sportLabel } from "@/lib/utils";
+import {
+  applyDefaultEquipment,
+  createEquipment,
+  deleteEquipment,
+  fetchEquipment,
+  fetchEquipmentRecommendations,
+  updateEquipment,
+  type EquipmentCreate,
+  type EquipmentItem,
+  type EquipmentRecommendations,
+  type RecommendedItem,
+} from "@/lib/api";
+
+// `type` e texto livre no banco: tipo novo nao pede migracao.
+const EQUIPMENT_TYPES = [
+  { value: "shoe", label: "Tênis", icon: "👟" },
+  { value: "top", label: "Camiseta / regata", icon: "👕" },
+  { value: "bottom", label: "Short / legging", icon: "🩳" },
+  { value: "socks", label: "Meia", icon: "🧦" },
+  { value: "cap", label: "Boné / viseira", icon: "🧢" },
+  { value: "sunglasses", label: "Óculos", icon: "🕶️" },
+  { value: "watch", label: "Relógio", icon: "⌚" },
+  { value: "hr_strap", label: "Cinta cardíaca", icon: "💓" },
+  { value: "hydration", label: "Hidratação", icon: "💧" },
+  { value: "bike", label: "Bicicleta", icon: "🚴" },
+  { value: "swimsuit", label: "Roupa de nado", icon: "🩱" },
+  { value: "wetsuit", label: "Wetsuit", icon: "🤿" },
+  { value: "other", label: "Outro", icon: "🎽" },
+];
+
+const TYPE_ICON: Record<string, string> = Object.fromEntries(EQUIPMENT_TYPES.map((t) => [t.value, t.icon]));
+const TYPE_LABEL: Record<string, string> = Object.fromEntries(EQUIPMENT_TYPES.map((t) => [t.value, t.label]));
+
+/** So tenis conta quilometragem; o resto nao mostra distancia. */
+const tracksDistance = (type: string) => type === "shoe";
+
+/** Esportes em que cada tipo pode entrar sozinho nos treinos importados. */
+const DEFAULT_SPORTS: Record<string, string[]> = {
+  shoe: ["run", "trail_run", "treadmill", "walk"],
+  bike: ["bike", "mtb", "gravel", "indoor_bike"],
+};
+
+const INITIAL_FORM: EquipmentCreate = {
+  name: "",
+  type: "shoe",
+  brand: "",
+  model: "",
+  purchase_date: null,
+  initial_distance_m: 0,
+  notes: "",
+  photo_data_url: null,
+  default_sports: [],
+};
+
+/** Equipamentos: a sub-aba "Equipamentos" da tela de Atividades (antes era a tela /equipment). */
+export function EquipmentSection() {
+  const [items, setItems] = useState<EquipmentItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState<EquipmentCreate>(INITIAL_FORM);
+  const [saving, setSaving] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showRetired, setShowRetired] = useState(false);
+  const [recs, setRecs] = useState<EquipmentRecommendations | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchEquipmentRecommendations().then(setRecs).catch(() => {});
+  }, [items.length]);
+
+  useEffect(() => {
+    fetchEquipment()
+      .then(setItems)
+      .catch(() => setError("Erro ao carregar equipamentos"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function openNew() {
+    setEditId(null);
+    setForm(INITIAL_FORM);
+    setShowForm(true);
+  }
+
+  /** "Ja tenho": abre o formulario com o item recomendado preenchido. */
+  function openFromRecommendation(it: RecommendedItem) {
+    setEditId(null);
+    setForm({ ...INITIAL_FORM, name: `${it.brand} ${it.model}`, type: it.equipment_type, brand: it.brand, model: it.model });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openEdit(item: EquipmentItem) {
+    setEditId(item.id);
+    setForm({
+      name: item.name,
+      type: item.type,
+      brand: item.brand ?? "",
+      model: item.model ?? "",
+      purchase_date: item.purchase_date,
+      initial_distance_m: item.initial_distance_m / 1000,
+      notes: item.notes ?? "",
+      photo_data_url: item.photo_data_url,
+      default_sports: item.default_sports ?? [],
+    });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function handleSave() {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const payload = {
+        ...form,
+        brand: form.brand || null,
+        model: form.model || null,
+        notes: form.notes || null,
+        initial_distance_m: tracksDistance(form.type) ? Number(form.initial_distance_m) * 1000 : 0,
+        // na edicao, "" apaga a foto que existia
+        photo_data_url: form.photo_data_url || (editId ? "" : null),
+        default_sports: (form.default_sports ?? []).filter((s) => (DEFAULT_SPORTS[form.type] ?? []).includes(s)),
+      };
+      if (editId) await updateEquipment(editId, payload);
+      else await createEquipment(payload);
+      // um padrao por esporte: salvar pode tirar o esporte de outro item
+      setItems(await fetchEquipment());
+      setShowForm(false);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handlePhoto(file: File | undefined) {
+    if (!file) return;
+    setPhotoBusy(true);
+    try {
+      const dataUrl = await resizePhotoToJpegDataUrl(file, 480);
+      setForm((f) => ({ ...f, photo_data_url: dataUrl }));
+    } catch {
+      setError("Não foi possível ler essa imagem");
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function handleApplyDefault(item: EquipmentItem) {
+    setError(null);
+    setNotice(null);
+    try {
+      const { updated } = await applyDefaultEquipment(item.id);
+      setNotice(updated
+        ? `${item.name} entrou em ${updated} treino${updated === 1 ? "" : "s"} antigo${updated === 1 ? "" : "s"} sem equipamento.`
+        : `Nenhum treino antigo sem equipamento para ${item.name}.`);
+      setItems(await fetchEquipment());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao aplicar aos treinos antigos");
+    }
+  }
+
+  async function handleRetire(item: EquipmentItem) {
+    const today = new Date().toISOString().split("T")[0];
+    try {
+      const updated = await updateEquipment(item.id, { retired_at: today });
+      setItems((prev) => prev.map((i) => (i.id === item.id ? updated : i)));
+    } catch {
+      setError("Erro ao aposentar equipamento");
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Excluir equipamento? Esta ação não pode ser desfeita.")) return;
+    setDeletingId(id);
+    try {
+      await deleteEquipment(id);
+      setItems((prev) => prev.filter((i) => i.id !== id));
+    } catch {
+      setError("Erro ao excluir");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  const active = items.filter((i) => !i.retired_at);
+  const retired = items.filter((i) => i.retired_at);
+  const activeKm = active.filter((i) => tracksDistance(i.type)).reduce((s, i) => s + i.total_distance_m, 0) / 1000;
+
+  return (
+    <section aria-label="Equipamentos">
+      <div className="mb-4 flex justify-end">
+        <button onClick={openNew} className="od-btn od-btn-primary">+ Adicionar</button>
+      </div>
+
+      {error && <div className="mb-4"><Alert tone="danger">{error}</Alert></div>}
+      {notice && <div className="mb-4"><Alert tone="accent">{notice}</Alert></div>}
+
+      <div className="mb-4 grid grid-cols-3 gap-3">
+        {[
+          { k: "Em uso", v: active.length, u: "" },
+          { k: "Distância dos tênis", v: activeKm.toFixed(0), u: "km" },
+          { k: "Aposentados", v: retired.length, u: "" },
+        ].map((t) => (
+          <Panel key={t.k} className="!p-4">
+            <div className="od-metric-label truncate">{t.k}</div>
+            {loading ? <Skeleton className="mt-2 h-7 w-14" /> : (
+              <div className="od-num mt-1.5 text-[1.6rem] leading-none">{t.v}{t.u && <span className="ml-1 font-sans text-xs text-brand-muted">{t.u}</span>}</div>
+            )}
+          </Panel>
+        ))}
+      </div>
+
+      {recs && <ShoeAlerts data={recs} />}
+
+      {/* formulario */}
+      {showForm && (
+        <Panel variant="accent" className="mb-6 animate-od-fade-up">
+          <h2 className="od-label od-label-accent mb-5">{editId ? "Editar equipamento" : "Novo equipamento"}</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label>
+              <span className="od-field-label">Nome *</span>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Ex: Nike Vaporfly 3"
+                className="od-input"
+              />
+            </label>
+            <label>
+              <span className="od-field-label">Tipo *</span>
+              <select
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
+                className="od-input"
+              >
+                {EQUIPMENT_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span className="od-field-label">Marca</span>
+              <input
+                type="text"
+                value={form.brand ?? ""}
+                onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                placeholder="Nike"
+                className="od-input"
+              />
+            </label>
+            <label>
+              <span className="od-field-label">Modelo</span>
+              <input
+                type="text"
+                value={form.model ?? ""}
+                onChange={(e) => setForm({ ...form, model: e.target.value })}
+                placeholder="Vaporfly 3"
+                className="od-input"
+              />
+            </label>
+            <label>
+              <span className="od-field-label">Data de compra</span>
+              <input
+                type="date"
+                value={form.purchase_date ?? ""}
+                onChange={(e) => setForm({ ...form, purchase_date: e.target.value || null })}
+                className="od-input"
+              />
+            </label>
+            {tracksDistance(form.type) && <label>
+              <span className="od-field-label">Distância inicial (km)</span>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={Number(form.initial_distance_m)}
+                onChange={(e) => setForm({ ...form, initial_distance_m: parseFloat(e.target.value) || 0 })}
+                className="od-input"
+              />
+            </label>}
+            {DEFAULT_SPORTS[form.type] && (
+              <fieldset className="sm:col-span-2">
+                <legend className="od-field-label">Usar como padrão em</legend>
+                <div className="flex flex-wrap gap-2">
+                  {DEFAULT_SPORTS[form.type].map((sport) => {
+                    const on = (form.default_sports ?? []).includes(sport);
+                    const owner = items.find((i) => i.id !== editId && !i.retired_at && i.default_sports?.includes(sport));
+                    return (
+                      <button
+                        key={sport}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => setForm({ ...form, default_sports: on ? (form.default_sports ?? []).filter((s) => s !== sport) : [...(form.default_sports ?? []), sport] })}
+                        className={`od-chip ${on ? "is-active" : ""}`}
+                        title={owner ? `Hoje o padrão é ${owner.name}` : undefined}
+                      >
+                        {sportLabel(sport)}{owner && !on ? <span className="text-brand-muted"> · {owner.name}</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-1.5 text-[0.7rem] text-brand-muted">Treinos importados desses esportes entram com este item. Cada esporte tem um padrão só: marcar aqui tira do outro.</p>
+              </fieldset>
+            )}
+            <div className="sm:col-span-2">
+              <span className="od-field-label">Foto da peça</span>
+              <div className="flex items-center gap-3">
+                <div className="od-icon-tile !h-16 !w-16 overflow-hidden text-2xl" aria-hidden>
+                  {form.photo_data_url ? <img src={form.photo_data_url} alt="" className="h-full w-full object-cover" /> : (TYPE_ICON[form.type] ?? "🎽")}
+                </div>
+                <label className="od-btn od-btn-secondary od-btn-sm cursor-pointer">
+                  {photoBusy ? "Lendo…" : form.photo_data_url ? "Trocar foto" : "Enviar foto"}
+                  <input type="file" accept="image/*" className="sr-only" onChange={(e) => { handlePhoto(e.target.files?.[0]); e.target.value = ""; }} />
+                </label>
+                {form.photo_data_url && (
+                  <button type="button" onClick={() => setForm({ ...form, photo_data_url: null })} className="od-btn od-btn-ghost od-btn-sm">Remover</button>
+                )}
+              </div>
+              <p className="mt-1.5 text-[0.7rem] text-brand-muted">Uma foto sua da peça. Ela aparece no card.</p>
+            </div>
+            <label className="sm:col-span-2">
+              <span className="od-field-label">Notas</span>
+              <textarea
+                value={form.notes ?? ""}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                rows={2}
+                className="od-input resize-none"
+              />
+            </label>
+          </div>
+          <div className="mt-5 flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving || !form.name.trim()}
+              className="od-btn od-btn-primary"
+            >
+              {saving ? "Salvando…" : "Salvar"}
+            </button>
+            <button
+              onClick={() => setShowForm(false)}
+              className="od-btn od-btn-ghost"
+            >
+              Cancelar
+            </button>
+          </div>
+        </Panel>
+      )}
+
+      {loading ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40" />)}
+        </div>
+      ) : active.length === 0 && !showForm ? (
+        <Panel>
+          <EmptyState
+            icon={<span className="text-2xl">👟</span>}
+            title="Nenhum equipamento cadastrado"
+            description="Adicione tenis, bikes e outros para rastrear quilometragem."
+            action={<button onClick={openNew} className="od-btn od-btn-primary">Adicionar primeiro equipamento</button>}
+          />
+        </Panel>
+      ) : (
+        <>
+          {active.length > 0 && (
+            <section className="mb-8">
+              <h2 className="od-label mb-3 px-1">Em uso ({active.length})</h2>
+              <div className="od-stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {active.map((item) => (
+                  <EquipmentCard
+                    key={item.id}
+                    item={item}
+                    onEdit={() => openEdit(item)}
+                    onRetire={() => handleRetire(item)}
+                    onApplyDefault={() => handleApplyDefault(item)}
+                    onDelete={() => handleDelete(item.id)}
+                    deleting={deletingId === item.id}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {retired.length > 0 && (
+            <section>
+              <button
+                onClick={() => setShowRetired(!showRetired)}
+                className="od-label od-label-plain mb-3 px-1 transition-colors hover:text-brand-accent"
+                aria-expanded={showRetired}
+              >
+                {showRetired ? "▾" : "▸"} Aposentados ({retired.length})
+              </button>
+              {showRetired && (
+                <div className="grid gap-3 opacity-60 sm:grid-cols-2 xl:grid-cols-3">
+                  {retired.map((item) => (
+                    <EquipmentCard
+                      key={item.id}
+                      item={item}
+                      onEdit={() => openEdit(item)}
+                      onDelete={() => handleDelete(item.id)}
+                      deleting={deletingId === item.id}
+                      retired
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </>
+      )}
+
+      {recs && <Recommendations data={recs} onAdd={openFromRecommendation} />}
+    </section>
+  );
+}
+
+function EquipmentCard({
+  item,
+  onEdit,
+  onRetire,
+  onApplyDefault,
+  onDelete,
+  deleting,
+  retired,
+}: {
+  item: EquipmentItem;
+  onEdit: () => void;
+  onRetire?: () => void;
+  onApplyDefault?: () => void;
+  onDelete: () => void;
+  deleting: boolean;
+  retired?: boolean;
+}) {
+  const icon = TYPE_ICON[item.type] ?? "🎽";
+  const typeLabel = TYPE_LABEL[item.type] ?? item.type;
+  const total = item.total_distance_m;
+
+  return (
+    <Panel className="flex flex-col !p-5">
+      <div className="flex items-start gap-3.5">
+        <div className="od-icon-tile !h-14 !w-14 shrink-0 overflow-hidden text-2xl" aria-hidden>
+          {item.photo_data_url ? <img src={item.photo_data_url} alt="" className="h-full w-full object-cover" /> : icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="truncate font-semibold">{item.name}</span>
+            {retired && <span className="od-badge od-badge-muted">Aposentado</span>}
+          </div>
+          <p className="truncate text-xs text-brand-muted">
+            {typeLabel}
+            {item.brand && ` · ${item.brand}`}
+            {item.model && ` ${item.model}`}
+          </p>
+        </div>
+      </div>
+
+      {(tracksDistance(item.type) || item.purchase_date) && <div className="mt-5 flex items-end justify-between gap-3">
+        {tracksDistance(item.type) ? <div>
+          <div className="od-metric-label">Distância total</div>
+          <div className="od-num mt-1 text-[2rem] leading-none text-white">
+            {(total / 1000).toFixed(total >= 100000 ? 0 : 1)}<span className="ml-1 font-sans text-sm font-semibold text-brand-accent">km</span>
+          </div>
+        </div> : <div />}
+        {item.purchase_date && (
+          <div className="text-right text-[0.7rem] text-brand-muted">
+            desde<br /><span className="text-brand-textSecondary">{new Date(item.purchase_date + "T12:00:00").toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</span>
+          </div>
+        )}
+      </div>}
+
+      {item.default_sports?.length > 0 && (
+        <p className="mt-3 text-xs text-brand-textSecondary">
+          <span className="text-brand-muted">Padrão em </span>{item.default_sports.map(sportLabel).join(" · ")}
+        </p>
+      )}
+
+      {item.notes && <p className="mt-3 line-clamp-2 text-xs text-brand-muted">{item.notes}</p>}
+
+      <div className="mt-5 flex flex-wrap gap-2 border-t border-white/5 pt-4">
+        <button onClick={onEdit} className="od-btn od-btn-ghost od-btn-sm">Editar</button>
+        {!retired && onRetire && (
+          <button onClick={onRetire} className="od-btn od-btn-ghost od-btn-sm">Aposentar</button>
+        )}
+        {!retired && onApplyDefault && item.default_sports?.length > 0 && (
+          <button onClick={onApplyDefault} className="od-btn od-btn-ghost od-btn-sm" title="Liga este item aos treinos antigos desses esportes que estão sem equipamento">
+            Aplicar aos treinos antigos
+          </button>
+        )}
+        <button onClick={onDelete} disabled={deleting} className="od-btn od-btn-danger od-btn-sm ml-auto">
+          {deleting ? "…" : "Excluir"}
+        </button>
+      </div>
+    </Panel>
+  );
+}

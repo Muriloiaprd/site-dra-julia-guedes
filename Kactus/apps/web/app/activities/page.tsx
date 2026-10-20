@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { TrashPanel } from "@/components/activities/TrashPanel";
+import { EquipmentSection } from "@/components/equipment/EquipmentSection";
 import { SportTile } from "@/components/SportIcon";
-import { Alert, EmptyState, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
+import { Alert, EmptyState, PageContainer, PageHeader, Panel, Segmented, Skeleton } from "@/components/ui/primitives";
 import { deleteActivity, fetchActivities, fetchTrash, type ActivitySummary, type TrashItem } from "@/lib/api";
 import { activeSeconds, formatDistance, formatDuration, formatPace, formatPaceShort, isBikeSport, sportColor, sportLabel } from "@/lib/utils";
 
@@ -54,8 +55,28 @@ function inRange(value: number | null | undefined, range: RangeState): boolean {
   return true;
 }
 
+type Aba = "historico" | "equipamentos";
+
+const ABAS = [
+  { value: "historico", label: "Histórico" },
+  { value: "equipamentos", label: "Equipamentos" },
+] as const;
+
+// useSearchParams pede Suspense no build do Next
 export default function ActivitiesPage() {
+  return <Suspense><ActivitiesScreen /></Suspense>;
+}
+
+function ActivitiesScreen() {
   const router = useRouter();
+  const pathname = usePathname();
+  // a sub-aba fica na URL: link direto (/activities?aba=equipamentos) e o voltar do navegador funcionam
+  const aba: Aba = useSearchParams().get("aba") === "equipamentos" ? "equipamentos" : "historico";
+  const [equipVisto, setEquipVisto] = useState(aba === "equipamentos");
+  useEffect(() => { if (aba === "equipamentos") setEquipVisto(true); }, [aba]);
+  function trocarAba(next: Aba) {
+    router.push(next === "equipamentos" ? `${pathname}?aba=equipamentos` : pathname, { scroll: false });
+  }
   const [activities, setActivities] = useState<ActivitySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -227,9 +248,11 @@ export default function ActivitiesPage() {
       <PageHeader
         kicker="Histórico"
         title="Atividades"
-        description="Todos os seus treinos importados, com filtros por modalidade, período e esforço."
+        description={aba === "equipamentos"
+          ? "Tênis, bikes e acessórios — acompanhe a quilometragem dos seus tênis."
+          : "Todos os seus treinos importados, com filtros por modalidade, período e esforço."}
         icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M3 12h4l3 8 4-16 3 8h4" /></svg>}
-        actions={
+        actions={aba === "historico" &&
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -253,6 +276,13 @@ export default function ActivitiesPage() {
         }
       />
 
+      <div className="mb-5">
+        <Segmented options={ABAS} value={aba} onChange={trocarAba} size="md" ariaLabel="Seções de atividades" />
+      </div>
+
+      {equipVisto && <div hidden={aba !== "equipamentos"}><EquipmentSection /></div>}
+
+      <div hidden={aba !== "historico"}>
       {showTrash && (
         <TrashPanel
           items={trash}
@@ -545,6 +575,7 @@ export default function ActivitiesPage() {
           </button>
         </div>
       )}
+      </div>
     </PageContainer>
   );
 }

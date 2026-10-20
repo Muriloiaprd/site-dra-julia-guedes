@@ -1,14 +1,15 @@
 "use client";
 
 /**
- * Ferramenta só-de-desenvolvimento: a página de equipamentos com dados de exemplo,
+ * Ferramenta só-de-desenvolvimento: a sub-aba de equipamentos com dados de exemplo,
  * sem login e sem API (fetch interceptado). Serve pra conferir o tênis padrão por
  * esporte e o "Aplicar aos treinos antigos". Uso: /equipment-preview
  */
 
 import { useState } from "react";
 
-import EquipmentPage from "@/app/equipment/page";
+import { EquipmentSection } from "@/components/equipment/EquipmentSection";
+import { PageContainer } from "@/components/ui/primitives";
 
 type Item = {
   id: string; name: string; type: string; brand: string | null; model: string | null; purchase_date: string | null;
@@ -68,5 +69,5 @@ function install() {
 
 export default function EquipmentPreview() {
   useState(install);
-  return <EquipmentPage />;
+  return <PageContainer><EquipmentSection /></PageContainer>;
 }

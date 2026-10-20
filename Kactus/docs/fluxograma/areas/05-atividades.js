@@ -4,10 +4,11 @@ KACTUS_MAPA.areas.push({
   n: 5,
   titulo: "Atividades (lista, lixeira e comparar)",
   resumo:
-    "Lista de todos os treinos, 100 por vez, com busca e filtros que rodam no navegador sobre o que já foi carregado. Excluir manda o treino para a lixeira (some das contas, mas dá para restaurar). A lixeira mostra os excluídos, deixa restaurar um a um ou apagar tudo de vez. ⇄ Comparar marca dois treinos e abre os dois lado a lado.",
+    "Duas sub-abas: Histórico e Equipamentos (a área 11). No Histórico, a lista de todos os treinos, 100 por vez, com busca e filtros que rodam no navegador sobre o que já foi carregado. Excluir manda o treino para a lixeira (some das contas, mas dá para restaurar). A lixeira mostra os excluídos, deixa restaurar um a um ou apagar tudo de vez. ⇄ Comparar marca dois treinos e abre os dois lado a lado.",
   rotas: ["/activities", "/activities/compare"],
   arquivos: [
     "apps/web/app/activities/page.tsx",
+    "apps/web/components/equipment/EquipmentSection.tsx",
     "apps/web/components/activities/TrashPanel.tsx",
     "apps/web/app/activities/compare/page.tsx",
     "apps/web/lib/api.ts",
@@ -19,7 +20,9 @@ KACTUS_MAPA.areas.push({
       titulo: "Lista, filtros e exclusão",
       mermaid: `
 flowchart TD
-  IN("Abre /activities"):::acao --> L[/"GET /activities · 100 por vez<br/>GET /activities/trash"/]:::api
+  IN("Abre /activities"):::acao --> ABA{"Sub-aba?"}:::decisao
+  ABA -->|Equipamentos| EQ["Equipamentos (área 11)"]:::tela
+  ABA -->|Histórico| L[/"GET /activities · 100 por vez<br/>GET /activities/trash"/]:::api
   L --> LD(["Esqueleto da tabela"]):::estado
   L -->|erro| E1["Erro ao carregar atividades"]:::erro
   L -->|ok| LIST["Totais + filtros + tabela ou cartões"]:::tela
@@ -80,31 +83,32 @@ flowchart TD
     },
   ],
   inventario: [
-    { tipo: "tela", nome: "Atividades", acao: "Cabeçalho 'Histórico · Atividades' com os botões Lixeira e + Importar.", msg: "Todos os seus treinos importados, com filtros por modalidade, período e esforço.", onde: "apps/web/app/activities/page.tsx:227", no: "LIST" },
-    { tipo: "API", nome: "Lista paginada", acao: "100 por página, mais recentes primeiro, sem os excluídos.", api: "GET /activities?limit=100&offset=N", onde: "apps/web/app/activities/page.tsx:84", no: "L,L2" },
-    { tipo: "carregando", nome: "Esqueleto", acao: "Seis linhas cinza enquanto carrega; os totais também.", onde: "apps/web/app/activities/page.tsx:379", no: "LD" },
-    { tipo: "erro", nome: "Erro ao carregar", msg: "Erro ao carregar atividades", onde: "apps/web/app/activities/page.tsx:95", no: "E1" },
-    { tipo: "card", nome: "Totais do filtro", acao: "Atividades (com '+' se há mais páginas), Distância, Tempo em movimento, Elevação. Somam só o que está carregado.", onde: "apps/web/app/activities/page.tsx:269" },
-    { tipo: "campo", nome: "Buscar por nome ou modalidade", acao: "Procura no título e no nome do esporte; ✕ limpa.", onde: "apps/web/app/activities/page.tsx:291", no: "F" },
-    { tipo: "filtro", nome: "Modalidade", acao: "14 chips: Corrida, Trail, Esteira, Bike, MTB, Gravel, Bike indoor, Natação, Águas abertas, Multiesporte, Caminhada, Musculação, Pilates, Outro. Vários ao mesmo tempo.", onde: "apps/web/app/activities/page.tsx:321" },
-    { tipo: "filtro", nome: "Período", acao: "7 dias, 30 dias, 3 meses, 6 meses, 1 ano, Tudo (padrão), Personalizado (De … até …).", onde: "apps/web/app/activities/page.tsx:343" },
-    { tipo: "filtro", nome: "Filtros avançados", acao: "Faixas mín–máx de Distância (km), Duração (min), FC média (bpm), Pace (min/km) e Elevação (m). O botão mostra quantos estão ativos.", onde: "apps/web/app/activities/page.tsx:366" },
-    { tipo: "botão", nome: "✕ Limpar", acao: "Zera busca, modalidades, período e faixas.", onde: "apps/web/app/activities/page.tsx:315" },
-    { tipo: "cálculo", nome: "Filtro local", acao: "Filtra no navegador; atividades de páginas ainda não carregadas não entram.", onde: "apps/web/app/activities/page.tsx:187", no: "FIL" },
-    { tipo: "vazio", nome: "Nada com esses filtros", acao: "Com filtro ativo oferece Limpar filtros; sem filtro, Importar atividades →.", msg: "Nenhuma atividade encontrada com esses filtros.", onde: "apps/web/app/activities/page.tsx:383", no: "VZ" },
-    { tipo: "seção", nome: "Tabela (computador)", acao: "Atividade, Data, Distância, Duração, Pace/Vel., FC, Elevação, Fonte, Excluir. Clicar na linha abre o detalhe.", onde: "apps/web/app/activities/page.tsx:393", no: "DET" },
-    { tipo: "seção", nome: "Cartões (celular)", acao: "Título, data, duração, distância e ritmo; botão 🗑 ao lado.", onde: "apps/web/app/activities/page.tsx:475" },
-    { tipo: "botão", nome: "Excluir", acao: "Pergunta e manda para a lixeira; some da lista e o contador da lixeira atualiza.", msg: "Mover a atividade para a lixeira? Dá para restaurar depois.", onde: "apps/web/app/activities/page.tsx:131", no: "EX,CF" },
+    { tipo: "filtro", nome: "Sub-abas Histórico · Equipamentos", acao: "Ficam na URL (?aba=equipamentos), então o link direto e o voltar do navegador funcionam. Trocar de sub-aba não perde os filtros; Equipamentos carrega na primeira vez que abre (área 11).", onde: "apps/web/app/activities/page.tsx:280", no: "ABA" },
+    { tipo: "tela", nome: "Atividades", acao: "Cabeçalho 'Histórico · Atividades'; na sub-aba Histórico mostra ⇄ Comparar, Lixeira e + Importar.", msg: "Todos os seus treinos importados, com filtros por modalidade, período e esforço.", onde: "apps/web/app/activities/page.tsx:248", no: "LIST" },
+    { tipo: "API", nome: "Lista paginada", acao: "100 por página, mais recentes primeiro, sem os excluídos.", api: "GET /activities?limit=100&offset=N", onde: "apps/web/app/activities/page.tsx:105", no: "L,L2" },
+    { tipo: "carregando", nome: "Esqueleto", acao: "Seis linhas cinza enquanto carrega; os totais também.", onde: "apps/web/app/activities/page.tsx:411", no: "LD" },
+    { tipo: "erro", nome: "Erro ao carregar", msg: "Erro ao carregar atividades", onde: "apps/web/app/activities/page.tsx:116", no: "E1" },
+    { tipo: "card", nome: "Totais do filtro", acao: "Atividades (com '+' se há mais páginas), Distância, Tempo em movimento, Elevação. Somam só o que está carregado.", onde: "apps/web/app/activities/page.tsx:298" },
+    { tipo: "campo", nome: "Buscar por nome ou modalidade", acao: "Procura no título e no nome do esporte; ✕ limpa.", onde: "apps/web/app/activities/page.tsx:325", no: "F" },
+    { tipo: "filtro", nome: "Modalidade", acao: "14 chips: Corrida, Trail, Esteira, Bike, MTB, Gravel, Bike indoor, Natação, Águas abertas, Multiesporte, Caminhada, Musculação, Pilates, Outro. Vários ao mesmo tempo.", onde: "apps/web/app/activities/page.tsx:352" },
+    { tipo: "filtro", nome: "Período", acao: "7 dias, 30 dias, 3 meses, 6 meses, 1 ano, Tudo (padrão), Personalizado (De … até …).", onde: "apps/web/app/activities/page.tsx:374" },
+    { tipo: "filtro", nome: "Filtros avançados", acao: "Faixas mín–máx de Distância (km), Duração (min), FC média (bpm), Pace (min/km) e Elevação (m). O botão mostra quantos estão ativos.", onde: "apps/web/app/activities/page.tsx:396" },
+    { tipo: "botão", nome: "✕ Limpar", acao: "Zera busca, modalidades, período e faixas.", onde: "apps/web/app/activities/page.tsx:346" },
+    { tipo: "cálculo", nome: "Filtro local", acao: "Filtra no navegador; atividades de páginas ainda não carregadas não entram.", onde: "apps/web/app/activities/page.tsx:208", no: "FIL" },
+    { tipo: "vazio", nome: "Nada com esses filtros", acao: "Com filtro ativo oferece Limpar filtros; sem filtro, Importar atividades →.", msg: "Nenhuma atividade encontrada com esses filtros.", onde: "apps/web/app/activities/page.tsx:416", no: "VZ" },
+    { tipo: "seção", nome: "Tabela (computador)", acao: "Atividade, Data, Distância, Duração, Pace/Vel., FC, Elevação, Fonte, Excluir. Clicar na linha abre o detalhe.", onde: "apps/web/app/activities/page.tsx:425", no: "DET" },
+    { tipo: "seção", nome: "Cartões (celular)", acao: "Título, data, duração, distância e ritmo; botão 🗑 ao lado.", onde: "apps/web/app/activities/page.tsx:505" },
+    { tipo: "botão", nome: "Excluir", acao: "Pergunta e manda para a lixeira; some da lista e o contador da lixeira atualiza.", msg: "Mover a atividade para a lixeira? Dá para restaurar depois.", onde: "apps/web/app/activities/page.tsx:152", no: "EX,CF" },
     { tipo: "API", nome: "Excluir (lixeira)", acao: "Preenche deleted_at e recalcula carga do dia em diante e os recordes (em segundo plano).", api: "DELETE /activities/{id}", onde: "apps/api/kactus_api/routers/activities.py:393", no: "DEL,SOFT" },
-    { tipo: "erro", nome: "Erro ao excluir", acao: "Aparece quando a API recusa; o item continua na lista.", msg: "Erro ao excluir atividade", onde: "apps/web/app/activities/page.tsx:138" },
-    { tipo: "botão", nome: "Carregar mais atividades", acao: "Aparece enquanto vierem páginas cheias de 100.", msg: "Carregando…", onde: "apps/web/app/activities/page.tsx:539", no: "MAIS" },
-    { tipo: "botão", nome: "⇄ Comparar", acao: "Liga e desliga o modo comparar: caixinha em cada linha (no celular o cartão inteiro marca), clique na linha marca em vez de abrir; com dois marcados, marcar outro troca o mais antigo. ?comparar=1 abre o modo; ?comparar=<id> já vem com o treino marcado.", onde: "apps/web/app/activities/page.tsx:99", no: "CB,CQ,CM,CK" },
-    { tipo: "seção", nome: "Barra Comparar treinos", acao: "Fixa embaixo da lista: quantos faltam, Cancelar e Comparar (só com dois).", msg: "Marque dois treinos para comparar (0/2). · Pronto: 2 treinos marcados.", onde: "apps/web/app/activities/page.tsx:519", no: "CW,LIST2" },
+    { tipo: "erro", nome: "Erro ao excluir", acao: "Aparece quando a API recusa; o item continua na lista.", msg: "Erro ao excluir atividade", onde: "apps/web/app/activities/page.tsx:160" },
+    { tipo: "botão", nome: "Carregar mais atividades", acao: "Aparece enquanto vierem páginas cheias de 100.", msg: "Carregando…", onde: "apps/web/app/activities/page.tsx:574", no: "MAIS" },
+    { tipo: "botão", nome: "⇄ Comparar", acao: "Liga e desliga o modo comparar: caixinha em cada linha (no celular o cartão inteiro marca), clique na linha marca em vez de abrir; com dois marcados, marcar outro troca o mais antigo. ?comparar=1 abre o modo; ?comparar=<id> já vem com o treino marcado.", onde: "apps/web/app/activities/page.tsx:120", no: "CB,CQ,CM,CK" },
+    { tipo: "seção", nome: "Barra Comparar treinos", acao: "Fixa embaixo da lista: quantos faltam, Cancelar e Comparar (só com dois).", msg: "Marque dois treinos para comparar (0/2). · Pronto: 2 treinos marcados.", onde: "apps/web/app/activities/page.tsx:549", no: "CW,LIST2" },
     { tipo: "tela", nome: "Comparar treinos", acao: "Cartões Treino A (verde) e B (azul) com link para cada um; tabela de métricas que existem em pelo menos um (distância, tempo, ritmo ou velocidade, GAP, FC média e máxima, deriva, subida, cadência, potência, contato, temperatura, efeito aeróbico, carga, calorias) com B − A em verde quando B foi melhor.", api: "GET /activities/{id} · GET /activities/{id}/splits", msg: "Erro ao carregar os treinos", onde: "apps/web/app/activities/compare/page.tsx:92", no: "CP,CA,CE,CT" },
     { tipo: "gráfico", nome: "Curvas por distância", acao: "Ritmo (ou velocidade, se os dois forem bike) e FC dos dois treinos no mesmo eixo de km, em blocos de no mínimo 50 m suavizados; ritmo mais lento que 15 min/km some (parado).", onde: "apps/web/app/activities/compare/page.tsx:21", no: "CC,CG" },
     { tipo: "seção", nome: "Parciais por km", acao: "Ritmo (ou tempo na bike) e FC de cada km dos dois, com a diferença em segundos.", onde: "apps/web/app/activities/compare/page.tsx:196", no: "CS" },
     { tipo: "vazio", nome: "Sem os dois treinos", acao: "Abrir /activities/compare sem a e b.", msg: "Escolha dois treinos · Em Atividades, toque em ⇄ Comparar e marque os dois treinos.", onde: "apps/web/app/activities/compare/page.tsx:122", no: "CV" },
-    { tipo: "botão", nome: "Lixeira (N)", acao: "Abre e fecha o painel da lixeira.", onde: "apps/web/app/activities/page.tsx:234", no: "B" },
+    { tipo: "botão", nome: "Lixeira (N)", acao: "Abre e fecha o painel da lixeira.", onde: "apps/web/app/activities/page.tsx:267", no: "B" },
     { tipo: "API", nome: "Itens da lixeira", acao: "Excluídos, o mais recente primeiro.", api: "GET /activities/trash", onde: "apps/api/kactus_api/routers/activities.py:268" },
     { tipo: "seção", nome: "Painel Lixeira", acao: "Cada item: esporte, título, data, distância, duração e 'excluída em'.", msg: "Atividades excluídas. Restaurar devolve o treino e recalcula carga e recordes.", onde: "apps/web/components/activities/TrashPanel.tsx:57", no: "P" },
     { tipo: "vazio", nome: "Lixeira vazia", msg: "A lixeira está vazia.", onde: "apps/web/components/activities/TrashPanel.tsx:97", no: "V" },

@@ -2,8 +2,8 @@
 // achados do mapeamento e histórico. Atualizar "atualizado", "commit" e "historico"
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
-  atualizado: "13/10/2026",
-  commit: "Finanças no Controle",
+  atualizado: "20/10/2026",
+  commit: "Equipamentos dentro de Atividades",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -26,7 +26,7 @@ KACTUS_MAPA.meta = {
     { gravidade: "baixa", titulo: "Dois riscos de lesão diferentes", detalhe: "O dashboard calcula só pelo ACWR do último dia; o sino e Desempenho usam a regra de 14 dias do servidor. Podem discordar no mesmo dia.", onde: "apps/web/lib/athlete.ts:196 · apps/api/kactus_api/metrics/predictions.py:90" },
     { gravidade: "baixa", titulo: "Trocar a modalidade não recalcula a carga", detalhe: "Recalcula os recordes, mas não a carga diária (que muda para bike com potência).", onde: "apps/api/kactus_api/routers/activities.py:354" },
     { gravidade: "baixa", titulo: "Treino na lixeira continua 'feito' no plano", detalhe: "A aderência só olha treinos ainda planejados; o planejado só volta a 'planejado' quando a lixeira é limpa.", onde: "apps/api/kactus_api/ai/coach_service.py:649" },
-    { gravidade: "baixa", titulo: "Filtros e totais só valem para o que foi carregado", detalhe: "A lista traz 100 por vez e filtra no navegador; o '+' no total avisa, mas os filtros não.", onde: "apps/web/app/activities/page.tsx:174" },
+    { gravidade: "baixa", titulo: "Filtros e totais só valem para o que foi carregado", detalhe: "A lista traz 100 por vez e filtra no navegador; o '+' no total avisa, mas os filtros não.", onde: "apps/web/app/activities/page.tsx:208" },
     { gravidade: "baixa", titulo: "Rotas de desenvolvimento abertas em produção", detalhe: "As quatro páginas de (dev) não conferem o ambiente; só usam dados falsos, mas ficam acessíveis no modo rápido.", onde: "apps/web/app/(dev)/" },
     { gravidade: "baixa", titulo: "Confirmações misturadas", detalhe: "Excluir atividade, equipamento e memória usam o confirm() do navegador; lixeira, conversa e zona de perigo confirmam na tela.", onde: "apps/web/components/coach/MemoryPanel.tsx:98" },
     { gravidade: "baixa", titulo: "Data de nascimento e altura sem campo", detalhe: "Existem no perfil do banco, mas a tela não mostra.", onde: "apps/web/app/profile/page.tsx:370" },
@@ -35,6 +35,7 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
+    { data: "20/10/2026", commit: "equip-atividades", mudanca: "Equipamentos saiu do menu e virou a sub-aba Equipamentos de Atividades (/activities?aba=equipamentos); /equipment redireciona para ela." },
     { data: "13/10/2026", commit: "financas", mudanca: "O Kactus Controle passa a ligar, desligar e vigiar as Finanças (Gestao-Financeira, porta 5000 / 10000 no iPhone): seção na janela, submenu no ícone, cartão na página :8443, rotas /api/financas/*, opção de ligar junto no início, porta 10000 no Tailscale e backup semanal das Finanças." },
     { data: "09/10/2026", commit: "alvo", mudanca: "Tempo-alvo escolhido pelo atleta no plano do objetivo (PUT /coach/goal-plan/target, migration 027): muda o ritmo de prova e os treinos que usam ele." },
     { data: "09/10/2026", commit: "6418614", mudanca: "Backup semanal passa a ir para a pasta Documentos de verdade (OneDrive/Documentos), não a Documents escondida." },

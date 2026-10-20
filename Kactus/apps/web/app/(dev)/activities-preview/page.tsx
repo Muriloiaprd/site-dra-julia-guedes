@@ -63,6 +63,11 @@ function install() {
     }
     if (/\/activities(\?|$)/.test(url)) return json(active);
     if (url.includes("/auth/me")) return json({ id: "preview", email: "preview@kactus" });
+    // sub-aba Equipamentos
+    if (url.includes("/equipment/recommendations")) return json({ detail: "sem recomendações no exemplo" }, 404);
+    if (url.endsWith("/api/equipment")) return json([
+      { id: "e1", name: "Pegasus 41", type: "shoe", brand: "Nike", model: "Pegasus 41", purchase_date: "2026-03-01", retired_at: null, initial_distance_m: 0, total_distance_m: 412000, notes: null, photo_data_url: null, default_sports: ["run"], created_at: day(200) },
+    ]);
     return json({});
   };
 }

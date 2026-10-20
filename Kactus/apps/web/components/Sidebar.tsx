@@ -21,7 +21,6 @@ const ICONS = {
   activities: ico(<path d="M3 12h4l3 8 4-16 3 8h4" />),
   load: ico(<><path d="M3 20h18" /><path d="M6 16v-4" /><path d="M10 16V8" /><path d="M14 16v-6" /><path d="M18 16V5" /></>),
   coach: ico(<><path d="M12 3a3 3 0 0 0-3 3 3 3 0 0 0-3 3 3 3 0 0 0 0 6 3 3 0 0 0 3 3 3 3 0 0 0 3 3" /><path d="M12 3a3 3 0 0 1 3 3 3 3 0 0 1 3 3 3 3 0 0 1 0 6 3 3 0 0 1-3 3 3 3 0 0 1-3 3" /><path d="M12 3v18" /><path d="M9 9.5h1.5M13.5 14.5H15" /></>),
-  equipment: ico(<><path d="M4 16c0-2 1-3 3-3.5l3-.8 2.5-4.2c.4-.7 1.4-.8 2-.2l1.2 1.2" /><path d="M4 16h14.5a1.5 1.5 0 0 1 1.5 1.5V18a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2Z" /><path d="M9.5 12.5 11 14M12 11.5l1.5 1.5" /></>),
   import: ico(<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>),
   profile: ico(<><circle cx="12" cy="8" r="4" /><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" /></>),
   logout: ico(<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></>),
@@ -44,7 +43,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Gestão",
     items: [
-      { href: "/equipment", label: "Equipamentos", icon: ICONS.equipment },
       { href: "/import", label: "Importar", icon: ICONS.import },
     ],
   },
