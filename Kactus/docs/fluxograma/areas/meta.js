@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "21/10/2026",
-  commit: "Planejado × feito saiu do Dashboard",
+  commit: "Topo da Duni só com o selo de estado",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -35,6 +35,7 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
+    { data: "21/10/2026", commit: "duni-topo", mudanca: "Topo da página da Duni sem o rótulo KACTUS · TREINADORA DE IA; o selo Pronto / Analisando / Não configurado foi para o canto direito." },
     { data: "21/10/2026", commit: "dash-sem-adh", mudanca: "O cartão Planejado × feito saiu do Dashboard; ele fica só na aba Comparar do Calendário de treinos (placar e treino a treino)." },
     { data: "21/10/2026", commit: "plano-anel", mudanca: "Topo do Plano do objetivo com contagem regressiva em anel (dias até a prova e quanto do plano já passou), Semana N de M com a fase e % do caminho, e fundo novo: brilho verde, curvas de nível e a rota neon animada até o pino da prova." },
     { data: "21/10/2026", commit: "plano-visual", mudanca: "Aba Plano do Calendário no visual novo: os dois botões de gerar viraram cartões com rótulo colorido e frase em destaque; o topo do Plano do objetivo ganhou ícones (data, dias que faltam, distância, ritmos), a rota com o pino da prova e os dias por semana em bolinhas; O que a Duni levou em conta virou um quadro próprio com um cartão colorido e com ícone por tema." },

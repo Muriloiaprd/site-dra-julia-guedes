@@ -246,17 +246,18 @@ export default function CoachPage() {
           }}
         />
         <div className="relative flex flex-col gap-6">
-          <div className="flex items-center gap-5">
+          {/* estado da Duni no canto direito; no celular ganha uma linha só para ele, acima do título */}
+          <span
+            className="absolute right-0 top-0 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-mono text-[0.62rem] tracking-[0.2em]"
+            style={{ color: notConfigured ? "#FFC145" : "#00FF66", background: notConfigured ? "rgba(255,193,69,0.08)" : "rgba(0,255,102,0.06)", boxShadow: `inset 0 0 0 1px ${notConfigured ? "rgba(255,193,69,0.3)" : "rgba(0,255,102,0.22)"}` }}
+          >
+            <StatusDot color={notConfigured ? "#FFC145" : "#00FF66"} pulse={!notConfigured} size={5} />
+            {busy ? "ANALISANDO" : notConfigured ? "NÃO CONFIGURADO" : "PRONTO"}
+          </span>
+          <div className="flex items-center gap-5 pt-7 sm:pt-0">
             <DuniAvatar size={76} active={!notConfigured} />
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2 font-mono text-[0.62rem] tracking-[0.2em]">
-                <span className="text-brand-accent">KACTUS · TREINADORA DE IA</span>
-                <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5" style={{ color: notConfigured ? "#FFC145" : "#00FF66", background: notConfigured ? "rgba(255,193,69,0.08)" : "rgba(0,255,102,0.06)", boxShadow: `inset 0 0 0 1px ${notConfigured ? "rgba(255,193,69,0.3)" : "rgba(0,255,102,0.22)"}` }}>
-                  <StatusDot color={notConfigured ? "#FFC145" : "#00FF66"} pulse={!notConfigured} size={5} />
-                  {busy ? "ANALISANDO" : notConfigured ? "NÃO CONFIGURADO" : "PRONTO"}
-                </span>
-              </div>
-              <h1 className="mt-2 font-display text-[1.7rem] font-extrabold leading-tight tracking-tight sm:text-[2.1rem]">
+            <div className="min-w-0 sm:pr-40">
+              <h1 className="font-display text-[1.7rem] font-extrabold leading-tight tracking-tight sm:text-[2.1rem]">
                 <span className="text-brand-accent">Duni</span>, sua treinadora
               </h1>
               <p className="mt-1.5 max-w-xl text-sm text-brand-muted">
