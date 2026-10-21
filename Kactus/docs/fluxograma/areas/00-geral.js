@@ -79,7 +79,7 @@ flowchart LR
   inventario: [
     { tipo: "tela", nome: "Landing", acao: "Página pública de apresentação. Com sessão válida, mostra o aviso 'Você já está conectado'.", onde: "apps/web/app/LandingPage.tsx:6", no: "ROOT" },
     { tipo: "tela", nome: "Login", acao: "E-mail e senha. Salva o token e vai ao dashboard.", onde: "apps/web/app/login/page.tsx:8", no: "LOGIN" },
-    { tipo: "tela", nome: "Dashboard", acao: "Centro de comando: prontidão, Duni, semana, evolução, recordes, calendário.", onde: "apps/web/app/dashboard/page.tsx:32", no: "DASH" },
+    { tipo: "tela", nome: "Dashboard", acao: "Centro de comando: prontidão, Duni, semana, evolução, recordes, calendário.", onde: "apps/web/app/dashboard/page.tsx:31", no: "DASH" },
     { tipo: "tela", nome: "Atividades", acao: "Sub-abas Histórico (lista com filtros, exclusão e lixeira) e Equipamentos.", onde: "apps/web/app/activities/page.tsx:57", no: "ACT" },
     { tipo: "tela", nome: "Detalhe da atividade", acao: "Métricas, check-in, comentário da Duni, mapa, gráficos, splits, Story.", onde: "apps/web/app/activities/[id]/page.tsx:88", no: "DET" },
     { tipo: "tela", nome: "Calendário de treinos", acao: "O mês com o planejado e o feito, e as abas Plano, Objetivo e Comparar (área 16).", onde: "apps/web/app/calendar/page.tsx:45", no: "CALT" },

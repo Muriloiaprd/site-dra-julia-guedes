@@ -161,10 +161,10 @@ flowchart TD
       titulo: "Planejado × feito",
       mermaid: `
 flowchart TD
-  AIN("Abre o dashboard ou a Duni"):::acao --> PAPI[/"GET /coach/plan/adherence<br/>3 dias no dashboard, 14 na Duni"/]:::api
+  AIN("Abre a aba Comparar do Calendário"):::acao --> PAPI[/"GET /coach/plan/adherence<br/>últimos 14 dias"/]:::api
   PAPI --> AREC[["reconcile_plan: casa treino feito<br/>e marca pulado o que passou"]]:::calc
   AREC --> AHAS{"Há treino planejado<br/>com desfecho?"}:::decisao
-  AHAS -->|não| AHIDE(["O painel não aparece"]):::estado
+  AHAS -->|não| AHIDE(["Placar e lista mostram o vazio"]):::estado
   AHAS -->|sim| AITEM["Planejado × feito<br/>dia, título, planejado, feito"]:::tela
   AITEM --> AVOL[["Volume: distância ou duração<br/>±15% = cumpriu"]]:::calc
   AITEM --> ARIT[["Ritmo contra a faixa do alvo<br/>±5 s/km"]]:::calc
@@ -246,13 +246,13 @@ flowchart TD
     { tipo: "erro", nome: "invalid_plan_response · invalid_response", acao: "Plano fora das regras (sem dia de descanso, treino sem objetivo) ou JSON inválido, inclusive no plano do objetivo.", msg: "O plano veio fora das regras e foi recusado · A resposta veio num formato inválido", onde: "apps/web/lib/coachErrors.ts:31", no: "IPR" },
     { tipo: "erro", nome: "no_goal_race · race_too_close", msg: "Falta a prova com data · A prova está perto demais", onde: "apps/web/lib/coachErrors.ts:36", no: "E1,E2" },
     { tipo: "erro", nome: "Erros de edição e do servidor", acao: "no_free_week, not_editable, past_date, not_swappable, invalid_suggestion, not_found e internal_error ganham título e explicação.", msg: "Falta o plano da semana pelo estado de agora · Esse treino não pode mais mudar · Esse dia já passou · Erro no servidor do Kactus …", onde: "apps/web/lib/coachErrors.ts:45" },
-    { tipo: "seção", nome: "Planejado × feito", acao: "Treinos planejados dos últimos 14 dias que já têm desfecho: o planejado ao lado do feito, com selos de volume e ritmo. No Calendário (aba Comparar) vem em linhas compactas que abrem ao tocar, com o placar em cima; no Dashboard, os 2 mais recentes abertos.", onde: "apps/web/components/coach/AdherencePanel.tsx:244", no: "AITEM,AHAS,AHIDE" },
+    { tipo: "seção", nome: "Planejado × feito", acao: "Treinos planejados dos últimos 14 dias que já têm desfecho: o planejado ao lado do feito, com selos de volume e ritmo. No Calendário (aba Comparar) vem em linhas compactas que abrem ao tocar, com o placar em cima. Saiu do Dashboard em 21/10/2026.", onde: "apps/web/components/coach/AdherencePanel.tsx:218", no: "AITEM,AHAS,AHIDE" },
     { tipo: "cálculo", nome: "Selo de volume", acao: "Distância feita ÷ planejada (ou duração em movimento ÷ planejada): abaixo de 85% fez a menos, acima de 115% fez a mais.", onde: "apps/api/kactus_api/ai/adherence.py:47", no: "AVOL,ASELO" },
     { tipo: "cálculo", nome: "Selo de ritmo", acao: "Só corrida: o pace médio contra a faixa do alvo (texto do ritmo; um valor só vira ±10 s), com 5 s/km de folga.", onde: "apps/api/kactus_api/ai/adherence.py:65", no: "ARIT,ASELO2" },
     { tipo: "botão", nome: "Pedir comentário da Duni / Ver comentário da Duni", acao: "Usa o comentário da atividade, que já lê o planejado do dia; só chama a IA quando pedido.", api: "POST /coach/activities/{id}/analyze", msg: "A Duni está lendo o treino…", onde: "apps/web/components/coach/AdherencePanel.tsx:101", no: "ATEM,AVER,APED,AIA,AERR" },
     { tipo: "vazio", nome: "Treino pulado", msg: "Não houve treino nesse dia", onde: "apps/web/components/coach/AdherencePanel.tsx:65" },
     { tipo: "API", nome: "Planejado × feito", acao: "Lista os treinos com desfecho dos últimos N dias (1 a 60), o mais recente primeiro.", api: "GET /coach/plan/adherence", onde: "apps/api/kactus_api/routers/coach.py:335", no: "PAPI,AREC" },
-    { tipo: "link", nome: "Ver treino →", onde: "apps/web/components/coach/AdherencePanel.tsx:105", no: "AVT,ADET" },
+    { tipo: "link", nome: "Ver treino →", onde: "apps/web/components/coach/AdherencePanel.tsx:104", no: "AVT,ADET" },
     { tipo: "API", nome: "Listar treinos planejados", acao: "Sem parâmetros de data, de hoje até days_ahead (dashboard 35 dias, Duni 14). Com start e end (AAAA-MM-DD, até 400 dias, os dois juntos), o intervalo pedido com o passado: é o que o calendário de treinos usa. Erro 400 se faltar um, se end vier antes ou se passar de 400 dias.", api: "GET /coach/plan · GET /coach/plan?start=…&end=…", msg: "Informe start e end juntos · end antes de start · Intervalo maior que 400 dias", onde: "apps/api/kactus_api/routers/coach.py:345" },
     { tipo: "API", nome: "Tempo-alvo do plano", acao: "target_time_s de 600 a 86400 s, ou nulo; 404 sem plano ativo.", api: "PUT /coach/goal-plan/target", onde: "apps/api/kactus_api/routers/coach.py:208" },
     { tipo: "API", nome: "Plano do objetivo atual", api: "GET /coach/goal-plan", onde: "apps/api/kactus_api/routers/coach.py:189" },

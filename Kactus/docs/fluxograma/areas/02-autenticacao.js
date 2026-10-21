@@ -76,7 +76,7 @@ flowchart TD
     { tipo: "erro", nome: "Usuário inativo", acao: "403.", msg: "Usuario inativo", onde: "apps/api/kactus_api/routers/auth.py:31", no: "E403" },
     { tipo: "cálculo", nome: "Token JWT", acao: "HS256, validade de 10080 minutos (7 dias). Guardado em localStorage 'kactus_token'; migra a chave antiga 'ondilow_token'.", onde: "apps/web/lib/api.ts:7", no: "TOK" },
     { tipo: "API", nome: "Quem sou eu", acao: "Usado por quase toda tela para confirmar a sessão; respostas iguais dentro de 3 s são reaproveitadas.", api: "GET /auth/me", onde: "apps/web/lib/api.ts:302", no: "ME" },
-    { tipo: "erro", nome: "Sessão não verificada", acao: "Dashboard e Perfil: há token, mas /auth/me falhou (rede).", msg: "Não foi possível verificar sua sessão — verifique sua conexão.", onde: "apps/web/app/dashboard/page.tsx:156", no: "NET" },
+    { tipo: "erro", nome: "Sessão não verificada", acao: "Dashboard e Perfil: há token, mas /auth/me falhou (rede).", msg: "Não foi possível verificar sua sessão — verifique sua conexão.", onde: "apps/web/app/dashboard/page.tsx:155", no: "NET" },
     { tipo: "permissão", nome: "401 em qualquer chamada", acao: "Apaga o token e redireciona.", msg: "Sessão expirada", onde: "apps/web/lib/api.ts:273", no: "CLR" },
     { tipo: "permissão", nome: "Guarda das telas", acao: "Dashboard, Importar, Desempenho, Duni, Equipamentos e Perfil chamam fetchMe e mandam para /login sem sessão. Atividades e Detalhe dependem só do 401.", onde: "apps/web/app/import/page.tsx:34" },
     { tipo: "botão", nome: "Sair", acao: "Apaga o token e vai para /login. O token não é revogado no servidor.", onde: "apps/web/components/Sidebar.tsx:104", no: "SAIR" },

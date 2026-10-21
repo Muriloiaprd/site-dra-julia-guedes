@@ -115,21 +115,6 @@ function RowBody({ it, onComment }: { it: AdherenceItem; onComment: (it: Adheren
   );
 }
 
-function Row({ it, onComment }: { it: AdherenceItem; onComment: (it: AdherenceItem) => Promise<void> }) {
-  return (
-    <li className="od-tile space-y-2.5 px-4 py-3.5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="min-w-0">
-          <span className="text-[0.66rem] font-bold uppercase tracking-[0.14em] text-brand-muted">{dayLabel(it.date)}</span>
-          <h3 className="truncate text-[0.95rem] font-semibold">{it.title}</h3>
-        </div>
-        <Badges it={it} />
-      </div>
-      <RowBody it={it} onComment={onComment} />
-    </li>
-  );
-}
-
 /** Uma linha por treino (dia, nome, km planejado → feito e o selo); tocar abre o planejado, o feito e a Duni. */
 function CompactRow({ it, onComment }: { it: AdherenceItem; onComment: (it: AdherenceItem) => Promise<void> }) {
   const [open, setOpen] = useState(false);
@@ -237,31 +222,5 @@ export function AdherenceList({ items, onComment }: { items: AdherenceItem[] | n
     <ul className="space-y-2" aria-label="Planejado × feito">
       {items.map((it) => <CompactRow key={it.id} it={it} onComment={onComment} />)}
     </ul>
-  );
-}
-
-/** Planejado × feito dos últimos dias, no cartão do Dashboard. */
-export function AdherencePanel({ days = 7, limit, className = "" }: { days?: number; limit?: number; className?: string }) {
-  const { items, comment } = useAdherence(days);
-
-  if (!items || items.length === 0) return null;
-  const shown = limit ? items.slice(0, limit) : items;
-  const done = items.filter((i) => i.status === "done").length;
-
-  return (
-    <Panel className={className} aria-label="Planejado × feito">
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="od-label">Planejado × feito</h2>
-        <span className="text-xs text-brand-muted">
-          <strong className="od-num text-white">{done}</strong> de {items.length} treino{items.length === 1 ? "" : "s"} planejado{items.length === 1 ? "" : "s"} nos últimos {days} dias
-        </span>
-      </div>
-      <ul className="space-y-2">
-        {shown.map((it) => <Row key={it.id} it={it} onComment={comment} />)}
-      </ul>
-      {limit && items.length > limit && (
-        <Link href="/calendar?aba=comparar" className="od-link-action mt-3 inline-block">Ver todos no calendário →</Link>
-      )}
-    </Panel>
   );
 }
