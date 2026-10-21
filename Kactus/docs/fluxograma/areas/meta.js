@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "21/10/2026",
-  commit: "Calendário em 4 abas (Plano, Objetivo, Comparar)",
+  commit: "Aba Plano no visual novo",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -35,6 +35,7 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
+    { data: "21/10/2026", commit: "plano-visual", mudanca: "Aba Plano do Calendário no visual novo: os dois botões de gerar viraram cartões com rótulo colorido e frase em destaque; o topo do Plano do objetivo ganhou ícones (data, dias que faltam, distância, ritmos), a rota com o pino da prova e os dias por semana em bolinhas; O que a Duni levou em conta virou um quadro próprio com um cartão colorido e com ícone por tema." },
     { data: "21/10/2026", commit: "cal-abas", mudanca: "O Calendário de treinos passa a ter 4 abas: Calendário, Plano (só os botões de gerar e o topo do Plano do objetivo), Objetivo (fases, km por semana e a semana tocada) e Comparar (placar dos últimos 14 dias, o Plano da semana e o Planejado × feito em linhas que abrem ao tocar). A vista Comparar do Plano da semana virou Objetivo × Agora. Ver o plano até a prova abre Objetivo; Ver todos no calendário abre Comparar." },
     { data: "21/10/2026", commit: "duni-cacto", mudanca: "A Duni ganhou cara: o cacto rainha (verde neon, de coroa) substitui a bolinha verde em todos os lugares onde ela aparece e vira o ícone dela no menu e na barra de baixo do celular. Animado quando ela está ativa, parado quando não." },
     { data: "21/10/2026", commit: "cal-estilo", mudanca: "Calendário de treinos no estilo novo, em fundo claro: etiquetas com o ícone do esporte, o nome e os km, coloridas pela situação (Cumprido virou Concluído); hoje com borda verde e ponto; resumo do mês numa linha discreta; seletor Mês · Semana (semana em 7 colunas, ou lista no celular); no computador o dia escolhido fica num painel à direita com Ver semana; a gaveta do dia ficou clara. O planejado passa a ser buscado pelo intervalo na tela." },

@@ -240,17 +240,19 @@ function CalendarScreen() {
             onClick={handleGeneratePlan}
             disabled={busy || !ready}
             color="#C6FF00"
-            title={generating ? "Gerando…" : "Gerar plano da semana"}
-            text="Os treinos dos próximos 7 dias, do seu jeito."
+            kicker={generating ? "Gerando…" : "Gerar plano da semana"}
+            title="Os treinos dos próximos 7 dias, do seu jeito."
+            text={`Focados em evolução, consistência e segurança${goal?.plan ? ` até a ${goal.plan.race_name}` : ""}.`}
             icon={<><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="m9 16 2 2 4-4" /></>}
           />
           <ActionButton
             onClick={() => handleGenerateGoal(goal?.plan?.days_per_week ?? 3)}
             disabled={busy || !ready}
             color="#00BFFF"
-            title={generatingGoal ? "Montando…" : "Gerar plano do objetivo"}
-            text="Todos os treinos até a sua prova, em fases."
-            icon={<><path d="M4 22V4" /><path d="M4 4h12l-2 4 2 4H4" /></>}
+            kicker={generatingGoal ? "Montando…" : "Gerar plano do objetivo"}
+            title="Todos os treinos até a sua prova, em fases."
+            text="Do início ao fim, com foco no seu objetivo."
+            icon={<><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></>}
           />
         </div>
 

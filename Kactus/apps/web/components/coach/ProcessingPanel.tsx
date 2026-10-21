@@ -52,14 +52,42 @@ export function ProcessingPanel({ title }: { title: string }) {
 }
 
 /** Botão grande colorido das ações da Duni (relatório, plano da semana, plano do objetivo). */
-export function ActionButton({ onClick, disabled, color, title, text, icon }: {
+export function ActionButton({ onClick, disabled, color, title, text, icon, kicker }: {
   onClick: () => void;
   disabled: boolean;
   color: string;
   title: string;
   text: string;
   icon: ReactNode;
+  /** Rótulo pequeno colorido acima do título (o título vira a frase em destaque, como na aba Plano). */
+  kicker?: string;
 }) {
+  if (kicker) {
+    return (
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className="group relative flex items-center gap-4 overflow-hidden rounded-2xl p-4 text-left transition-all duration-200 enabled:hover:-translate-y-1 disabled:opacity-50 sm:p-5"
+        style={{
+          background: `radial-gradient(260px 140px at 0% 0%, ${color}24, transparent 70%), linear-gradient(160deg, ${color}12, rgba(8,10,9,0.9) 60%)`,
+          boxShadow: `inset 0 0 0 1.5px ${color}a0, 0 0 26px -8px ${color}, 0 14px 40px -22px ${color}`,
+        }}
+      >
+        <span
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-[#041a0b] transition-transform duration-200 group-enabled:group-hover:scale-110 sm:h-14 sm:w-14"
+          style={{ background: `linear-gradient(135deg, ${color}, ${color}bb)`, boxShadow: `0 0 24px -4px ${color}` }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{icon}</svg>
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[0.66rem] font-bold uppercase tracking-[0.14em]" style={{ color }}>{kicker}</span>
+          <span className="mt-0.5 block font-display text-[1.02rem] font-bold leading-snug text-white sm:text-[1.12rem]">{title}</span>
+          <span className="mt-1 block text-[0.76rem] leading-snug text-brand-textSecondary">{text}</span>
+        </span>
+        <span className="shrink-0 text-xl transition-transform duration-200 group-enabled:group-hover:translate-x-1" style={{ color }} aria-hidden>→</span>
+      </button>
+    );
+  }
   return (
     <button
       onClick={onClick}

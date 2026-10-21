@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { Panel } from "@/components/ui/primitives";
 import { setGoalTarget, type GoalPhase, type GoalPlan, type GoalPlanResponse, type PlannedWorkout } from "@/lib/api";
@@ -204,17 +204,55 @@ function TargetEditor({ goal, onSaved }: { goal: GoalPlan; onSaved: (g: GoalPlan
     );
   }
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white/[0.03] px-2.5 py-1.5 text-[0.74rem]">
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white/[0.03] px-3 py-2.5 text-[0.74rem]" style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)" }}>
       <span>
-        <span className="text-[0.6rem] uppercase tracking-wider text-brand-muted">{goal.target_time_s ? "Seu alvo" : "Alvo calculado"}</span>
-        <span className="od-num ml-2 text-white">{clock(goal.target_time_s ?? calculado)}</span>
+        <span className="block text-[0.6rem] uppercase tracking-wider text-brand-muted">{goal.target_time_s ? "Seu alvo" : "Alvo calculado"}</span>
+        <span className="od-num block text-[1rem] text-white">{clock(goal.target_time_s ?? calculado)}</span>
       </span>
       <span className="flex gap-1.5">
-        <button type="button" onClick={() => setEditing(true)} className="od-btn od-btn-ghost od-btn-sm !px-2">{goal.target_time_s ? "Mudar" : "Definir meu alvo"}</button>
-        {goal.target_time_s && <button type="button" onClick={() => salvar(null)} disabled={busy} className="od-btn od-btn-ghost od-btn-sm !px-2">Usar o calculado</button>}
+        <button type="button" onClick={() => setEditing(true)} className="od-btn od-btn-ghost od-btn-sm !rounded-full !px-3">{goal.target_time_s ? "Mudar" : "Definir meu alvo"}</button>
+        {goal.target_time_s && <button type="button" onClick={() => salvar(null)} disabled={busy} className="od-btn od-btn-ghost od-btn-sm !rounded-full !px-3">Usar o calculado</button>}
       </span>
       {error && <p className="w-full text-[0.7rem] text-brand-danger">{error}</p>}
     </div>
+  );
+}
+
+/** Ícone de traço numa cor. */
+function Glyph({ color, size = 17, children }: { color: string; size?: number; children: ReactNode }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
+      {children}
+    </svg>
+  );
+}
+
+/** Cor e ícone de cada tema de "O que a Duni levou em conta" (os temas vêm do servidor). */
+const TEMAS: Record<string, { color: string; icon: ReactNode }> = {
+  "Último mês": { color: "#00FF66", icon: <><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></> },
+  "Histórico de 6 meses": { color: "#00BFFF", icon: <path d="M5 20v-5M10 20v-9M15 20v-6M20 20V5" /> },
+  Pausa: { color: "#A78BFA", icon: <path d="M9 5v14M15 5v14" /> },
+  Dor: { color: "#FF8A3D", icon: <><path d="m3 17 6-6 4 4 8-8" /><path d="M15 7h6v6" /></> },
+  Subida: { color: "#FFC145", icon: <><path d="m3 20 6-9 4 5 3-4 5 8z" /></> },
+  Nível: { color: "#2DD4BF", icon: <><circle cx="14" cy="4" r="2" /><path d="m5 21 4-6 3 2 2-6" /><path d="m7 11 3-3 5 1 2 4h3" /></> },
+  Dias: { color: "#C6FF00", icon: <><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></> },
+  Preferências: { color: "#C084FC", icon: <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></> },
+};
+const TEMA_PADRAO = { color: "#8C948C", icon: <><circle cx="12" cy="12" r="9" /><path d="M12 8h.01M11 12h1v5h1" /></> };
+
+/** Rota até a prova, com curvas de nível ao fundo e o pino no fim: enfeite do topo do plano (tela larga). */
+function RouteArt() {
+  return (
+    <svg className="pointer-events-none absolute right-[400px] top-6 hidden h-[110px] w-[240px] xl:block" viewBox="0 0 240 110" fill="none" aria-hidden>
+      <g stroke="rgba(255,255,255,0.05)" strokeWidth="1">
+        <path d="M0 70c40-30 80 10 120-20s80-20 120-40" />
+        <path d="M0 88c40-26 80 12 120-14s80-18 120-36" />
+        <path d="M0 52c40-30 80 6 120-24s80-18 120-36" />
+      </g>
+      <path d="M8 100c20-4 26-12 44-14s22 6 38-2 18-22 36-24 22 10 40 4 18-26 30-30 20 2 26-10" stroke="#00FF66" strokeWidth="2" strokeLinecap="round" style={{ filter: "drop-shadow(0 0 6px rgba(0,255,102,0.7))" }} />
+      <path d="M222 6c-6 0-10 4-10 9 0 7 10 15 10 15s10-8 10-15c0-5-4-9-10-9z" fill="#00FF66" style={{ filter: "drop-shadow(0 0 8px rgba(0,255,102,0.8))" }} />
+      <circle cx="222" cy="15" r="3" fill="#06170c" />
+    </svg>
   );
 }
 
@@ -232,9 +270,17 @@ export function GoalPlanPanel({
 
   const daysPicker = (
     <div className="flex items-center gap-1.5 text-[0.72rem] text-brand-muted" role="radiogroup" aria-label="Dias de corrida por semana">
-      Dias/semana
+      <span className="mr-1">Dias/semana</span>
       {[3, 4, 5].map((n) => (
-        <button key={n} type="button" role="radio" aria-checked={days === n} onClick={() => setDays(n)} className={`od-chip !px-2.5 !py-0.5 !text-[0.72rem] ${days === n ? "is-active" : ""}`}>
+        <button
+          key={n}
+          type="button"
+          role="radio"
+          aria-checked={days === n}
+          onClick={() => setDays(n)}
+          className={`od-num flex h-7 w-7 items-center justify-center rounded-full text-[0.74rem] font-bold transition-colors ${days === n ? "bg-brand-accent text-black" : "text-brand-textSecondary hover:text-white"}`}
+          style={days === n ? { boxShadow: "0 0 14px -2px rgba(0,255,102,0.7)" } : { boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.14)" }}
+        >
           {n}
         </button>
       ))}
@@ -264,59 +310,93 @@ export function GoalPlanPanel({
   const daysLeft = Math.round((parseLocalDate(plan.race_date).getTime() - parseLocalDate(today).getTime()) / 86_400_000);
   const raceDate = parseLocalDate(plan.race_date).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
   const p = plan.paces;
+  const paces: { k: string; v: string; icon: ReactNode }[] = [
+    { k: "Leve", v: `${fmtPace(p.leve_rapido)}–${fmtPace(p.leve_lento)}`, icon: <><circle cx="6" cy="19" r="2.5" /><circle cx="18" cy="5" r="2.5" /><path d="M8.5 19H17a3.5 3.5 0 0 0 0-7H7a3.5 3.5 0 0 1 0-7h8.5" /></> },
+    { k: "Limiar", v: fmtPace(p.limiar), icon: <path d="M5 20v-5M10 20v-9M15 20v-6M20 20V5" /> },
+    { k: "Intervalo", v: fmtPace(p.intervalo), icon: <path d="M13 2 4 14h7l-1 8 9-12h-7z" /> },
+    { k: "Ritmo de prova", v: fmtPace(p.prova), icon: <><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2.5M10 2h4M12 2v3" /></> },
+  ];
 
   return (
-    <Panel className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <h2 className="od-label od-label-accent">Plano do objetivo</h2>
-          <p className="mt-1.5 font-display text-2xl font-extrabold tracking-tight">{plan.race_name}</p>
-          <p className="mt-0.5 text-sm text-brand-textSecondary">
-            {raceDate} · <span className="font-semibold text-white">faltam {daysLeft} dias</span> · {fmtKm(plan.race_distance_km)}
-          </p>
-          <p className="mt-2 max-w-2xl text-sm text-brand-textSecondary">{plan.summary}</p>
-        </div>
-        <div className="shrink-0 space-y-2 lg:w-[360px]">
-          <div className="grid grid-cols-2 gap-1.5 text-[0.74rem]">
-            {[
-              ["Leve", `${fmtPace(p.leve_rapido)}–${fmtPace(p.leve_lento)}`],
-              ["Limiar", fmtPace(p.limiar)],
-              ["Intervalo", fmtPace(p.intervalo)],
-              ["Ritmo de prova", fmtPace(p.prova)],
-            ].map(([k, v]) => (
-              <div key={k} className="rounded-lg bg-white/[0.03] px-2.5 py-1.5">
-                <div className="text-[0.6rem] uppercase tracking-wider text-brand-muted">{k}</div>
-                <div className="od-num">{v}<span className="text-brand-muted">/km</span></div>
-              </div>
-            ))}
+    <div className="space-y-4">
+      <Panel className="relative overflow-hidden">
+        {/* rota com o pino da prova, desenhada ao lado do título (só em tela larga) */}
+        <RouteArt />
+        <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+          <div className="min-w-0">
+            <h2 className="od-label od-label-accent">Plano do objetivo</h2>
+            <p className="mt-2 font-display text-[1.9rem] font-extrabold leading-tight tracking-tight sm:text-[2.3rem] xl:pr-[240px]">{plan.race_name}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[0.85rem] text-brand-textSecondary">
+              <span className="inline-flex items-center gap-2">
+                <Glyph color="#C6FF00"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="m9 16 2 2 4-4" /></Glyph>
+                {raceDate}
+              </span>
+              <span className="hidden h-4 w-px bg-white/10 sm:block" aria-hidden />
+              <span className="inline-flex items-center gap-2">
+                <Glyph color="#00FF66"><circle cx="14" cy="4" r="2" /><path d="m5 21 4-6 3 2 2-6" /><path d="m7 11 3-3 5 1 2 4h3" /></Glyph>
+                {daysLeft >= 0 ? <>Faltam <strong className="od-num text-white">{daysLeft}</strong> dias</> : "Prova já passou"}
+              </span>
+              <span className="hidden h-4 w-px bg-white/10 sm:block" aria-hidden />
+              <span className="inline-flex items-center gap-2">
+                <Glyph color="#00FF66"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" /><circle cx="12" cy="10" r="3" /></Glyph>
+                {fmtKm(plan.race_distance_km)}
+              </span>
+            </div>
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-brand-textSecondary">{plan.summary}</p>
           </div>
-          {onGoalChange && <TargetEditor key={plan.id + (plan.target_time_s ?? "")} goal={plan} onSaved={onGoalChange} />}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            {daysPicker}
-            <button type="button" onClick={() => onGenerate(days)} disabled={generating} className="od-btn od-btn-ghost od-btn-sm">
-              {generating ? "Refazendo…" : "Refazer a partir de hoje"}
-            </button>
+
+          <div className="space-y-2 rounded-2xl bg-white/[0.02] p-3" style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)" }}>
+            <div className="grid grid-cols-2 gap-2">
+              {paces.map(({ k, v, icon }) => (
+                <div key={k} className="flex items-center gap-2.5 rounded-xl bg-white/[0.03] px-3 py-2.5" style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)" }}>
+                  <Glyph color="#E8EDE8" size={20}>{icon}</Glyph>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[0.6rem] uppercase tracking-wider text-brand-muted">{k}</span>
+                    <span className="od-num block text-[0.92rem] text-white">{v}<span className="text-brand-muted">/km</span></span>
+                  </span>
+                </div>
+              ))}
+            </div>
+            {onGoalChange && <TargetEditor key={plan.id + (plan.target_time_s ?? "")} goal={plan} onSaved={onGoalChange} />}
+            <div className="flex flex-wrap items-center justify-between gap-2 px-1 pt-1">
+              {daysPicker}
+              <button type="button" onClick={() => onGenerate(days)} disabled={generating} className="od-btn od-btn-ghost od-btn-sm !rounded-full !px-3.5">
+                {generating ? "Refazendo…" : "Refazer a partir de hoje"}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </Panel>
 
       {plan.analysis && plan.analysis.length > 0 && (
-        <details className="group rounded-2xl bg-white/[0.02]" open>
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3">
-            <span className="od-metric-label">O que a Duni levou em conta · últimos 6 meses</span>
-            <span className="text-brand-muted transition-transform group-open:rotate-180" aria-hidden>▾</span>
-          </summary>
-          <ul className="grid gap-2 px-4 pb-4 md:grid-cols-2">
-            {plan.analysis.map((a) => (
-              <li key={a.tema} className="od-tile px-3.5 py-2.5">
-                <div className="text-[0.64rem] font-bold uppercase tracking-wider text-brand-accent">{a.tema}</div>
-                <p className="mt-0.5 text-[0.8rem] leading-snug text-brand-textSecondary">{a.texto}</p>
-              </li>
-            ))}
+        <Panel aria-labelledby="duni-levou-titulo">
+          <div className="mb-4 flex items-center gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.04]" style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.1)" }}>
+              <Glyph color="#E8EDE8" size={16}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></Glyph>
+            </span>
+            <h3 id="duni-levou-titulo" className="shrink-0 text-[0.72rem] font-bold uppercase tracking-[0.14em] text-white">O que a Duni levou em conta</h3>
+            <span className="hidden h-px flex-1 bg-white/[0.07] sm:block" aria-hidden />
+            <span className="ml-auto shrink-0 text-[0.7rem] text-brand-muted sm:ml-0">Últimos 6 meses</span>
+          </div>
+          <ul className="grid gap-3 md:grid-cols-2">
+            {plan.analysis.map((a) => {
+              const t = TEMAS[a.tema] ?? TEMA_PADRAO;
+              return (
+                <li key={a.tema} className="flex gap-3.5 rounded-2xl bg-white/[0.02] px-4 py-3.5" style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)" }}>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: `${t.color}14`, boxShadow: `inset 0 0 0 1px ${t.color}55, 0 0 16px -6px ${t.color}` }}>
+                    <Glyph color={t.color} size={18}>{t.icon}</Glyph>
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[0.68rem] font-bold uppercase tracking-wider" style={{ color: t.color }}>{a.tema}</span>
+                    <span className="mt-0.5 block text-[0.8rem] leading-snug text-brand-textSecondary">{a.texto}</span>
+                  </span>
+                </li>
+              );
+            })}
           </ul>
-        </details>
+        </Panel>
       )}
-    </Panel>
+    </div>
   );
 }
 
