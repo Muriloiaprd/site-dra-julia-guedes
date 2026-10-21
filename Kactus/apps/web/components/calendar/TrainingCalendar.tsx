@@ -58,6 +58,22 @@ function longDate(d: Date) {
   return `${DOW_LONG[d.getDay()]}, ${d.getDate()} de ${MONTH_PT[d.getMonth()].toLowerCase()}`;
 }
 
+/** Dia do mês vizinho na grade: só o número, apagado. Fora da navegação por Tab (as setas andam no mês). */
+function NeighborDay({ n, label, onClick }: { n: number; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-label={label}
+      onClick={onClick}
+      className="flex min-h-[54px] justify-center rounded-lg p-1 transition-colors hover:bg-white/[0.04] sm:min-h-[112px] sm:justify-start sm:rounded-xl sm:p-1.5"
+      style={{ background: "rgba(255,255,255,0.012)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04)" }}
+    >
+      <span className="od-num flex h-6 items-center px-1 text-[0.95rem] font-bold leading-none text-white/25 sm:text-[1.05rem]">{n}</span>
+    </button>
+  );
+}
+
 /** O mês inteiro na largura da tela; tocar num dia abre a gaveta com o planejado e o feito. */
 export function TrainingCalendar({
   year, month, activities, workouts, loading, onMonth,
@@ -76,6 +92,7 @@ export function TrainingCalendar({
   const todayIso = toISODate(today);
   const isThisMonth = today.getFullYear() === year && today.getMonth() === month;
   const lastDay = new Date(year, month + 1, 0).getDate();
+  const prevLastDay = new Date(year, month, 0).getDate();
   const startDow = (new Date(year, month, 1).getDay() + 6) % 7;
 
   const [picked, setPicked] = useState<{ key: string; day: number } | null>(null);
@@ -185,10 +202,13 @@ export function TrainingCalendar({
           <>
             {/* a grade do mês na tela toda: no computador com o nome do treino, no celular com pontinhos */}
             <div className="mb-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
-              {DOW.map((d) => <div key={d} className="text-center text-[0.6rem] font-bold uppercase tracking-wider text-brand-textTertiary sm:px-1 sm:text-left sm:text-[0.62rem]">{d}</div>)}
+              {DOW.map((d) => <div key={d} className="text-center text-[0.66rem] font-bold uppercase tracking-wider text-brand-textSecondary sm:px-1.5 sm:text-left sm:text-[0.7rem]">{d}</div>)}
             </div>
             <div className="grid grid-cols-7 gap-1 sm:gap-1.5" role="group" aria-label={`Dias de ${MONTH_PT[month]} ${year}. Use as setas para andar pelos dias e Enter para abrir.`} onKeyDown={onGridKey}>
-              {Array.from({ length: startDow }).map((_, i) => <div key={`e${i}`} />)}
+              {/* fim do mês anterior: só o número, apagado; tocar vai para aquele mês */}
+              {Array.from({ length: startDow }, (_, i) => prevLastDay - startDow + 1 + i).map((n) => (
+                <NeighborDay key={`p${n}`} n={n} label={`Ir para ${MONTH_PT[(month + 11) % 12]}`} onClick={() => onMonth(-1)} />
+              ))}
               {Array.from({ length: lastDay }, (_, i) => i + 1).map((day) => {
                 const d = new Date(year, month, day);
                 const plans = planByDay.get(day) ?? [];
@@ -209,13 +229,17 @@ export function TrainingCalendar({
                     aria-label={`${day} de ${MONTH_PT[month]}${isToday ? ", hoje" : ""} — ${resumo || "sem treino"}`}
                     onFocus={() => setPicked({ key: monthKey, day })}
                     onClick={() => openDay(day)}
-                    className="flex min-h-[52px] flex-col items-center gap-1 overflow-hidden rounded-lg p-1 text-left transition-colors hover:bg-white/[0.05] sm:min-h-[112px] sm:items-stretch sm:rounded-xl sm:p-1.5"
+                    className="flex min-h-[54px] flex-col items-center gap-1 overflow-hidden rounded-lg p-1 text-left transition-colors hover:bg-white/[0.08] sm:min-h-[112px] sm:items-stretch sm:rounded-xl sm:p-1.5"
                     style={{
-                      background: isToday ? "rgba(0,255,102,0.07)" : "rgba(255,255,255,0.015)",
-                      boxShadow: isToday ? "inset 0 0 0 1px rgba(0,255,102,0.5)" : "inset 0 0 0 1px rgba(255,255,255,0.05)",
+                      background: isToday ? "rgba(0,255,102,0.09)" : "rgba(255,255,255,0.045)",
+                      boxShadow: isToday ? "inset 0 0 0 1.5px rgba(0,255,102,0.65)" : "inset 0 0 0 1px rgba(255,255,255,0.1)",
                     }}
                   >
-                    <span className={`od-num text-[0.78rem] leading-none sm:px-0.5 ${isToday ? "text-brand-accent" : acts.length || plans.length ? "text-white" : "text-brand-textTertiary"}`}>
+                    {/* número do dia grande e claro; hoje vem num círculo verde */}
+                    <span
+                      className={`od-num flex h-6 min-w-[1.5rem] items-center justify-center self-center rounded-full px-1 text-[0.95rem] font-bold leading-none sm:self-start sm:text-[1.05rem] ${isToday ? "text-black" : "text-white"}`}
+                      style={isToday ? { background: "#00FF66" } : undefined}
+                    >
                       {day}
                     </span>
 
@@ -248,6 +272,10 @@ export function TrainingCalendar({
                   </button>
                 );
               })}
+              {/* começo do mês seguinte, até fechar a última semana */}
+              {Array.from({ length: (7 - ((startDow + lastDay) % 7)) % 7 }, (_, i) => i + 1).map((n) => (
+                <NeighborDay key={`n${n}`} n={n} label={`Ir para ${MONTH_PT[(month + 1) % 12]}`} onClick={() => onMonth(1)} />
+              ))}
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-white/5 pt-3 text-[0.68rem] text-brand-muted">
