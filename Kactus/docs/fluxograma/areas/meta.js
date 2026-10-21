@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "21/10/2026",
-  commit: "Aba Plano no visual novo",
+  commit: "Contagem regressiva no topo do plano",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -35,6 +35,7 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
+    { data: "21/10/2026", commit: "plano-anel", mudanca: "Topo do Plano do objetivo com contagem regressiva em anel (dias até a prova e quanto do plano já passou), Semana N de M com a fase e % do caminho, e fundo novo: brilho verde, curvas de nível e a rota neon animada até o pino da prova." },
     { data: "21/10/2026", commit: "plano-visual", mudanca: "Aba Plano do Calendário no visual novo: os dois botões de gerar viraram cartões com rótulo colorido e frase em destaque; o topo do Plano do objetivo ganhou ícones (data, dias que faltam, distância, ritmos), a rota com o pino da prova e os dias por semana em bolinhas; O que a Duni levou em conta virou um quadro próprio com um cartão colorido e com ícone por tema." },
     { data: "21/10/2026", commit: "cal-abas", mudanca: "O Calendário de treinos passa a ter 4 abas: Calendário, Plano (só os botões de gerar e o topo do Plano do objetivo), Objetivo (fases, km por semana e a semana tocada) e Comparar (placar dos últimos 14 dias, o Plano da semana e o Planejado × feito em linhas que abrem ao tocar). A vista Comparar do Plano da semana virou Objetivo × Agora. Ver o plano até a prova abre Objetivo; Ver todos no calendário abre Comparar." },
     { data: "21/10/2026", commit: "duni-cacto", mudanca: "A Duni ganhou cara: o cacto rainha (verde neon, de coroa) substitui a bolinha verde em todos os lugares onde ela aparece e vira o ícone dela no menu e na barra de baixo do celular. Animado quando ela está ativa, parado quando não." },

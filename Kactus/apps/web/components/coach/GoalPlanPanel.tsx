@@ -240,19 +240,81 @@ const TEMAS: Record<string, { color: string; icon: ReactNode }> = {
 };
 const TEMA_PADRAO = { color: "#8C948C", icon: <><circle cx="12" cy="12" r="9" /><path d="M12 8h.01M11 12h1v5h1" /></> };
 
-/** Rota até a prova, com curvas de nível ao fundo e o pino no fim: enfeite do topo do plano (tela larga). */
-function RouteArt() {
+/** Curvas de nível (um "mapa" de fundo), geradas sempre iguais para não mudar a cada render. */
+const CURVAS = Array.from({ length: 11 }, (_, i) => {
+  const y = 14 + i * 28;
+  const a = 10 + (i % 4) * 6;
+  return `M-20 ${y} C 160 ${y - a}, 300 ${y + a * 1.6}, 500 ${y - a * 0.4} S 820 ${y + a}, 1020 ${y - a * 0.8}`;
+});
+
+const ROTA = "M30 135 C 120 128, 160 100, 240 104 S 360 128, 430 96 S 520 48, 600 58 S 700 94, 770 64 S 860 22, 940 26";
+
+/**
+ * Fundo do topo do plano: brilho verde atrás da contagem, curvas de nível como num mapa e, no computador,
+ * a rota neon até o pino da prova, com um tracejado que corre por ela (parado para quem pede menos movimento).
+ */
+function TopoBackdrop() {
   return (
-    <svg className="pointer-events-none absolute right-[400px] top-6 hidden h-[110px] w-[240px] xl:block" viewBox="0 0 240 110" fill="none" aria-hidden>
-      <g stroke="rgba(255,255,255,0.05)" strokeWidth="1">
-        <path d="M0 70c40-30 80 10 120-20s80-20 120-40" />
-        <path d="M0 88c40-26 80 12 120-14s80-18 120-36" />
-        <path d="M0 52c40-30 80 6 120-24s80-18 120-36" />
-      </g>
-      <path d="M8 100c20-4 26-12 44-14s22 6 38-2 18-22 36-24 22 10 40 4 18-26 30-30 20 2 26-10" stroke="#00FF66" strokeWidth="2" strokeLinecap="round" style={{ filter: "drop-shadow(0 0 6px rgba(0,255,102,0.7))" }} />
-      <path d="M222 6c-6 0-10 4-10 9 0 7 10 15 10 15s10-8 10-15c0-5-4-9-10-9z" fill="#00FF66" style={{ filter: "drop-shadow(0 0 8px rgba(0,255,102,0.8))" }} />
-      <circle cx="222" cy="15" r="3" fill="#06170c" />
-    </svg>
+    <div className="pointer-events-none absolute inset-0" aria-hidden>
+      <div
+        className="absolute inset-0"
+        style={{ background: "radial-gradient(380px 240px at 9% 38%, rgba(0,255,102,0.18), transparent 70%), radial-gradient(520px 260px at 55% 115%, rgba(0,191,255,0.09), transparent 70%), radial-gradient(300px 200px at 52% -10%, rgba(198,255,0,0.07), transparent 70%)" }}
+      />
+      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 1000 320" preserveAspectRatio="none" fill="none">
+        <g stroke="rgba(255,255,255,0.045)" strokeWidth="1">
+          {CURVAS.map((d) => <path key={d} d={d} vectorEffect="non-scaling-stroke" />)}
+        </g>
+      </svg>
+      <svg className="absolute bottom-3 left-0 right-[400px] hidden h-[96px] lg:block" viewBox="0 0 1000 150" preserveAspectRatio="xMidYMax meet" fill="none">
+        <style>{"@keyframes kactus-rota{to{stroke-dashoffset:-48}}.kactus-rota{animation:kactus-rota 2.4s linear infinite}@media (prefers-reduced-motion:reduce){.kactus-rota{animation:none}}"}</style>
+        <path d={ROTA} stroke="#00FF66" strokeOpacity="0.35" strokeWidth="7" strokeLinecap="round" style={{ filter: "blur(6px)" }} />
+        <path d={ROTA} stroke="#00FF66" strokeOpacity="0.75" strokeWidth="2" strokeLinecap="round" />
+        <path className="kactus-rota" d={ROTA} stroke="#C6FF00" strokeWidth="2.4" strokeLinecap="round" strokeDasharray="6 42" />
+        <circle cx="30" cy="135" r="4" fill="#00FF66" fillOpacity="0.8" />
+        <path d="M948 2c-7 0-12 5-12 11 0 8 12 18 12 18s12-10 12-18c0-6-5-11-12-11z" fill="#00FF66" style={{ filter: "drop-shadow(0 0 10px rgba(0,255,102,0.9))" }} />
+        <circle cx="948" cy="13" r="3.5" fill="#06170c" />
+      </svg>
+    </div>
+  );
+}
+
+/** Contagem regressiva: os dias até a prova no centro e o anel com o quanto do plano já passou. */
+function CountdownRing({ daysLeft, frac }: { daysLeft: number; frac: number }) {
+  const r = 52;
+  const c = 2 * Math.PI * r;
+  const ticks = Array.from({ length: 48 }, (_, i) => i);
+  return (
+    <div className="relative h-[104px] w-[104px] shrink-0 sm:h-[132px] sm:w-[132px]" role="img" aria-label={`Faltam ${Math.max(daysLeft, 0)} dias para a prova; ${Math.round(frac * 100)}% do plano já passou`}>
+      <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 132 132" aria-hidden>
+        <defs>
+          <linearGradient id="kactus-anel" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#C6FF00" />
+            <stop offset="100%" stopColor="#00FF66" />
+          </linearGradient>
+        </defs>
+        {ticks.map((i) => {
+          const ang = (i / ticks.length) * 2 * Math.PI;
+          return (
+            <line
+              key={i}
+              x1={66 + Math.cos(ang) * 62} y1={66 + Math.sin(ang) * 62}
+              x2={66 + Math.cos(ang) * 65} y2={66 + Math.sin(ang) * 65}
+              stroke={i / ticks.length <= frac ? "#00FF66" : "rgba(255,255,255,0.14)"} strokeWidth="1.4" strokeLinecap="round"
+            />
+          );
+        })}
+        <circle cx="66" cy="66" r={r} fill="rgba(0,0,0,0.35)" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
+        <circle
+          cx="66" cy="66" r={r} fill="none" stroke="url(#kactus-anel)" strokeWidth="8" strokeLinecap="round"
+          strokeDasharray={`${Math.max(frac * c, 4)} ${c}`}
+          style={{ filter: "drop-shadow(0 0 8px rgba(0,255,102,0.75))" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="od-num text-[1.9rem] font-extrabold leading-none text-white sm:text-[2.4rem]" style={{ textShadow: "0 0 18px rgba(0,255,102,0.45)" }}>{Math.max(daysLeft, 0)}</span>
+        <span className="mt-1 text-[0.6rem] font-bold uppercase tracking-[0.16em] text-brand-accent">dias</span>
+      </div>
+    </div>
   );
 }
 
@@ -309,6 +371,11 @@ export function GoalPlanPanel({
 
   const daysLeft = Math.round((parseLocalDate(plan.race_date).getTime() - parseLocalDate(today).getTime()) / 86_400_000);
   const raceDate = parseLocalDate(plan.race_date).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
+  // quanto do plano já passou: do começo da primeira semana até a prova
+  const start = parseLocalDate(plan.weeks[0]?.inicio ?? plan.created_at.slice(0, 10)).getTime();
+  const end = parseLocalDate(plan.race_date).getTime();
+  const frac = Math.min(1, Math.max(0, (parseLocalDate(today).getTime() - start) / Math.max(end - start, 1)));
+  const weekNow = plan.weeks.find((w) => w.inicio <= today && today <= w.fim) ?? null;
   const p = plan.paces;
   const paces: { k: string; v: string; icon: ReactNode }[] = [
     { k: "Leve", v: `${fmtPace(p.leve_rapido)}–${fmtPace(p.leve_lento)}`, icon: <><circle cx="6" cy="19" r="2.5" /><circle cx="18" cy="5" r="2.5" /><path d="M8.5 19H17a3.5 3.5 0 0 0 0-7H7a3.5 3.5 0 0 1 0-7h8.5" /></> },
@@ -320,29 +387,42 @@ export function GoalPlanPanel({
   return (
     <div className="space-y-4">
       <Panel className="relative overflow-hidden">
-        {/* rota com o pino da prova, desenhada ao lado do título (só em tela larga) */}
-        <RouteArt />
+        <TopoBackdrop />
         <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
           <div className="min-w-0">
-            <h2 className="od-label od-label-accent">Plano do objetivo</h2>
-            <p className="mt-2 font-display text-[1.9rem] font-extrabold leading-tight tracking-tight sm:text-[2.3rem] xl:pr-[240px]">{plan.race_name}</p>
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[0.85rem] text-brand-textSecondary">
-              <span className="inline-flex items-center gap-2">
-                <Glyph color="#C6FF00"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="m9 16 2 2 4-4" /></Glyph>
-                {raceDate}
-              </span>
-              <span className="hidden h-4 w-px bg-white/10 sm:block" aria-hidden />
-              <span className="inline-flex items-center gap-2">
-                <Glyph color="#00FF66"><circle cx="14" cy="4" r="2" /><path d="m5 21 4-6 3 2 2-6" /><path d="m7 11 3-3 5 1 2 4h3" /></Glyph>
-                {daysLeft >= 0 ? <>Faltam <strong className="od-num text-white">{daysLeft}</strong> dias</> : "Prova já passou"}
-              </span>
-              <span className="hidden h-4 w-px bg-white/10 sm:block" aria-hidden />
-              <span className="inline-flex items-center gap-2">
-                <Glyph color="#00FF66"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" /><circle cx="12" cy="10" r="3" /></Glyph>
-                {fmtKm(plan.race_distance_km)}
-              </span>
+            <div className="flex items-center gap-4 sm:gap-6">
+              <CountdownRing daysLeft={daysLeft} frac={frac} />
+              <div className="min-w-0">
+                <h2 className="od-label od-label-accent">Plano do objetivo</h2>
+                <p className="mt-1.5 font-display text-[1.6rem] font-extrabold leading-tight tracking-tight sm:text-[2.3rem]">{plan.race_name}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[0.84rem] text-brand-textSecondary">
+                  <span className="inline-flex items-center gap-2">
+                    <Glyph color="#C6FF00"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="m9 16 2 2 4-4" /></Glyph>
+                    {raceDate}
+                  </span>
+                  <span className="hidden h-4 w-px bg-white/10 sm:block" aria-hidden />
+                  <span className="inline-flex items-center gap-2">
+                    <Glyph color="#00FF66"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" /><circle cx="12" cy="10" r="3" /></Glyph>
+                    {fmtKm(plan.race_distance_km)}
+                  </span>
+                </div>
+                <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[0.76rem] text-brand-textSecondary">
+                  {weekNow && (
+                    <>
+                      <span>Semana <strong className="od-num text-white">{weekNow.semana}</strong> de {plan.weeks.length}</span>
+                      <span className="rounded-full px-2 py-0.5 text-[0.66rem] font-bold uppercase tracking-wider" style={{ color: PHASE_STYLE[weekNow.fase].color, background: `${PHASE_STYLE[weekNow.fase].color}14`, boxShadow: `inset 0 0 0 1px ${PHASE_STYLE[weekNow.fase].color}55` }}>
+                        {PHASE_STYLE[weekNow.fase].label}
+                      </span>
+                      <span className="text-brand-muted">·</span>
+                    </>
+                  )}
+                  <span><strong className="od-num text-white">{Math.round(frac * 100)}%</strong> do caminho</span>
+                </div>
+              </div>
             </div>
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-brand-textSecondary">{plan.summary}</p>
+            <p className="mt-5 max-w-2xl text-sm leading-relaxed text-brand-textSecondary">{plan.summary}</p>
+            {/* faixa da rota neon (o desenho fica no fundo, sem passar por cima do texto) */}
+            <div className="hidden h-24 lg:block" aria-hidden />
           </div>
 
           <div className="space-y-2 rounded-2xl bg-white/[0.02] p-3" style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)" }}>
