@@ -82,7 +82,7 @@ flowchart LR
     { tipo: "tela", nome: "Dashboard", acao: "Centro de comando: prontidão, Duni, semana, evolução, recordes, calendário.", onde: "apps/web/app/dashboard/page.tsx:32", no: "DASH" },
     { tipo: "tela", nome: "Atividades", acao: "Sub-abas Histórico (lista com filtros, exclusão e lixeira) e Equipamentos.", onde: "apps/web/app/activities/page.tsx:57", no: "ACT" },
     { tipo: "tela", nome: "Detalhe da atividade", acao: "Métricas, check-in, comentário da Duni, mapa, gráficos, splits, Story.", onde: "apps/web/app/activities/[id]/page.tsx:88", no: "DET" },
-    { tipo: "tela", nome: "Calendário de treinos", acao: "O mês com o planejado e o feito, e onde se gera o plano (área 16).", onde: "apps/web/app/calendar/page.tsx:45", no: "CALT" },
+    { tipo: "tela", nome: "Calendário de treinos", acao: "O mês com o planejado e o feito, e as abas Plano, Objetivo e Comparar (área 16).", onde: "apps/web/app/calendar/page.tsx:45", no: "CALT" },
     { tipo: "tela", nome: "Desempenho", acao: "Hoje, forma, risco, previsões, evolução e modo avançado.", onde: "apps/web/app/performance/page.tsx:24", no: "PERF" },
     { tipo: "tela", nome: "Duni", acao: "Resumo, chat e memórias (o plano fica no Calendário de treinos).", onde: "apps/web/app/coach/page.tsx:94", no: "DUNI" },
     { tipo: "tela", nome: "Equipamentos", acao: "Sub-aba de Atividades: tênis e acessórios, alertas de troca e recomendados. /equipment redireciona para ela.", onde: "apps/web/components/equipment/EquipmentSection.tsx:64", no: "EQ,EQO" },

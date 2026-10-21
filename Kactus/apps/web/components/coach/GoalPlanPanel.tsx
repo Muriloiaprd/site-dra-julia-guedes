@@ -229,8 +229,6 @@ export function GoalPlanPanel({
   const plan = goal?.plan ?? null;
   const [days, setDays] = useState<number>(plan?.days_per_week ?? 3);
   const today = toISODate(new Date());
-  const currentIndex = plan ? plan.weeks.findIndex((w) => w.inicio <= today && today <= w.fim) : -1;
-  const [picked, setPicked] = useState<number | null>(null);
 
   const daysPicker = (
     <div className="flex items-center gap-1.5 text-[0.72rem] text-brand-muted" role="radiogroup" aria-label="Dias de corrida por semana">
@@ -263,7 +261,6 @@ export function GoalPlanPanel({
     );
   }
 
-  const selected = picked ?? (currentIndex >= 0 ? currentIndex : 0);
   const daysLeft = Math.round((parseLocalDate(plan.race_date).getTime() - parseLocalDate(today).getTime()) / 86_400_000);
   const raceDate = parseLocalDate(plan.race_date).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
   const p = plan.paces;
@@ -319,7 +316,21 @@ export function GoalPlanPanel({
           </ul>
         </details>
       )}
+    </Panel>
+  );
+}
 
+/** As fases até a prova (base, construção, pico, polimento), os km de cada semana e a semana escolhida. */
+export function GoalPhases({ goal }: { goal: GoalPlanResponse }) {
+  const plan = goal.plan;
+  const today = toISODate(new Date());
+  const [picked, setPicked] = useState<number | null>(null);
+  if (!plan) return null;
+  const currentIndex = plan.weeks.findIndex((w) => w.inicio <= today && today <= w.fim);
+  const selected = picked ?? (currentIndex >= 0 ? currentIndex : 0);
+
+  return (
+    <Panel className="space-y-6">
       <PhaseStrip plan={plan} currentIndex={currentIndex} />
 
       <div>
@@ -332,7 +343,7 @@ export function GoalPlanPanel({
         <WeekChart plan={plan} currentIndex={currentIndex} selected={selected} onSelect={setPicked} />
       </div>
 
-      <WeekWorkouts plan={plan} index={selected} workouts={goal?.workouts ?? []} />
+      <WeekWorkouts plan={plan} index={selected} workouts={goal.workouts} />
     </Panel>
   );
 }

@@ -13,7 +13,7 @@ type View = "objetivo" | "semana" | "comparar";
 const VIEWS: { id: View; label: string; hint: string }[] = [
   { id: "objetivo", label: "Do objetivo", hint: "O que o plano até a prova manda" },
   { id: "semana", label: "Da semana", hint: "O que a Duni faria agora, pelo seu estado" },
-  { id: "comparar", label: "Comparar", hint: "Os dois lado a lado; você escolhe" },
+  { id: "comparar", label: "Objetivo × Agora", hint: "Os dois lado a lado; você escolhe" },
 ];
 
 const RECOMMEND = {
@@ -70,7 +70,7 @@ function Compare({
   if (!free.plan) {
     return (
       <Panel>
-        <h2 className="od-label">Comparar</h2>
+        <h2 className="od-label">Objetivo × Agora</h2>
         <div className="mt-3 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-brand-muted">Para comparar, a Duni precisa montar o plano da semana pelo seu estado de agora.</p>
           <button type="button" onClick={onGenerateFree} disabled={generatingFree} className="od-btn od-btn-primary shrink-0">
@@ -252,7 +252,7 @@ export function WeekPlans({
           emptyText="A Duni monta a semana só pelo seu estado de agora (último mês, dor, cansaço), sem seguir o plano do objetivo. É uma proposta: não muda a sua agenda."
           note={
             <p className="rounded-xl bg-white/[0.03] px-3.5 py-2.5 text-[0.78rem] text-brand-textSecondary">
-              Proposta: não muda a sua agenda. Para usar algum dia, vá em <button type="button" onClick={() => setView("comparar")} className="font-semibold text-brand-accent underline">Comparar</button>.
+              Proposta: não muda a sua agenda. Para usar algum dia, vá em <button type="button" onClick={() => setView("comparar")} className="font-semibold text-brand-accent underline">Objetivo × Agora</button>.
             </p>
           }
         />

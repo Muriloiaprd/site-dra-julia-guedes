@@ -4,8 +4,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { TrainingCalendar } from "@/components/calendar/TrainingCalendar";
-import { AdherencePanel } from "@/components/coach/AdherencePanel";
-import { GoalPlanPanel } from "@/components/coach/GoalPlanPanel";
+import { AdherenceList, AdherenceScore, useAdherence } from "@/components/coach/AdherencePanel";
+import { GoalPhases, GoalPlanPanel } from "@/components/coach/GoalPlanPanel";
 import { ActionButton, ProcessingPanel } from "@/components/coach/ProcessingPanel";
 import { WeekPlans } from "@/components/coach/WeekPlans";
 import { BackButton } from "@/components/ui/BackButton";
@@ -42,26 +42,35 @@ async function fetchAllActivities(): Promise<ActivitySummary[]> {
   }
 }
 
-type Aba = "calendario" | "plano";
+type Aba = "calendario" | "plano" | "objetivo" | "comparar";
 
 const ABAS = [
   { value: "calendario", label: "Calendário" },
   { value: "plano", label: "Plano" },
+  { value: "objetivo", label: "Objetivo" },
+  { value: "comparar", label: "Comparar" },
 ] as const;
+
+/** Dias do Planejado × feito na aba Comparar. */
+const DIAS_COMPARAR = 14;
 
 // useSearchParams pede Suspense no build do Next
 export default function CalendarPage() {
   return <Suspense><CalendarScreen /></Suspense>;
 }
 
-/** Calendário de treinos: o planejado (plano da semana e do objetivo) e o feito; na aba Plano, onde se gera o plano. */
+/**
+ * Calendário de treinos: o planejado (plano da semana e do objetivo) e o feito. Abas: Plano (gerar e o
+ * resumo do plano do objetivo), Objetivo (fases e km por semana) e Comparar (placar, semana e planejado × feito).
+ */
 function CalendarScreen() {
   const router = useRouter();
   const pathname = usePathname();
-  // a aba fica na URL (?aba=plano): link direto e o voltar do navegador funcionam
-  const aba: Aba = useSearchParams().get("aba") === "plano" ? "plano" : "calendario";
+  // a aba fica na URL (?aba=plano|objetivo|comparar): link direto e o voltar do navegador funcionam
+  const param = useSearchParams().get("aba");
+  const aba: Aba = ABAS.some((a) => a.value === param) ? (param as Aba) : "calendario";
   function trocarAba(next: Aba) {
-    router.push(next === "plano" ? `${pathname}?aba=plano` : pathname, { scroll: false });
+    router.push(next === "calendario" ? pathname : `${pathname}?aba=${next}`, { scroll: false });
   }
   const [ready, setReady] = useState(false);
   // o intervalo na tela (mês com os dias vizinhos, ou a semana) vem do calendário
@@ -84,6 +93,7 @@ function CalendarScreen() {
   const [goalCount, setGoalCount] = useState<number | null>(null);
   const [error, setError] = useState<{ title: string; detail: string } | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const adherence = useAdherence(DIAS_COMPARAR, ready);
 
   useEffect(() => {
     fetchMe().then((u) => {
@@ -197,7 +207,8 @@ function CalendarScreen() {
         icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>}
       />
 
-      <div className="mb-5">
+      {/* 4 abas: se não couberem no celular, rolam de lado */}
+      <div className="-mx-1 mb-5 overflow-x-auto px-1 pb-1">
         <Segmented options={ABAS} value={aba} onChange={trocarAba} size="md" ariaLabel="Seções do calendário" />
       </div>
 
@@ -207,7 +218,7 @@ function CalendarScreen() {
         </div>
       )}
 
-      {/* as duas abas ficam montadas: trocar não perde o mês nem um plano sendo gerado */}
+      {/* as abas ficam montadas: trocar não perde o mês nem um plano sendo gerado */}
       <div hidden={aba !== "calendario"}>
         <TrainingCalendar
           activities={activities}
@@ -217,7 +228,7 @@ function CalendarScreen() {
         />
       </div>
 
-      {/* ───────── O plano: gerar e acompanhar (veio da página da Duni) ───────── */}
+      {/* ───────── Plano: gerar e o resumo do plano do objetivo ───────── */}
       <section hidden={aba !== "plano"} className="space-y-4" aria-labelledby="plano-titulo">
         <div>
           <h2 id="plano-titulo" className="font-display text-xl font-bold">Plano de treino</h2>
@@ -250,23 +261,49 @@ function CalendarScreen() {
 
         {goalCount !== null && goal?.plan && (
           <Alert tone="accent" title={`Plano até a prova pronto: ${goalCount} treinos`}>
-            Veja as fases e as semanas no quadro &quot;Plano do objetivo&quot;. O passo a passo de cada semana sai no &quot;Gerar plano da semana&quot;.
+            Veja as fases e as semanas na aba{" "}
+            <button type="button" onClick={() => trocarAba("objetivo")} className="font-semibold underline">Objetivo</button>. O passo a passo de cada semana sai no &quot;Gerar plano da semana&quot;.
           </Alert>
         )}
 
         {planCount !== null && (
           <Alert tone="accent" title={`Plano da semana pronto: ${planCount} treino${planCount === 1 ? "" : "s"}`}>
-            Os treinos já estão na aba Calendário e no card da Duni no dashboard. O detalhe de cada um está no quadro &quot;Plano da semana&quot;.
+            Os treinos já estão na aba Calendário e no card da Duni no dashboard. O detalhe de cada um está na aba{" "}
+            <button type="button" onClick={() => trocarAba("comparar")} className="font-semibold underline">Comparar</button>.
           </Alert>
         )}
 
-        {/* ───────── Plano do objetivo (ate a prova) ───────── */}
+        {/* ───────── Plano do objetivo: prova, ritmos, alvo e o que a Duni levou em conta ───────── */}
         {goal && <GoalPlanPanel goal={goal} onGenerate={handleGenerateGoal} generating={generatingGoal} onGoalChange={setGoal} />}
+      </section>
 
-        {/* ───────── Planejado × feito ───────── */}
-        {ready && <AdherencePanel days={14} />}
+      {/* ───────── Objetivo: base, construção, pico e polimento; km por semana ───────── */}
+      <section hidden={aba !== "objetivo"} className="space-y-4" aria-labelledby="objetivo-titulo">
+        <div>
+          <h2 id="objetivo-titulo" className="font-display text-xl font-bold">Fases até a prova</h2>
+          <p className="mt-1 text-sm text-brand-muted">Base, construção, pico e polimento, os km de cada semana e os treinos da semana que você tocar.</p>
+        </div>
+        {goal?.plan ? <GoalPhases goal={goal} /> : goal && (
+          <Alert
+            tone="accent"
+            title="Ainda não há plano do objetivo"
+            action={<button type="button" onClick={() => trocarAba("plano")} className="od-btn od-btn-secondary od-btn-sm">Ir para Plano</button>}
+          >
+            A Duni monta as fases quando você gera o plano até a prova.
+          </Alert>
+        )}
+      </section>
 
-        {/* ───────── Plano da semana ───────── */}
+      {/* ───────── Comparar: placar, a semana e o planejado × feito ───────── */}
+      <section hidden={aba !== "comparar"} className="space-y-4" aria-labelledby="comparar-titulo">
+        <div>
+          <h2 id="comparar-titulo" className="font-display text-xl font-bold">Planejado × feito</h2>
+          <p className="mt-1 text-sm text-brand-muted">Como você está seguindo o plano: o placar dos últimos {DIAS_COMPARAR} dias, a semana e cada treino.</p>
+        </div>
+
+        <AdherenceScore items={adherence.items} days={DIAS_COMPARAR} />
+
+        <h3 className="od-label pt-2">Esta semana</h3>
         {week && (
           <WeekPlans
             week={week}
@@ -282,6 +319,9 @@ function CalendarScreen() {
             usingFree={usingFree}
           />
         )}
+
+        <h3 className="od-label pt-2">Treino a treino</h3>
+        <AdherenceList items={adherence.items} onComment={adherence.comment} />
       </section>
     </PageContainer>
   );
