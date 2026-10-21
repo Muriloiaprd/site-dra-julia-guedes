@@ -1,11 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { ImportSection } from "@/components/profile/ImportSection";
 import { NotificationsPanel } from "@/components/profile/NotificationsPanel";
-import { Alert, PageContainer, PageHeader, Panel, Skeleton } from "@/components/ui/primitives";
+import { Alert, PageContainer, PageHeader, Panel, Segmented, Skeleton } from "@/components/ui/primitives";
 import {
   changePassword,
   clearToken,
@@ -52,8 +52,35 @@ function zonesFromUpperBounds(upper: number[]): HrZones {
   };
 }
 
+type Aba = "dados" | "treino" | "importar" | "conta";
+
+const ABAS = [
+  { value: "dados", label: "Dados" },
+  { value: "treino", label: "Treino" },
+  { value: "importar", label: "Importar" },
+  { value: "conta", label: "Conta" },
+] as const;
+
+const ABA_IDS = ABAS.map((a) => a.value) as readonly string[];
+
+// useSearchParams pede Suspense no build do Next
 export default function ProfilePage() {
+  return <Suspense><ProfileScreen /></Suspense>;
+}
+
+function ProfileScreen() {
   const router = useRouter();
+  const pathname = usePathname();
+  // a aba fica na URL (?aba=treino): link direto e o voltar do navegador funcionam
+  const pedida = useSearchParams().get("aba") ?? "";
+  const aba: Aba = ABA_IDS.includes(pedida) ? (pedida as Aba) : "dados";
+  function trocarAba(next: Aba) {
+    router.push(next === "dados" ? pathname : `${pathname}?aba=${next}`, { scroll: false });
+  }
+  // endereço antigo /profile#importar: abre a aba Importar
+  useEffect(() => {
+    if (window.location.hash === "#importar" && !pedida) router.replace(`${pathname}?aba=importar`, { scroll: false });
+  }, [pedida, pathname, router]);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -312,151 +339,144 @@ export default function ProfilePage() {
         kicker="Atleta"
         title="Perfil do atleta"
         description="Seus dados fisiológicos alimentam zonas, carga (TSS), previsões e a Duni."
-        actions={<a href="#importar" className="od-btn od-btn-secondary">Importar atividades ↓</a>}
       />
 
-      <form onSubmit={handleSave} className="grid gap-4 lg:grid-cols-12">
-        {/* identidade */}
-        <Panel variant="hero" className="lg:col-span-4">
-          <div className="relative flex flex-col items-center text-center">
-            <label className="group relative block h-28 w-28 shrink-0 cursor-pointer rounded-full" style={{ boxShadow: "0 0 0 3px #0A0A0A, 0 0 0 4px rgba(0,255,102,0.45), 0 0 40px -8px rgba(0,255,102,0.55)" }}>
-              <span className="block h-full w-full overflow-hidden rounded-full bg-black/40">
-                {form.avatar_data_url ? (
-                  <img src={form.avatar_data_url} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center font-display text-4xl font-extrabold text-black" style={{ background: "linear-gradient(135deg, #00FF66, #C6FF00)" }}>
-                    {initial}
-                  </span>
-                )}
-              </span>
-              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/65 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
-                Trocar foto
-              </span>
-              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-            </label>
-            <h2 className="mt-4 font-display text-xl font-extrabold">{form.full_name || email?.split("@")[0] || "Atleta"}</h2>
-            {email && <p className="text-xs text-brand-muted">{email}</p>}
-            <p className="mt-2 text-[0.7rem] text-brand-textTertiary">Clique na foto para escolher uma imagem.</p>
-            {avatarError && <p className="mt-1 text-xs text-brand-danger">{avatarError}</p>}
-          </div>
+      {/* quem é: sempre à vista, em qualquer aba */}
+      <div className="mb-5 flex items-center gap-3">
+        <span className="block h-12 w-12 shrink-0 overflow-hidden rounded-full" style={{ boxShadow: "0 0 0 2px #0A0A0A, 0 0 0 3px rgba(0,255,102,0.45)" }}>
+          {form.avatar_data_url ? (
+            <img src={form.avatar_data_url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center font-display text-lg font-extrabold text-black" style={{ background: "linear-gradient(135deg, #00FF66, #C6FF00)" }}>{initial}</span>
+          )}
+        </span>
+        <div className="min-w-0">
+          <div className="truncate font-display text-lg font-extrabold leading-tight">{form.full_name || email?.split("@")[0] || "Atleta"}</div>
+          {email && <div className="truncate text-xs text-brand-muted">{email}</div>}
+        </div>
+      </div>
 
-          <div className="relative mt-6 grid grid-cols-2 gap-2">
-            {[
-              { k: "FC repouso", v: form.resting_hr, u: "bpm" },
-              { k: "FC máxima", v: form.max_hr, u: "bpm" },
-              { k: "FTP", v: form.ftp_watts, u: "W" },
-              { k: "Peso", v: form.weight_kg, u: "kg" },
-            ].map((m) => (
-              <div key={m.k} className="od-tile p-3" style={{ background: "rgba(8,11,9,0.6)" }}>
-                <div className="od-metric-label">{m.k}</div>
-                <div className="od-num mt-1 text-lg" style={{ color: m.v == null ? "#8C8C8C" : "#fff" }}>
-                  {m.v ?? "—"}{m.v != null && <span className="ml-0.5 font-sans text-[0.65rem] text-brand-muted">{m.u}</span>}
+      <div className="mb-5 overflow-x-auto">
+        <Segmented options={ABAS} value={aba} onChange={trocarAba} size="md" ariaLabel="Seções do perfil" />
+      </div>
+
+      {/* Dados e Treino são o mesmo formulário: as duas abas ficam montadas e salvam juntas */}
+      <form onSubmit={handleSave} hidden={aba !== "dados" && aba !== "treino"} className="space-y-4">
+        {/* ───────── Dados ───────── */}
+        <div className={aba === "dados" ? "grid gap-4 lg:grid-cols-12" : "hidden"}>
+          <Panel variant="hero" className="lg:col-span-4 lg:self-start">
+            <div className="relative flex flex-col items-center text-center">
+              <label className="group relative block h-28 w-28 shrink-0 cursor-pointer rounded-full" style={{ boxShadow: "0 0 0 3px #0A0A0A, 0 0 0 4px rgba(0,255,102,0.45), 0 0 40px -8px rgba(0,255,102,0.55)" }}>
+                <span className="block h-full w-full overflow-hidden rounded-full bg-black/40">
+                  {form.avatar_data_url ? (
+                    <img src={form.avatar_data_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center font-display text-4xl font-extrabold text-black" style={{ background: "linear-gradient(135deg, #00FF66, #C6FF00)" }}>
+                      {initial}
+                    </span>
+                  )}
+                </span>
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/65 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
+                  Trocar foto
+                </span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+              </label>
+              <p className="mt-4 text-sm font-semibold">Foto do perfil</p>
+              <p className="mt-1 text-[0.72rem] text-brand-muted">Toque na foto para escolher uma imagem. Ela aparece no menu e no dashboard.</p>
+              {avatarError && <p className="mt-1 text-xs text-brand-danger">{avatarError}</p>}
+            </div>
+          </Panel>
+
+          <div className="space-y-4 lg:col-span-8">
+            <Panel>
+              <h2 className="od-label mb-5">Dados pessoais</h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Field label="Nome completo">
+                    <input
+                      type="text"
+                      value={form.full_name ?? ""}
+                      onChange={(e) => set("full_name", e.target.value)}
+                      className="od-input"
+                      placeholder="Seu nome"
+                    />
+                  </Field>
+                </div>
+                <Field label="Peso (kg)">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={form.weight_kg ?? ""}
+                    onChange={(e) => set("weight_kg", e.target.value)}
+                    className="od-input"
+                    placeholder="70.5"
+                  />
+                </Field>
+                <Field label="Sexo">
+                  <select value={form.sex ?? ""} onChange={(e) => set("sex", e.target.value)} className="od-input">
+                    <option value="">Prefiro não informar</option>
+                    <option value="F">Feminino</option>
+                    <option value="M">Masculino</option>
+                    <option value="O">Outro</option>
+                  </select>
+                </Field>
+              </div>
+              <p className="mt-3 text-[0.72rem] text-brand-muted">
+                A Duni usa o sexo só para concordar as palavras ("cansado" ou "cansada"). Sem ele, ela escreve de forma neutra.
+              </p>
+            </Panel>
+
+            <Panel>
+              <h2 className="od-label mb-2">Logo para compartilhamento</h2>
+              <div className="flex items-center gap-4">
+                <div
+                  className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-tile"
+                  style={{
+                    backgroundImage:
+                      "repeating-conic-gradient(#2a2a2a 0% 25%, #1a1a1a 0% 50%)",
+                    backgroundSize: "12px 12px",
+                    boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)",
+                  }}
+                >
+                  {form.logo_data_url ? (
+                    <img src={form.logo_data_url} alt="Sua logo" className="max-h-full max-w-full object-contain" />
+                  ) : (
+                    <span className="px-2 text-center text-[0.6rem] text-brand-textTertiary">Sem logo</span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="mb-3 text-sm text-brand-muted">
+                    Aparece nos cards e stories que você exporta das atividades. Envie um PNG, de preferência com fundo transparente.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <label className="od-btn od-btn-secondary od-btn-sm w-fit cursor-pointer">
+                      {form.logo_data_url ? "Trocar logo" : "Enviar logo"}
+                      <input type="file" accept="image/png" className="hidden" onChange={handleLogoChange} />
+                    </label>
+                    {form.logo_data_url && (
+                      <button
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, logo_data_url: null }))}
+                        className="od-btn od-btn-ghost od-btn-sm w-fit"
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            ))}
+              {logoError && <p className="mt-2 text-xs text-brand-danger">{logoError}</p>}
+            </Panel>
           </div>
+        </div>
 
-          {zones && (
-            <div className="relative mt-4">
-              <div className="od-metric-label mb-2">
-                Zonas de FC ({form.hr_zones ? "personalizadas" : form.resting_hr != null ? "Karvonen · FC de reserva" : "% da máxima"})
-              </div>
-              <div className="flex h-2 overflow-hidden rounded-full">
-                {["#00BFFF", "#00FF66", "#C6FF00", "#FFC145", "#F85149"].map((c) => <div key={c} className="flex-1" style={{ background: c, opacity: 0.8 }} />)}
-              </div>
-              <div className="mt-1.5 grid grid-cols-5 text-center text-[0.6rem] tabular-nums text-brand-muted">
-                {zones.map((z) => <span key={z.z}>Z{z.z}<br />{z.range}</span>)}
-              </div>
-            </div>
-          )}
-        </Panel>
-
-        <div className="space-y-4 lg:col-span-8">
+        {/* ───────── Treino ───────── */}
+        <div className={aba === "treino" ? "grid gap-4 lg:grid-cols-2" : "hidden"}>
           <Panel>
-            <h2 className="od-label mb-5">Dados pessoais</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nome completo">
-                <input
-                  type="text"
-                  value={form.full_name ?? ""}
-                  onChange={(e) => set("full_name", e.target.value)}
-                  className="od-input"
-                  placeholder="Seu nome"
-                />
-              </Field>
-              <Field label="Peso (kg)">
-                <input
-                  type="number"
-                  step="0.1"
-                  value={form.weight_kg ?? ""}
-                  onChange={(e) => set("weight_kg", e.target.value)}
-                  className="od-input"
-                  placeholder="70.5"
-                />
-              </Field>
-              <Field label="Sexo">
-                <select value={form.sex ?? ""} onChange={(e) => set("sex", e.target.value)} className="od-input">
-                  <option value="">Prefiro não informar</option>
-                  <option value="F">Feminino</option>
-                  <option value="M">Masculino</option>
-                  <option value="O">Outro</option>
-                </select>
-              </Field>
-            </div>
-            <p className="mt-3 text-[0.72rem] text-brand-muted">
-              A Duni usa o sexo só para concordar as palavras ("cansado" ou "cansada"). Sem ele, ela escreve de forma neutra.
-            </p>
-          </Panel>
-
-          <Panel>
-            <h2 className="od-label mb-2">Logo para compartilhamento</h2>
-            <p className="mb-5 text-sm text-brand-muted">
-              Aparece nos cards e stories que você exporta das suas atividades. Envie um PNG — de
-              preferência com fundo transparente.
-            </p>
-            <div className="flex items-center gap-4">
-              <div
-                className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-tile"
-                style={{
-                  backgroundImage:
-                    "repeating-conic-gradient(#2a2a2a 0% 25%, #1a1a1a 0% 50%)",
-                  backgroundSize: "12px 12px",
-                  boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)",
-                }}
-              >
-                {form.logo_data_url ? (
-                  <img src={form.logo_data_url} alt="Sua logo" className="max-h-full max-w-full object-contain" />
-                ) : (
-                  <span className="px-2 text-center text-[0.6rem] text-brand-textTertiary">Sem logo</span>
-                )}
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="od-btn od-btn-secondary od-btn-sm w-fit cursor-pointer">
-                  {form.logo_data_url ? "Trocar logo" : "Enviar logo"}
-                  <input type="file" accept="image/png" className="hidden" onChange={handleLogoChange} />
-                </label>
-                {form.logo_data_url && (
-                  <button
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, logo_data_url: null }))}
-                    className="od-btn od-btn-ghost od-btn-sm w-fit"
-                  >
-                    Remover
-                  </button>
-                )}
-              </div>
-            </div>
-            {logoError && <p className="mt-2 text-xs text-brand-danger">{logoError}</p>}
-          </Panel>
-
-          <Panel>
-            <h2 className="od-label mb-2">Zonas de treino</h2>
-            <p className="mb-5 text-sm text-brand-muted">
-              FC máxima é usada para calcular zonas e distribuição de esforço nas atividades.
-              FTP e CSS habilitam métricas de carga para ciclismo e natação.
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="FC Repouso (bpm)">
+            <h2 className="od-label mb-2">Frequência cardíaca</h2>
+            <p className="mb-5 text-sm text-brand-muted">A FC máxima define as zonas e o esforço de cada atividade; com a de repouso, as zonas usam a FC de reserva.</p>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="FC de repouso (bpm)">
                 <input
                   type="number"
                   value={form.resting_hr ?? ""}
@@ -465,7 +485,7 @@ export default function ProfilePage() {
                   placeholder="55"
                 />
               </Field>
-              <Field label="FC Máxima (bpm)">
+              <Field label="FC máxima (bpm)">
                 <input
                   type="number"
                   value={form.max_hr ?? ""}
@@ -474,38 +494,21 @@ export default function ProfilePage() {
                   placeholder="190"
                 />
               </Field>
-              <Field label="FTP – Ciclismo (W)">
-                <input
-                  type="number"
-                  value={form.ftp_watts ?? ""}
-                  onChange={(e) => set("ftp_watts", e.target.value)}
-                  className="od-input"
-                  placeholder="250"
-                />
-              </Field>
-              <Field label="CSS – Natação (s/100m)">
-                <input
-                  type="number"
-                  step="0.1"
-                  value={form.css_pace_s_per_100m ?? ""}
-                  onChange={(e) => set("css_pace_s_per_100m", e.target.value)}
-                  className="od-input"
-                  placeholder="95"
-                />
-              </Field>
-              <Field label="Meta de corrida por semana (km)">
-                <input
-                  type="number"
-                  min="0"
-                  max="400"
-                  step="1"
-                  value={form.weekly_km_goal ?? ""}
-                  onChange={(e) => set("weekly_km_goal", e.target.value)}
-                  className="od-input"
-                  placeholder="30"
-                />
-              </Field>
             </div>
+
+            {zones && (
+              <div className="mt-5">
+                <div className="od-metric-label mb-2">
+                  Zonas de FC ({form.hr_zones ? "personalizadas" : form.resting_hr != null ? "Karvonen · FC de reserva" : "% da máxima"})
+                </div>
+                <div className="flex h-2 overflow-hidden rounded-full">
+                  {["#00BFFF", "#00FF66", "#C6FF00", "#FFC145", "#F85149"].map((c) => <div key={c} className="flex-1" style={{ background: c, opacity: 0.8 }} />)}
+                </div>
+                <div className="mt-1.5 grid grid-cols-5 text-center text-[0.62rem] tabular-nums text-brand-muted">
+                  {zones.map((z) => <span key={z.z}>Z{z.z}<br />{z.range}</span>)}
+                </div>
+              </div>
+            )}
 
             <div className="mt-5 border-t border-white/5 pt-5">
               <button
@@ -537,90 +540,138 @@ export default function ProfilePage() {
             </div>
           </Panel>
 
-          {error && <Alert tone="danger">{error}</Alert>}
+          <div className="space-y-4">
+            <Panel>
+              <h2 className="od-label mb-2">Meta da semana</h2>
+              <p className="mb-5 text-sm text-brand-muted">Aparece no dashboard (Visão semanal) e em Desempenho, que avisa se a meta está fora da faixa segura.</p>
+              <Field label="Corrida por semana (km)">
+                <input
+                  type="number"
+                  min="0"
+                  max="400"
+                  step="1"
+                  value={form.weekly_km_goal ?? ""}
+                  onChange={(e) => set("weekly_km_goal", e.target.value)}
+                  className="od-input sm:max-w-[200px]"
+                  placeholder="30"
+                />
+              </Field>
+            </Panel>
 
-          <div className="flex flex-wrap items-center gap-4">
-            <button type="submit" disabled={saving} className="od-btn od-btn-primary !px-6">
-              {saving ? "Salvando…" : "Salvar perfil"}
-            </button>
-            {saved && <span className="animate-od-fade-up text-sm font-medium text-brand-success">✓ Salvo com sucesso!</span>}
+            <Panel>
+              <h2 className="od-label mb-2">Ciclismo e natação</h2>
+              <p className="mb-5 text-sm text-brand-muted">FTP e CSS liberam a carga (TSS) dos treinos de bike e de natação.</p>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="FTP (W)">
+                  <input
+                    type="number"
+                    value={form.ftp_watts ?? ""}
+                    onChange={(e) => set("ftp_watts", e.target.value)}
+                    className="od-input"
+                    placeholder="250"
+                  />
+                </Field>
+                <Field label="CSS (s/100 m)">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={form.css_pace_s_per_100m ?? ""}
+                    onChange={(e) => set("css_pace_s_per_100m", e.target.value)}
+                    className="od-input"
+                    placeholder="95"
+                  />
+                </Field>
+              </div>
+            </Panel>
           </div>
+        </div>
+
+        {error && <Alert tone="danger">{error}</Alert>}
+
+        <div className="flex flex-wrap items-center gap-4">
+          <button type="submit" disabled={saving} className="od-btn od-btn-primary !px-6">
+            {saving ? "Salvando…" : "Salvar perfil"}
+          </button>
+          {saved && <span className="animate-od-fade-up text-sm font-medium text-brand-success">✓ Salvo com sucesso!</span>}
+          <span className="text-xs text-brand-muted">Salva as abas Dados e Treino juntas.</span>
         </div>
       </form>
 
-      {/* fora do <form> do perfil: os botões da importação não podem enviar o perfil */}
-      <div className="mt-4">
+      {/* ───────── Importar (fora do <form>: os botões dela não enviam o perfil) ───────── */}
+      <div hidden={aba !== "importar"}>
         <ImportSection />
       </div>
 
-      <div className="mt-4">
+      {/* ───────── Conta ───────── */}
+      <div hidden={aba !== "conta"} className="space-y-4">
         <NotificationsPanel />
-      </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Panel>
-          <h2 className="od-label mb-5">Trocar senha</h2>
-          <form onSubmit={handleChangePassword} className="space-y-4">
-            <Field label="Senha atual">
-              <input
-                type="password"
-                value={pwCurrent}
-                onChange={(e) => setPwCurrent(e.target.value)}
-                className="od-input"
-                autoComplete="current-password"
-                required
-              />
-            </Field>
-            <Field label="Nova senha">
-              <input
-                type="password"
-                value={pwNew}
-                onChange={(e) => setPwNew(e.target.value)}
-                className="od-input"
-                autoComplete="new-password"
-                minLength={8}
-                required
-              />
-            </Field>
-            <Field label="Confirmar nova senha">
-              <input
-                type="password"
-                value={pwConfirm}
-                onChange={(e) => setPwConfirm(e.target.value)}
-                className="od-input"
-                autoComplete="new-password"
-                minLength={8}
-                required
-              />
-            </Field>
-            {pwError && <p className="text-xs text-brand-danger">{pwError}</p>}
-            <p className="text-xs text-brand-textTertiary">
-              Isso não desconecta outros aparelhos já logados — a sessão antiga continua
-              valendo até expirar (até 7 dias).
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Panel>
+            <h2 className="od-label mb-5">Trocar senha</h2>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <Field label="Senha atual">
+                <input
+                  type="password"
+                  value={pwCurrent}
+                  onChange={(e) => setPwCurrent(e.target.value)}
+                  className="od-input"
+                  autoComplete="current-password"
+                  required
+                />
+              </Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Nova senha">
+                  <input
+                    type="password"
+                    value={pwNew}
+                    onChange={(e) => setPwNew(e.target.value)}
+                    className="od-input"
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                  />
+                </Field>
+                <Field label="Confirmar nova senha">
+                  <input
+                    type="password"
+                    value={pwConfirm}
+                    onChange={(e) => setPwConfirm(e.target.value)}
+                    className="od-input"
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                  />
+                </Field>
+              </div>
+              {pwError && <p className="text-xs text-brand-danger">{pwError}</p>}
+              <p className="text-xs text-brand-textTertiary">
+                Isso não desconecta outros aparelhos já logados — a sessão antiga continua
+                valendo até expirar (até 7 dias).
+              </p>
+              <div className="flex items-center gap-4">
+                <button type="submit" disabled={pwSaving} className="od-btn od-btn-secondary">
+                  {pwSaving ? "Trocando…" : "Trocar senha"}
+                </button>
+                {pwSaved && <span className="animate-od-fade-up text-sm font-medium text-brand-success">✓ Senha alterada!</span>}
+              </div>
+            </form>
+          </Panel>
+
+          <Panel>
+            <h2 className="od-label mb-2">Dados e privacidade</h2>
+            <p className="mb-5 text-sm text-brand-muted">
+              Baixe uma cópia de todos os seus dados — perfil, equipamentos, recordes e atividades
+              (com rotas GPS e voltas) — em um único arquivo JSON.
             </p>
-            <div className="flex items-center gap-4">
-              <button type="submit" disabled={pwSaving} className="od-btn od-btn-secondary">
-                {pwSaving ? "Trocando…" : "Trocar senha"}
-              </button>
-              {pwSaved && <span className="animate-od-fade-up text-sm font-medium text-brand-success">✓ Senha alterada!</span>}
-            </div>
-          </form>
-        </Panel>
+            {exportError && <p className="mb-3 text-xs text-brand-danger">{exportError}</p>}
+            <button type="button" onClick={handleExport} disabled={exporting} className="od-btn od-btn-secondary">
+              {exporting ? "Gerando arquivo…" : "Exportar meus dados"}
+            </button>
+          </Panel>
+        </div>
 
-        <Panel>
-          <h2 className="od-label mb-2">Dados e privacidade</h2>
-          <p className="mb-5 text-sm text-brand-muted">
-            Baixe uma cópia de todos os seus dados — perfil, equipamentos, recordes e atividades
-            (com rotas GPS e voltas) — em um único arquivo JSON.
-          </p>
-          {exportError && <p className="mb-3 text-xs text-brand-danger">{exportError}</p>}
-          <button type="button" onClick={handleExport} disabled={exporting} className="od-btn od-btn-secondary">
-            {exporting ? "Gerando arquivo…" : "Exportar meus dados"}
-          </button>
-        </Panel>
-      </div>
-
-      <section className="mt-8 rounded-card p-5 sm:p-6" style={{ background: "rgba(248,81,73,0.035)", boxShadow: "inset 0 0 0 1px rgba(248,81,73,0.25)" }}>
+        <section className="mt-4 rounded-card p-5 sm:p-6" style={{ background: "rgba(248,81,73,0.035)", boxShadow: "inset 0 0 0 1px rgba(248,81,73,0.25)" }}>
         <h2 className="mb-2 text-[0.6875rem] font-bold uppercase tracking-[0.16em] text-brand-danger">Zona de perigo</h2>
         <p className="mb-4 max-w-2xl text-sm text-brand-muted">
           Apaga permanentemente todas as suas atividades — incluindo rotas GPS, recordes pessoais,
@@ -730,7 +781,8 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
-      </section>
+        </section>
+      </div>
     </PageContainer>
   );
 }

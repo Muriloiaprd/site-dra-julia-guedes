@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 
 import { isRestWorkout } from "@/components/dashboard/WeekStrip";
 import { SportTile } from "@/components/SportIcon";
 import { Panel, Skeleton } from "@/components/ui/primitives";
 import type { ActivitySummary, PlannedWorkout } from "@/lib/api";
 import { MONTH_PT, sameDay, toISODate } from "@/lib/athlete";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 import { activeSeconds, formatDuration, formatPaceShort, isBikeSport, sportColor, sportLabel } from "@/lib/utils";
 
 const DOW = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
@@ -56,6 +58,7 @@ function longDate(d: Date) {
   return `${DOW_LONG[d.getDay()]}, ${d.getDate()} de ${MONTH_PT[d.getMonth()].toLowerCase()}`;
 }
 
+/** O mês inteiro na largura da tela; tocar num dia abre a gaveta com o planejado e o feito. */
 export function TrainingCalendar({
   year, month, activities, workouts, loading, onMonth,
 }: {
@@ -77,9 +80,15 @@ export function TrainingCalendar({
 
   const [picked, setPicked] = useState<{ key: string; day: number } | null>(null);
   const monthKey = `${year}-${month}`;
-  // o dia escolhido vale só para o mês em que foi escolhido; ao trocar de mês, hoje ou o dia 1
+  // o dia em foco vale só para o mês em que foi escolhido; ao trocar de mês, hoje ou o dia 1
   const selDay = picked?.key === monthKey && picked.day <= lastDay ? picked.day : isThisMonth ? today.getDate() : 1;
   const dayRefs = useRef<Record<number, HTMLButtonElement | null>>({});
+
+  // gaveta com o detalhe do dia: abre no clique (ou Enter); as setas só andam pela grade
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLButtonElement | null>(null);
+  useFocusTrap(drawerRef, drawerOpen, () => setDrawerOpen(false), openerRef);
 
   const { actsByDay, planByDay } = useMemo(() => {
     const actsByDay = new Map<number, ActivitySummary[]>();
@@ -117,6 +126,12 @@ export function TrainingCalendar({
     if (focus) dayRefs.current[day]?.focus();
   }
 
+  function openDay(day: number) {
+    select(day);
+    openerRef.current = dayRefs.current[day] ?? null;
+    setDrawerOpen(true);
+  }
+
   function onGridKey(e: KeyboardEvent<HTMLDivElement>) {
     const step: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
     let next: number | null = null;
@@ -132,20 +147,9 @@ export function TrainingCalendar({
   const selPlans = planByDay.get(selDay) ?? [];
   const selActs = actsByDay.get(selDay) ?? [];
 
-  // semanas do mês (segunda a domingo) para a lista do celular
-  const weeks = useMemo(() => {
-    const out: number[][] = [];
-    let cur: number[] = [];
-    for (let d = 1; d <= lastDay; d++) {
-      cur.push(d);
-      if ((startDow + d) % 7 === 0 || d === lastDay) { out.push(cur); cur = []; }
-    }
-    return out;
-  }, [lastDay, startDow]);
-
   return (
-    <div className="grid gap-4 lg:grid-cols-12">
-      <Panel className="lg:col-span-8" aria-label="Calendário de treinos">
+    <>
+      <Panel aria-label="Calendário de treinos">
         {/* cabeçalho: mês e navegação */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-xl font-bold">
@@ -163,7 +167,7 @@ export function TrainingCalendar({
         </div>
 
         {/* totais do mês */}
-        <div className="mb-4 grid grid-cols-3 gap-2">
+        <div className="mb-4 grid grid-cols-3 gap-2 sm:max-w-xl">
           {[
             { k: "Feito", v: `${kmNum(totals.doneKm)} km`, s: `${totals.doneCount} ${totals.doneCount === 1 ? "treino" : "treinos"}` },
             { k: "Plano", v: `${kmNum(totals.planKm)} km`, s: `${totals.planCount} ${totals.planCount === 1 ? "treino" : "treinos"}` },
@@ -179,128 +183,69 @@ export function TrainingCalendar({
 
         {loading ? <Skeleton className="h-[420px]" /> : (
           <>
-            {/* computador e tablet: grade do mês */}
-            <div className="hidden md:block">
-              <div className="mb-1.5 grid grid-cols-7 gap-1.5">
-                {DOW.map((d) => <div key={d} className="px-1 text-[0.62rem] font-bold uppercase tracking-wider text-brand-textTertiary">{d}</div>)}
-              </div>
-              <div className="grid grid-cols-7 gap-1.5" role="group" aria-label={`Dias de ${MONTH_PT[month]} ${year}. Use as setas para andar pelos dias.`} onKeyDown={onGridKey}>
-                {Array.from({ length: startDow }).map((_, i) => <div key={`e${i}`} />)}
-                {Array.from({ length: lastDay }, (_, i) => i + 1).map((day) => {
-                  const d = new Date(year, month, day);
-                  const plans = planByDay.get(day) ?? [];
-                  const acts = actsByDay.get(day) ?? [];
-                  const isToday = sameDay(d, today);
-                  const selected = day === selDay;
-                  const resumo = [
-                    ...plans.map((w) => `${situacao(w, todayIso).label}: ${w.title}`),
-                    acts.length ? `${acts.length} ${acts.length === 1 ? "atividade feita" : "atividades feitas"}` : null,
-                  ].filter(Boolean).join("; ");
-                  return (
-                    <button
-                      key={day}
-                      ref={(el) => { dayRefs.current[day] = el; }}
-                      type="button"
-                      tabIndex={selected ? 0 : -1}
-                      aria-pressed={selected}
-                      aria-current={isToday ? "date" : undefined}
-                      aria-label={`${day} de ${MONTH_PT[month]}${isToday ? ", hoje" : ""} — ${resumo || "sem treino"}`}
-                      onClick={() => select(day)}
-                      className="flex min-h-[104px] flex-col gap-1 overflow-hidden rounded-xl p-1.5 text-left transition-colors hover:bg-white/[0.04]"
-                      style={{
-                        background: selected ? "rgba(255,255,255,0.05)" : isToday ? "rgba(0,255,102,0.06)" : "rgba(255,255,255,0.015)",
-                        boxShadow: selected
-                          ? "inset 0 0 0 1.5px rgba(0,255,102,0.7)"
-                          : isToday ? "inset 0 0 0 1px rgba(0,255,102,0.45)" : "inset 0 0 0 1px rgba(255,255,255,0.05)",
-                      }}
-                    >
-                      <span className={`od-num px-0.5 text-[0.78rem] leading-none ${isToday ? "text-brand-accent" : acts.length || plans.length ? "text-white" : "text-brand-textTertiary"}`}>
-                        {day}
-                      </span>
+            {/* a grade do mês na tela toda: no computador com o nome do treino, no celular com pontinhos */}
+            <div className="mb-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
+              {DOW.map((d) => <div key={d} className="text-center text-[0.6rem] font-bold uppercase tracking-wider text-brand-textTertiary sm:px-1 sm:text-left sm:text-[0.62rem]">{d}</div>)}
+            </div>
+            <div className="grid grid-cols-7 gap-1 sm:gap-1.5" role="group" aria-label={`Dias de ${MONTH_PT[month]} ${year}. Use as setas para andar pelos dias e Enter para abrir.`} onKeyDown={onGridKey}>
+              {Array.from({ length: startDow }).map((_, i) => <div key={`e${i}`} />)}
+              {Array.from({ length: lastDay }, (_, i) => i + 1).map((day) => {
+                const d = new Date(year, month, day);
+                const plans = planByDay.get(day) ?? [];
+                const acts = actsByDay.get(day) ?? [];
+                const isToday = sameDay(d, today);
+                const resumo = [
+                  ...plans.map((w) => `${situacao(w, todayIso).label}: ${w.title}`),
+                  acts.length ? `${acts.length} ${acts.length === 1 ? "atividade feita" : "atividades feitas"}` : null,
+                ].filter(Boolean).join("; ");
+                return (
+                  <button
+                    key={day}
+                    ref={(el) => { dayRefs.current[day] = el; }}
+                    type="button"
+                    tabIndex={day === selDay ? 0 : -1}
+                    aria-haspopup="dialog"
+                    aria-current={isToday ? "date" : undefined}
+                    aria-label={`${day} de ${MONTH_PT[month]}${isToday ? ", hoje" : ""} — ${resumo || "sem treino"}`}
+                    onFocus={() => setPicked({ key: monthKey, day })}
+                    onClick={() => openDay(day)}
+                    className="flex min-h-[52px] flex-col items-center gap-1 overflow-hidden rounded-lg p-1 text-left transition-colors hover:bg-white/[0.05] sm:min-h-[112px] sm:items-stretch sm:rounded-xl sm:p-1.5"
+                    style={{
+                      background: isToday ? "rgba(0,255,102,0.07)" : "rgba(255,255,255,0.015)",
+                      boxShadow: isToday ? "inset 0 0 0 1px rgba(0,255,102,0.5)" : "inset 0 0 0 1px rgba(255,255,255,0.05)",
+                    }}
+                  >
+                    <span className={`od-num text-[0.78rem] leading-none sm:px-0.5 ${isToday ? "text-brand-accent" : acts.length || plans.length ? "text-white" : "text-brand-textTertiary"}`}>
+                      {day}
+                    </span>
+
+                    {/* celular: um ponto por treino planejado (cor da situação; cheio se cumprido) e por atividade (cor do esporte) */}
+                    <span className="flex flex-wrap justify-center gap-[3px] sm:hidden" aria-hidden>
                       {plans.slice(0, 2).map((w) => {
                         const s = situacao(w, todayIso);
-                        return (
-                          <span key={w.id} className="flex min-w-0 items-center gap-1 rounded-md px-1 py-0.5 text-[0.64rem] leading-tight" style={{ color: s.color, background: `${s.color}12`, boxShadow: `inset 0 0 0 1px ${s.color}38` }}>
-                            <span aria-hidden className="shrink-0">{s.icon}</span>
-                            <span className="truncate">{w.title}</span>
-                          </span>
-                        );
+                        return <span key={w.id} className="h-1.5 w-1.5 rounded-full" style={{ boxShadow: `inset 0 0 0 1.5px ${s.color}`, background: w.status === "done" ? s.color : "transparent" }} />;
                       })}
-                      {acts.slice(0, 2).map((a) => (
-                        <span key={a.id} className="flex min-w-0 items-center gap-1 px-0.5 text-[0.64rem] leading-tight text-brand-textSecondary">
-                          <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: sportColor(a.sport), boxShadow: `0 0 5px ${sportColor(a.sport)}` }} />
-                          <span className="truncate">{kmText(a.distance_m) ?? sportLabel(a.sport)}</span>
-                        </span>
-                      ))}
-                      {acts.length + plans.length > 4 && <span className="px-0.5 text-[0.6rem] text-brand-muted">+{acts.length + plans.length - 4}</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+                      {acts.slice(0, 2).map((a) => <span key={a.id} className="h-1.5 w-1.5 rounded-full" style={{ background: sportColor(a.sport) }} />)}
+                    </span>
 
-            {/* celular: lista por semana, só os dias com algo (e hoje) */}
-            <div className="space-y-4 md:hidden">
-              {weeks.map((days) => {
-                const shown = days.filter((day) => (planByDay.get(day)?.length ?? 0) + (actsByDay.get(day)?.length ?? 0) > 0 || (isThisMonth && day === today.getDate()));
-                const km = days.reduce((s, day) => s + (actsByDay.get(day) ?? []).reduce((t, a) => t + (a.distance_m ?? 0), 0), 0) / 1000;
-                return (
-                  <section key={days[0]} aria-label={`Semana de ${days[0]} a ${days[days.length - 1]}`}>
-                    <div className="mb-1.5 flex items-baseline justify-between px-1">
-                      <span className="od-metric-label">{days[0]}–{days[days.length - 1]} de {MONTH_PT[month].toLowerCase()}</span>
-                      <span className="text-[0.68rem] text-brand-muted">{km > 0 ? `${kmNum(km)} km feitos` : ""}</span>
-                    </div>
-                    {shown.length === 0 ? (
-                      <p className="rounded-xl bg-white/[0.02] px-3 py-2.5 text-[0.75rem] text-brand-textTertiary">Nada nesta semana.</p>
-                    ) : (
-                      <ul className="space-y-1.5">
-                        {shown.map((day) => {
-                          const d = new Date(year, month, day);
-                          const plans = planByDay.get(day) ?? [];
-                          const acts = actsByDay.get(day) ?? [];
-                          const isToday = sameDay(d, today);
-                          return (
-                            <li key={day}>
-                              <button
-                                type="button"
-                                onClick={() => select(day)}
-                                aria-pressed={day === selDay}
-                                className="flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left"
-                                style={{
-                                  background: day === selDay ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.02)",
-                                  boxShadow: day === selDay ? "inset 0 0 0 1.5px rgba(0,255,102,0.7)" : isToday ? "inset 0 0 0 1px rgba(0,255,102,0.45)" : undefined,
-                                }}
-                              >
-                                <span className="w-9 shrink-0 text-center">
-                                  <span className="block text-[0.6rem] font-bold uppercase text-brand-textTertiary">{DOW[(d.getDay() + 6) % 7]}</span>
-                                  <span className={`od-num block text-[1.05rem] leading-tight ${isToday ? "text-brand-accent" : ""}`}>{day}</span>
-                                </span>
-                                <span className="min-w-0 flex-1 space-y-1">
-                                  {plans.map((w) => {
-                                    const s = situacao(w, todayIso);
-                                    return (
-                                      <span key={w.id} className="flex items-center gap-1.5 text-[0.8rem]">
-                                        <span style={{ color: s.color }} aria-hidden>{s.icon}</span>
-                                        <span className="truncate font-medium">{w.title}</span>
-                                        <span className="shrink-0 text-[0.68rem]" style={{ color: s.color }}>{s.label}</span>
-                                      </span>
-                                    );
-                                  })}
-                                  {acts.map((a) => (
-                                    <span key={a.id} className="flex items-center gap-1.5 text-[0.75rem] text-brand-textSecondary">
-                                      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: sportColor(a.sport) }} />
-                                      <span className="truncate">{sportLabel(a.sport)} · {activityText(a)}</span>
-                                    </span>
-                                  ))}
-                                  {plans.length + acts.length === 0 && <span className="text-[0.75rem] text-brand-muted">Hoje — nada planejado</span>}
-                                </span>
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </section>
+                    {/* computador e tablet: o nome do treino e os km */}
+                    {plans.slice(0, 2).map((w) => {
+                      const s = situacao(w, todayIso);
+                      return (
+                        <span key={w.id} className="hidden min-w-0 items-center gap-1 rounded-md px-1 py-0.5 text-[0.66rem] leading-tight sm:flex" style={{ color: s.color, background: `${s.color}12`, boxShadow: `inset 0 0 0 1px ${s.color}38` }}>
+                          <span aria-hidden className="shrink-0">{s.icon}</span>
+                          <span className="truncate">{w.title}</span>
+                        </span>
+                      );
+                    })}
+                    {acts.slice(0, 2).map((a) => (
+                      <span key={a.id} className="hidden min-w-0 items-center gap-1 px-0.5 text-[0.66rem] leading-tight text-brand-textSecondary sm:flex">
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: sportColor(a.sport), boxShadow: `0 0 5px ${sportColor(a.sport)}` }} />
+                        <span className="truncate">{kmText(a.distance_m) ?? sportLabel(a.sport)}</span>
+                      </span>
+                    ))}
+                    {acts.length + plans.length > 4 && <span className="hidden px-0.5 text-[0.6rem] text-brand-muted sm:block">+{acts.length + plans.length - 4}</span>}
+                  </button>
                 );
               })}
             </div>
@@ -311,77 +256,98 @@ export function TrainingCalendar({
               <span><span style={{ color: "#C6FF00" }}>●</span> Hoje</span>
               <span><span style={{ color: "#B5B5B5" }}>○</span> Planejado</span>
               <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-brand-accent" /> Atividade feita</span>
+              <span className="w-full sm:ml-auto sm:w-auto">Toque num dia para ver os detalhes.</span>
             </div>
           </>
         )}
       </Panel>
 
-      {/* detalhe do dia escolhido */}
-      <Panel className="lg:col-span-4 lg:self-start lg:sticky lg:top-6" aria-live="polite" aria-label="Treinos do dia">
-        <div className="od-label od-label-accent mb-1">{sameDay(selDate, today) ? "Hoje" : "Dia escolhido"}</div>
-        <h3 className="font-display text-lg font-bold first-letter:uppercase">{longDate(selDate)}</h3>
+      {/* gaveta do dia: entra pela direita no computador e por baixo no celular; no body, porque um pai com
+          transform (animação de entrada) prenderia o "fixed" a ele em vez da tela */}
+      {drawerOpen && createPortal(
+        <div className="fixed inset-0 z-50" onClick={() => setDrawerOpen(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dia-titulo"
+            onClick={(e) => e.stopPropagation()}
+            className="od-panel absolute inset-x-0 bottom-0 max-h-[82vh] animate-od-fade-up overflow-y-auto !rounded-b-none !p-5 sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[420px] sm:!rounded-l-2xl sm:!rounded-r-none"
+            style={{ background: "#0F110F", boxShadow: "0 0 0 1px rgba(255,255,255,0.08), 0 -20px 60px -20px rgba(0,0,0,0.8)", paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <div className="od-label od-label-accent mb-1">{sameDay(selDate, today) ? "Hoje" : "Dia"}</div>
+                <h3 id="dia-titulo" className="font-display text-lg font-bold first-letter:uppercase">{longDate(selDate)}</h3>
+              </div>
+              <button type="button" onClick={() => setDrawerOpen(false)} className="od-icon-btn !h-9 !w-9 !rounded-full" aria-label="Fechar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M18 6 6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
 
-        {loading ? <Skeleton className="mt-4 h-40" /> : (
-          <div className="mt-4 space-y-3">
-            {selPlans.map((w) => {
-              const s = situacao(w, todayIso);
-              const intensity = w.target_intensity ? INTENSITY[w.target_intensity] : undefined;
-              const target = targetText(w);
-              return (
-                <article key={w.id} className="od-tile space-y-2 p-3.5" style={{ boxShadow: `inset 0 0 0 1px ${s.color}38` }}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-[0.62rem] font-bold uppercase tracking-wider text-brand-muted">Planejado{w.goal_plan_id ? " · plano do objetivo" : w.weekly_plan_id ? " · plano da semana" : ""}</div>
-                      <p className="mt-0.5 font-semibold leading-snug">{w.title}</p>
+            <div className="space-y-3">
+              {selPlans.map((w) => {
+                const s = situacao(w, todayIso);
+                const intensity = w.target_intensity ? INTENSITY[w.target_intensity] : undefined;
+                const target = targetText(w);
+                return (
+                  <article key={w.id} className="od-tile space-y-2 p-3.5" style={{ boxShadow: `inset 0 0 0 1px ${s.color}38` }}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-[0.62rem] font-bold uppercase tracking-wider text-brand-muted">Planejado{w.goal_plan_id ? " · plano do objetivo" : w.weekly_plan_id ? " · plano da semana" : ""}</div>
+                        <p className="mt-0.5 font-semibold leading-snug">{w.title}</p>
+                      </div>
+                      <span className="shrink-0 rounded-full px-2 py-0.5 text-[0.66rem] font-bold" style={{ color: s.color, background: `${s.color}14`, boxShadow: `inset 0 0 0 1px ${s.color}50` }}>
+                        {s.icon} {s.label}
+                      </span>
                     </div>
-                    <span className="shrink-0 rounded-full px-2 py-0.5 text-[0.66rem] font-bold" style={{ color: s.color, background: `${s.color}14`, boxShadow: `inset 0 0 0 1px ${s.color}50` }}>
-                      {s.icon} {s.label}
-                    </span>
-                  </div>
-                  <p className="text-[0.75rem] text-brand-textSecondary">
-                    {sportLabel(w.sport)}
-                    {intensity && <> · <span style={{ color: intensity.color }}>{intensity.label}</span></>}
-                    {target && <> · {target}</>}
-                  </p>
-                  {(w.targets?.ritmo || w.targets?.zona_fc) && (
                     <p className="text-[0.75rem] text-brand-textSecondary">
-                      {w.targets?.ritmo && <>Ritmo <span className="text-white">{w.targets.ritmo}</span></>}
-                      {w.targets?.ritmo && w.targets?.zona_fc && " · "}
-                      {w.targets?.zona_fc && <>FC <span className="text-white">{w.targets.zona_fc}</span></>}
+                      {sportLabel(w.sport)}
+                      {intensity && <> · <span style={{ color: intensity.color }}>{intensity.label}</span></>}
+                      {target && <> · {target}</>}
                     </p>
-                  )}
-                  {(w.objective || w.description) && <p className="text-[0.75rem] leading-snug text-brand-muted">{w.objective ?? w.description}</p>}
-                  {w.activity_id && (
-                    <Link href={`/activities/${w.activity_id}`} className="inline-block text-[0.75rem] font-semibold text-brand-accent hover:underline">Ver o treino feito →</Link>
-                  )}
-                </article>
-              );
-            })}
+                    {(w.targets?.ritmo || w.targets?.zona_fc) && (
+                      <p className="text-[0.75rem] text-brand-textSecondary">
+                        {w.targets?.ritmo && <>Ritmo <span className="text-white">{w.targets.ritmo}</span></>}
+                        {w.targets?.ritmo && w.targets?.zona_fc && " · "}
+                        {w.targets?.zona_fc && <>FC <span className="text-white">{w.targets.zona_fc}</span></>}
+                      </p>
+                    )}
+                    {(w.objective || w.description) && <p className="text-[0.75rem] leading-snug text-brand-muted">{w.objective ?? w.description}</p>}
+                    {w.activity_id && (
+                      <Link href={`/activities/${w.activity_id}`} className="inline-block text-[0.75rem] font-semibold text-brand-accent hover:underline">Ver o treino feito →</Link>
+                    )}
+                  </article>
+                );
+              })}
 
-            {selActs.map((a) => (
-              <Link key={a.id} href={`/activities/${a.id}`} className="od-tile flex items-center gap-3 p-3 transition-colors hover:bg-white/[0.05]">
-                <SportTile sport={a.sport} size={34} />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[0.62rem] font-bold uppercase tracking-wider text-brand-muted">Feito · {new Date(a.start_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
-                  <span className="block truncate text-[0.85rem] font-semibold">{a.title ?? sportLabel(a.sport)}</span>
-                  <span className="block truncate text-[0.72rem] text-brand-textSecondary">
-                    {activityText(a)}
-                    {a.avg_pace_s_per_km && !isBikeSport(a.sport) ? ` · ${formatPaceShort(a.avg_pace_s_per_km)}/km` : ""}
-                    {a.avg_hr ? ` · ${Math.round(a.avg_hr)} bpm` : ""}
+              {selActs.map((a) => (
+                <Link key={a.id} href={`/activities/${a.id}`} className="od-tile flex items-center gap-3 p-3 transition-colors hover:bg-white/[0.05]">
+                  <SportTile sport={a.sport} size={34} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[0.62rem] font-bold uppercase tracking-wider text-brand-muted">Feito · {new Date(a.start_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                    <span className="block truncate text-[0.85rem] font-semibold">{a.title ?? sportLabel(a.sport)}</span>
+                    <span className="block truncate text-[0.72rem] text-brand-textSecondary">
+                      {activityText(a)}
+                      {a.avg_pace_s_per_km && !isBikeSport(a.sport) ? ` · ${formatPaceShort(a.avg_pace_s_per_km)}/km` : ""}
+                      {a.avg_hr ? ` · ${Math.round(a.avg_hr)} bpm` : ""}
+                    </span>
                   </span>
-                </span>
-                <span className="text-brand-accent" aria-hidden>→</span>
-              </Link>
-            ))}
+                  <span className="text-brand-accent" aria-hidden>→</span>
+                </Link>
+              ))}
 
-            {selPlans.length === 0 && selActs.length === 0 && (
-              <p className="rounded-xl bg-white/[0.02] px-3.5 py-3 text-sm text-brand-muted">
-                {toISODate(selDate) >= todayIso ? "Nada planejado para este dia." : "Nada planejado nem feito neste dia."}
-              </p>
-            )}
+              {selPlans.length === 0 && selActs.length === 0 && (
+                <p className="rounded-xl bg-white/[0.02] px-3.5 py-3 text-sm text-brand-muted">
+                  {toISODate(selDate) >= todayIso ? "Nada planejado para este dia." : "Nada planejado nem feito neste dia."}
+                </p>
+              )}
+            </div>
           </div>
-        )}
-      </Panel>
-    </div>
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }

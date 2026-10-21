@@ -185,7 +185,7 @@ export default function DashboardPage() {
     if (todayPlan) out.push({ id: "today", tone: "accent", title: `Treino de hoje: ${todayPlan.title}`, detail: todayPlan.description ?? undefined, href: "/calendar" });
     if (syncState === "ok" && activities[0]) {
       const days = Math.floor((Date.now() - new Date(activities[0].start_time).getTime()) / 86400000);
-      if (days >= 7) out.push({ id: "idle", tone: "warning", title: `Sem atividades há ${days} dias`, detail: "Importe seus treinos recentes para manter as métricas atualizadas.", href: "/profile#importar" });
+      if (days >= 7) out.push({ id: "idle", tone: "warning", title: `Sem atividades há ${days} dias`, detail: "Importe seus treinos recentes para manter as métricas atualizadas.", href: "/profile?aba=importar" });
     }
     records
       .filter((r) => Date.now() - new Date(r.achieved_at).getTime() < 7 * 86400000)

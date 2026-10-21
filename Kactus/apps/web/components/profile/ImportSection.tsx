@@ -19,7 +19,7 @@ interface QueueItem {
   error?: string;
 }
 
-/** Importar atividades: seção do Perfil (#importar). Antes era a tela /import. */
+/** Importar atividades: a aba Importar do Perfil (/profile?aba=importar). Antes era a tela /import. */
 export function ImportSection() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [dragOver, setDragOver] = useState(false);
@@ -29,13 +29,6 @@ export function ImportSection() {
   // conhece o tipo): la o seletor aceita tudo e o filtro de addFiles barra o resto
   const [touch, setTouch] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // chegou por /profile#importar: o perfil carrega aos poucos e empurra a seção, então rola depois
-  useEffect(() => {
-    if (window.location.hash !== "#importar") return;
-    const t = setTimeout(() => document.getElementById("importar")?.scrollIntoView({ behavior: "smooth", block: "start" }), 350);
-    return () => clearTimeout(t);
-  }, []);
 
   useEffect(() => {
     setTouch(window.matchMedia("(pointer: coarse)").matches);

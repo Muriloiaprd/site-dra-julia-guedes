@@ -1,14 +1,15 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { TrainingCalendar } from "@/components/calendar/TrainingCalendar";
 import { AdherencePanel } from "@/components/coach/AdherencePanel";
 import { GoalPlanPanel } from "@/components/coach/GoalPlanPanel";
 import { ActionButton, ProcessingPanel } from "@/components/coach/ProcessingPanel";
 import { WeekPlans } from "@/components/coach/WeekPlans";
-import { Alert, PageContainer, PageHeader } from "@/components/ui/primitives";
+import { BackButton } from "@/components/ui/BackButton";
+import { Alert, PageContainer, PageHeader, Segmented } from "@/components/ui/primitives";
 import {
   applyFreeWeek,
   fetchActivities,
@@ -41,9 +42,27 @@ async function fetchAllActivities(): Promise<ActivitySummary[]> {
   }
 }
 
-/** Calendário de treinos: o planejado (plano da semana e do objetivo) e o feito, e onde se gera o plano. */
+type Aba = "calendario" | "plano";
+
+const ABAS = [
+  { value: "calendario", label: "Calendário" },
+  { value: "plano", label: "Plano" },
+] as const;
+
+// useSearchParams pede Suspense no build do Next
 export default function CalendarPage() {
+  return <Suspense><CalendarScreen /></Suspense>;
+}
+
+/** Calendário de treinos: o planejado (plano da semana e do objetivo) e o feito; na aba Plano, onde se gera o plano. */
+function CalendarScreen() {
   const router = useRouter();
+  const pathname = usePathname();
+  // a aba fica na URL (?aba=plano): link direto e o voltar do navegador funcionam
+  const aba: Aba = useSearchParams().get("aba") === "plano" ? "plano" : "calendario";
+  function trocarAba(next: Aba) {
+    router.push(next === "plano" ? `${pathname}?aba=plano` : pathname, { scroll: false });
+  }
   const [ready, setReady] = useState(false);
   const now = new Date();
   const [ym, setYm] = useState({ year: now.getFullYear(), month: now.getMonth() });
@@ -176,6 +195,7 @@ export default function CalendarPage() {
 
   return (
     <PageContainer>
+      <BackButton />
       <PageHeader
         kicker="Treinos"
         title="Calendário de treinos"
@@ -183,26 +203,33 @@ export default function CalendarPage() {
         icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>}
       />
 
+      <div className="mb-5">
+        <Segmented options={ABAS} value={aba} onChange={trocarAba} size="md" ariaLabel="Seções do calendário" />
+      </div>
+
       {loadError && (
         <div className="mb-4">
           <Alert tone="danger" title="Não consegui carregar tudo">Verifique a conexão ou se a API está rodando. O calendário pode estar incompleto.</Alert>
         </div>
       )}
 
-      <TrainingCalendar
-        year={ym.year}
-        month={ym.month}
-        activities={activities}
-        workouts={workouts}
-        loading={!ready || actsLoading || planLoading}
-        onMonth={changeMonth}
-      />
+      {/* as duas abas ficam montadas: trocar não perde o mês nem um plano sendo gerado */}
+      <div hidden={aba !== "calendario"}>
+        <TrainingCalendar
+          year={ym.year}
+          month={ym.month}
+          activities={activities}
+          workouts={workouts}
+          loading={!ready || actsLoading || planLoading}
+          onMonth={changeMonth}
+        />
+      </div>
 
       {/* ───────── O plano: gerar e acompanhar (veio da página da Duni) ───────── */}
-      <section className="mt-8 space-y-4" aria-labelledby="plano-titulo">
+      <section hidden={aba !== "plano"} className="space-y-4" aria-labelledby="plano-titulo">
         <div>
           <h2 id="plano-titulo" className="font-display text-xl font-bold">Plano de treino</h2>
-          <p className="mt-1 text-sm text-brand-muted">A Duni monta os treinos; eles aparecem no calendário acima e no resumo do dashboard.</p>
+          <p className="mt-1 text-sm text-brand-muted">A Duni monta os treinos; eles aparecem na aba Calendário e no resumo do dashboard.</p>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
@@ -237,7 +264,7 @@ export default function CalendarPage() {
 
         {planCount !== null && (
           <Alert tone="accent" title={`Plano da semana pronto: ${planCount} treino${planCount === 1 ? "" : "s"}`}>
-            Os treinos já estão no calendário acima e no card da Duni no dashboard. O detalhe de cada um está no quadro &quot;Plano da semana&quot;.
+            Os treinos já estão na aba Calendário e no card da Duni no dashboard. O detalhe de cada um está no quadro &quot;Plano da semana&quot;.
           </Alert>
         )}
 

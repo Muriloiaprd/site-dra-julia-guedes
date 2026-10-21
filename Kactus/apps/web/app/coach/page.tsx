@@ -275,7 +275,7 @@ export default function CoachPage() {
               icon={<><path d="M3 3v18h18" /><path d="m7 15 4-4 3 3 6-6" /></>}
             />
             <ActionButton
-              onClick={() => router.push("/calendar")}
+              onClick={() => router.push("/calendar?aba=plano")}
               disabled={false}
               color="#C6FF00"
               title="Ver o plano de treino"

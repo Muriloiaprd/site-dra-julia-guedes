@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "20/10/2026",
-  commit: "Duni sem plano",
+  commit: "Calendário e Perfil em abas",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -35,6 +35,7 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
+    { data: "20/10/2026", commit: "abas", mudanca: "Calendário de treinos com ← Voltar, abas Calendário e Plano (?aba=plano), o mês na tela toda (pontinhos no celular) e o dia numa gaveta. Perfil em abas Dados · Treino · Importar · Conta (?aba=…), com os campos reagrupados; Importar passa a ser /profile?aba=importar. Página de teste /profile-preview." },
     { data: "20/10/2026", commit: "duni-sem-plano", mudanca: "A página da Duni deixa de mostrar o plano (botões de gerar, plano do objetivo, planejado × feito, plano da semana): fica com relatório, resumo, chat e memórias, e leva ao Calendário. No Dashboard, o alerta Treino de hoje, o card da Duni, Planejado × feito e Próxima prova levam ao Calendário." },
     { data: "20/10/2026", commit: "calendario", mudanca: "Nova aba Calendário de treinos (/calendar, área 16): mês com o planejado e o feito, situação de cada treino, detalhe do dia e lista por semana no celular; recebe os botões e quadros do plano. No celular, Calendário entra na barra de baixo e Desempenho vai para Mais. Página de teste /calendar-preview." },
     { data: "20/10/2026", commit: "plano-intervalo", mudanca: "GET /coach/plan aceita start e end (até 400 dias, passado incluído) para o calendário de treinos; sem eles continua de hoje em diante." },

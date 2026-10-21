@@ -4,8 +4,8 @@ KACTUS_MAPA.areas.push({
   n: 12,
   titulo: "Perfil",
   resumo:
-    "Os dados fisiológicos que alimentam zonas, carga, previsões e a Duni. Tem foto, dados pessoais, logo para os Stories, FC de repouso e máxima, FTP, CSS e zonas de FC automáticas ou manuais. Logo depois do formulário vem a seção Importar atividades (área 08; o cabeçalho tem o atalho 'Importar atividades ↓'). Embaixo: notificações no celular (Web Push), trocar senha, exportar todos os dados em JSON e a zona de perigo (apagar todas as atividades, excluir a conta), cada uma com uma palavra para digitar antes.",
-  rotas: ["/profile"],
+    "Os dados fisiológicos que alimentam zonas, carga, previsões e a Duni, em quatro abas (na URL, ?aba=…), com a foto, o nome e o e-mail sempre no topo. Dados: foto, nome, peso, sexo e a logo para os Stories. Treino: FC de repouso e máxima com as zonas (automáticas ou manuais), meta de km por semana, FTP e CSS. Dados e Treino são um formulário só, salvo pelo mesmo botão. Importar: a importação de arquivos (área 08). Conta: notificações no celular (Web Push), trocar senha, exportar todos os dados em JSON e a zona de perigo (apagar todas as atividades, excluir a conta), cada uma com uma palavra para digitar antes.",
+  rotas: ["/profile", "/profile?aba=treino", "/profile?aba=importar", "/profile?aba=conta"],
   arquivos: ["apps/web/app/profile/page.tsx", "apps/web/components/profile/ImportSection.tsx", "apps/web/components/profile/NotificationsPanel.tsx", "apps/web/lib/push.ts", "apps/api/kactus_api/routers/push.py", "apps/web/lib/image.ts", "apps/api/kactus_api/routers/profile.py", "apps/api/kactus_api/routers/auth.py", "apps/api/kactus_api/routers/activities.py"],
   diagramas: [
     {
@@ -15,7 +15,13 @@ flowchart TD
   IN("Abre /profile"):::acao --> API[/"GET /auth/me · GET /profile"/]:::api
   API -->|sem token| LOGIN["/login"]:::tela
   API -->|há token, falhou| NET["Sessão não verificada · Tentar de novo"]:::erro
-  API -->|ok| PG["Perfil do atleta"]:::tela
+  API -->|ok| PG["Perfil do atleta<br/>foto, nome e e-mail no topo"]:::tela
+  PG --> ABAS{"Aba"}:::decisao
+  ABAS -->|Dados| PG
+  ABAS -->|Treino| PG
+  ABAS -->|Importar| IMPA["Importar atividades (área 08)"]:::tela
+  ABAS -->|Conta| PG
+  HASH["/profile#importar (endereço antigo)"]:::estado -.-> IMPA
   PG --> FOTO("Clicar na foto"):::acao --> RF[["Reduz para 256 px"]]:::calc
   PG --> LOGO("Enviar logo PNG"):::acao --> RL[["Reduz para 512 px"]]:::calc
   RL -->|grande demais| EL["Imagem muito grande mesmo após redimensionar"]:::erro
@@ -59,28 +65,31 @@ flowchart TD
     { tipo: "botão", nome: "Enviar teste", acao: "Manda 'Notificações ligadas neste aparelho' para todos os aparelhos inscritos.", api: "POST /push/test", msg: "Aviso de teste enviado para N aparelho(s). · Nenhum aparelho com notificações ligadas.", onde: "apps/web/components/profile/NotificationsPanel.tsx:88", no: "TST,PT,NOTI" },
     { tipo: "botão", nome: "Desativar neste aparelho", acao: "Cancela a inscrição no aparelho e apaga do Kactus.", api: "POST /push/unsubscribe", msg: "Este aparelho não recebe mais os avisos.", onde: "apps/web/components/profile/NotificationsPanel.tsx:79", no: "DES,PU" },
     { tipo: "campo", nome: "O que avisar", acao: "Treino de hoje (a partir das 7h, o treino planejado do dia), Recorde novo (treino de até 2 dias atrás), Dias sem treinar (a partir das 18h, depois de 3 dias). Todos ligados de início.", api: "PUT /push/prefs", onde: "apps/web/components/profile/NotificationsPanel.tsx:144", no: "TIP,PP" },
-    { tipo: "seção", nome: "Importar atividades", acao: "A importação de arquivos mora aqui (detalhes na área 08). Fica fora do formulário do perfil; o atalho 'Importar atividades ↓' do cabeçalho rola até ela.", onde: "apps/web/app/profile/page.tsx:553" },
-    { tipo: "tela", nome: "Perfil do atleta", msg: "Seus dados fisiológicos alimentam zonas, carga (TSS), previsões e a Duni.", onde: "apps/web/app/profile/page.tsx:309", no: "PG" },
-    { tipo: "API", nome: "Carregar perfil", api: "GET /auth/me · GET /profile", onde: "apps/web/app/profile/page.tsx:103", no: "API" },
-    { tipo: "erro", nome: "Sessão não verificada", acao: "Há token, mas a chamada falhou; botão para tentar de novo.", onde: "apps/web/app/profile/page.tsx:277", no: "NET" },
-    { tipo: "campo", nome: "Foto do perfil", acao: "Clique na foto; reduzida para 256 px. Aparece no menu e no dashboard.", msg: "Selecione um arquivo de imagem · Não foi possível processar essa imagem", onde: "apps/web/app/profile/page.tsx:131", no: "FOTO,RF" },
-    { tipo: "card", nome: "FC repouso · FC máxima e zonas", acao: "Resumo ao lado da foto; diz se as zonas são personalizadas, Karvonen (com FC de repouso) ou % da máxima.", onde: "apps/web/app/profile/page.tsx:344" },
-    { tipo: "campo", nome: "Nome completo · Peso (kg) · Sexo", acao: "Sexo: Prefiro não informar, Feminino, Masculino, Outro. Data de nascimento e altura existem no banco, mas não têm campo na tela.", onde: "apps/web/app/profile/page.tsx:375" },
-    { tipo: "campo", nome: "Logo para compartilhamento", acao: "PNG (de preferência transparente) reduzido para 512 px; Remover apaga.", msg: "Selecione um arquivo PNG (com fundo transparente, se quiser) · Imagem muito grande mesmo após redimensionar — tente um PNG mais simples", onde: "apps/web/app/profile/page.tsx:411", no: "LOGO,RL,EL" },
-    { tipo: "campo", nome: "FC Repouso · FC Máxima · FTP · CSS", acao: "FTP em watts (ciclismo), CSS em s/100 m (natação).", onde: "apps/web/app/profile/page.tsx:458" },
-    { tipo: "campo", nome: "Meta de corrida por semana (km)", acao: "De 0 a 400 km; vazio = sem meta. Aparece no dashboard (Visão semanal) e em Desempenho (Hoje).", api: "PUT /profile", onde: "apps/web/app/profile/page.tsx:496" },
-    { tipo: "botão", nome: "Personalizar zonas de FC manualmente", acao: "Liga os campos de limite de cada zona; desligado, as zonas são automáticas.", onde: "apps/web/app/profile/page.tsx:500", no: "ZON,MAN" },
+    { tipo: "aba", nome: "Dados · Treino · Importar · Conta", acao: "Ficam na URL (?aba=treino, ?aba=importar, ?aba=conta; sem nada é Dados), então o link direto e o voltar do navegador funcionam. O endereço antigo /profile#importar abre a aba Importar. Trocar de aba não perde o que foi digitado.", onde: "apps/web/app/profile/page.tsx:360", no: "ABAS,HASH" },
+    { tipo: "seção", nome: "Importar atividades", acao: "A aba Importar: a importação de arquivos (detalhes na área 08). Fica fora do formulário do perfil.", onde: "apps/web/app/profile/page.tsx:602", no: "IMPA" },
+    { tipo: "card", nome: "Foto, nome e e-mail", acao: "Faixa no topo de todas as abas.", onde: "apps/web/app/profile/page.tsx:344" },
+    { tipo: "tela", nome: "Perfil do atleta", msg: "Seus dados fisiológicos alimentam zonas, carga (TSS), previsões e a Duni.", onde: "apps/web/app/profile/page.tsx:338", no: "PG" },
+    { tipo: "API", nome: "Carregar perfil", api: "GET /auth/me · GET /profile", onde: "apps/web/app/profile/page.tsx:133", no: "API" },
+    { tipo: "erro", nome: "Sessão não verificada", acao: "Há token, mas a chamada falhou; botão para tentar de novo.", onde: "apps/web/app/profile/page.tsx:304", no: "NET" },
+    { tipo: "campo", nome: "Foto do perfil", acao: "Clique na foto; reduzida para 256 px. Aparece no menu e no dashboard.", msg: "Selecione um arquivo de imagem · Não foi possível processar essa imagem", onde: "apps/web/app/profile/page.tsx:159", no: "FOTO,RF" },
+    { tipo: "card", nome: "Zonas de FC", acao: "Aba Treino, embaixo da FC de repouso e máxima: a barra das cinco zonas e se elas são personalizadas, Karvonen (com FC de repouso) ou % da máxima.", onde: "apps/web/app/profile/page.tsx:502" },
+    { tipo: "campo", nome: "Nome completo · Peso (kg) · Sexo", acao: "Aba Dados; o nome ocupa a linha toda. Sexo: Prefiro não informar, Feminino, Masculino, Outro. Data de nascimento e altura existem no banco, mas não têm campo na tela.", onde: "apps/web/app/profile/page.tsx:392" },
+    { tipo: "campo", nome: "Logo para compartilhamento", acao: "PNG (de preferência transparente) reduzido para 512 px; Remover apaga.", msg: "Selecione um arquivo PNG (com fundo transparente, se quiser) · Imagem muito grande mesmo após redimensionar — tente um PNG mais simples", onde: "apps/web/app/profile/page.tsx:430", no: "LOGO,RL,EL" },
+    { tipo: "campo", nome: "FC de repouso · FC máxima", acao: "Aba Treino, quadro Frequência cardíaca.", onde: "apps/web/app/profile/page.tsx:476" },
+    { tipo: "campo", nome: "FTP · CSS", acao: "Aba Treino, quadro Ciclismo e natação: FTP em watts, CSS em s/100 m.", onde: "apps/web/app/profile/page.tsx:562" },
+    { tipo: "campo", nome: "Meta de corrida por semana (km)", acao: "Aba Treino, quadro Meta da semana. De 0 a 400 km; vazio = sem meta. Aparece no dashboard (Visão semanal) e em Desempenho (Hoje).", api: "PUT /profile", onde: "apps/web/app/profile/page.tsx:545" },
+    { tipo: "botão", nome: "Personalizar zonas de FC manualmente", acao: "Liga os campos de limite de cada zona; desligado, as zonas são automáticas.", onde: "apps/web/app/profile/page.tsx:516", no: "ZON,MAN" },
     { tipo: "cálculo", nome: "Zonas automáticas", acao: "Com FC de repouso: Karvonen (FC de reserva). Sem: % da FC máxima.", onde: "apps/web/app/profile/page.tsx:31", no: "AUTO" },
-    { tipo: "botão", nome: "Salvar perfil", api: "PUT /profile", msg: "Salvando… · ✓ Salvo com sucesso!", onde: "apps/web/app/profile/page.tsx:530", no: "SAVE,PUT,OK1" },
-    { tipo: "seção", nome: "Trocar senha", acao: "Senha atual, nova senha, confirmar.", onde: "apps/web/app/profile/page.tsx:540", no: "PW" },
-    { tipo: "validação", nome: "Nova senha", msg: "A confirmação não bate com a nova senha · A nova senha precisa ter pelo menos 8 caracteres", onde: "apps/web/app/profile/page.tsx:207", no: "PV,PE" },
-    { tipo: "botão", nome: "Trocar senha", api: "POST /auth/change-password", msg: "Trocando… · ✓ Senha alterada! · Senha atual incorreta", onde: "apps/web/app/profile/page.tsx:589", no: "CP,PE2,OK2" },
-    { tipo: "botão", nome: "Exportar meus dados", acao: "Baixa kactus_export_<id>.json com usuário, perfil, equipamentos, recordes e as atividades fora da lixeira (com pontos e voltas). Também leva o que a Duni sabe e planejou (memórias, planos, treinos planejados, conversa) e a carga diária (versão 2 do arquivo).", api: "GET /profile/export", msg: "Gerando arquivo…", onde: "apps/web/app/profile/page.tsx:604", no: "EXP,EX,JSON" },
-    { tipo: "seção", nome: "Zona de perigo", acao: "Duas ações irreversíveis, cada uma abrindo sua confirmação.", onde: "apps/web/app/profile/page.tsx:611" },
-    { tipo: "validação", nome: "Digitar EXCLUIR", acao: "O botão só liga com a palavra exata.", onde: "apps/web/app/profile/page.tsx:638", no: "W1" },
-    { tipo: "botão", nome: "Apagar tudo, sem volta", acao: "Apaga todas as atividades (inclusive as da lixeira), recordes e métricas diárias; login, conversa e memórias da Duni ficam.", api: "DELETE /activities", msg: "Apagando…", onde: "apps/web/app/profile/page.tsx:651", no: "DZ,DA,OK3" },
-    { tipo: "validação", nome: "Digitar o e-mail", acao: "O botão de excluir conta só liga com o e-mail exato.", onde: "apps/web/app/profile/page.tsx:690", no: "W2" },
-    { tipo: "botão", nome: "Excluir conta, sem volta", acao: "Apaga o usuário e tudo em cascata e sai.", api: "DELETE /auth/account", msg: "Excluindo…", onde: "apps/web/app/profile/page.tsx:703", no: "DC,DAC,OUT" },
+    { tipo: "botão", nome: "Salvar perfil", acao: "Embaixo das abas Dados e Treino; salva as duas juntas.", api: "PUT /profile", msg: "Salvando… · ✓ Salvo com sucesso! · Salva as abas Dados e Treino juntas.", onde: "apps/web/app/profile/page.tsx:592", no: "SAVE,PUT,OK1" },
+    { tipo: "seção", nome: "Trocar senha", acao: "Senha atual, nova senha, confirmar.", onde: "apps/web/app/profile/page.tsx:611", no: "PW" },
+    { tipo: "validação", nome: "Nova senha", msg: "A confirmação não bate com a nova senha · A nova senha precisa ter pelo menos 8 caracteres", onde: "apps/web/app/profile/page.tsx:235", no: "PV,PE" },
+    { tipo: "botão", nome: "Trocar senha", api: "POST /auth/change-password", msg: "Trocando… · ✓ Senha alterada! · Senha atual incorreta", onde: "apps/web/app/profile/page.tsx:654", no: "CP,PE2,OK2" },
+    { tipo: "botão", nome: "Exportar meus dados", acao: "Baixa kactus_export_<id>.json com usuário, perfil, equipamentos, recordes e as atividades fora da lixeira (com pontos e voltas). Também leva o que a Duni sabe e planejou (memórias, planos, treinos planejados, conversa) e a carga diária (versão 2 do arquivo).", api: "GET /profile/export", msg: "Gerando arquivo…", onde: "apps/web/app/profile/page.tsx:668", no: "EXP,EX,JSON" },
+    { tipo: "seção", nome: "Zona de perigo", acao: "Fim da aba Conta. Duas ações irreversíveis, cada uma abrindo sua confirmação.", onde: "apps/web/app/profile/page.tsx:675" },
+    { tipo: "validação", nome: "Digitar EXCLUIR", acao: "O botão só liga com a palavra exata.", onde: "apps/web/app/profile/page.tsx:707", no: "W1" },
+    { tipo: "botão", nome: "Apagar tudo, sem volta", acao: "Apaga todas as atividades (inclusive as da lixeira), recordes e métricas diárias; login, conversa e memórias da Duni ficam.", api: "DELETE /activities", msg: "Apagando…", onde: "apps/web/app/profile/page.tsx:715", no: "DZ,DA,OK3" },
+    { tipo: "validação", nome: "Digitar o e-mail", acao: "O botão de excluir conta só liga com o e-mail exato.", onde: "apps/web/app/profile/page.tsx:759", no: "W2" },
+    { tipo: "botão", nome: "Excluir conta, sem volta", acao: "Apaga o usuário e tudo em cascata e sai.", api: "DELETE /auth/account", msg: "Excluindo…", onde: "apps/web/app/profile/page.tsx:767", no: "DC,DAC,OUT" },
     { tipo: "API", nome: "Atualizar perfil", api: "PUT /profile", onde: "apps/api/kactus_api/routers/profile.py:27" },
     { tipo: "API", nome: "Exportar", api: "GET /profile/export", onde: "apps/api/kactus_api/routers/profile.py:61" },
     { tipo: "API", nome: "Recordes", acao: "Usado pelo dashboard.", api: "GET /records", onde: "apps/api/kactus_api/routers/profile.py:42" },

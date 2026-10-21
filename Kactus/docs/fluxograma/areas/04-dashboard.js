@@ -49,12 +49,12 @@ flowchart LR
   SINO --> AL{"Qual alerta"}:::decisao
   AL -->|risco| PERF["/performance"]:::tela
   AL -->|treino de hoje| CALT["/calendar"]:::tela
-  AL -->|sem treinos há 7+ dias| IMP["/profile#importar"]:::tela
+  AL -->|sem treinos há 7+ dias| IMP["/profile?aba=importar"]:::tela
   AL -->|novo recorde| DET["/activities/id"]:::tela
   H --> ENG("Engrenagem e foto"):::acao --> PROF["/profile"]:::tela
   ST["Status do atleta<br/>prontidão e 4 indicadores"]:::tela -->|Análise completa| PERF
   ST -->|Status da Duni| DUNI["/coach"]:::tela
-  CC["Duni · sua treinadora<br/>próximo treino"]:::tela -->|Ver no calendário ou Montar o plano| CALT
+  CC["Duni · sua treinadora<br/>próximo treino"]:::tela -->|Ver no calendário · Montar o plano (aba Plano)| CALT
   WK["Visão semanal<br/>7 dias"]:::tela -->|Atividades| ACTL["/activities"]:::tela
   ADH["Planejado × feito<br/>últimos 3 dias"]:::tela -->|Ver todos no calendário| CALT
   EV["Evolução do desempenho<br/>gráfico"]:::tela -->|clique num ponto| MOD

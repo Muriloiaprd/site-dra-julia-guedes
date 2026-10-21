@@ -4,8 +4,8 @@ KACTUS_MAPA.areas.push({
   n: 8,
   titulo: "Importação",
   resumo:
-    "A importação fica no Perfil (seção Importar atividades, /profile#importar); não é mais item do menu, e o endereço antigo /import leva para lá. Os botões e avisos 'Importar' de Atividades, Dashboard e Desempenho também. Arrastar ou escolher arquivos .fit, .gpx, .tcx, .csv ou .gz (export em massa do Garmin), ou deixar o Kactus Controle importar sozinho do relógio ligado no USB (área Acesso e servidor). O site manda em lotes de 15; se um lote falhar, divide ao meio e tenta de novo até lotes de 2. A API lê o arquivo, descarta duplicados, reduz o GPS a um ponto a cada 3 s, calcula as métricas derivadas e os recordes e, no fim do lote, recalcula a carga. Cada treino novo ganha o atalho 'Como foi? →' para o check-in.",
-  rotas: ["/profile#importar", "/import"],
+    "A importação fica na aba Importar do Perfil (/profile?aba=importar); não é mais item do menu, e o endereço antigo /import leva para lá. Os botões e avisos 'Importar' de Atividades, Dashboard e Desempenho também. Arrastar ou escolher arquivos .fit, .gpx, .tcx, .csv ou .gz (export em massa do Garmin), ou deixar o Kactus Controle importar sozinho do relógio ligado no USB (área Acesso e servidor). O site manda em lotes de 15; se um lote falhar, divide ao meio e tenta de novo até lotes de 2. A API lê o arquivo, descarta duplicados, reduz o GPS a um ponto a cada 3 s, calcula as métricas derivadas e os recordes e, no fim do lote, recalcula a carga. Cada treino novo ganha o atalho 'Como foi? →' para o check-in.",
+  rotas: ["/profile?aba=importar", "/import"],
   arquivos: [
     "apps/web/components/profile/ImportSection.tsx",
     "apps/web/app/import/page.tsx",
@@ -80,8 +80,8 @@ flowchart TD
     },
   ],
   inventario: [
-    { tipo: "regra", nome: "Endereço antigo /import", acao: "Redireciona para /profile#importar; ao chegar com #importar, a página rola até a seção depois que o perfil carrega.", onde: "apps/web/app/import/page.tsx:5" },
-    { tipo: "tela", nome: "Importar atividades", acao: "Seção do Perfil, fora do formulário do perfil (os botões dela não salvam o perfil); o cabeçalho do Perfil tem o atalho 'Importar atividades ↓'.", msg: "Exporte suas atividades do Garmin Connect, Strava, Polar, COROS ou qualquer relógio/app compatível e importe os arquivos aqui.", onde: "apps/web/components/profile/ImportSection.tsx:153", no: "IN" },
+    { tipo: "regra", nome: "Endereço antigo /import", acao: "Redireciona para /profile?aba=importar (o antigo /profile#importar também abre a aba).", onde: "apps/web/app/import/page.tsx:5" },
+    { tipo: "tela", nome: "Importar atividades", acao: "Aba Importar do Perfil, fora do formulário do perfil (os botões dela não salvam o perfil).", msg: "Exporte suas atividades do Garmin Connect, Strava, Polar, COROS ou qualquer relógio/app compatível e importe os arquivos aqui.", onde: "apps/web/components/profile/ImportSection.tsx:153", no: "IN" },
     { tipo: "campo", nome: "Área de arrastar", acao: "Clique, Enter ou espaço abrem o seletor; aceita vários arquivos. No iPhone o seletor não filtra (o iOS não conhece .fit) e o filtro é feito depois.", msg: "Arraste seus arquivos aqui · Solte para importar · Selecionar arquivos", onde: "apps/web/components/profile/ImportSection.tsx:160", no: "DROP" },
     { tipo: "validação", nome: "Extensão aceita", acao: ".fit, .gpx, .tcx, .csv, .gz; o resto é listado como ignorado.", msg: "Arquivo ignorado: nome. Use fit, gpx, tcx, csv, gz.", onde: "apps/web/components/profile/ImportSection.tsx:54", no: "EXT,IGN" },
     { tipo: "cálculo", nome: "Lotes com divisão", acao: "15 por lote; se falhar, divide ao meio até 2 por lote. Evita perder tudo num tempo esgotado.", onde: "apps/web/components/profile/ImportSection.tsx:75", no: "LOTE,HALF" },

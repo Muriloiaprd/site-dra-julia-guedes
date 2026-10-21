@@ -132,7 +132,7 @@ export function CoachCard({
 
       <div className="relative mt-4 flex items-center gap-3">
         {/* o plano mora no calendário de treinos */}
-        <Link href="/calendar" className="od-btn od-btn-primary flex-1">
+        <Link href={next ? "/calendar" : "/calendar?aba=plano"} className="od-btn od-btn-primary flex-1">
           {next ? "Ver no calendário" : "Montar o plano"} <span aria-hidden>→</span>
         </Link>
         {online && countWeek > 0 && (

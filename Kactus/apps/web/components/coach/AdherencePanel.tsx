@@ -150,7 +150,7 @@ export function AdherencePanel({ days = 7, limit, className = "" }: { days?: num
         {shown.map((it) => <Row key={it.id} it={it} onComment={comment} />)}
       </ul>
       {limit && items.length > limit && (
-        <Link href="/calendar" className="od-link-action mt-3 inline-block">Ver todos no calendário →</Link>
+        <Link href="/calendar?aba=plano" className="od-link-action mt-3 inline-block">Ver todos no calendário →</Link>
       )}
     </Panel>
   );
