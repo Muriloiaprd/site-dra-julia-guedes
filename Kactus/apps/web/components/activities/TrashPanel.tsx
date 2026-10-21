@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { SportTile } from "@/components/SportIcon";
-import { Panel } from "@/components/ui/primitives";
 import { emptyTrash, restoreActivity, type TrashItem } from "@/lib/api";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 import { formatDistance, formatDuration, sportLabel } from "@/lib/utils";
 
 function when(iso: string) {
@@ -12,9 +13,10 @@ function when(iso: string) {
 }
 
 /**
- * Lixeira das atividades: cada uma pode voltar (Restaurar) ou tudo sai de vez
- * (Limpar lixeira, com confirmacao na propria tela — o confirm() nativo nao
- * combina com o resto do app).
+ * Lixeira das atividades, num popup por cima da lista: cada uma pode voltar
+ * (Restaurar) ou tudo sai de vez (Limpar lixeira, com confirmacao dentro do
+ * popup — o confirm() nativo nao combina com o resto do app). Fecha no ✕, no
+ * Esc ou tocando fora; o foco volta ao botao Lixeira.
  */
 export function TrashPanel({
   items, onRestored, onEmptied, onClose,
@@ -27,6 +29,8 @@ export function TrashPanel({
   const [busy, setBusy] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, true, onClose);
 
   async function restore(item: TrashItem) {
     setBusy(item.id);
@@ -55,22 +59,35 @@ export function TrashPanel({
     }
   }
 
-  return (
-    <Panel className="mb-4 space-y-4" aria-label="Lixeira">
+  // no body: um pai com transform (animação de entrada) prenderia o "fixed" a ele em vez da tela
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="lixeira-titulo"
+        onClick={(e) => e.stopPropagation()}
+        className="od-panel relative max-h-[85vh] w-full animate-od-fade-up space-y-4 overflow-y-auto !rounded-b-none sm:max-h-[80vh] sm:max-w-[600px] sm:!rounded-2xl"
+        style={{ background: "#0F110F", boxShadow: "0 0 0 1px rgba(255,255,255,0.08), 0 30px 80px -20px rgba(0,0,0,0.9)", paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
+      >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="od-label">Lixeira</h2>
+        <div className="min-w-0 flex-1">
+          <h2 id="lixeira-titulo" className="od-label">Lixeira</h2>
           <p className="mt-1 text-xs text-brand-muted">
             Atividades excluídas. Restaurar devolve o treino e recalcula carga e recordes.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {items.length > 0 && !confirming && (
             <button type="button" onClick={() => setConfirming(true)} disabled={busy !== null} className="od-btn od-btn-ghost od-btn-sm !text-brand-danger">
               Limpar lixeira
             </button>
           )}
-          <button type="button" onClick={onClose} className="od-btn od-btn-ghost od-btn-sm">Fechar</button>
+          <button type="button" onClick={onClose} className="od-icon-btn !h-9 !w-9 !rounded-full" aria-label="Fechar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
         </div>
       </div>
 
@@ -114,6 +131,8 @@ export function TrashPanel({
           ))}
         </ul>
       )}
-    </Panel>
+      </div>
+    </div>,
+    document.body,
   );
 }

@@ -21,17 +21,29 @@ const INTENSITY: Record<string, { label: string; color: string }> = {
   forte: { label: "Forte", color: "#F85149" },
 };
 
-type Situacao = { label: string; icon: string; color: string };
+/** `color` para o fundo escuro (gaveta do dia); `light` para a grade, que tem fundo claro. */
+type Situacao = { label: string; icon: string; color: string; light: string };
+
+const SIT = {
+  descanso: { label: "Descanso", icon: "·", color: "#8C8C8C", light: "#6B726B" },
+  cumprido: { label: "Cumprido", icon: "✓", color: "#00FF66", light: "#0A8A43" },
+  perdido: { label: "Perdido", icon: "✕", color: "#F85149", light: "#C62F28" },
+  hoje: { label: "Hoje", icon: "●", color: "#C6FF00", light: "#5F7A00" },
+  planejado: { label: "Planejado", icon: "○", color: "#B5B5B5", light: "#4F564F" },
+} satisfies Record<string, Situacao>;
 
 /** Cumprido / perdido / hoje / planejado / descanso. O servidor marca o passado (reconcile_plan). */
 function situacao(w: PlannedWorkout, todayIso: string): Situacao {
-  if (isRestWorkout(w)) return { label: "Descanso", icon: "·", color: "#8C8C8C" };
-  if (w.status === "done") return { label: "Cumprido", icon: "✓", color: "#00FF66" };
-  if (w.status === "skipped") return { label: "Perdido", icon: "✕", color: "#F85149" };
-  if (w.date === todayIso) return { label: "Hoje", icon: "●", color: "#C6FF00" };
-  if (w.date < todayIso) return { label: "Perdido", icon: "✕", color: "#F85149" };
-  return { label: "Planejado", icon: "○", color: "#B5B5B5" };
+  if (isRestWorkout(w)) return SIT.descanso;
+  if (w.status === "done") return SIT.cumprido;
+  if (w.status === "skipped") return SIT.perdido;
+  if (w.date === todayIso) return SIT.hoje;
+  if (w.date < todayIso) return SIT.perdido;
+  return SIT.planejado;
 }
+
+/** Verde de hoje na grade clara. */
+const TODAY_LIGHT = "#0A8A43";
 
 /** 52.4 → "52" · 6.2 → "6,2" */
 const kmNum = (km: number) => km.toLocaleString("pt-BR", { maximumFractionDigits: km < 10 ? 1 : 0 });
@@ -67,9 +79,9 @@ function NeighborDay({ n, label, onClick }: { n: number; label: string; onClick:
       aria-label={label}
       onClick={onClick}
       className="flex min-h-[54px] justify-center rounded-lg p-1 transition-colors hover:bg-white/[0.04] sm:min-h-[112px] sm:justify-start sm:rounded-xl sm:p-1.5"
-      style={{ background: "rgba(255,255,255,0.012)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04)" }}
+      style={{ background: "#EDF0EB", boxShadow: "inset 0 0 0 1px #E1E5DF" }}
     >
-      <span className="od-num flex h-6 items-center px-1 text-[0.95rem] font-bold leading-none text-white/25 sm:text-[1.05rem]">{n}</span>
+      <span className="od-num flex h-6 items-center px-1 text-[0.95rem] font-bold leading-none text-[#B3BAB2] sm:text-[1.05rem]">{n}</span>
     </button>
   );
 }
@@ -166,7 +178,7 @@ export function TrainingCalendar({
 
   return (
     <>
-      <Panel aria-label="Calendário de treinos">
+      <Panel aria-label="Calendário de treinos" className="od-cal-claro">
         {/* cabeçalho: mês e navegação */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-xl font-bold">
@@ -229,16 +241,16 @@ export function TrainingCalendar({
                     aria-label={`${day} de ${MONTH_PT[month]}${isToday ? ", hoje" : ""} — ${resumo || "sem treino"}`}
                     onFocus={() => setPicked({ key: monthKey, day })}
                     onClick={() => openDay(day)}
-                    className="flex min-h-[54px] flex-col items-center gap-1 overflow-hidden rounded-lg p-1 text-left transition-colors hover:bg-white/[0.08] sm:min-h-[112px] sm:items-stretch sm:rounded-xl sm:p-1.5"
+                    className="flex min-h-[54px] flex-col items-center gap-1 overflow-hidden rounded-lg p-1 text-left transition-colors hover:brightness-[0.97] sm:min-h-[112px] sm:items-stretch sm:rounded-xl sm:p-1.5"
                     style={{
-                      background: isToday ? "rgba(0,255,102,0.09)" : "rgba(255,255,255,0.045)",
-                      boxShadow: isToday ? "inset 0 0 0 1.5px rgba(0,255,102,0.65)" : "inset 0 0 0 1px rgba(255,255,255,0.1)",
+                      background: isToday ? "#E6F6EC" : "#FFFFFF",
+                      boxShadow: isToday ? `inset 0 0 0 1.5px ${TODAY_LIGHT}` : "inset 0 0 0 1px #D9DED7",
                     }}
                   >
                     {/* número do dia grande e claro; hoje vem num círculo verde */}
                     <span
-                      className={`od-num flex h-6 min-w-[1.5rem] items-center justify-center self-center rounded-full px-1 text-[0.95rem] font-bold leading-none sm:self-start sm:text-[1.05rem] ${isToday ? "text-black" : "text-white"}`}
-                      style={isToday ? { background: "#00FF66" } : undefined}
+                      className={`od-num flex h-6 min-w-[1.5rem] items-center justify-center self-center rounded-full px-1 text-[0.95rem] font-bold leading-none sm:self-start sm:text-[1.05rem] ${isToday ? "text-white" : "text-[#14171A]"}`}
+                      style={isToday ? { background: TODAY_LIGHT } : undefined}
                     >
                       {day}
                     </span>
@@ -247,7 +259,7 @@ export function TrainingCalendar({
                     <span className="flex flex-wrap justify-center gap-[3px] sm:hidden" aria-hidden>
                       {plans.slice(0, 2).map((w) => {
                         const s = situacao(w, todayIso);
-                        return <span key={w.id} className="h-1.5 w-1.5 rounded-full" style={{ boxShadow: `inset 0 0 0 1.5px ${s.color}`, background: w.status === "done" ? s.color : "transparent" }} />;
+                        return <span key={w.id} className="h-1.5 w-1.5 rounded-full" style={{ boxShadow: `inset 0 0 0 1.5px ${s.light}`, background: w.status === "done" ? s.light : "transparent" }} />;
                       })}
                       {acts.slice(0, 2).map((a) => <span key={a.id} className="h-1.5 w-1.5 rounded-full" style={{ background: sportColor(a.sport) }} />)}
                     </span>
@@ -256,7 +268,7 @@ export function TrainingCalendar({
                     {plans.slice(0, 2).map((w) => {
                       const s = situacao(w, todayIso);
                       return (
-                        <span key={w.id} className="hidden min-w-0 items-center gap-1 rounded-md px-1 py-0.5 text-[0.66rem] leading-tight sm:flex" style={{ color: s.color, background: `${s.color}12`, boxShadow: `inset 0 0 0 1px ${s.color}38` }}>
+                        <span key={w.id} className="hidden min-w-0 items-center gap-1 rounded-md px-1 py-0.5 text-[0.66rem] leading-tight sm:flex" style={{ color: s.light, background: `${s.light}14`, boxShadow: `inset 0 0 0 1px ${s.light}40` }}>
                           <span aria-hidden className="shrink-0">{s.icon}</span>
                           <span className="truncate">{w.title}</span>
                         </span>
@@ -264,7 +276,7 @@ export function TrainingCalendar({
                     })}
                     {acts.slice(0, 2).map((a) => (
                       <span key={a.id} className="hidden min-w-0 items-center gap-1 px-0.5 text-[0.66rem] leading-tight text-brand-textSecondary sm:flex">
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: sportColor(a.sport), boxShadow: `0 0 5px ${sportColor(a.sport)}` }} />
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: sportColor(a.sport), boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.25)" }} />
                         <span className="truncate">{kmText(a.distance_m) ?? sportLabel(a.sport)}</span>
                       </span>
                     ))}
@@ -279,11 +291,11 @@ export function TrainingCalendar({
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-white/5 pt-3 text-[0.68rem] text-brand-muted">
-              <span><span className="text-brand-accent">✓</span> Cumprido</span>
-              <span><span className="text-brand-danger">✕</span> Perdido</span>
-              <span><span style={{ color: "#C6FF00" }}>●</span> Hoje</span>
-              <span><span style={{ color: "#B5B5B5" }}>○</span> Planejado</span>
-              <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-brand-accent" /> Atividade feita</span>
+              <span><span style={{ color: SIT.cumprido.light }}>✓</span> Cumprido</span>
+              <span><span style={{ color: SIT.perdido.light }}>✕</span> Perdido</span>
+              <span><span style={{ color: SIT.hoje.light }}>●</span> Hoje</span>
+              <span><span style={{ color: SIT.planejado.light }}>○</span> Planejado</span>
+              <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: "#0A8A43" }} /> Atividade feita</span>
               <span className="w-full sm:ml-auto sm:w-auto">Toque num dia para ver os detalhes.</span>
             </div>
           </>

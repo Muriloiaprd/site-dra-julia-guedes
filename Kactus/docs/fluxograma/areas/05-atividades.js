@@ -63,7 +63,8 @@ flowchart TD
       titulo: "Lixeira",
       mermaid: `
 flowchart TD
-  B("Lixeira (N)"):::acao --> P["Painel Lixeira"]:::tela
+  B("Lixeira (N)"):::acao --> P["Popup Lixeira"]:::tela
+  P -->|✕, Esc ou tocar fora| FECHA(["Fecha e volta à lista"]):::estado
   P -->|vazia| V["A lixeira está vazia."]:::estado
   P --> R("Restaurar"):::acao
   R --> RA[/"POST /activities/id/restore"/]:::api
@@ -108,17 +109,17 @@ flowchart TD
     { tipo: "gráfico", nome: "Curvas por distância", acao: "Ritmo (ou velocidade, se os dois forem bike) e FC dos dois treinos no mesmo eixo de km, em blocos de no mínimo 50 m suavizados; ritmo mais lento que 15 min/km some (parado).", onde: "apps/web/app/activities/compare/page.tsx:21", no: "CC,CG" },
     { tipo: "seção", nome: "Parciais por km", acao: "Ritmo (ou tempo na bike) e FC de cada km dos dois, com a diferença em segundos.", onde: "apps/web/app/activities/compare/page.tsx:196", no: "CS" },
     { tipo: "vazio", nome: "Sem os dois treinos", acao: "Abrir /activities/compare sem a e b.", msg: "Escolha dois treinos · Em Atividades, toque em ⇄ Comparar e marque os dois treinos.", onde: "apps/web/app/activities/compare/page.tsx:122", no: "CV" },
-    { tipo: "botão", nome: "Lixeira (N)", acao: "Abre e fecha o painel da lixeira.", onde: "apps/web/app/activities/page.tsx:267", no: "B" },
+    { tipo: "botão", nome: "Lixeira (N)", acao: "Abre o popup da lixeira por cima da lista.", onde: "apps/web/app/activities/page.tsx:267", no: "B" },
     { tipo: "API", nome: "Itens da lixeira", acao: "Excluídos, o mais recente primeiro.", api: "GET /activities/trash", onde: "apps/api/kactus_api/routers/activities.py:268" },
-    { tipo: "seção", nome: "Painel Lixeira", acao: "Cada item: esporte, título, data, distância, duração e 'excluída em'.", msg: "Atividades excluídas. Restaurar devolve o treino e recalcula carga e recordes.", onde: "apps/web/components/activities/TrashPanel.tsx:57", no: "P" },
-    { tipo: "vazio", nome: "Lixeira vazia", msg: "A lixeira está vazia.", onde: "apps/web/components/activities/TrashPanel.tsx:97", no: "V" },
-    { tipo: "botão", nome: "Restaurar", acao: "Tira da lixeira e recarrega a lista.", api: "POST /activities/{id}/restore", msg: "Restaurando…", onde: "apps/web/components/activities/TrashPanel.tsx:111", no: "R,RA,RC" },
+    { tipo: "modal", nome: "Popup Lixeira", acao: "Abre por cima da página (no centro no computador, de baixo no celular) e prende o foco. Cada item: esporte, título, data, distância, duração e 'excluída em'.", msg: "Atividades excluídas. Restaurar devolve o treino e recalcula carga e recordes.", onde: "apps/web/components/activities/TrashPanel.tsx:68", no: "P" },
+    { tipo: "vazio", nome: "Lixeira vazia", msg: "A lixeira está vazia.", onde: "apps/web/components/activities/TrashPanel.tsx:112", no: "V" },
+    { tipo: "botão", nome: "Restaurar", acao: "Tira da lixeira e recarrega a lista.", api: "POST /activities/{id}/restore", msg: "Restaurando…", onde: "apps/web/components/activities/TrashPanel.tsx:127", no: "R,RA,RC" },
     { tipo: "erro", nome: "Não está na lixeira", acao: "Restaurar algo que já saiu (ou de outro usuário).", msg: "Atividade nao esta na lixeira", onde: "apps/api/kactus_api/routers/activities.py:289", no: "RE" },
-    { tipo: "botão", nome: "Limpar lixeira", acao: "Abre a confirmação na própria tela.", onde: "apps/web/components/activities/TrashPanel.tsx:67", no: "LIM" },
-    { tipo: "validação", nome: "Confirmação de apagar de vez", acao: "Faixa vermelha com Apagar de vez e Cancelar.", msg: "Apagar de vez N atividades, com mapa e voltas? Não dá para desfazer.", onde: "apps/web/components/activities/TrashPanel.tsx:75", no: "CONF" },
+    { tipo: "botão", nome: "Limpar lixeira", acao: "Abre a confirmação na própria tela.", onde: "apps/web/components/activities/TrashPanel.tsx:84", no: "LIM" },
+    { tipo: "validação", nome: "Confirmação de apagar de vez", acao: "Faixa vermelha com Apagar de vez e Cancelar.", msg: "Apagar de vez N atividades, com mapa e voltas? Não dá para desfazer.", onde: "apps/web/components/activities/TrashPanel.tsx:97", no: "CONF" },
     { tipo: "API", nome: "Apagar de vez", acao: "Apaga atividade, pontos e voltas; o treino planejado que estava casado volta a 'planejado'.", api: "DELETE /activities/trash", onde: "apps/api/kactus_api/routers/activities.py:299", no: "DT,HARD" },
-    { tipo: "erro", nome: "Erros da lixeira", msg: "Não consegui restaurar · Não consegui limpar a lixeira", onde: "apps/web/components/activities/TrashPanel.tsx:38" },
-    { tipo: "botão", nome: "Fechar", acao: "Fecha o painel.", onde: "apps/web/components/activities/TrashPanel.tsx:71" },
+    { tipo: "erro", nome: "Erros da lixeira", msg: "Não consegui restaurar · Não consegui limpar a lixeira", onde: "apps/web/components/activities/TrashPanel.tsx:42" },
+    { tipo: "botão", nome: "Fechar", acao: "✕ no canto; também fecha no Esc ou tocando fora. O foco volta ao botão Lixeira.", no: "FECHA", onde: "apps/web/components/activities/TrashPanel.tsx:88" },
     { tipo: "cálculo", nome: "Reimportar tira da lixeira", acao: "Se o arquivo importado já existe na lixeira (mesmo hash, mesmo id da fonte ou mesmo início ±60 s com distância ±1%), ele volta em vez de ser 'duplicado'.", onde: "apps/api/kactus_api/services/import_service.py:48", no: "IMP,DUP" },
   ],
 });
