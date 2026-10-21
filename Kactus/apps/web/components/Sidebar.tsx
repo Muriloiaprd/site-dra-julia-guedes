@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Logo } from "@/components/Logo";
+import { usePrintTela } from "@/components/PrintTela";
 import { clearToken, fetchMe, fetchProfile, type User } from "@/lib/api";
 import { clearSnapshot } from "@/lib/offlineSnapshot";
 import { useFocusTrap } from "@/lib/useFocusTrap";
@@ -95,6 +96,9 @@ export function Sidebar() {
   const moreBtnRef = useRef<HTMLButtonElement>(null);
   useFocusTrap(sheetRef, moreOpen, () => setMoreOpen(false), moreBtnRef);
 
+  const abaAtual = ALL_ITEMS.find((i) => isActive(pathname, i.href));
+  const print = usePrintTela(abaAtual?.label ?? (pathname.split("/")[1] || "tela"));
+
   function handleLogout() {
     clearToken();
     clearSnapshot();
@@ -172,6 +176,14 @@ export function Sidebar() {
           >
             <span className="od-nav-icon shrink-0">{ICONS.logout}</span>
             <span className="hidden lg:inline">Sair</span>
+          </button>
+          <button
+            onClick={print.gerar}
+            disabled={print.gerando}
+            title="Gera uma imagem da aba aberta inteira"
+            className="mt-1 block w-full text-center text-[0.6rem] font-medium text-brand-muted/70 transition-colors hover:text-white disabled:opacity-50 lg:px-3 lg:text-left"
+          >
+            Print Tela
           </button>
         </div>
       </aside>
@@ -256,9 +268,18 @@ export function Sidebar() {
               <span className="od-nav-icon">{ICONS.logout}</span>
               Sair
             </button>
+            <button
+              onClick={() => { setMoreOpen(false); print.gerar(); }}
+              disabled={print.gerando}
+              className="block w-full px-3 pb-1 pt-1.5 text-left text-[0.66rem] font-medium text-brand-muted/70 disabled:opacity-50"
+            >
+              Print Tela
+            </button>
           </div>
         </div>
       )}
+
+      {print.aviso}
     </>
   );
 }

@@ -2,8 +2,8 @@
 // achados do mapeamento e histórico. Atualizar "atualizado", "commit" e "historico"
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
-  atualizado: "20/10/2026",
-  commit: "Calendário de fundo claro e popup da lixeira",
+  atualizado: "21/10/2026",
+  commit: "Print Tela no menu",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -35,6 +35,7 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
+    { data: "21/10/2026", commit: "print-tela", mudanca: "Opção pequena Print Tela embaixo de Sair (barra lateral e folha Mais): gera um PNG da aba aberta inteira, sem o menu. No computador baixa; no celular abre o Compartilhar pelo aviso Print pronto · Salvar imagem. Nova dependência modern-screenshot." },
     { data: "21/10/2026", commit: "claro-lixeira", mudanca: "Calendário de treinos com fundo claro (só o quadro do mês; cores dos treinos em tons escuros). A Lixeira de Atividades abre num popup por cima da lista em vez de um painel na página." },
     { data: "20/10/2026", commit: "cal-claro", mudanca: "Calendário de treinos mais claro: números dos dias maiores e brancos, hoje num círculo verde, quadrinhos e dias da semana mais visíveis, e os dias do mês anterior e do seguinte preenchendo a grade (número apagado; tocar vai para aquele mês)." },
     { data: "20/10/2026", commit: "abas", mudanca: "Calendário de treinos com ← Voltar, abas Calendário e Plano (?aba=plano), o mês na tela toda (pontinhos no celular) e o dia numa gaveta. Perfil em abas Dados · Treino · Importar · Conta (?aba=…), com os campos reagrupados; Importar passa a ser /profile?aba=importar. Página de teste /profile-preview." },
