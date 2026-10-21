@@ -8,6 +8,8 @@ KACTUS_MAPA.areas.push({
   rotas: ["/coach"],
   arquivos: [
     "apps/web/app/coach/page.tsx",
+    "apps/web/components/DuniAvatar.tsx",
+    "apps/web/public/duni/duni.svg",
     "apps/web/components/coach/SummaryBody.tsx",
     "apps/web/components/coach/GoalPlanPanel.tsx",
     "apps/web/components/coach/WeekPlans.tsx",
@@ -180,7 +182,8 @@ flowchart TD
   inventario: [
     { tipo: "API", nome: "Carregamento da página", acao: "Cinco chamadas em paralelo; falhas viram estado vazio. (Os planos não são mais lidos aqui.)", api: "GET /coach/chat/history · /coach/memories · /coach/analyze · /predictions/overview · /metrics/load?days=30", onde: "apps/web/app/coach/page.tsx:117", no: "LD" },
     { tipo: "cálculo", nome: "Aderência automática", acao: "Ao ler os planos, casa cada treino planejado com uma atividade do mesmo dia e esporte compatível (feito) e marca como pulado o que passou sem atividade.", onde: "apps/api/kactus_api/ai/coach_service.py:649", no: "REC" },
-    { tipo: "seção", nome: "Topo da Duni", acao: "Orbe, selo PRONTO / ANALISANDO / NÃO CONFIGURADO.", msg: "Lê seus treinos de verdade e diz, sem enrolar, o que fazer.", onde: "apps/web/app/coach/page.tsx:237", no: "PG" },
+    { tipo: "seção", nome: "Topo da Duni", acao: "O cacto rainha (a cara da Duni) animado, selo PRONTO / ANALISANDO / NÃO CONFIGURADO.", msg: "Lê seus treinos de verdade e diz, sem enrolar, o que fazer.", onde: "apps/web/app/coach/page.tsx:237", no: "PG" },
+    { tipo: "regra", nome: "A cara da Duni", acao: "Em todo lugar onde a Duni aparece (topo e chat da Duni, cartão do Dashboard, comentário no treino, revisão do treino, quadros do plano, 'analisando' e o ícone do menu) ela é o cacto rainha de coroa: animado (balança, pisca, acena) quando está ativa e parado quando não; quem pede menos movimento no aparelho vê sempre parado.", onde: "apps/web/components/DuniAvatar.tsx:5" },
     { tipo: "botão", nome: "Gerar relatório", acao: "Resumo da semana. Exige 2 semanas de dados.", api: "POST /coach/analyze", msg: "Como você está e o que fazer, em 20 segundos.", onde: "apps/web/app/coach/page.tsx:273", no: "A1,IA1" },
     { tipo: "botão", nome: "Ver o plano de treino", acao: "Leva à aba Plano do Calendário de treinos (/calendar?aba=plano), onde ficam o plano da semana e o do objetivo.", msg: "O plano da semana e o do objetivo ficam no calendário de treinos.", onde: "apps/web/app/coach/page.tsx:281", no: "VP,CALP" },
     { tipo: "botão", nome: "Gerar plano da semana", acao: "No Calendário de treinos. Os 7 dias a partir de hoje; com plano do objetivo, detalha os treinos dele.", api: "POST /coach/plan/generate", msg: "Os treinos dos próximos 7 dias, do seu jeito.", onde: "apps/web/app/calendar/page.tsx:157", no: "A2,IA2" },

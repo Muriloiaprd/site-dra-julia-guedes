@@ -22,7 +22,8 @@ const ICONS = {
   activities: ico(<path d="M3 12h4l3 8 4-16 3 8h4" />),
   calendar: ico(<><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></>),
   load: ico(<><path d="M3 20h18" /><path d="M6 16v-4" /><path d="M10 16V8" /><path d="M14 16v-6" /><path d="M18 16V5" /></>),
-  coach: ico(<><path d="M12 3a3 3 0 0 0-3 3 3 3 0 0 0-3 3 3 3 0 0 0 0 6 3 3 0 0 0 3 3 3 3 0 0 0 3 3" /><path d="M12 3a3 3 0 0 1 3 3 3 3 0 0 1 3 3 3 3 0 0 1 0 6 3 3 0 0 1-3 3 3 3 0 0 1-3 3" /><path d="M12 3v18" /><path d="M9 9.5h1.5M13.5 14.5H15" /></>),
+  // a Duni é o cacto rainha, colorido (não segue a cor do item como os outros ícones)
+  coach: <img src="/duni/duni-parada.svg" alt="" aria-hidden draggable={false} width={22} height={22} className="-m-0.5 max-w-none" />,
   profile: ico(<><circle cx="12" cy="8" r="4" /><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" /></>),
   logout: ico(<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></>),
   more: ico(<><circle cx="5" cy="12" r="1.3" /><circle cx="12" cy="12" r="1.3" /><circle cx="19" cy="12" r="1.3" /></>),

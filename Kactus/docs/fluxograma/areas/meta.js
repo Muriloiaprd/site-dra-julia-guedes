@@ -3,7 +3,7 @@
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
   atualizado: "21/10/2026",
-  commit: "Calendário no estilo novo (Mês · Semana e painel do dia)",
+  commit: "Cacto rainha como a cara da Duni",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -35,6 +35,7 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
+    { data: "21/10/2026", commit: "duni-cacto", mudanca: "A Duni ganhou cara: o cacto rainha (verde neon, de coroa) substitui a bolinha verde em todos os lugares onde ela aparece e vira o ícone dela no menu e na barra de baixo do celular. Animado quando ela está ativa, parado quando não." },
     { data: "21/10/2026", commit: "cal-estilo", mudanca: "Calendário de treinos no estilo novo, em fundo claro: etiquetas com o ícone do esporte, o nome e os km, coloridas pela situação (Cumprido virou Concluído); hoje com borda verde e ponto; resumo do mês numa linha discreta; seletor Mês · Semana (semana em 7 colunas, ou lista no celular); no computador o dia escolhido fica num painel à direita com Ver semana; a gaveta do dia ficou clara. O planejado passa a ser buscado pelo intervalo na tela." },
     { data: "21/10/2026", commit: "cal-menu", mudanca: "A tela do Calendário passa a abrir dentro do menu do app (barra lateral, barra de baixo no celular e Print Tela), como as outras abas; antes ela abria sem menu nenhum por faltar o layout." },
     { data: "21/10/2026", commit: "print-tela", mudanca: "Opção pequena Print Tela embaixo de Sair (barra lateral e folha Mais): gera um PNG da aba aberta inteira, sem o menu. No computador baixa; no celular abre o Compartilhar pelo aviso Print pronto · Salvar imagem. Nova dependência modern-screenshot." },

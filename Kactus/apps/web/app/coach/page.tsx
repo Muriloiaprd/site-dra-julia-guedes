@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { kindLabel, MemoryPanel, whenLabel } from "@/components/coach/MemoryPanel";
 import { ActionButton, ProcessingPanel } from "@/components/coach/ProcessingPanel";
 import { SummaryBody } from "@/components/coach/SummaryBody";
-import { AiOrb } from "@/components/dashboard/CoachCard";
+import { DuniAvatar } from "@/components/DuniAvatar";
 import { Markdown } from "@/components/ui/Markdown";
 import { Alert, PageContainer, Panel, StatusDot } from "@/components/ui/primitives";
 import {
@@ -247,7 +247,7 @@ export default function CoachPage() {
         />
         <div className="relative flex flex-col gap-6">
           <div className="flex items-center gap-5">
-            <AiOrb size={76} active={!notConfigured} />
+            <DuniAvatar size={76} active={!notConfigured} />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 font-mono text-[0.62rem] tracking-[0.2em]">
                 <span className="text-brand-accent">KACTUS · TREINADORA DE IA</span>
@@ -345,7 +345,7 @@ export default function CoachPage() {
           <PhoneFrame>
             {/* cabecalho do app de mensagens */}
             <div className="flex items-center gap-3 border-b border-white/[0.06] px-4 pb-3 pt-2">
-              <AiOrb size={38} active={!notConfigured} />
+              <DuniAvatar size={38} active={!notConfigured} />
               <div className="min-w-0 flex-1">
                 <div className="font-display text-[0.98rem] font-bold leading-tight">Duni</div>
                 <div className="flex items-center gap-1.5 text-[0.7rem]" style={{ color: sending ? "#00FF66" : "#888" }}>
@@ -385,7 +385,7 @@ export default function CoachPage() {
             >
               {messages.length === 0 && (
                 <div className="flex h-full flex-col items-center justify-center gap-3 px-2 text-center">
-                  <AiOrb size={52} />
+                  <DuniAvatar size={52} />
                   <p className="text-[0.82rem] text-brand-muted">Pergunte sobre seus treinos, carga ou recuperação. Conte também seu objetivo e suas provas.</p>
                   <div className="flex w-full flex-col gap-1.5">
                     {SUGGESTIONS.map((s) => (

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
-import { AiOrb } from "@/components/dashboard/CoachCard";
+import { DuniAvatar } from "@/components/DuniAvatar";
 import { Panel } from "@/components/ui/primitives";
 
 /** O que a Duni realmente le do seu contexto (ai/coach_service.build_context). */
@@ -25,7 +25,7 @@ export function ProcessingPanel({ title }: { title: string }) {
     <Panel variant="hero" className="overflow-hidden" aria-live="polite">
       <div className="od-scanline" />
       <div className="relative flex items-center gap-4">
-        <AiOrb size={56} />
+        <DuniAvatar size={56} />
         <div>
           <div className="font-mono text-[0.62rem] tracking-[0.18em] text-brand-accent">DUNI · ANALISANDO</div>
           <p className="mt-1 font-display text-xl font-bold">{title}</p>

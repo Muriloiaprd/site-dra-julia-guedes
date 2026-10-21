@@ -79,7 +79,7 @@ flowchart TD
     { tipo: "erro", nome: "Sessão não verificada", acao: "Dashboard e Perfil: há token, mas /auth/me falhou (rede).", msg: "Não foi possível verificar sua sessão — verifique sua conexão.", onde: "apps/web/app/dashboard/page.tsx:156", no: "NET" },
     { tipo: "permissão", nome: "401 em qualquer chamada", acao: "Apaga o token e redireciona.", msg: "Sessão expirada", onde: "apps/web/lib/api.ts:273", no: "CLR" },
     { tipo: "permissão", nome: "Guarda das telas", acao: "Dashboard, Importar, Desempenho, Duni, Equipamentos e Perfil chamam fetchMe e mandam para /login sem sessão. Atividades e Detalhe dependem só do 401.", onde: "apps/web/app/import/page.tsx:34" },
-    { tipo: "botão", nome: "Sair", acao: "Apaga o token e vai para /login. O token não é revogado no servidor.", onde: "apps/web/components/Sidebar.tsx:103", no: "SAIR" },
+    { tipo: "botão", nome: "Sair", acao: "Apaga o token e vai para /login. O token não é revogado no servidor.", onde: "apps/web/components/Sidebar.tsx:104", no: "SAIR" },
     { tipo: "API", nome: "Cadastro", acao: "Só funciona com ALLOW_REGISTRATION=true; sem tela.", api: "POST /auth/register", msg: "Registro desabilitado · Email ja cadastrado", onde: "apps/api/kactus_api/routers/auth.py:40" },
     { tipo: "API", nome: "Trocar senha", acao: "Pede a senha atual. Não invalida tokens já emitidos. Tela no Perfil.", api: "POST /auth/change-password", msg: "Senha atual incorreta", onde: "apps/api/kactus_api/routers/auth.py:63" },
     { tipo: "API", nome: "Excluir conta", acao: "Apaga o usuário e tudo em cascata. Tela no Perfil.", api: "DELETE /auth/account", onde: "apps/api/kactus_api/routers/auth.py:74" },

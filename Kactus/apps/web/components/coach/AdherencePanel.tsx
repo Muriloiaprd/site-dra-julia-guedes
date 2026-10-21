@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { AiOrb } from "@/components/dashboard/CoachCard";
+import { DuniAvatar } from "@/components/DuniAvatar";
 import { Markdown } from "@/components/ui/Markdown";
 import { Panel } from "@/components/ui/primitives";
 import { fetchAdherence, postActivityComment, type AdherenceItem } from "@/lib/api";
@@ -107,7 +107,7 @@ function Row({ it, onComment }: { it: AdherenceItem; onComment: (it: AdherenceIt
       {error && <p className="text-xs text-brand-danger">{error}</p>}
       {open && it.comment && (
         <div className="flex gap-2.5 rounded-xl px-3 py-2.5" style={{ background: "rgba(0,255,102,0.04)", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.16)" }}>
-          <AiOrb size={26} active={false} />
+          <DuniAvatar size={26} active={false} />
           <div className="min-w-0 text-[0.84rem]"><Markdown text={it.comment.text} /></div>
         </div>
       )}

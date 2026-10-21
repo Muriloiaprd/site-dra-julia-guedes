@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { AiOrb } from "@/components/dashboard/CoachCard";
+import { DuniAvatar } from "@/components/DuniAvatar";
 import { Markdown } from "@/components/ui/Markdown";
 import { Alert, Panel, Skeleton } from "@/components/ui/primitives";
 import { fetchActivityComment, postActivityComment, type ActivityComment, type ActivityDetail } from "@/lib/api";
@@ -45,7 +45,7 @@ export function DuniComment({ activity }: { activity: ActivityDetail }) {
     <Panel variant="accent" aria-live="polite">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <AiOrb size={34} active={asking} />
+          <DuniAvatar size={34} active={asking} />
           <div>
             <h2 className="od-label od-label-accent">Comentário da Duni</h2>
             {comment && data?.generated_at && (

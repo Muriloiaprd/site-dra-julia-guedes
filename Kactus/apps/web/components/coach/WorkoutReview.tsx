@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { AiOrb } from "@/components/dashboard/CoachCard";
+import { DuniAvatar } from "@/components/DuniAvatar";
 import { applyWorkoutReview, reviewWorkout, type PlannedWorkout, type WorkoutReview as Review } from "@/lib/api";
 import { coachErrorMessage } from "@/lib/coachErrors";
 import { formatDuration } from "@/lib/utils";
@@ -65,7 +65,7 @@ export function WorkoutReview({
       {!review && (
         <>
           <div className="flex items-center gap-2.5">
-            <AiOrb size={28} active={busy === "analyze"} />
+            <DuniAvatar size={28} active={busy === "analyze"} />
             <p className="text-[0.8rem] text-brand-textSecondary">
               A Duni confere este treino com o seu último mês, dor, check-ins e a fase do plano.
             </p>

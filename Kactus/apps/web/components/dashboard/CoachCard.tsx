@@ -1,36 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { DuniAvatar } from "@/components/DuniAvatar";
 import { Panel, Skeleton, StatusDot } from "@/components/ui/primitives";
 import { SportTile } from "@/components/SportIcon";
 import { parseLocalDate, toISODate, WEEK_LABELS } from "@/lib/athlete";
 import type { PlannedWorkout, TrainingRecommendation } from "@/lib/api";
 import { formatDuration, sportLabel } from "@/lib/utils";
-
-export function AiOrb({ size = 48, active = true }: { size?: number; active?: boolean }) {
-  return (
-    <div className="relative shrink-0" style={{ width: size, height: size }} aria-hidden>
-      <div
-        className={`absolute inset-0 rounded-full ${active ? "animate-od-breathe" : ""}`}
-        style={{ background: active ? "radial-gradient(circle, rgba(0,255,102,0.38), rgba(0,255,102,0.02) 70%)" : "radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%)" }}
-      />
-      <svg className="absolute inset-0" viewBox="0 0 48 48" style={active ? { animation: "od-orbit 9s linear infinite" } : undefined}>
-        <circle cx="24" cy="24" r="21.5" fill="none" stroke={active ? "rgba(0,255,102,0.45)" : "rgba(255,255,255,0.15)"} strokeWidth="1" strokeDasharray="1.5 4.5" />
-      </svg>
-      <svg className="absolute inset-0" viewBox="0 0 48 48" style={active ? { animation: "od-orbit 5s linear infinite reverse" } : undefined}>
-        <circle cx="24" cy="24" r="15" fill="none" stroke={active ? "rgba(198,255,0,0.55)" : "rgba(255,255,255,0.12)"} strokeWidth="1.2" strokeDasharray="14 9" strokeLinecap="round" />
-      </svg>
-      <div
-        className="absolute rounded-full"
-        style={{
-          inset: size * 0.36,
-          background: active ? "radial-gradient(circle at 35% 35%, #C6FF00, #00FF66)" : "#444",
-          boxShadow: active ? "0 0 16px rgba(0,255,102,0.8)" : undefined,
-        }}
-      />
-    </div>
-  );
-}
 
 function dayLabel(iso: string): string {
   const today = toISODate(new Date());
@@ -71,7 +47,7 @@ export function CoachCard({
       </div>
 
       <div className="relative mt-5 flex items-center gap-3.5">
-        <AiOrb active={planState !== "error"} />
+        <DuniAvatar active={planState !== "error"} />
         <p className="font-display text-[1.15rem] font-bold leading-snug">
           {planState === "loading"
             ? "Carregando seu plano…"

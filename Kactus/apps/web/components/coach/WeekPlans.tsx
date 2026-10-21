@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { WeeklyPlanPanel } from "@/components/coach/WeeklyPlanPanel";
-import { AiOrb } from "@/components/dashboard/CoachCard";
+import { DuniAvatar } from "@/components/DuniAvatar";
 import { Panel } from "@/components/ui/primitives";
 import type { FreeWeekResponse, PlannedWorkout, WeeklyPlanResponse } from "@/lib/api";
 import { parseLocalDate, toISODate, WEEK_LABELS } from "@/lib/athlete";
@@ -114,7 +114,7 @@ function Compare({
 
       {rec && free.comparison && (
         <div className="flex items-start gap-3 rounded-2xl p-4" style={{ background: `${rec.color}0d`, boxShadow: `inset 0 0 0 1px ${rec.color}40` }}>
-          <AiOrb size={34} active={false} />
+          <DuniAvatar size={34} active={false} />
           <div>
             <div className="font-display text-[1rem] font-bold" style={{ color: rec.color }}>A Duni recomenda: {rec.label.toLowerCase()}</div>
             <p className="mt-0.5 text-[0.84rem] text-brand-textSecondary">{free.comparison.explicacao}</p>
