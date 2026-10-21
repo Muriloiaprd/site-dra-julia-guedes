@@ -64,8 +64,8 @@ function CalendarScreen() {
     router.push(next === "plano" ? `${pathname}?aba=plano` : pathname, { scroll: false });
   }
   const [ready, setReady] = useState(false);
-  const now = new Date();
-  const [ym, setYm] = useState({ year: now.getFullYear(), month: now.getMonth() });
+  // o intervalo na tela (mês com os dias vizinhos, ou a semana) vem do calendário
+  const [range, setRange] = useState<{ start: string; end: string } | null>(null);
 
   const [activities, setActivities] = useState<ActivitySummary[]>([]);
   const [actsLoading, setActsLoading] = useState(true);
@@ -103,26 +103,20 @@ function CalendarScreen() {
     fetchFreeWeek().then(setFree).catch(() => setFree({ plan: null, workouts: [], comparison: null }));
   }, [ready]);
 
-  // o planejado do mês visível; volta a buscar quando um plano novo é gerado
+  // o planejado do intervalo visível; volta a buscar quando um plano novo é gerado
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !range) return;
     let alive = true;
     setPlanLoading(true);
-    const start = toISODate(new Date(ym.year, ym.month, 1));
-    const end = toISODate(new Date(ym.year, ym.month + 1, 0));
-    fetchPlanRange(start, end)
+    fetchPlanRange(range.start, range.end)
       .then((w) => { if (alive) setWorkouts(w); })
       .catch(() => { if (alive) { setWorkouts([]); setLoadError(true); } })
       .finally(() => { if (alive) setPlanLoading(false); });
     return () => { alive = false; };
-  }, [ready, ym, planVersion]);
+  }, [ready, range, planVersion]);
 
-  const changeMonth = useCallback((step: -1 | 0 | 1) => {
-    if (step === 0) { const t = new Date(); setYm({ year: t.getFullYear(), month: t.getMonth() }); return; }
-    setYm(({ year, month }) => {
-      const d = new Date(year, month + step, 1);
-      return { year: d.getFullYear(), month: d.getMonth() };
-    });
+  const changeRange = useCallback((start: string, end: string) => {
+    setRange((r) => (r?.start === start && r.end === end ? r : { start, end }));
   }, []);
 
   async function refreshPlans() {
@@ -216,12 +210,10 @@ function CalendarScreen() {
       {/* as duas abas ficam montadas: trocar não perde o mês nem um plano sendo gerado */}
       <div hidden={aba !== "calendario"}>
         <TrainingCalendar
-          year={ym.year}
-          month={ym.month}
           activities={activities}
           workouts={workouts}
           loading={!ready || actsLoading || planLoading}
-          onMonth={changeMonth}
+          onRange={changeRange}
         />
       </div>
 
