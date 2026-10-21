@@ -26,6 +26,7 @@ const ICONS = {
   coach: <img src="/duni/duni-parada.svg" alt="" aria-hidden draggable={false} width={22} height={22} className="-m-0.5 max-w-none" />,
   profile: ico(<><circle cx="12" cy="8" r="4" /><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" /></>),
   logout: ico(<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></>),
+  camera: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" /><circle cx="12" cy="13.5" r="3.5" /></svg>,
   more: ico(<><circle cx="5" cy="12" r="1.3" /><circle cx="12" cy="12" r="1.3" /><circle cx="19" cy="12" r="1.3" /></>),
 };
 
@@ -99,6 +100,18 @@ export function Sidebar() {
 
   const abaAtual = ALL_ITEMS.find((i) => isActive(pathname, i.href));
   const print = usePrintTela(abaAtual?.label ?? (pathname.split("/")[1] || "tela"));
+  const printButton = (
+    <button
+      type="button"
+      onClick={print.gerar}
+      disabled={print.gerando}
+      title="Gera uma imagem da aba aberta inteira"
+      className="od-btn od-btn-ghost od-btn-sm inline-flex items-center gap-1.5 !rounded-full !px-3 !py-1 !text-[0.74rem] disabled:opacity-50"
+    >
+      {ICONS.camera}
+      {print.gerando ? "Gerando…" : "Print"}
+    </button>
+  );
 
   function handleLogout() {
     clearToken();
@@ -178,16 +191,11 @@ export function Sidebar() {
             <span className="od-nav-icon shrink-0">{ICONS.logout}</span>
             <span className="hidden lg:inline">Sair</span>
           </button>
-          <button
-            onClick={print.gerar}
-            disabled={print.gerando}
-            title="Gera uma imagem da aba aberta inteira"
-            className="mt-1 block w-full text-center text-[0.6rem] font-medium text-brand-muted/70 transition-colors hover:text-white disabled:opacity-50 lg:px-3 lg:text-left"
-          >
-            Print Tela
-          </button>
         </div>
       </aside>
+
+      {/* ───────── Computador: Print no canto superior direito, fora da área capturada ───────── */}
+      <div className="hidden justify-end px-6 pt-3 md:ml-[76px] md:flex lg:ml-60 lg:px-8">{printButton}</div>
 
       {/* ───────── Mobile: top bar ───────── */}
       <header
@@ -201,7 +209,10 @@ export function Sidebar() {
         }}
       >
         <Link href="/dashboard" aria-label="Kactus — Dashboard"><Logo size={30} /></Link>
-        <Link href="/profile" aria-label="Perfil"><Avatar user={user} avatarUrl={avatarUrl} size={30} /></Link>
+        <div className="flex items-center gap-2.5">
+          {printButton}
+          <Link href="/profile" aria-label="Perfil"><Avatar user={user} avatarUrl={avatarUrl} size={30} /></Link>
+        </div>
       </header>
 
       {/* ───────── Mobile: bottom nav ───────── */}
@@ -268,13 +279,6 @@ export function Sidebar() {
             <button onClick={handleLogout} className="od-nav-item w-full text-brand-danger">
               <span className="od-nav-icon">{ICONS.logout}</span>
               Sair
-            </button>
-            <button
-              onClick={() => { setMoreOpen(false); print.gerar(); }}
-              disabled={print.gerando}
-              className="block w-full px-3 pb-1 pt-1.5 text-left text-[0.66rem] font-medium text-brand-muted/70 disabled:opacity-50"
-            >
-              Print Tela
             </button>
           </div>
         </div>
