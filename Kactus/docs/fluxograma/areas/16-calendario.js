@@ -4,9 +4,10 @@ KACTUS_MAPA.areas.push({
   n: 16,
   titulo: "Calendário de treinos",
   resumo:
-    "A aba onde se confere os treinos, com ← Voltar no topo e duas abas: Calendário e Plano. Calendário: o mês inteiro na largura da tela, com o treino planejado de cada dia (do plano da semana ou do plano do objetivo) e as atividades feitas. Cada treino mostra a situação: cumprido, perdido, hoje, planejado ou descanso. No celular cada dia mostra pontinhos (situação do planejado e cor do esporte). Tocar num dia abre uma gaveta com o detalhe (pela direita no computador, por baixo no celular). Plano: gerar o plano da semana e o do objetivo, o Plano do objetivo, o Planejado × feito e o Plano da semana (que saíram da página da Duni). O plano só aparece aqui e no resumo do Dashboard.",
+    "A aba onde se confere os treinos, dentro do menu do app (barra lateral, barra de baixo e Print Tela, como as outras abas), com ← Voltar no topo e duas abas: Calendário e Plano. Calendário: o mês inteiro na largura da tela, com o treino planejado de cada dia (do plano da semana ou do plano do objetivo) e as atividades feitas. Cada treino mostra a situação: cumprido, perdido, hoje, planejado ou descanso. No celular cada dia mostra pontinhos (situação do planejado e cor do esporte). Tocar num dia abre uma gaveta com o detalhe (pela direita no computador, por baixo no celular). Plano: gerar o plano da semana e o do objetivo, o Plano do objetivo, o Planejado × feito e o Plano da semana (que saíram da página da Duni). O plano só aparece aqui e no resumo do Dashboard.",
   rotas: ["/calendar", "/calendar?aba=plano"],
   arquivos: [
+    "apps/web/app/calendar/layout.tsx",
     "apps/web/app/calendar/page.tsx",
     "apps/web/components/calendar/TrainingCalendar.tsx",
     "apps/web/components/ui/BackButton.tsx",
