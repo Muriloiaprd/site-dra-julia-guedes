@@ -190,7 +190,7 @@ function Compare({
  * o atleta leva para a agenda os dias que quiser do plano da semana.
  */
 export function WeekPlans({
-  week, goalWorkouts, hasGoal, free, onRefresh, onGenerate, generating, onGenerateFree, generatingFree, onUseFree, usingFree,
+  week, goalWorkouts, hasGoal, free, onRefresh, onGenerate, generating, onGenerateFree, generatingFree, onUseFree, usingFree, locked = null,
 }: {
   week: WeeklyPlanResponse;
   goalWorkouts: PlannedWorkout[];
@@ -203,6 +203,8 @@ export function WeekPlans({
   generatingFree: boolean;
   onUseFree: (dates?: string[]) => void;
   usingFree: string | null;
+  /** "Gerar plano da semana" travado ate segunda: o motivo. */
+  locked?: string | null;
 }) {
   const [view, setView] = useState<View>("objetivo");
   const main = (
@@ -212,6 +214,7 @@ export function WeekPlans({
       onRefresh={onRefresh}
       onGenerate={onGenerate}
       generating={generating}
+      locked={locked}
       title={hasGoal ? "Plano da semana · do objetivo" : "Plano da semana"}
     />
   );

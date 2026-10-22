@@ -46,6 +46,10 @@ export function coachErrorMessage(e: unknown): { title: string; detail: string }
         return { title: "Falta o plano da semana pelo estado de agora", detail: "Gere o plano na aba \"Da semana\" ou em Comparar e depois escolha os dias." };
       case "not_editable":
         return { title: "Esse treino não pode mais mudar", detail: e.detail.message ?? "Só dá para mudar treino ainda não feito, de hoje em diante." };
+      case "week_already_generated":
+        return { title: "O plano desta semana já foi gerado", detail: e.detail.message ?? "Libera de novo na segunda." };
+      case "no_days_left":
+        return { title: "Não sobrou dia nesta semana", detail: e.detail.message ?? "Libera de novo na segunda." };
       case "past_date":
         return { title: "Esse dia já passou", detail: e.detail.message ?? "Escolha hoje ou um dia mais à frente." };
       case "not_swappable":

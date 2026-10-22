@@ -2,8 +2,8 @@
 // achados do mapeamento e histórico. Atualizar "atualizado", "commit" e "historico"
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
-  atualizado: "21/10/2026",
-  commit: "Botão Print no canto superior direito",
+  atualizado: "22/10/2026",
+  commit: "Duni troca treino pelo chat, editar treino no dia e plano da semana até domingo",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -35,6 +35,7 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
+    { data: "22/10/2026", commit: "plano-sync", mudanca: "A Duni passou a trocar o treino de verdade pelo chat (antes respondia 'Feito' e nada mudava) e toda mudança de treino atualiza todas as telas abertas (Calendário com as quatro abas e Dashboard). Tocar no dia do Calendário permite editar o treino (tipo, km, tempo, intensidade, ritmo, FC, descrição). Gerar plano da semana vale só para a semana de hoje, até domingo (hoje entra se ainda não treinou), e trava na API até a segunda." },
     { data: "21/10/2026", commit: "print-botao", mudanca: "O Print Tela saiu do rodapé do menu e da folha Mais e virou o botão Print, com ícone de câmera, no canto superior direito de toda tela interna (no celular, na barra do topo, ao lado da foto)." },
     { data: "21/10/2026", commit: "duni-topo", mudanca: "Topo da página da Duni sem o rótulo KACTUS · TREINADORA DE IA; o selo Pronto / Analisando / Não configurado foi para o canto direito." },
     { data: "21/10/2026", commit: "dash-sem-adh", mudanca: "O cartão Planejado × feito saiu do Dashboard; ele fica só na aba Comparar do Calendário de treinos (placar e treino a treino)." },

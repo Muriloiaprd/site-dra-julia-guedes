@@ -67,14 +67,14 @@ def _raise_parse_error(e: CoachPlanParseError) -> None:
 @router.post("/chat", response_model=ChatResponse)
 def post_chat(body: ChatRequest, current_user: CurrentUser, db: DbSession) -> dict:
     try:
-        reply, model_used, suggestions = coach_service.chat(db, current_user.id, body.message)
+        reply, model_used, suggestions, change = coach_service.chat(db, current_user.id, body.message)
     except CoachUnavailableError as e:
         _raise_unavailable(e)
     except CoachPlanParseError as e:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail={"error": "invalid_response", "message": str(e)}
         ) from e
-    return {"reply": reply, "model_used": model_used, "memory_suggestions": suggestions}
+    return {"reply": reply, "model_used": model_used, "memory_suggestions": suggestions, "workout_change": change}
 
 
 # ── memorias ────────────────────────────────────────────────────────────────
@@ -161,16 +161,19 @@ def post_analyze(current_user: CurrentUser, db: DbSession) -> dict:
 
 @router.post("/plan/generate", response_model=WeeklyPlanResponse)
 def post_generate_plan(current_user: CurrentUser, db: DbSession) -> dict:
-    """Plano da semana (7 dias a partir de hoje), com status e relatorio."""
+    """Plano do resto da semana de hoje (ate domingo), com status e relatorio. Uma vez
+    por semana: gerado, 409 week_already_generated ate a segunda."""
     try:
         plan, rows, _model_used = generate_weekly_plan(db, current_user.id)
+    except PlanEditError as e:
+        _raise_plan_edit(e)
     except InsufficientDataError as e:
         _raise_insufficient_data(e)
     except CoachUnavailableError as e:
         _raise_unavailable(e)
     except CoachPlanParseError as e:
         _raise_parse_error(e)
-    return {"plan": plan, "workouts": rows}
+    return {"plan": plan, "workouts": rows, "generation": coach_service.week_generation(db, current_user.id)}
 
 
 @router.post("/goal-plan/generate", response_model=GoalPlanResponse)
@@ -225,7 +228,11 @@ def get_plan_week(current_user: CurrentUser, db: DbSession) -> dict:
     data. Sem plano da semana, mas com plano do objetivo, os treinos dos proximos 7 dias."""
     coach_service.reconcile_plan(db, current_user.id)
     plan = coach_service.current_weekly_plan(db, current_user.id)
-    return {"plan": plan, "workouts": coach_service.week_workouts(db, current_user.id, plan)}
+    return {
+        "plan": plan,
+        "workouts": coach_service.week_workouts(db, current_user.id, plan),
+        "generation": coach_service.week_generation(db, current_user.id),
+    }
 
 
 def _raise_plan_edit(e: PlanEditError) -> None:
@@ -390,6 +397,15 @@ def patch_workout(
     ).scalar_one_or_none()
     if not workout:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Treino nao encontrado")
+    edits = body.model_dump(exclude_unset=True, exclude={"status", "activity_id"})
+    if edits:
+        for required in ("title", "sport"):
+            if edits.get(required, "") is None:
+                del edits[required]  # obrigatorio: null nao apaga
+        try:
+            workout = coach_service.edit_workout(db, current_user.id, workout_id, edits)
+        except PlanEditError as e:
+            _raise_plan_edit(e)
     if body.status is not None:
         if body.status not in {"planned", "done", "skipped"}:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Status invalido")

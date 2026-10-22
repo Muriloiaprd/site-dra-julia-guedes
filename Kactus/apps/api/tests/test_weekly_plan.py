@@ -24,6 +24,31 @@ from kactus_api.ai.coach_service import (
 START = date(2026, 9, 22)
 END = START + timedelta(days=6)
 
+# Os endpoints rodam numa quarta fixa (a quarta desta semana, ou da anterior): a geracao
+# vale de hoje a domingo, e o teste precisa saber quantos dias sobram.
+_REAL_TODAY = date.today()
+WEDNESDAY = _REAL_TODAY - timedelta(days=(_REAL_TODAY.weekday() - 2) % 7)
+
+
+class _FixedDate(date):
+    today_value = WEDNESDAY
+
+    @classmethod
+    def today(cls):
+        return cls.today_value
+
+
+@pytest.fixture(autouse=True)
+def fixed_today(monkeypatch):
+    """date.today() do coach_service vira a quarta; mude com fixed_today(dia)."""
+    monkeypatch.setattr(coach_service, "date", _FixedDate)
+
+    def set_day(day: date) -> None:
+        monkeypatch.setattr(_FixedDate, "today_value", day)
+
+    set_day(WEDNESDAY)
+    return set_day
+
 
 def _workout(day: date, **over) -> PlanWorkout:
     base = {
@@ -171,7 +196,7 @@ def test_generate_saves_plan_and_structured_workouts(auth_client: tuple[TestClie
 
     plan = body["plan"]
     assert plan["status"] == "verde" and plan["status_reason"].startswith("TSB")
-    assert set(plan["report"]) == {"resumo", "carga_semana_anterior", "avaliacao", "proxima_semana",
+    assert set(plan["report"]) == {"semana_gerada", "resumo", "carga_semana_anterior", "avaliacao", "proxima_semana",
                                    "criterios_ajuste", "proximas_4_semanas"}
     assert plan["report"]["carga_semana_anterior"]["corridas"] == 0  # o historico e de 3 semanas atras
     [first, *_] = body["workouts"]
@@ -183,16 +208,55 @@ def test_generate_saves_plan_and_structured_workouts(auth_client: tuple[TestClie
 
     week = client.get("/coach/plan/week").json()
     assert week["plan"]["id"] == plan["id"] and len(week["workouts"]) == 3
+    # quarta a domingo; a semana gerada fica guardada (a segunda) e trava ate a proxima segunda
+    assert plan["week_start"] == WEDNESDAY.isoformat()
+    assert plan["week_end"] == (WEDNESDAY + timedelta(days=4)).isoformat()
+    assert plan["report"]["semana_gerada"] == (WEDNESDAY - timedelta(days=2)).isoformat()
+    assert week["generation"]["locked"] is True
+    assert week["generation"]["unlocks_on"] == (WEDNESDAY + timedelta(days=5)).isoformat()
 
 
-def test_regenerating_the_week_replaces_planned_workouts(auth_client: tuple[TestClient, dict], fake_llm) -> None:
+def test_week_is_generated_only_until_sunday(auth_client: tuple[TestClient, dict], fake_llm) -> None:
     client, _user = auth_client
     _with_history(client)
-    _generate(client, fake_llm, (0, 1, 2, 3))
-    second = _generate(client, fake_llm, (5,))
+    gen = client.get("/coach/plan/week").json()["generation"]
+    assert gen["locked"] is False and gen["trained_today"] is False
+    assert (gen["first_day"], gen["last_day"]) == (WEDNESDAY.isoformat(), (WEDNESDAY + timedelta(days=4)).isoformat())
 
-    assert client.get("/coach/plan/week").json()["plan"]["id"] == second["plan"]["id"]
-    assert len(client.get("/coach/plan?days_ahead=14").json()) == 1
+    sent = fake_llm(_plan([_workout(WEDNESDAY + timedelta(days=i), titulo=f"Treino {i}") for i in (0, 2, 4, 5, 6)]))
+    body = client.post("/coach/plan/generate").json()
+
+    # segunda e terca da semana seguinte ficam de fora: so ate domingo
+    assert [w["date"] for w in body["workouts"]] == [(WEDNESDAY + timedelta(days=i)).isoformat() for i in (0, 2, 4)]
+    assert "quarta" in sent["user_content"] and "domingo" in sent["user_content"]
+    assert "segunda" not in sent["user_content"].split("Contexto do atleta")[0].split("Os dias do plano")[1]
+
+
+def test_generate_is_locked_until_monday(auth_client: tuple[TestClient, dict], fake_llm, fixed_today) -> None:
+    client, _user = auth_client
+    _with_history(client)
+    _generate(client, fake_llm, (0, 2))
+
+    again = client.post("/coach/plan/generate")
+    assert again.status_code == 409 and again.json()["detail"]["error"] == "week_already_generated"
+
+    fixed_today(WEDNESDAY + timedelta(days=4))  # domingo: ainda travado
+    assert client.post("/coach/plan/generate").status_code == 409
+
+    monday = WEDNESDAY + timedelta(days=5)
+    fixed_today(monday)  # segunda: libera, e vale a semana nova inteira
+    gen = client.get("/coach/plan/week").json()["generation"]
+    assert gen["locked"] is False and gen["first_day"] == monday.isoformat()
+    fake_llm(_plan([_workout(monday + timedelta(days=i)) for i in (0, 2, 4)]))
+    assert client.post("/coach/plan/generate").status_code == 200
+    assert client.get("/coach/plan/week").json()["generation"]["locked"] is True
+
+
+def test_short_end_of_week_can_be_all_rest_or_all_training() -> None:
+    sunday = START + timedelta(days=6)
+    assert validate_weekly_plan(_plan([]), sunday, sunday) == []
+    friday = START + timedelta(days=4)
+    assert len(validate_weekly_plan(_plan([_workout(friday + timedelta(days=i)) for i in range(3)]), friday, sunday)) == 3
 
 
 def test_invalid_plan_is_502_and_nothing_is_saved(auth_client: tuple[TestClient, dict], fake_llm) -> None:
@@ -204,7 +268,9 @@ def test_invalid_plan_is_502_and_nothing_is_saved(auth_client: tuple[TestClient,
     resp = client.post("/coach/plan/generate")
 
     assert resp.status_code == 502 and resp.json()["detail"]["error"] == "invalid_plan_response"
-    assert client.get("/coach/plan/week").json() == {"plan": None, "workouts": []}
+    week = client.get("/coach/plan/week").json()
+    assert week["plan"] is None and week["workouts"] == []
+    assert week["generation"]["locked"] is False  # falhou: nao gasta a semana
 
 
 def test_regenerate_day_keeps_the_date_and_records_the_reason(auth_client: tuple[TestClient, dict], fake_llm) -> None:
@@ -275,7 +341,7 @@ def test_move_refuses_past_date(auth_client: tuple[TestClient, dict], fake_llm) 
     client, _user = auth_client
     _with_history(client)
     a = _generate(client, fake_llm)["workouts"][0]
-    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    yesterday = (WEDNESDAY - timedelta(days=1)).isoformat()
 
     resp = client.post(f"/coach/plan/{a['id']}/move", json={"date": yesterday})
 
@@ -286,21 +352,26 @@ def test_week_starts_today() -> None:
     assert week_range(date(2026, 10, 5)) == (date(2026, 10, 5), date(2026, 10, 11))
 
 
-def test_regenerating_keeps_done_day_without_a_second_workout(auth_client: tuple[TestClient, dict], fake_llm) -> None:
-    client, _user = auth_client
+def test_trained_today_starts_tomorrow(auth_client: tuple[TestClient, dict], fake_llm, db_session) -> None:
+    """Ja treinou hoje: o plano comeca amanha, e o feito de hoje aparece no quadro."""
+    from kactus_api.models.coach import PlannedWorkout
+
+    client, user = auth_client
     _with_history(client)
-    today = _generate(client, fake_llm, (0, 2))["workouts"][0]
-    assert today["date"] == date.today().isoformat()
-    assert client.patch(f"/coach/plan/{today['id']}", json={"status": "done"}).status_code == 200
+    import uuid as _uuid
+    db_session.add(PlannedWorkout(user_id=user["id"], date=WEDNESDAY, sport="run", title="Feito hoje",
+                                  status="done", plan_batch_id=_uuid.uuid4()))
+    db_session.flush()
+    gen = client.get("/coach/plan/week").json()["generation"]
+    assert gen["trained_today"] is True and gen["first_day"] == (WEDNESDAY + timedelta(days=1)).isoformat()
 
-    second = _generate(client, fake_llm, (0, 3))
+    sent = fake_llm(_plan([_workout(WEDNESDAY + timedelta(days=i)) for i in (0, 1, 3)]))
+    body = client.post("/coach/plan/generate").json()
 
-    assert [w["date"] for w in second["workouts"]] == [(date.today() + timedelta(days=3)).isoformat()]
+    assert [w["date"] for w in body["workouts"]] == [(WEDNESDAY + timedelta(days=i)).isoformat() for i in (1, 3)]
+    assert "ja treinou" in sent["user_content"]
     week = client.get("/coach/plan/week").json()["workouts"]
-    assert sorted((w["date"], w["status"]) for w in week) == [
-        (date.today().isoformat(), "done"),
-        ((date.today() + timedelta(days=3)).isoformat(), "planned"),
-    ]
+    assert (WEDNESDAY.isoformat(), "done") in [(w["date"], w["status"]) for w in week]
 
 
 def test_plan_schema_speaks_hr_not_pse() -> None:

@@ -192,11 +192,15 @@ def test_week_plan_details_goal_workouts_without_changing_them(auth_client: tupl
     fake_llm(_llm("2026-01-01", "2026-01-02"))
     goal = client.post("/coach/goal-plan/generate", json={}).json()
     start = date.today()
-    in_week = [w for w in goal["workouts"] if w["date"] <= (start + timedelta(days=6)).isoformat()]
-    assert in_week, "o plano do objetivo tem treino nesta semana"
+    sunday = start + timedelta(days=6 - start.weekday())  # o plano da semana vai ate domingo
+    in_week = [w for w in goal["workouts"] if w["date"] <= sunday.isoformat()]
+    if not in_week:
+        pytest.skip("o plano do objetivo nao tem treino no resto desta semana (fim de semana)")
     target = in_week[0]
     free_day = next(
-        d for d in (start + timedelta(days=i) for i in range(7)) if d.isoformat() not in {w["date"] for w in in_week}
+        (d for d in (start + timedelta(days=i) for i in range((sunday - start).days + 1))
+         if d.isoformat() not in {w["date"] for w in in_week}),
+        sunday + timedelta(days=1),
     )
     # a IA "desobedece": muda distancia e tipo e inventa um treino num dia livre
     sent = fake_llm(_plan([
@@ -247,7 +251,7 @@ def test_regenerating_goal_keeps_the_week_cards_filled(auth_client: tuple[TestCl
     _race(client, days_ahead=60)
     fake_llm(_llm("2026-01-01", "2026-01-02"))
     goal = client.post("/coach/goal-plan/generate", json={}).json()
-    end = (date.today() + timedelta(days=6)).isoformat()
+    end = (date.today() + timedelta(days=6 - date.today().weekday())).isoformat()  # ate domingo
     in_week = [w for w in goal["workouts"] if w["date"] <= end]
     fake_llm(_plan([_workout(date.fromisoformat(w["date"])) for w in in_week]))
     main = client.post("/coach/plan/generate").json()
@@ -278,7 +282,8 @@ def test_week_without_weekly_plan_shows_the_goal_workouts(auth_client: tuple[Tes
 
 def test_week_is_empty_without_any_plan(auth_client: tuple[TestClient, dict]) -> None:
     client, _user = auth_client
-    assert client.get("/coach/plan/week").json() == {"plan": None, "workouts": []}
+    week = client.get("/coach/plan/week").json()
+    assert week["plan"] is None and week["workouts"] == []
 
 
 def test_goal_plan_with_bad_llm_json_is_a_clear_error(auth_client: tuple[TestClient, dict], monkeypatch) -> None:

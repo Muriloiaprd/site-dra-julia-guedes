@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 import { TrainingCalendar } from "@/components/calendar/TrainingCalendar";
 import { AdherenceList, AdherenceScore, useAdherence } from "@/components/coach/AdherencePanel";
@@ -29,8 +29,16 @@ import {
 } from "@/lib/api";
 import { toISODate } from "@/lib/athlete";
 import { coachErrorMessage } from "@/lib/coachErrors";
+import { notifyPlanChanged, usePlanChanged } from "@/lib/planSync";
 
 const PAGE = 500;
+
+/** "2026-10-26" → "26/10" */
+const ddmm = (iso: string | null) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "");
+const nextDay = (iso: string) => {
+  const d = new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)) + 1);
+  return toISODate(d);
+};
 
 /** Todas as atividades, em páginas de 500 (o calendário anda por qualquer mês). */
 async function fetchAllActivities(): Promise<ActivitySummary[]> {
@@ -113,11 +121,15 @@ function CalendarScreen() {
     fetchFreeWeek().then(setFree).catch(() => setFree({ plan: null, workouts: [], comparison: null }));
   }, [ready]);
 
-  // o planejado do intervalo visível; volta a buscar quando um plano novo é gerado
+  // o planejado do intervalo visível; volta a buscar quando o plano muda (sem piscar o
+  // esqueleto: só mostra carregando ao trocar de mês/semana)
+  const shownRange = useRef("");
   useEffect(() => {
     if (!ready || !range) return;
     let alive = true;
-    setPlanLoading(true);
+    const key = `${range.start}/${range.end}`;
+    if (shownRange.current !== key) setPlanLoading(true);
+    shownRange.current = key;
     fetchPlanRange(range.start, range.end)
       .then((w) => { if (alive) setWorkouts(w); })
       .catch(() => { if (alive) { setWorkouts([]); setLoadError(true); } })
@@ -129,9 +141,21 @@ function CalendarScreen() {
     setRange((r) => (r?.start === start && r.end === end ? r : { start, end }));
   }, []);
 
-  async function refreshPlans() {
-    setWeek(await fetchWeekPlan());
+  // Plano mudou (aqui, na Duni, em outra aba): todas as abas desta tela buscam de novo,
+  // não só o mês e o quadro da semana. Antes Plano, Objetivo e Comparar ficavam velhos.
+  const reloadAdherence = adherence.reload;
+  const refreshAll = useCallback(() => {
+    fetchWeekPlan().then(setWeek).catch(() => {});
+    fetchGoalPlan().then(setGoal).catch(() => {});
+    fetchFreeWeek().then(setFree).catch(() => {});
     setPlanVersion((v) => v + 1);
+    reloadAdherence();
+  }, [reloadAdherence]);
+  usePlanChanged(refreshAll, ready);
+
+  /** Depois de mudar um treino: avisa todas as telas (esta inclusive). */
+  async function refreshPlans() {
+    notifyPlanChanged();
   }
 
   async function handleGenerateGoal(daysPerWeek: number) {
@@ -143,7 +167,7 @@ function CalendarScreen() {
       setGoal(res);
       setGoalCount(res.workouts.length);
       // os treinos planejados de hoje em diante mudaram
-      await refreshPlans().catch(() => {});
+      notifyPlanChanged();
     } catch (e) {
       setError(coachErrorMessage(e));
     } finally {
@@ -168,8 +192,7 @@ function CalendarScreen() {
     setError(null);
     try {
       setWeek(await applyFreeWeek(dates));
-      setPlanVersion((v) => v + 1);
-      fetchGoalPlan().then(setGoal).catch(() => {});
+      notifyPlanChanged();
     } catch (e) {
       setError(coachErrorMessage(e));
     } finally {
@@ -185,9 +208,10 @@ function CalendarScreen() {
       const res = await postCoachGeneratePlan();
       setWeek(res);
       setPlanCount(res.workouts.length);
-      setPlanVersion((v) => v + 1);
+      notifyPlanChanged();
     } catch (e) {
       setError(coachErrorMessage(e));
+      fetchWeekPlan().then(setWeek).catch(() => {}); // 409: mostra o botão travado
     } finally {
       setGenerating(false);
     }
@@ -196,6 +220,10 @@ function CalendarScreen() {
   const busy = generating || generatingGoal || generatingFree;
   const todayIso = toISODate(new Date());
   const weekEnd = toISODate(new Date(Date.now() + 6 * 86_400_000));
+  const gen = week?.generation ?? null;
+  const locked = gen?.locked
+    ? `Plano desta semana já gerado. Libera de novo na segunda, ${ddmm(gen.unlocks_on)}.`
+    : gen && !gen.first_day ? `Não sobrou dia nesta semana. Libera de novo na segunda, ${ddmm(nextDay(gen.week_end))}.` : null;
 
   return (
     <PageContainer>
@@ -225,6 +253,7 @@ function CalendarScreen() {
           workouts={workouts}
           loading={!ready || actsLoading || planLoading}
           onRange={changeRange}
+          onChanged={notifyPlanChanged}
         />
       </div>
 
@@ -238,11 +267,13 @@ function CalendarScreen() {
         <div className="grid gap-3 md:grid-cols-2">
           <ActionButton
             onClick={handleGeneratePlan}
-            disabled={busy || !ready}
+            disabled={busy || !ready || !gen || !!locked}
             color="#C6FF00"
-            kicker={generating ? "Gerando…" : "Gerar plano da semana"}
-            title="Os treinos dos próximos 7 dias, do seu jeito."
-            text={`Focados em evolução, consistência e segurança${goal?.plan ? ` até a ${goal.plan.race_name}` : ""}.`}
+            kicker={generating ? "Gerando…" : locked ? "Plano da semana gerado" : "Gerar plano da semana"}
+            title={locked ?? (gen?.trained_today ? "Os treinos de amanhã até domingo." : "Os treinos de hoje até domingo.")}
+            text={locked
+              ? "Para mudar um treino, toque no dia no Calendário ou peça à Duni."
+              : `Só esta semana: ${gen?.trained_today ? "você já treinou hoje, então começa amanhã" : "hoje entra, porque ainda dá tempo de treinar"}. Depois de gerar, trava até domingo.`}
             icon={<><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="m9 16 2 2 4-4" /></>}
           />
           <ActionButton
@@ -319,6 +350,7 @@ function CalendarScreen() {
             generatingFree={generatingFree}
             onUseFree={handleUseFree}
             usingFree={usingFree}
+            locked={locked}
           />
         )}
 

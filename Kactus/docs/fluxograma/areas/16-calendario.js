@@ -10,6 +10,8 @@ KACTUS_MAPA.areas.push({
     "apps/web/app/calendar/layout.tsx",
     "apps/web/app/calendar/page.tsx",
     "apps/web/components/calendar/TrainingCalendar.tsx",
+    "apps/web/components/calendar/WorkoutEditForm.tsx",
+    "apps/web/lib/planSync.ts",
     "apps/web/components/ui/BackButton.tsx",
     "apps/web/components/coach/ProcessingPanel.tsx",
     "apps/web/components/coach/GoalPlanPanel.tsx",
@@ -58,19 +60,35 @@ flowchart TD
   DET -->|✕, Esc ou tocar fora| CAL
   LADO --> VER("Ver o treino feito → · atividade"):::acao --> ATV["/activities/id"]:::tela
   DET --> VER
+  LADO --> EDT{"Treino ainda não feito,<br/>de hoje em diante?"}:::decisao
+  DET --> EDT
+  EDT -->|sim| EBT("Editar treino"):::acao --> EFM["Tipo · onde · título · km · min ·<br/>intensidade · ritmo · FC · descrição · observações"]:::tela
+  EFM --> ESV("Salvar"):::acao --> EPA[/"PATCH /coach/plan/id<br/>só o que mudou"/]:::api
+  EPA -->|mudou km ou min| EST[["Passo a passo vira um bloco só"]]:::calc
+  EPA -->|ok| EOK["Treino salvo. Já aparece no Calendário,<br/>no Dashboard e no plano."]:::ok
+  EPA -->|feito ou passado| ENE["Esse treino não pode mais mudar"]:::erro
+  EOK --> SYNC[["Plano mudou: todas as telas abertas<br/>buscam de novo (planSync)"]]:::calc
 `,
     },
     {
       titulo: "Abas Plano, Objetivo e Comparar",
       mermaid: `
 flowchart TD
-  P2["Aba Plano"]:::tela --> GS("Gerar plano da semana"):::acao --> GSA[/"POST /coach/plan/generate"/]:::api
-  GSA --> IA1{{"Duni monta os 7 dias"}}:::ia --> OK1["Plano da semana pronto: N treinos<br/>detalhe na aba Comparar"]:::ok
+  P2["Aba Plano"]:::tela --> TRV{"Plano desta semana já gerado?<br/>(guardado na API)"}:::decisao
+  TRV -->|sim| TRB["Plano da semana gerado<br/>Libera de novo na segunda, dd/mm"]:::estado
+  TRV -->|não| GS("Gerar plano da semana"):::acao --> GSA[/"POST /coach/plan/generate"/]:::api
+  GSA --> HJ{"Já treinou hoje?"}:::decisao
+  HJ -->|não| IA1{{"Duni monta de hoje até domingo"}}:::ia
+  HJ -->|sim| IA1B{{"Duni monta de amanhã até domingo"}}:::ia
+  IA1 --> OK1["Plano da semana pronto: N treinos<br/>detalhe na aba Comparar"]:::ok
+  IA1B --> OK1
+  GSA -->|409 já gerado nesta semana| TRB
+  OK1 --> TRB
   P2 --> GO("Gerar plano do objetivo"):::acao --> GOA[/"POST /coach/goal-plan/generate"/]:::api
   GOA --> IA2{{"Duni monta até a prova"}}:::ia --> OK2["Plano até a prova pronto: N treinos<br/>fases na aba Objetivo"]:::ok
   GSA -->|erro| E["Erro da Duni (título + explicação)"]:::erro
   GOA -->|erro| E
-  OK1 --> REC[["Busca o período de novo"]]:::calc --> CALN["Aba Calendário atualizada"]:::tela
+  OK1 --> REC[["Plano mudou: busca de novo o mês, a semana,<br/>o objetivo, a semana livre e o placar"]]:::calc --> CALN["Todas as abas atualizadas<br/>(e o Dashboard, em outra aba)"]:::tela
   OK2 --> REC
   P2 --> GPP["Topo do Plano do objetivo<br/>prova, ritmos, alvo, o que a Duni levou em conta (área 10)"]:::tela
   OBJ2["Aba Objetivo"]:::tela --> TEM{"Tem plano do objetivo?"}:::decisao
@@ -105,9 +123,13 @@ flowchart TD
     { tipo: "botão", nome: "Ver semana", acao: "No painel e na gaveta, na visão Mês: troca para a semana do dia escolhido.", onde: "apps/web/components/calendar/TrainingCalendar.tsx:364", no: "VS" },
     { tipo: "link", nome: "Ver o treino feito → · atividade do dia", acao: "Abre o detalhe da atividade.", onde: "apps/web/components/calendar/TrainingCalendar.tsx:202", no: "VER,ATV" },
     { tipo: "vazio", nome: "Dia sem nada", acao: "Ícone de calendário no centro do painel ou da gaveta.", msg: "Nenhum treino registrado · Você não realizou nenhum treino neste dia. (no futuro: Nenhum treino planejado · Nada planejado para este dia.)", onde: "apps/web/components/calendar/TrainingCalendar.tsx:227" },
-    { tipo: "seção", nome: "Legenda", acao: "Pontos: Concluído (verde) · Planejado (cinza) · Perdido (vermelho) · Hoje (verde-limão).", msg: "Toque num dia para ver os detalhes.", onde: "apps/web/components/calendar/TrainingCalendar.tsx:531" },
+    { tipo: "seção", nome: "Legenda", acao: "Pontos: Concluído (verde) · Planejado (cinza) · Perdido (vermelho) · Hoje (verde-limão).", msg: "Toque num dia para ver e editar o treino.", onde: "apps/web/components/calendar/TrainingCalendar.tsx:580" },
+    { tipo: "botão", nome: "Editar treino", acao: "No painel e na gaveta do dia, em cada treino ainda não feito de hoje em diante (descanso não). Abre o formulário no lugar do cartão; trocar de dia fecha.", onde: "apps/web/components/calendar/TrainingCalendar.tsx:232", no: "EDT,EBT" },
+    { tipo: "campo", nome: "Formulário do treino", acao: "Tipo (com sugestões: rodagem leve, longão, intervalado…), Onde (Corrida · Trilha · Esteira), Título, Distância (km, aceita vírgula), Duração (min ou h:mm), Intensidade, Ritmo, FC, Descrição e Observações. Manda só o que mudou; sem mudança, Salvar só fecha. Mudou distância ou duração: o passo a passo da Duni vira um bloco só com o novo volume. Campos com 16 px no celular (o iPhone não dá zoom).", api: "PATCH /coach/plan/{id}", msg: "Distância inválida. Use km, ex.: 6,5. · Duração inválida. Use minutos (40) ou h:mm (1:05). · O treino precisa de um título. · Esse treino não pode mais mudar", onde: "apps/web/components/calendar/WorkoutEditForm.tsx:56", no: "EFM,ESV,EPA,EST,ENE" },
+    { tipo: "aviso", nome: "Treino salvo", acao: "Depois de salvar, avisa todas as telas abertas (planSync): o mês, as abas Plano, Objetivo e Comparar e o Dashboard buscam de novo. O treino ganha 'Editado por você'.", msg: "Treino salvo. Já aparece no Calendário, no Dashboard e no plano.", onde: "apps/web/components/calendar/TrainingCalendar.tsx:185", no: "EOK,SYNC" },
+    { tipo: "regra", nome: "Plano em todas as telas", acao: "Qualquer mudança de treino (Duni no chat, Pedir outro treino, análise, mover, editar no dia, gerar a semana ou o objetivo, usar a semana livre) chama notifyPlanChanged: a página do Calendário busca de novo semana, objetivo, semana livre, o período na tela e o placar, sem piscar o esqueleto; o Dashboard busca os planos de novo. Vale também entre abas do navegador e ao voltar para o app (iPhone).", onde: "apps/web/lib/planSync.ts:16", no: "SYNC,REC" },
     { tipo: "seção", nome: "Plano de treino", acao: "A aba Plano: os dois botões de gerar (cartões com rótulo colorido, frase em destaque, ícone e seta), os avisos (com link para as abas Objetivo e Comparar) e o topo do Plano do objetivo.", msg: "A Duni monta os treinos; eles aparecem na aba Calendário e no resumo do dashboard.", onde: "apps/web/app/calendar/page.tsx:234", no: "P,P2,GPP" },
-    { tipo: "botão", nome: "Gerar plano da semana", acao: "Os 7 dias a partir de hoje; ao terminar, o mês é buscado de novo.", api: "POST /coach/plan/generate", msg: "Gerar plano da semana (vira Gerando…) · Plano da semana pronto: N treinos", onde: "apps/web/app/calendar/page.tsx:180", no: "GS,GSA,IA1,OK1,REC" },
+    { tipo: "botão", nome: "Gerar plano da semana", acao: "Só a semana de hoje: os dias que faltam até domingo. Hoje entra se ainda não treinou (ainda dá tempo; se não treinar, vira perdido); se já treinou (atividade importada ou treino feito), começa amanhã. Depois de gerar, trava até o fim do domingo e libera na segunda, até gerar de novo. A trava é da API (a semana gerada fica guardada no plano), não só do botão.", api: "POST /coach/plan/generate · GET /coach/plan/week (generation)", msg: "Gerar plano da semana · Os treinos de hoje até domingo. (ou de amanhã até domingo) · Plano da semana gerado · Plano desta semana já gerado. Libera de novo na segunda, dd/mm.", onde: "apps/web/app/calendar/page.tsx:269", no: "TRV,TRB,GS,GSA,HJ,IA1,IA1B,OK1,REC" },
     { tipo: "botão", nome: "Gerar plano do objetivo", acao: "Todos os treinos até a prova, com os dias por semana do plano atual (3 se não houver).", api: "POST /coach/goal-plan/generate", msg: "Gerar plano do objetivo (vira Montando…) · Plano até a prova pronto: N treinos", onde: "apps/web/app/calendar/page.tsx:137", no: "GO,GOA,IA2,OK2" },
     { tipo: "carregando", nome: "Duni analisando", acao: "Quadro com os passos que a Duni lê enquanto monta o plano.", msg: "Montando o plano da semana… · Montando o plano até a prova…", onde: "apps/web/components/coach/ProcessingPanel.tsx:18" },
     { tipo: "erro", nome: "Erro ao gerar", acao: "Mesmo texto de erro da Duni (cota, chave, formato…).", onde: "apps/web/app/calendar/page.tsx:259", no: "E" },

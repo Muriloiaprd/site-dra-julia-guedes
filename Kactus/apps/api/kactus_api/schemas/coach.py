@@ -24,6 +24,8 @@ class ChatResponse(BaseModel):
     reply: str
     model_used: str
     memory_suggestions: list[MemorySuggestion] = []
+    # troca de treino pedida no chat, ja gravada na agenda (ou recusada, com o motivo)
+    workout_change: "ChatWorkoutChangeOut | None" = None
 
 
 class MemoryIn(BaseModel):
@@ -113,9 +115,31 @@ class WeeklyPlanOut(BaseModel):
     created_at: datetime
 
 
+class WeekGenerationOut(BaseModel):
+    """O "Gerar plano da semana": vale para a semana de hoje (segunda a domingo), gera
+    de first_day a last_day e, depois de gerado, fica travado ate unlocks_on (segunda)."""
+
+    locked: bool
+    week_start: date
+    week_end: date
+    unlocks_on: date | None
+    trained_today: bool
+    first_day: date | None  # nulo: nao sobrou dia na semana
+    last_day: date | None
+
+
 class WeeklyPlanResponse(BaseModel):
     plan: WeeklyPlanOut | None
     workouts: list[PlannedWorkoutOut]
+    generation: WeekGenerationOut | None = None
+
+
+class ChatWorkoutChangeOut(BaseModel):
+    date: date | None
+    action: Literal["changed", "created", "rest", "refused"]
+    applied: bool
+    message: str
+    workout: PlannedWorkoutOut | None
 
 
 class GoalPlanRequest(BaseModel):
@@ -215,8 +239,21 @@ class MoveWorkoutRequest(BaseModel):
 
 
 class UpdateWorkoutStatusRequest(BaseModel):
+    """Situacao do treino e, se vier, a edicao a mao do treino planejado (so os campos
+    enviados mudam; so treino ainda nao feito, de hoje em diante)."""
+
     status: str | None = None
     activity_id: uuid.UUID | None = None
+    sport: Literal["run", "trail_run", "treadmill"] | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    objective: str | None = Field(default=None, max_length=500)
+    target_distance_m: float | None = Field(default=None, ge=0, le=200_000)
+    target_duration_s: int | None = Field(default=None, ge=0, le=86_400)
+    target_intensity: Literal["leve", "moderado", "forte"] | None = None
+    tipo: str | None = Field(default=None, max_length=60)
+    ritmo: str | None = Field(default=None, max_length=60)
+    zona_fc: str | None = Field(default=None, max_length=80)
+    observacoes: str | None = Field(default=None, max_length=500)
 
 
 class ChatHistoryItem(BaseModel):
@@ -226,3 +263,6 @@ class ChatHistoryItem(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+ChatResponse.model_rebuild()

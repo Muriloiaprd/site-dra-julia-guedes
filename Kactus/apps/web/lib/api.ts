@@ -788,6 +788,8 @@ export interface WorkoutTargets {
   metrica_prioritaria?: string | null;
   observacoes?: string | null;
   ajuste_pedido?: string | null;
+  /** O atleta mudou o treino à mão no calendário. */
+  editado_pelo_atleta?: boolean | null;
 }
 
 export type WeeklyStatus = "verde" | "amarelo" | "laranja" | "vermelho";
@@ -827,6 +829,19 @@ export interface WeeklyPlan {
 export interface WeeklyPlanResponse {
   plan: WeeklyPlan | null;
   workouts: PlannedWorkout[];
+  /** "Gerar plano da semana": só a semana de hoje; gerado, fica travado até `unlocks_on` (segunda). */
+  generation?: WeekGeneration | null;
+}
+
+export interface WeekGeneration {
+  locked: boolean;
+  week_start: string;
+  week_end: string;
+  unlocks_on: string | null;
+  trained_today: boolean;
+  /** Nulo: não sobrou dia na semana (domingo e já treinou). */
+  first_day: string | null;
+  last_day: string | null;
 }
 
 export interface CoachChatMessage {
@@ -848,6 +863,8 @@ export interface CoachErrorDetail {
     | "invalid_response"
     | "date_conflict"
     | "not_editable"
+    | "week_already_generated"
+    | "no_days_left"
     | "not_found"
     | "past_date"
     | "not_swappable"
@@ -895,7 +912,7 @@ export async function fetchPlanRange(start: string, end: string): Promise<Planne
   return coachFetch<PlannedWorkout[]>(`/coach/plan?start=${start}&end=${end}`);
 }
 
-/** Plano da proxima semana (7 dias a partir de amanha), com status e relatorio. */
+/** Plano do resto da semana de hoje (até domingo), com status e relatório. 409 se já gerado nesta semana. */
 export async function postCoachGeneratePlan(): Promise<WeeklyPlanResponse> {
   return coachFetch<WeeklyPlanResponse>("/coach/plan/generate", { method: "POST" });
 }
@@ -1048,6 +1065,25 @@ export async function postActivityComment(activityId: string): Promise<ActivityC
   return coachFetch<ActivityComment>(`/coach/activities/${activityId}/analyze`, { method: "POST" });
 }
 
+/** Campos do treino planejado que o atleta muda à mão (só os enviados mudam). */
+export interface WorkoutEdit {
+  sport?: "run" | "trail_run" | "treadmill";
+  title?: string;
+  objective?: string | null;
+  target_distance_m?: number | null;
+  target_duration_s?: number | null;
+  target_intensity?: "leve" | "moderado" | "forte" | null;
+  tipo?: string | null;
+  ritmo?: string | null;
+  zona_fc?: string | null;
+  observacoes?: string | null;
+}
+
+/** Edita o treino planejado (só ainda não feito, de hoje em diante; senão 400 not_editable). */
+export async function editWorkout(id: string, data: WorkoutEdit): Promise<PlannedWorkout> {
+  return coachFetch<PlannedWorkout>(`/coach/plan/${id}`, { method: "PATCH", body: JSON.stringify(data) });
+}
+
 /** 409 com detail.error "date_conflict" quando o dia ja tem treino e on_conflict = "error". */
 export async function moveWorkout(
   id: string,
@@ -1106,9 +1142,18 @@ export interface AthleteMemory {
   created_at: string;
 }
 
+/** Troca de treino pedida no chat: já gravada na agenda (applied) ou recusada, com o motivo. */
+export interface ChatWorkoutChange {
+  date: string | null;
+  action: "changed" | "created" | "rest" | "refused";
+  applied: boolean;
+  message: string;
+  workout: PlannedWorkout | null;
+}
+
 export async function postCoachChat(
   message: string,
-): Promise<{ reply: string; model_used: string; memory_suggestions: MemorySuggestion[] }> {
+): Promise<{ reply: string; model_used: string; memory_suggestions: MemorySuggestion[]; workout_change?: ChatWorkoutChange | null }> {
   return coachFetch("/coach/chat", { method: "POST", body: JSON.stringify({ message }) });
 }
 

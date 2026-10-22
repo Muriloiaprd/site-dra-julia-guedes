@@ -64,7 +64,7 @@ flowchart LR
     { tipo: "API", nome: "Saúde da API", acao: "Usada pelo Controle para saber se a API está no ar.", api: "GET /health", onde: "apps/api/kactus_api/main.py:97" },
     { tipo: "API", nome: "Importar atividade já normalizada", acao: "Porta para integrações (Strava, Garmin via MCP); só os testes chamam.", api: "POST /activities/import-normalized", onde: "apps/api/kactus_api/routers/activities.py:161" },
     { tipo: "API", nome: "Fatos calculados da Duni", acao: "Janelas 7/14/28 dias, tendência, fadiga, sessões parecidas; sem tela.", api: "GET /coach/analysis", onde: "apps/api/kactus_api/routers/coach.py:429" },
-    { tipo: "API", nome: "Mudar status de um treino planejado", acao: "Marcar feito/pulado à mão; sem tela (a aderência é automática).", api: "PATCH /coach/plan/{id}", msg: "Treino nao encontrado · Status invalido", onde: "apps/api/kactus_api/routers/coach.py:379" },
+    { tipo: "API", nome: "Mudar ou editar um treino planejado", acao: "Status (feito/pulado) sem tela; e a edição à mão do Calendário (título, esporte, tipo, km, tempo, intensidade, ritmo, FC, descrição, observações), só em treino não feito de hoje em diante.", api: "PATCH /coach/plan/{id}", msg: "Treino nao encontrado · Status invalido · not_editable", onde: "apps/api/kactus_api/routers/coach.py:387" },
     { tipo: "erro", nome: "Erro interno", acao: "Qualquer exceção não tratada vira 500 com um corpo padrão.", msg: "Erro interno. Tente novamente.", onde: "apps/api/kactus_api/main.py:88" },
     { tipo: "permissão", nome: "CORS da API", acao: "Só localhost:3000 e :3003 por padrão.", onde: "apps/api/kactus_api/config.py:35" },
   ],

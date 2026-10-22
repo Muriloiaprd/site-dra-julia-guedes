@@ -638,7 +638,7 @@ function DayColumn({
 
 export function WeeklyPlanPanel({
   plan, workouts, onRefresh, onGenerate, generating,
-  title = "Plano da semana", note, emptyText, generateLabel = "Gerar plano da semana", detailable = true,
+  title = "Plano da semana", note, emptyText, generateLabel = "Gerar plano da semana", detailable = true, locked = null,
 }: {
   plan: WeeklyPlan | null;
   workouts: PlannedWorkout[];
@@ -652,6 +652,8 @@ export function WeeklyPlanPanel({
   generateLabel?: string;
   /** Mostra "Detalhar a semana" quando ha treino sem passo a passo (so no plano que vale). */
   detailable?: boolean;
+  /** Plano da semana ja gerado nesta semana: o motivo, e os botoes de gerar ficam travados. */
+  locked?: string | null;
 }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
@@ -664,7 +666,7 @@ export function WeeklyPlanPanel({
           <p className="text-sm text-brand-muted">
             {emptyText ?? "A Duni ainda não montou o plano desta semana. Ela analisa seu histórico, diz o status e explica cada treino."}
           </p>
-          <button type="button" onClick={onGenerate} disabled={generating} className="od-btn od-btn-primary shrink-0">
+          <button type="button" onClick={onGenerate} disabled={generating || !!locked} title={locked ?? undefined} className="od-btn od-btn-primary shrink-0">
             {generating ? "Montando…" : generateLabel}
           </button>
         </div>
@@ -727,7 +729,7 @@ export function WeeklyPlanPanel({
       </div>
 
       {note}
-      {detailable && undetailed.length > 0 && (
+      {detailable && undetailed.length > 0 && !locked && (
         <div className="flex flex-col gap-2 rounded-xl px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between" style={{ background: "rgba(0,191,255,0.06)", boxShadow: "inset 0 0 0 1px rgba(0,191,255,0.25)" }}>
           <p className="text-[0.82rem] text-brand-textSecondary">
             {undetailed.length === workouts.filter((w) => w.status === "planned" && w.date >= today).length

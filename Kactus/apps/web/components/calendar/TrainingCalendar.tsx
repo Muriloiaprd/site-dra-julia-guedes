@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
+import { WorkoutEditForm } from "@/components/calendar/WorkoutEditForm";
 import { isRestWorkout } from "@/components/dashboard/WeekStrip";
 import { SportTile } from "@/components/SportIcon";
 import { Panel, Skeleton } from "@/components/ui/primitives";
@@ -157,21 +158,47 @@ function CloseButton({ onClick }: { onClick: () => void }) {
   );
 }
 
+/** Dá para editar à mão: ainda não feito, de hoje em diante (a API confere de novo). */
+const editavel = (w: PlannedWorkout, todayIso: string) => w.status === "planned" && w.date >= todayIso && !isRestWorkout(w);
+
 /** O detalhe de um dia: no painel da direita (computador) e na gaveta (celular e tablet). */
-function DayDetail({ date, plans, acts, todayIso, onSemana }: {
+function DayDetail({ date, plans, acts, todayIso, onSemana, onChanged }: {
   date: Date;
   plans: PlannedWorkout[];
   acts: ActivitySummary[];
   todayIso: string;
   /** Só na visão Mês: abre a semana deste dia. */
   onSemana?: () => void;
+  /** Um treino foi editado aqui: a página avisa todas as telas. */
+  onChanged?: () => void;
 }) {
   const iso = toISODate(date);
   const vazio = plans.length === 0 && acts.length === 0;
+  const [editing, setEditing] = useState<string | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
+  // trocou de dia: fecha a edição e o aviso
+  useEffect(() => { setEditing(null); setSaved(null); }, [iso]);
   return (
     <div className="space-y-3">
+      {saved && (
+        <p role="status" className="rounded-xl px-3 py-2 text-[0.75rem] font-semibold" style={{ color: "#0A6B34", background: "#DCF2E3" }}>
+          Treino salvo. Já aparece no Calendário, no Dashboard e no plano.
+        </p>
+      )}
       {plans.map((w) => {
         const s = situacao(w, todayIso);
+        if (editing === w.id) {
+          return (
+            <article key={w.id} className="space-y-2 rounded-xl bg-white p-3.5" style={{ boxShadow: `inset 0 0 0 1px ${HAIRLINE}` }}>
+              <div className="text-[0.62rem] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Editar treino</div>
+              <WorkoutEditForm
+                w={w}
+                onCancel={() => setEditing(null)}
+                onSaved={() => { setEditing(null); setSaved(w.id); onChanged?.(); }}
+              />
+            </article>
+          );
+        }
         const intensity = w.target_intensity ? INTENSITY[w.target_intensity] : undefined;
         const target = targetText(w);
         return (
@@ -198,9 +225,22 @@ function DayDetail({ date, plans, acts, todayIso, onSemana }: {
               </p>
             )}
             {(w.objective || w.description) && <p className="text-[0.75rem] leading-snug" style={{ color: MUTED }}>{w.objective ?? w.description}</p>}
+            {w.targets?.observacoes && <p className="text-[0.72rem] leading-snug" style={{ color: MUTED }}>{w.targets.observacoes}</p>}
             {w.activity_id && (
               <Link href={`/activities/${w.activity_id}`} className="inline-block text-[0.75rem] font-semibold hover:underline" style={{ color: TODAY }}>Ver o treino feito →</Link>
             )}
+            {editavel(w, todayIso) && (
+              <button
+                type="button"
+                onClick={() => { setSaved(null); setEditing(w.id); }}
+                className="od-btn od-btn-ghost od-btn-sm !rounded-full"
+                aria-label={`Editar o treino ${w.title}`}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                Editar treino
+              </button>
+            )}
+            {w.targets?.editado_pelo_atleta && <p className="text-[0.64rem]" style={{ color: MUTED }}>Editado por você</p>}
           </article>
         );
       })}
@@ -258,13 +298,15 @@ function useLargo() {
  * coloridas pela situação. Tocar num dia mostra o detalhe no painel da direita (computador) ou numa
  * gaveta (celular e tablet).
  */
-export function TrainingCalendar({ activities, workouts, loading, onRange }: {
+export function TrainingCalendar({ activities, workouts, loading, onRange, onChanged }: {
   activities: ActivitySummary[];
   /** Treinos planejados do intervalo visível. */
   workouts: PlannedWorkout[];
   loading: boolean;
   /** Avisa o intervalo na tela (com os dias vizinhos do mês) para a página buscar o planejado. */
   onRange: (start: string, end: string) => void;
+  /** Um treino foi editado no detalhe do dia. */
+  onChanged?: () => void;
 }) {
   const today = new Date();
   const todayIso = toISODate(today);
@@ -381,7 +423,7 @@ export function TrainingCalendar({ activities, workouts, loading, onRange }: {
   const selPlans = plansByIso.get(sel) ?? [];
   const selActs = actsByIso.get(sel) ?? [];
   const detail = (
-    <DayDetail date={selDate} plans={selPlans} acts={selActs} todayIso={todayIso} onSemana={visao === "mes" ? verSemana : undefined} />
+    <DayDetail date={selDate} plans={selPlans} acts={selActs} todayIso={todayIso} onSemana={visao === "mes" ? verSemana : undefined} onChanged={onChanged} />
   );
 
   return (
@@ -528,7 +570,7 @@ export function TrainingCalendar({ activities, workouts, loading, onRange }: {
                 {[SIT.concluido, SIT.planejado, SIT.perdido, SIT.hoje].map((s) => (
                   <span key={s.label} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: s.dot }} />{s.label}</span>
                 ))}
-                <span className="w-full sm:ml-auto sm:w-auto">Toque num dia para ver os detalhes.</span>
+                <span className="w-full sm:ml-auto sm:w-auto">Toque num dia para ver e editar o treino.</span>
               </div>
             </>
           )}

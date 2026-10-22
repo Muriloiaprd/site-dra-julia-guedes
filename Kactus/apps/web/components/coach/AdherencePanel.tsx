@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { DuniAvatar } from "@/components/DuniAvatar";
 import { Markdown } from "@/components/ui/Markdown";
@@ -148,11 +148,12 @@ function CompactRow({ it, onComment }: { it: AdherenceItem; onComment: (it: Adhe
 /** Planejado × feito dos últimos `days` dias; o comentário é o da atividade e só é pedido no clique. */
 export function useAdherence(days: number, enabled = true) {
   const [items, setItems] = useState<AdherenceItem[] | null>(null);
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     if (!enabled) return;
     fetchAdherence(days).then(setItems).catch(() => setItems([]));
-  }, [days, enabled]);
+  }, [days, enabled, version]);
 
   async function comment(it: AdherenceItem) {
     if (!it.actual) return;
@@ -162,7 +163,10 @@ export function useAdherence(days: number, enabled = true) {
       : x)));
   }
 
-  return { items, comment };
+  /** Busca de novo (o plano mudou). */
+  const reload = useCallback(() => setVersion((v) => v + 1), []);
+
+  return { items, comment, reload };
 }
 
 /** Verde cumpriu · amarelo fez a mais ou a menos · vermelho pulou. */

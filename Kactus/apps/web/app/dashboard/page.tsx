@@ -11,6 +11,7 @@ import {
   calcWeekStats, computeReadiness, metricDaysAgo, nameFromEmail, recoveryFromTsb, toISODate, WEEK_HOURS_GOAL, type Tone,
 } from "@/lib/athlete";
 import { buildSnapshot, saveSnapshot } from "@/lib/offlineSnapshot";
+import { usePlanChanged } from "@/lib/planSync";
 import { C } from "@/lib/theme";
 import { formatClock, recordLabel } from "@/lib/utils";
 import { Alert, PageContainer } from "@/components/ui/primitives";
@@ -87,17 +88,23 @@ export default function DashboardPage() {
 
   useEffect(() => { if (user) load(); }, [user, load]);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchPredictionsOverview().then(setOverview).catch(() => {});
-    fetchLoadMetrics(60).then(setLoadMetrics).catch(() => {});
+  // o plano vem de três rotas; volta a buscar quando um treino muda (Duni, calendário, outra aba)
+  const loadPlan = useCallback(() => {
     fetchCoachPlan(35)
       .then((p) => { setPlan(p); setPlanState("ok"); })
       .catch(() => setPlanState("error"));
     fetchWeekPlan().then((w) => setWeekPlan(w.plan)).catch(() => {});
     fetchGoalPlan().then((g) => setGoalPlan(g.plan)).catch(() => {});
+  }, []);
+  usePlanChanged(loadPlan, !!user);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchPredictionsOverview().then(setOverview).catch(() => {});
+    fetchLoadMetrics(60).then(setLoadMetrics).catch(() => {});
+    loadPlan();
     fetchMemories().then(setMemories).catch(() => {});
-  }, [user]);
+  }, [user, loadPlan]);
 
   useEffect(() => {
     const ids = activities.slice(0, RECENT_COUNT).map((a) => a.id).filter((id) => !recentDetails[id]);

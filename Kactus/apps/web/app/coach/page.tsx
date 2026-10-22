@@ -23,6 +23,7 @@ import {
   postCoachAnalyze,
   postCoachChat,
   type AthleteMemory,
+  type ChatWorkoutChange,
   type CoachChatMessage,
   type CoachSummary,
   type DailyMetric,
@@ -30,6 +31,7 @@ import {
   type PredictionsOverview,
 } from "@/lib/api";
 import { coachErrorMessage } from "@/lib/coachErrors";
+import { notifyPlanChanged } from "@/lib/planSync";
 import { formFromTsb, latestMetric, riskFromAcwr } from "@/lib/athlete";
 
 const SUGGESTIONS = [
@@ -89,7 +91,24 @@ function PhoneFrame({ children }: { children: ReactNode }) {
 
 /** Botao grande do topo: as duas acoes principais da Duni precisam saltar aos olhos. */
 /** Mensagem na tela: as sugestoes de memoria so existem na sessao (nao voltam no historico). */
-type ChatMessage = CoachChatMessage & { suggestions?: (MemorySuggestion & { state?: "saved" | "dismissed" })[] };
+type ChatMessage = CoachChatMessage & {
+  suggestions?: (MemorySuggestion & { state?: "saved" | "dismissed" })[];
+  /** Treino que a Duni trocou na agenda por esta resposta (só na sessão). */
+  change?: ChatWorkoutChange | null;
+};
+
+const CHANGE_LABEL: Record<ChatWorkoutChange["action"], string> = {
+  changed: "Treino trocado na agenda",
+  created: "Treino colocado na agenda",
+  rest: "Treino tirado da agenda: descanso",
+  refused: "Nada mudou na agenda",
+};
+
+/** "qui, 22/10" */
+function changeDay(iso: string) {
+  const d = new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)));
+  return `${d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")}, ${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+}
 
 export default function CoachPage() {
   const router = useRouter();
@@ -181,8 +200,10 @@ export default function CoachPage() {
     setMessages((m) => [...m, { role: "user", content: message, created_at: new Date().toISOString() }]);
     setSending(true);
     try {
-      const { reply, memory_suggestions } = await postCoachChat(message);
-      setMessages((m) => [...m, { role: "assistant", content: reply, created_at: new Date().toISOString(), suggestions: memory_suggestions }]);
+      const { reply, memory_suggestions, workout_change } = await postCoachChat(message);
+      setMessages((m) => [...m, { role: "assistant", content: reply, created_at: new Date().toISOString(), suggestions: memory_suggestions, change: workout_change }]);
+      // a troca já está gravada: Calendário e Dashboard abertos (outra aba) buscam de novo
+      if (workout_change?.applied) notifyPlanChanged();
     } catch (e) {
       handleError(e);
     } finally {
@@ -409,6 +430,23 @@ export default function CoachPage() {
                       <Markdown text={m.content} />
                       <div className="mt-1 text-right text-[0.6rem] text-white/60">{msgTime(m.created_at)}</div>
                     </div>
+                    {m.change?.applied && (
+                      <Link
+                        href="/calendar"
+                        className="flex max-w-[88%] items-center gap-2 rounded-xl px-3 py-2 text-xs"
+                        style={{ background: "rgba(0,255,102,0.06)", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.22)" }}
+                      >
+                        <span className="text-brand-accent" aria-hidden>✓</span>
+                        <span className="min-w-0">
+                          <span className="font-semibold text-white">{CHANGE_LABEL[m.change.action]}</span>
+                          <span className="text-brand-textSecondary">
+                            {m.change.date && ` · ${changeDay(m.change.date)}`}
+                            {m.change.workout && ` · ${m.change.workout.title}`}
+                          </span>
+                          <span className="block text-brand-muted">Ver no calendário →</span>
+                        </span>
+                      </Link>
+                    )}
                     {m.suggestions && m.suggestions.some((s) => s.state !== "dismissed") && (
                       <div className="max-w-[88%] rounded-xl px-3 py-2.5" style={{ background: "rgba(0,255,102,0.04)", boxShadow: "inset 0 0 0 1px rgba(0,255,102,0.16)" }}>
                         <p className="mb-1.5 text-[0.64rem] font-semibold uppercase tracking-wider text-brand-accent">Guardar para as próximas conversas?</p>
