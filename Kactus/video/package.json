@@ -5,7 +5,7 @@
   "description": "Video animado 'Como funciona o Kactus' (Remotion)",
   "scripts": {
     "studio": "remotion studio src/index.ts --port 3022",
-    "storyboard": "node scripts/storyboard.mjs",
+    "storyboard": "tsx scripts/storyboard.ts",
     "render": "remotion render src/index.ts ComoFuncionaKactus out/como-funciona-kactus.mp4",
     "vozes": "uv run --with edge-tts --with miniaudio python scripts/gerar_vozes.py",
     "legendas": "tsx scripts/legendas.ts"

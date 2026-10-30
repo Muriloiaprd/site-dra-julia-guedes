@@ -1,17 +1,28 @@
 import React from 'react';
-import {Beto} from '../personagens/Beto';
+import {useCurrentFrame, useVideoConfig} from 'remotion';
+import {entre, mola, piscar, respirar} from '../anim';
+import {tempoDaCena} from '../cenaTempo';
+import {Beto, Bracos, bracosAndando, misturarPoses, POSES} from '../personagens/Beto';
 import {Duni} from '../personagens/Duni';
 import {COR, FONTE, TRACO} from '../tema';
 import {Balao} from '../ui/Balao';
 import {Brilho, Cartao, Celular, Monitor, OlhosObjeto} from '../ui/Objetos';
 import {Papel} from '../ui/Papel';
 
-const Placa: React.FC<{x: number; y: number; texto: string[]; cor: string; rot: number}> = ({x, y, texto, cor, rot}) => (
+const Placa: React.FC<{x: number; y: number; texto: string[]; cor: string; rot: number; frame: number}> = ({x, y, texto, cor, rot, frame}) => (
 	<g transform={`rotate(${rot} ${x} ${y})`}>
 		<rect x={x - 12} y={y + 100} width={24} height={330} fill={COR.madeiraEscura} {...TRACO} />
 		<rect x={x - 200} y={y - 110} width={400} height={220} rx={26} fill={cor} {...TRACO} />
 		{Array.from({length: 10}).map((_, i) => (
-			<circle key={i} cx={x - 170 + i * 37.8} cy={y - 88} r={9} fill={COR.amarelo} stroke={COR.tinta} strokeWidth={3} />
+			<circle
+				key={i}
+				cx={x - 170 + i * 37.8}
+				cy={y - 88}
+				r={9}
+				fill={(i + Math.floor(frame / 6)) % 2 === 0 ? COR.amarelo : '#8A7A2A'}
+				stroke={COR.tinta}
+				strokeWidth={3}
+			/>
 		))}
 		{texto.map((t, i) => (
 			<text
@@ -30,27 +41,85 @@ const Placa: React.FC<{x: number; y: number; texto: string[]; cor: string; rot: 
 	</g>
 );
 
-export const Cena05: React.FC = () => (
-	<Papel>
-		<rect x={0} y={0} width={1920} height={1080} fill="#2B2140" />
-		{/* cortinas */}
-		<path d="M 0 0 L 230 0 Q 180 400 260 1080 L 0 1080 Z" fill="#C8323B" {...TRACO} />
-		<path d="M 1920 0 L 1690 0 Q 1740 400 1660 1080 L 1920 1080 Z" fill="#C8323B" {...TRACO} />
-		{/* holofotes */}
-		{[520, 960, 1400].map((cx) => (
-			<polygon key={cx} points={`${cx - 40},0 ${cx + 40},0 ${cx + 240},760 ${cx - 240},760`} fill={COR.amarelo} opacity={0.16} />
-		))}
-		<rect x={0} y={760} width={1920} height={320} fill="#4A3A63" />
-		<path d="M 0 760 L 1920 760" {...TRACO} />
-		<Placa x={520} y={330} texto={['Como', 'eu tô?']} cor={COR.estofado} rot={-5} />
-		<Placa x={960} y={290} texto={['O que', 'eu fiz?']} cor={COR.amarelo} rot={2} />
-		<Placa x={1400} y={330} texto={['O que faço', 'hoje?']} cor={COR.rosa} rot={6} />
-		<Brilho x={740} y={130} r={30} />
-		<Brilho x={1190} y={110} r={24} />
-		<Brilho x={1620} y={190} r={28} />
-		<Beto x={250} y={790} escala={0.75} pose="apontar" boca="sorriso" olhar={[10, -6]} sobrancelha="alta" />
-	</Papel>
-);
+// Placa que sobe do chão do palco com mola no quadro `de`.
+const PlacaSobe: React.FC<React.ComponentProps<typeof Placa> & {de: number}> = ({de, ...placa}) => {
+	const {fps} = useVideoConfig();
+	const m = mola(placa.frame, fps, de, 170);
+	if (m < 0.01) return null;
+	return (
+		<g transform={`translate(0 ${(1 - m) * 700})`}>
+			<Placa {...placa} />
+		</g>
+	);
+};
+
+// Cena 5 — programa de auditório: as cortinas abrem, o Beto apresenta e as três perguntas do painel sobem.
+export const Cena05: React.FC = () => {
+	const frame = useCurrentFrame();
+	const {fps} = useVideoConfig();
+	const {palavra} = tempoDaCena(5);
+	const abre = mola(frame, fps, 2, 60);
+	const chegada = entre(frame, 6, 34, 0, 1);
+	const qComo = palavra(1, 0);
+	const qFiz = palavra(1, 3);
+	const qHoje = palavra(1, 7);
+	// o braço aponta para cada placa na hora dela
+	const alvo = frame >= qHoje ? 2 : frame >= qFiz ? 1 : frame >= qComo ? 0 : -1;
+	const apontar: Bracos = {
+		l: POSES.parado.l,
+		r: [
+			{e: [85, -5], m: [180, -35]},
+			{e: [85, -30], m: [185, -95]},
+			{e: [90, -50], m: [175, -150]},
+		][Math.max(0, alvo)] as Bracos['r'],
+	};
+	const pose = alvo < 0 ? misturarPoses('parado', 'tchau', entre(frame, 34, 42, 0, 1)) : apontar;
+	const aceno = alvo < 0 && frame > 40 ? Math.sin(frame * 0.6) * 25 : 0;
+	const poseFinal: Bracos = {l: pose.l, r: {e: pose.r.e, m: [pose.r.m[0] + aceno, pose.r.m[1]]}};
+
+	return (
+		<Papel>
+			<rect x={0} y={0} width={1920} height={1080} fill="#2B2140" />
+			{[520, 960, 1400].map((cx, i) => (
+				<polygon
+					key={cx}
+					points={`${cx - 40},0 ${cx + 40},0 ${cx + 240},760 ${cx - 240},760`}
+					fill={COR.amarelo}
+					opacity={0.16}
+					transform={`rotate(${Math.sin(frame / 18 + i * 2) * 10} ${cx} 0)`}
+				/>
+			))}
+			<rect x={0} y={760} width={1920} height={320} fill="#4A3A63" />
+			<path d="M 0 760 L 1920 760" {...TRACO} />
+			<PlacaSobe de={qComo - 4} frame={frame} x={520} y={330} texto={['Como', 'eu tô?']} cor={COR.estofado} rot={-5} />
+			<PlacaSobe de={qFiz - 4} frame={frame} x={960} y={290} texto={['O que', 'eu fiz?']} cor={COR.amarelo} rot={2} />
+			<PlacaSobe de={qHoje - 4} frame={frame} x={1400} y={330} texto={['O que faço', 'hoje?']} cor={COR.rosa} rot={6} />
+			{[
+				[740, 130, 30],
+				[1190, 110, 24],
+				[1620, 190, 28],
+			].map(([x, y, r], i) => (
+				<Brilho key={i} x={x} y={y} r={r * (0.6 + Math.abs(Math.sin(frame / 8 + i)) * 0.5)} />
+			))}
+			<Beto
+				x={-150 + 490 * chegada}
+				y={790}
+				escala={0.75}
+				pose={chegada < 1 ? bracosAndando(frame * 0.5, 1 - chegada) : poseFinal}
+				andar={frame * 0.5}
+				andarForca={1 - entre(frame, 26, 36, 0, 1)}
+				boca="sorriso"
+				olhar={alvo < 0 ? [0, 0] : [10, -6]}
+				sobrancelha="alta"
+				piscar={piscar(frame, 2)}
+				respiro={respirar(frame, 3)}
+			/>
+			{/* cortinas abrindo */}
+			<path transform={`translate(${-760 * abre} 0)`} d="M 0 0 L 990 0 Q 940 400 1000 1080 L 0 1080 Z" fill="#C8323B" {...TRACO} />
+			<path transform={`translate(${760 * abre} 0)`} d="M 1920 0 L 930 0 Q 980 400 920 1080 L 1920 1080 Z" fill="#C8323B" {...TRACO} />
+		</Papel>
+	);
+};
 
 export const Cena06: React.FC = () => (
 	<Papel limpo={<Balao x={1380} y={110} w={380} linhas={['Hoje não!']} px={1520} py={330} tamanho={50} />}>

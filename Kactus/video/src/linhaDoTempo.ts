@@ -21,6 +21,7 @@ export type FalaNoTempo = {
 	fimVoz: number; // quadro absoluto em que a voz termina de verdade (sem o silêncio do fim do MP3)
 	duracaoAudio: number; // quadros do MP3 inteiro
 	volume: number[];
+	palavras: {quadro: number; texto: string}[]; // quadro absoluto em que cada palavra começa
 };
 export type CenaNoTempo = {n: number; nome: string; inicio: number; duracao: number; falas: FalaNoTempo[]};
 
@@ -52,6 +53,7 @@ function montar(): {cenas: CenaNoTempo[]; total: number} {
 				fimVoz,
 				duracaoAudio: s2q(voz.duracao),
 				volume: voz.volume,
+				palavras: voz.palavras.map((p) => ({quadro: cursor + s2q(p.inicio), texto: p.texto})),
 			});
 			cursor = fimVoz;
 		});

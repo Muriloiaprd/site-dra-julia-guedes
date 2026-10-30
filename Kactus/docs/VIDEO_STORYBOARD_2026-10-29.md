@@ -3,7 +3,7 @@
 Fase 1 do [PLANEJAMENTO_2026-10-29.md](./PLANEJAMENTO_2026-10-29.md): as falas completas e um quadro parado de cada cena, para aprovar **antes** de animar.
 
 - **Falas:** [`video/roteiro/falas.json`](../video/roteiro/falas.json), com 11 cenas, 26 falas, quem fala, o texto e a ação de cada cena.
-- **Folha com tudo:** [`video/storyboard/storyboard.png`](../video/storyboard/storyboard.png)
+- **Folha com tudo:** [`video/storyboard/storyboard.png`](../video/storyboard/storyboard.png) (a folha da Fase 1, com as cenas ainda paradas)
 - **Um quadro por cena:** `video/storyboard/cena-01.png` … `cena-11.png` (1920×1080). A legenda embaixo mostra a fala principal da cena; a etiqueta no canto só existe no storyboard.
 
 ## Personagens
@@ -19,8 +19,8 @@ Rodar pelo **PowerShell**: o Edge headless não abre a partir do Git Bash nesta 
 ```powershell
 cd "C:\Cloude Code\Kactus\video"
 npm install
-node scripts/storyboard.mjs            # todas as cenas e a folha
-node scripts/storyboard.mjs Cena04     # só uma
+npm run storyboard                     # um quadro de cada cena, tirado do filme
+npx tsx scripts/storyboard.ts 3 4      # só as cenas 3 e 4
 ```
 
 Para mexer olhando: `npm run studio` (Remotion Studio na porta 3022, ou a config `kactus-video` do `.claude/launch.json` da raiz).
@@ -48,6 +48,17 @@ Os movimentos ficam em `video/src/anim.ts` (piscar, respirar, mola, boca falando
 npx remotion render src/index.ts ComoFuncionaKactus out/fase3-vozes.mp4 --concurrency=4
 ```
 
+## Cenas animadas (Fase 4: cenas 1 a 5)
+
+- Cada cena usa `tempoDaCena(n)` (`src/cenaTempo.ts`): o começo e o fim de cada fala e o quadro de qualquer palavra, por índice ou texto (`palavra(0, 'jogo')`). Assim a ação cai exatamente na palavra: os objetos da cena 2 aparecem em "relógio", "caderno", "planilha" e "print"; a bolinha da cena 4 sai em "jogo"; as placas da cena 5 sobem em "Como", "O que eu fiz" e "hoje".
+- Peças prontas em `src/ui/Animados.tsx`: `BalaoAnimado` (salta e some), `Salta`, `Camera` (zoom e enquadramento) e `naCurva` (trajetórias).
+- Para conferir uma cena sem renderizar o filme: a composição `FolhaCena` mostra 6 momentos da cena lado a lado.
+
+```powershell
+'{"cena":4}' | Set-Content out/p4.json -Encoding ascii
+npx remotion still src/index.ts FolhaCena out/folha-04.png --props=out/p4.json
+```
+
 ## O que falta (próximas fases)
 
-Animar as cenas (Fases 4 e 5) e pôr efeitos sonoros e acabamento (Fase 6).
+Animar as cenas 6 a 11 (Fase 5) e pôr efeitos sonoros e acabamento (Fase 6).

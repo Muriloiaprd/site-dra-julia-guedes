@@ -59,7 +59,7 @@ As falas completas ficam em `video/roteiro/falas.json` (personagem, texto, cena)
 1. **Roteiro e storyboard** — `falas.json` completo e um quadro parado (PNG via `remotion still`) de cada cena. **Pausa para o Murilo aprovar** falas e visual antes de animar. ✅ feito, aguardando aprovação: ver [VIDEO_STORYBOARD_2026-10-29.md](./VIDEO_STORYBOARD_2026-10-29.md)
 2. **Base e personagens** — projeto Remotion, filtro de traço tremido, Beto e Duni com piscar e poses; teste de 5 s. ✅ feito: `video/src/anim.ts` (piscar, respirar, mola, boca falando), Beto com andar, fala e mistura de poses, Duni quicando e falando; composição `TestePersonagens`.
 3. **Vozes e sincronia** — gerar os MP3, tempos das cenas a partir dos áudios, boca mexendo com a fala, legendas. ✅ feito: 26 MP3 em `video/public/audio/` (2 min de voz), filme `ComoFuncionaKactus` com 2 min 10 s e as cenas ainda paradas, boca seguindo o volume da voz, legenda no vídeo e `.srt`.
-4. **Cenas 1 a 5** — abertura até o Dashboard, animadas.
+4. **Cenas 1 a 5** — abertura até o Dashboard, animadas. ✅ feito: cada cena se anima sincronizada com as palavras da voz (`src/cenaTempo.ts`); balões, câmera, saltos e arremesso em `src/ui/Animados.tsx`.
 5. **Cenas 6 a 11** — Desempenho até o fecho, animadas.
 6. **Som e acabamento** — efeitos sonoros, mixagem (voz acima dos efeitos), legendas finais, render 1080p, revisão com o Murilo e ajustes.
 
