@@ -1,4 +1,5 @@
 import React from 'react';
+import {useBoca} from '../FalaContexto';
 import {COR, TRACO} from '../tema';
 
 // Duni, a treinadora: o cacto rainha do Kactus (apps/web/public/duni/duni.svg) redesenhado
@@ -16,6 +17,8 @@ export const Duni: React.FC<{
 	bracoDireito?: number; // rotação em graus (aceno)
 	vaso?: boolean;
 }> = ({x, y, escala = 1, boca = 'sorriso', fala, pulo = 0, bracoEsquerdo = 0, olhar = [0, 0], piscar = 0, bracoDireito = 0, vaso = true}) => {
+	const falaVoz = useBoca('duni');
+	const abertura = fala ?? falaVoz;
 	const [ox, oy] = olhar;
 	const olhoH = 30 * (1 - piscar * 0.92);
 	return (
@@ -70,17 +73,17 @@ export const Duni: React.FC<{
 			<path d="M 46 -276 l 10 -8 M 36 -282 l 6 -10" {...TRACO} strokeWidth={3} />
 			<ellipse cx={-44} cy={-206} rx={13} ry={7} fill={COR.rosa} />
 			<ellipse cx={44} cy={-206} rx={13} ry={7} fill={COR.rosa} />
-			{fala !== undefined ? (
-				fala < 0.08 ? (
+			{abertura !== undefined ? (
+				abertura < 0.08 ? (
 					<path d="M -14 -202 L 14 -202" {...TRACO} />
 				) : (
-					<ellipse cx={0} cy={-202} rx={12 + fala * 4} ry={3 + fala * 11} fill={COR.tinta} />
+					<ellipse cx={0} cy={-202} rx={12 + abertura * 4} ry={3 + abertura * 11} fill={COR.tinta} />
 				)
 			) : null}
-			{fala === undefined && boca === 'aberta' ? <ellipse cx={0} cy={-200} rx={15} ry={12} fill={COR.tinta} /> : null}
-			{fala === undefined && boca === 'sorriso' ? <path d="M -18 -206 q 18 20 36 0" fill="none" {...TRACO} /> : null}
-			{fala === undefined && boca === 'sarcastica' ? <path d="M -16 -200 q 18 4 32 -10" fill="none" {...TRACO} /> : null}
-			{fala === undefined && boca === 'brava' ? <path d="M -16 -196 q 16 -12 32 0" fill="none" {...TRACO} /> : null}
+			{abertura === undefined && boca === 'aberta' ? <ellipse cx={0} cy={-200} rx={15} ry={12} fill={COR.tinta} /> : null}
+			{abertura === undefined && boca === 'sorriso' ? <path d="M -18 -206 q 18 20 36 0" fill="none" {...TRACO} /> : null}
+			{abertura === undefined && boca === 'sarcastica' ? <path d="M -16 -200 q 18 4 32 -10" fill="none" {...TRACO} /> : null}
+			{abertura === undefined && boca === 'brava' ? <path d="M -16 -196 q 16 -12 32 0" fill="none" {...TRACO} /> : null}
 			{/* coroa */}
 			<g transform="rotate(-10 0 -340)">
 				<path

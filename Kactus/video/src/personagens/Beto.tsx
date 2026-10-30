@@ -1,4 +1,5 @@
 import React from 'react';
+import {useBoca} from '../FalaContexto';
 import {COR, TRACO} from '../tema';
 
 // Beto, o corredor. Origem (0, 0) no quadril; a cabeça fica em y = -290.
@@ -86,6 +87,8 @@ export const Beto: React.FC<{
 	espelhar = false,
 	children,
 }) => {
+	const falaVoz = useBoca('beto');
+	const abertura = fala ?? falaVoz;
 	const {l, r} = typeof pose === 'string' ? POSES[pose] : pose;
 	const ombroL: [number, number] = [-46, -185];
 	const ombroR: [number, number] = [46, -185];
@@ -176,7 +179,7 @@ export const Beto: React.FC<{
 					<path d="M 16 -360 q 20 -12 40 0" fill="none" {...TRACO} strokeWidth={6} />
 				</>
 			) : null}
-			{fala !== undefined ? <BocaFala abertura={fala} /> : <BocaDesenho tipo={boca} />}
+			{abertura !== undefined ? <BocaFala abertura={abertura} /> : <BocaDesenho tipo={boca} />}
 			{suor ? (
 				<g fill={COR.azul} stroke={COR.tinta} strokeWidth={3}>
 					<path d="M -98 -330 q -12 20 0 26 q 12 -6 0 -26 Z" />

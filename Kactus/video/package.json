@@ -6,7 +6,9 @@
   "scripts": {
     "studio": "remotion studio src/index.ts --port 3022",
     "storyboard": "node scripts/storyboard.mjs",
-    "render": "remotion render src/index.ts ComoFuncionaKactus out/como-funciona-kactus.mp4"
+    "render": "remotion render src/index.ts ComoFuncionaKactus out/como-funciona-kactus.mp4",
+    "vozes": "uv run --with edge-tts --with miniaudio python scripts/gerar_vozes.py",
+    "legendas": "tsx scripts/legendas.ts"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.536",
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "@types/react": "18.3.12",
-    "typescript": "5.6.3"
+    "typescript": "5.6.3",
+    "tsx": "4.19.2"
   }
 }

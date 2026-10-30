@@ -3,7 +3,12 @@ import {AbsoluteFill} from 'remotion';
 import {COR, FONTE} from '../tema';
 
 // Legenda grande embaixo (para quem assiste sem som) e, no storyboard, a etiqueta da cena.
-export const Legenda: React.FC<{texto: string; quem?: string; etiqueta?: string}> = ({texto, quem, etiqueta}) => (
+export const Legenda: React.FC<{texto: string; quem?: string; etiqueta?: string; tamanho?: number}> = ({
+	texto,
+	quem,
+	etiqueta,
+	tamanho = 40,
+}) => (
 	<AbsoluteFill style={{fontFamily: FONTE, pointerEvents: 'none'}}>
 		{etiqueta ? (
 			<div
@@ -29,7 +34,7 @@ export const Legenda: React.FC<{texto: string; quem?: string; etiqueta?: string}
 					background: 'rgba(27,27,27,0.86)',
 					color: COR.branco,
 					fontWeight: 700,
-					fontSize: 40,
+					fontSize: tamanho,
 					lineHeight: 1.25,
 					padding: '14px 30px',
 					borderRadius: 18,

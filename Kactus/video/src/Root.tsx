@@ -4,6 +4,8 @@ import falas from '../roteiro/falas.json';
 import {Cena01, Cena02, Cena03, Cena04} from './cenas/Cenas1a4';
 import {Cena05, Cena06, Cena07, Cena08} from './cenas/Cenas5a8';
 import {Cena09, Cena10, Cena11} from './cenas/Cenas9a11';
+import {Filme} from './Filme';
+import {FPS, LINHA} from './linhaDoTempo';
 import {TestePersonagens} from './TestePersonagens';
 import {Legenda} from './ui/Legenda';
 import './tema';
@@ -64,6 +66,7 @@ const Folha: React.FC = () => (
 
 export const Root: React.FC = () => (
 	<>
+		<Composition id="ComoFuncionaKactus" component={Filme} durationInFrames={LINHA.total} fps={FPS} width={1920} height={1080} />
 		<Composition id="TestePersonagens" component={TestePersonagens} durationInFrames={150} fps={30} width={1920} height={1080} />
 		<Still id="Folha" component={Folha} width={1920} height={1200} />
 		{cenas.map((_, i) => (

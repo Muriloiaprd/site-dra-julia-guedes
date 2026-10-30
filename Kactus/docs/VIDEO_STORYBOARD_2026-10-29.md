@@ -35,6 +35,19 @@ npx remotion render src/index.ts TestePersonagens out/teste-personagens.mp4
 
 Os movimentos ficam em `video/src/anim.ts` (piscar, respirar, mola, boca falando) e nas props dos personagens (`andar`, `andarForca`, `fala`, `respiro`, `inclinar`, `misturarPoses`, `bracosAndando`; na Duni, `pulo`, `fala` e os braços). Até a Fase 3, a boca mexe num padrão fixo; depois passa a seguir o volume da voz.
 
+## Vozes e sincronia (Fase 3)
+
+- `npm run vozes` (`scripts/gerar_vozes.py`, Edge TTS grátis + `miniaudio`) gera um MP3 por fala em `public/audio/` e o índice `vozes.json`, com a duração, o tempo de cada palavra e o **volume quadro a quadro**. Só gera de novo as falas cujo texto ou voz mudou.
+- As vozes e os ajustes (velocidade e tom) ficam em `roteiro/falas.json` → `vozes`. O tênis e o amigo usam a voz do Antonio com outro tom.
+- Pausas: `antes`/`depois` por cena e `pausaAntes` por fala, também no `falas.json`.
+- `src/linhaDoTempo.ts` calcula quando cada cena e cada fala começam a partir dos áudios. O filme (`ComoFuncionaKactus`) tem a duração exata disso: hoje são 2 min 10 s.
+- A boca do Beto e da Duni segue o volume da voz sozinha (`src/FalaContexto.tsx`), em qualquer cena.
+- Legendas: no próprio vídeo e em `.srt` (`npm run legendas` → `out/como-funciona-kactus.srt`).
+
+```powershell
+npx remotion render src/index.ts ComoFuncionaKactus out/fase3-vozes.mp4 --concurrency=4
+```
+
 ## O que falta (próximas fases)
 
-Vozes, cenas animadas e som: Fases 3 a 6 do planejamento.
+Animar as cenas (Fases 4 e 5) e pôr efeitos sonoros e acabamento (Fase 6).
