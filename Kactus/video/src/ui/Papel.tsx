@@ -7,9 +7,10 @@ import {COR, FONTE} from '../tema';
 export const Papel: React.FC<{
 	children: React.ReactNode;
 	limpo?: React.ReactNode;
+	sons?: React.ReactNode; // efeitos sonoros da cena (<Som>), fora do SVG
 	fundo?: string;
 	tremido?: number;
-}> = ({children, limpo, fundo = COR.papel, tremido = 2.6}) => {
+}> = ({children, limpo, sons, fundo = COR.papel, tremido = 2.6}) => {
 	const frame = useCurrentFrame();
 	const semente = Math.floor(frame / 3) % 7;
 	return (
@@ -24,6 +25,7 @@ export const Papel: React.FC<{
 				<g filter="url(#tremido)">{children}</g>
 				{limpo}
 			</svg>
+			{sons}
 		</AbsoluteFill>
 	);
 };

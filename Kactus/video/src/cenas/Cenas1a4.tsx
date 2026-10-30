@@ -7,6 +7,7 @@ import {COR, FONTE, FONTE_MAO, TRACO} from '../tema';
 import {BalaoAnimado, Camera, naCurva, Salta} from '../ui/Animados';
 import {Celular, LogoKactus, Monitor, OlhosObjeto, Plaquinha} from '../ui/Objetos';
 import {Papel} from '../ui/Papel';
+import {Som} from '../ui/Som';
 
 // Cozinha: parede, janela, chão. Reaproveitada nas cenas 1 e 2.
 export const Cozinha: React.FC = () => (
@@ -57,6 +58,14 @@ export const Cena01: React.FC = () => {
 
 	return (
 		<Papel
+			sons={
+				<>
+					<Som de={14} nome="queda" volume={0.5} />
+					<Som de={palavra(0, 'quilômetros')} nome="pop" />
+					<Som de={f[1].i} nome="pop" volume={0.25} />
+					<Som de={f[1].fim} nome="gota" volume={0.5} />
+				</>
+			}
 			limpo={
 				<BalaoAnimado de={f[1].i} ate={f[1].fim + 12} x={330} y={160} w={440} linhas={['Tá... e agora?']} px={760} py={330} tamanho={46} />
 			}
@@ -137,7 +146,16 @@ export const Cena02: React.FC = () => {
 	const fogo = mola(frame, fps, f[1].i + 4);
 
 	return (
-		<Papel>
+		<Papel
+			sons={
+				<>
+					<Som de={qRel} nome="pop" />
+					<Som de={qCad} nome="pop" />
+					<Som de={qPla} nome="pop" />
+					<Som de={qPri} nome="pop" />
+					<Som de={f[1].i + 4} nome="fogo" volume={0.3} />
+				</>
+			}>
 			<Cozinha />
 			<g transform={`translate(${tx} ${ty})`}>
 				<Beto
@@ -248,6 +266,15 @@ export const Cena03: React.FC = () => {
 
 	return (
 		<Papel
+			sons={
+				<>
+					<Som de={qClique} nome="clique" volume={0.6} />
+					<Som de={qLiga} nome="liga" volume={0.3} />
+					<Som de={qCel - 4} nome="whoosh" volume={0.3} />
+					<Som de={f[1].i - 14} nome="whoosh" volume={0.3} />
+					<Som de={qAi} nome="toing" volume={0.5} />
+				</>
+			}
 			limpo={
 				<BalaoAnimado de={qAi} ate={f[1].fim + 18} x={1500} y={150} w={240} linhas={['AI!']} px={1560} py={330} tamanho={70} grito cor={COR.amarelo} />
 			}
@@ -370,6 +397,17 @@ export const Cena04: React.FC = () => {
 
 	return (
 		<Papel
+			sons={
+				<>
+					<Som de={qArquivo} nome="pop" />
+					<Som de={qJogo} nome="whoosh" volume={0.45} />
+					<Som de={pouso} nome="plim" volume={0.4} />
+					<Som de={palavra(0, 'Três')} nome="aplausos" volume={0.2} />
+					{['ritmo', 'carga', 'recordes', 'movimento', 'pastel'].map((p) => (
+						<Som key={p} de={palavra(1, p)} nome="pop" volume={0.3} />
+					))}
+				</>
+			}
 			limpo={
 				<BalaoAnimado de={palavra(0, 'Três')} ate={f[0].fim + 14} x={110} y={110} w={460} linhas={['Três pontos!']} px={330} py={300} tamanho={46} />
 			}

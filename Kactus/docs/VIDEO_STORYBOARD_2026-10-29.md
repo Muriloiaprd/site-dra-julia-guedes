@@ -71,6 +71,20 @@ npm run folhas -- 4 5        # out/folha-04.png e out/folha-05.png
 npx remotion render src/index.ts ComoFuncionaKactus out/fase5-filme.mp4 --concurrency=4
 ```
 
-## O que falta (próxima fase)
+## Som e acabamento (Fase 6)
 
-Efeitos sonoros, mixagem, transições entre as cenas, legendas finais e o render final (Fase 6).
+- `npm run efeitos` (`scripts/gerar_efeitos.py`, só Python, sem baixar nada) sintetiza 13 efeitos em `public/sfx/`: pop, boing, whoosh, queda, gota, fogo, clique, liga, toing, plim, aplausos, sobe e alarme. Também sintetiza a trilha `trilha.wav`: um laço de violão dedilhado, baixo e chocalho em dó, sol, lá menor e fá, que emenda sem corte.
+- Cada cena toca seus efeitos com `<Som de={quadro} nome="pop" />` (`src/ui/Som.tsx`), na mesma palavra da ação, via a prop `sons` do `Papel`.
+- Mixagem: voz no volume cheio, efeitos entre 0,15 e 0,6, trilha a 0,12 que cai para 0,05 enquanto alguém fala, com entrada e saída suaves.
+- Transição: entre uma cena e outra, uma faixa verde inclinada com a logo varre a tela em 18 quadros, com um whoosh, e esconde o corte.
+
+Vídeo final e legenda (pelo PowerShell):
+
+```powershell
+npm run render      # out/bruto.mp4 e, com o volume ajustado, out/como-funciona-kactus.mp4
+npm run legendas    # out/como-funciona-kactus.srt
+```
+
+O render do Remotion sai baixo (voz perto de -25 dB). Por isso o `npm run render` passa o resultado pelo `scripts/normalizar.ts`, que usa o ffmpeg que vem com o Remotion e leva o som a -16 LUFS com pico de -1,5 dB, o padrão de redes sociais. A imagem não é recodificada.
+
+Os arquivos de `out/` ficam fora do Git, porque são grandes: gere de novo com os comandos acima.

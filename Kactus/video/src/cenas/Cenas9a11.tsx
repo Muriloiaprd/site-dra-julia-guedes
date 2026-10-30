@@ -9,6 +9,7 @@ import {COR, FONTE, TRACO} from '../tema';
 import {BalaoAnimado, Camera, Salta} from '../ui/Animados';
 import {Brilho, Celular, LogoKactus, OlhosObjeto, Tenis} from '../ui/Objetos';
 import {Papel} from '../ui/Papel';
+import {Som} from '../ui/Som';
 
 // Cena 9 — o contador de km do tênis velho sobe até 600 e ele mesmo grita para ser aposentado.
 export const Cena09: React.FC = () => {
@@ -25,6 +26,13 @@ export const Cena09: React.FC = () => {
 
 	return (
 		<Papel
+			sons={
+				<>
+					<Som de={qKm - 6} nome="pop" volume={0.3} />
+					<Som de={qKm} nome="sobe" volume={0.2} />
+					<Som de={q600} nome="alarme" volume={0.25} />
+				</>
+			}
 			limpo={
 				<BalaoAnimado de={palavra(1, 'aposenta')} ate={f[1].fim + 20} x={1220} y={90} w={560} linhas={['ME APOSENTA!']} px={1260} py={420} tamanho={54} grito cor={COR.amarelo} />
 			}
@@ -102,6 +110,17 @@ export const Cena10: React.FC = () => {
 
 	return (
 		<Papel
+			sons={
+				<>
+					<Som de={qComp} nome="clique" volume={0.6} />
+					<Som de={qComp + 6} nome="whoosh" volume={0.3} />
+					<Som de={qStory} nome="pop" volume={0.3} />
+					{[0, 1, 2].map((i) => (
+						<Som key={i} de={qRota + 8 + i * 5} nome="whoosh" volume={0.25} />
+					))}
+					<Som de={qRota + 14} nome="plim" volume={0.25} />
+				</>
+			}
 			limpo={
 				<BalaoAnimado de={f[1].i} ate={f[1].fim + 24} x={1320} y={800} w={540} linhas={['Quem é você e o que', 'fez com o Beto?']} px={1440} py={760} tamanho={34} />
 			}
@@ -219,6 +238,15 @@ export const Cena11: React.FC = () => {
 
 	return (
 		<Papel
+			sons={
+				<>
+					{passos.map((q, i) => (
+						<Som key={i} de={q - 3} nome="pop" volume={0.35} />
+					))}
+					<Som de={f[2].i} nome="toing" volume={0.5} />
+					<Som de={duracao - 50} nome="plim" volume={0.3} />
+				</>
+			}
 			limpo={<BalaoAnimado de={f[2].i} ate={f[2].fim + 20} x={480} y={560} w={200} linhas={['Ai.']} px={720} py={650} tamanho={56} grito cor={COR.amarelo} />}
 		>
 			<rect x={0} y={0} width={1920} height={1080} fill={COR.parede} />

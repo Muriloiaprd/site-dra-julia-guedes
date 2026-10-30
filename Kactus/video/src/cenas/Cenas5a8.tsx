@@ -8,6 +8,7 @@ import {COR, FONTE, TRACO} from '../tema';
 import {BalaoAnimado, naCurva, Salta} from '../ui/Animados';
 import {Brilho, Cartao, Celular, Monitor, OlhosObjeto} from '../ui/Objetos';
 import {Papel} from '../ui/Papel';
+import {Som} from '../ui/Som';
 
 const Placa: React.FC<{x: number; y: number; texto: string[]; cor: string; rot: number; frame: number}> = ({x, y, texto, cor, rot, frame}) => (
 	<g transform={`rotate(${rot} ${x} ${y})`}>
@@ -78,7 +79,15 @@ export const Cena05: React.FC = () => {
 	const poseFinal: Bracos = {l: pose.l, r: {e: pose.r.e, m: [pose.r.m[0] + aceno, pose.r.m[1]]}};
 
 	return (
-		<Papel>
+		<Papel
+			sons={
+				<>
+					<Som de={2} nome="aplausos" volume={0.3} />
+					<Som de={qComo - 4} nome="boing" volume={0.3} />
+					<Som de={qFiz - 4} nome="boing" volume={0.3} />
+					<Som de={qHoje - 4} nome="boing" volume={0.3} />
+				</>
+			}>
 			<rect x={0} y={0} width={1920} height={1080} fill="#2B2140" />
 			{[520, 960, 1400].map((cx, i) => (
 				<polygon
@@ -150,7 +159,17 @@ export const Cena06: React.FC = () => {
 	const pose = assustado ? POSES.susto : misturarPoses('parado', 'apontar', apontando);
 
 	return (
-		<Papel limpo={<BalaoAnimado de={qNao} ate={f[1].fim + 16} x={1380} y={110} w={380} linhas={['Hoje não!']} px={1520} py={330} tamanho={50} />}>
+		<Papel
+			sons={
+				<>
+					<Som de={qForma - 3} nome="pop" volume={0.3} />
+					<Som de={qExag - 3} nome="pop" volume={0.3} />
+					<Som de={qProva - 3} nome="pop" volume={0.3} />
+					<Som de={qAvanc - 4} nome="whoosh" volume={0.25} />
+					<Som de={qTamb} nome="whoosh" volume={0.45} />
+					<Som de={qHoje} nome="whoosh" volume={0.3} />
+				</>
+			} limpo={<BalaoAnimado de={qNao} ate={f[1].fim + 16} x={1380} y={110} w={380} linhas={['Hoje não!']} px={1520} py={330} tamanho={50} />}>
 			<rect x={0} y={0} width={1920} height={1080} fill={COR.parede} />
 			<Monitor x={150} y={110} w={1040} h={620}>
 				<text x={36} y={64} fontFamily={FONTE} fontWeight={900} fontSize={40} fill={COR.textoTela}>
@@ -241,6 +260,17 @@ export const Cena07: React.FC = () => {
 
 	return (
 		<Papel
+			sons={
+				<>
+					<Som de={surge} nome="plim" volume={0.4} />
+					<Som de={f[1].i - 10} nome="plim" volume={0.15} />
+					<Som de={palavra(1, 'Normal')} nome="plim" volume={0.15} />
+					<Som de={f[2].i} nome="plim" volume={0.15} />
+					<Som de={qTrocado} nome="plim" volume={0.15} />
+					<Som de={f[2].i + 4} nome="pop" volume={0.3} />
+					<Som de={qTiro} nome="pop" volume={0.35} />
+				</>
+			}
 			limpo={
 				<BalaoAnimado
 					de={palavra(3, 'Sim')}
@@ -368,7 +398,22 @@ export const Cena08: React.FC = () => {
 	const chegou = frame >= qProva;
 
 	return (
-		<Papel>
+		<Papel
+			sons={
+				<>
+					<Som de={palavra(0, 'calendário') - 4} nome="pop" volume={0.3} />
+					<Som de={qVerde} nome="pop" volume={0.3} />
+					<Som de={qCinza} nome="pop" volume={0.3} />
+					<Som de={qVermelho} nome="boing" volume={0.35} />
+					{[0, 1, 2, 3].map((i) => (
+						<Som key={`d${i}`} de={qPlano + i * 5} nome="pop" volume={0.25} />
+					))}
+					{[0, 1, 2].map((i) => (
+						<Som key={`p${i}`} de={qDegrau + ((qProva - qDegrau) * (i + 0.15)) / 3} nome="boing" volume={0.2} />
+					))}
+					<Som de={qProva} nome="plim" volume={0.4} />
+				</>
+			}>
 			<rect x={0} y={0} width={1920} height={1080} fill={COR.parede} />
 			<Salta de={palavra(0, 'calendário') - 4} x={590} y={460}>
 				<rect x={90} y={100} width={1000} height={720} rx={28} fill={COR.branco} {...TRACO} />

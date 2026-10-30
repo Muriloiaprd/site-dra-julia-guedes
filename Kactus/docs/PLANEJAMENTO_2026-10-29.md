@@ -61,7 +61,7 @@ As falas completas ficam em `video/roteiro/falas.json` (personagem, texto, cena)
 3. **Vozes e sincronia** — gerar os MP3, tempos das cenas a partir dos áudios, boca mexendo com a fala, legendas. ✅ feito: 26 MP3 em `video/public/audio/` (2 min de voz), filme `ComoFuncionaKactus` com 2 min 10 s e as cenas ainda paradas, boca seguindo o volume da voz, legenda no vídeo e `.srt`.
 4. **Cenas 1 a 5** — abertura até o Dashboard, animadas. ✅ feito: cada cena se anima sincronizada com as palavras da voz (`src/cenaTempo.ts`); balões, câmera, saltos e arremesso em `src/ui/Animados.tsx`.
 5. **Cenas 6 a 11** — Desempenho até o fecho, animadas. ✅ feito: o filme inteiro está animado (2 min 10 s); a boca do tênis também segue a voz dele.
-6. **Som e acabamento** — efeitos sonoros, mixagem (voz acima dos efeitos), legendas finais, render 1080p, revisão com o Murilo e ajustes.
+6. **Som e acabamento** — efeitos sonoros, mixagem (voz acima dos efeitos), legendas finais, render 1080p, revisão com o Murilo e ajustes. ✅ feito: 13 efeitos e a trilha sintetizados em `scripts/gerar_efeitos.py` (nada baixado), efeitos presos às palavras de cada cena, trilha que abaixa nas falas, faixa verde com a logo nos cortes, vídeo final `video/out/como-funciona-kactus.mp4` e `.srt`. Falta só a revisão do Murilo.
 
 ## Verificação
 

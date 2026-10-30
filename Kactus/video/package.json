@@ -6,10 +6,11 @@
   "scripts": {
     "studio": "remotion studio src/index.ts --port 3022",
     "storyboard": "tsx scripts/storyboard.ts",
-    "render": "remotion render src/index.ts ComoFuncionaKactus out/como-funciona-kactus.mp4",
+    "render": "remotion render src/index.ts ComoFuncionaKactus out/bruto.mp4 --concurrency=4 && tsx scripts/normalizar.ts out/bruto.mp4 out/como-funciona-kactus.mp4",
     "vozes": "uv run --with edge-tts --with miniaudio python scripts/gerar_vozes.py",
     "legendas": "tsx scripts/legendas.ts",
-    "folhas": "tsx scripts/folhas.ts"
+    "folhas": "tsx scripts/folhas.ts",
+    "efeitos": "python scripts/gerar_efeitos.py"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.536",
