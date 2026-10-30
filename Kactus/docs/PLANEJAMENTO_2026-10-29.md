@@ -55,8 +55,8 @@ As falas completas ficam em `video/roteiro/falas.json` (personagem, texto, cena)
 
 ## Fases (cada uma termina em commit + push)
 
-0. **Documento** — salvar este plano como `docs/PLANEJAMENTO_2026-10-29.md`.
-1. **Roteiro e storyboard** — `falas.json` completo e um quadro parado (PNG via `remotion still`) de cada cena. **Pausa para o Murilo aprovar** falas e visual antes de animar.
+0. **Documento** — salvar este plano como `docs/PLANEJAMENTO_2026-10-29.md`. ✅ feito
+1. **Roteiro e storyboard** — `falas.json` completo e um quadro parado (PNG via `remotion still`) de cada cena. **Pausa para o Murilo aprovar** falas e visual antes de animar. ✅ feito, aguardando aprovação: ver [VIDEO_STORYBOARD_2026-10-29.md](./VIDEO_STORYBOARD_2026-10-29.md)
 2. **Base e personagens** — projeto Remotion, filtro de traço tremido, Beto e Duni com piscar e poses; teste de 5 s.
 3. **Vozes e sincronia** — gerar os MP3, tempos das cenas a partir dos áudios, boca mexendo com a fala, legendas.
 4. **Cenas 1 a 5** — abertura até o Dashboard, animadas.

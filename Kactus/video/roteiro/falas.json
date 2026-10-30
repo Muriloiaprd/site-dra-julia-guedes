@@ -1,0 +1,114 @@
+{
+  "titulo": "Como funciona o Kactus",
+  "vozes": {
+    "beto": "pt-BR-AntonioNeural",
+    "duni": "pt-BR-FranciscaNeural",
+    "tenis": "pt-BR-AntonioNeural",
+    "amigo": "pt-BR-AntonioNeural"
+  },
+  "cenas": [
+    {
+      "n": 1,
+      "nome": "Abertura",
+      "acao": "Beto entra suado, desaba na cadeira da mesa da cozinha e olha o relógio no pulso. Uma gota de suor cai em câmera lenta na tela do relógio.",
+      "falas": [
+        { "quem": "beto", "texto": "Ufa. Dez quilômetros. Eu sou praticamente um queniano." },
+        { "quem": "beto", "texto": "Tá, e agora? O que eu faço com esse número?" }
+      ]
+    },
+    {
+      "n": 2,
+      "nome": "O problema",
+      "acao": "Em volta dele aparecem o relógio, um caderno, uma planilha e um print no celular. Os quatro discutem, se empurram, e a planilha pega fogo.",
+      "falas": [
+        { "quem": "beto", "texto": "Meu treino tá no relógio, no caderno, na planilha e num print que eu nem sei onde foi parar." },
+        { "quem": "beto", "texto": "E nenhum deles me diz se eu tô melhorando." }
+      ]
+    },
+    {
+      "n": 3,
+      "nome": "Liga o Kactus",
+      "acao": "Zoom no cantinho da tela do computador: o ícone do cacto perto do relógio do Windows acende verde. O Kactus abre no PC e no iPhone. Beto se empolga e abraça o cacto do ícone.",
+      "falas": [
+        { "quem": "beto", "texto": "Aí entra o Kactus. Um clique no cactozinho perto do relógio e ele liga, no computador e no celular." },
+        { "quem": "beto", "texto": "Eu te amo, cacto! ... Ai." }
+      ]
+    },
+    {
+      "n": 4,
+      "nome": "Importar",
+      "acao": "Beto amassa o arquivo .fit como uma bola de papel e arremessa de longe na área Importar do Perfil. Cesta. O app mastiga e cospe plaquinhas: pace, tempo em movimento, carga, recorde.",
+      "falas": [
+        { "quem": "beto", "texto": "Eu baixo o arquivo do treino do Garmin e jogo em Perfil, Importar. Três pontos!" },
+        { "quem": "beto", "texto": "Ele calcula tudo: ritmo, carga, recordes. E o tempo em movimento não conta a parada no pastel." }
+      ]
+    },
+    {
+      "n": 5,
+      "nome": "Dashboard",
+      "acao": "Clima de programa de auditório: três plaquinhas pulam do painel, uma de cada vez, com luzinhas piscando.",
+      "falas": [
+        { "quem": "beto", "texto": "No painel, o Kactus responde três perguntas." },
+        { "quem": "beto", "texto": "Como eu tô. O que eu fiz. E o que eu faço hoje." }
+      ]
+    },
+    {
+      "n": 6,
+      "nome": "Desempenho",
+      "acao": "Tela de Desempenho com o termômetro de forma, o risco de lesão e a previsão de prova. Beto abre o Modo avançado: siglas CTL, ATL, TSB e fórmulas saem voando na cara dele. Ele fecha a gaveta com o pé.",
+      "falas": [
+        { "quem": "beto", "texto": "Em Desempenho eu vejo se tô em forma, se tô exagerando, e quanto eu faria numa prova." },
+        { "quem": "beto", "texto": "Tem o modo avançado também... Não. Hoje não." }
+      ]
+    },
+    {
+      "n": 7,
+      "nome": "Duni",
+      "acao": "Pling! A Duni, um cacto rainha de coroa, surge do celular. Depois do check-in 'Como foi?', ela comenta o treino. Beto pede, no chat, para mudar o treino de amanhã; a etiqueta no calendário troca na hora.",
+      "falas": [
+        { "quem": "duni", "texto": "Oi, eu sou a Duni, sua treinadora. Eu leio seus treinos e falo com você." },
+        { "quem": "duni", "texto": "Você contou que a perna pesou. Normal, foi o maior volume do mês." },
+        { "quem": "beto", "texto": "Duni, dá pra trocar o treino de amanhã?" },
+        { "quem": "duni", "texto": "Trocado: amanhã tem treino de tiro. Sim, tiro. Não, não é de festa junina." }
+      ]
+    },
+    {
+      "n": 8,
+      "nome": "Calendário e plano",
+      "acao": "O mês vira um quadro de etiquetas: verde de feito, cinza de planejado e uma vermelha de perdido que encara o Beto. Depois o plano do objetivo vira uma escada: base, construção, pico, polimento, e no topo a linha de chegada.",
+      "falas": [
+        { "quem": "beto", "texto": "No calendário fica tudo: verde é feito, cinza é o que vem aí..." },
+        { "quem": "beto", "texto": "e vermelho é aquele treino que eu... esqueci. Para de me olhar assim." },
+        { "quem": "duni", "texto": "E o plano vai degrau por degrau até a sua prova." }
+      ]
+    },
+    {
+      "n": 9,
+      "nome": "Equipamentos",
+      "acao": "Na prateleira, um tênis novinho e um tênis velho cheio de remendos. O velho mostra o contador: 600 km. Ele grita.",
+      "falas": [
+        { "quem": "beto", "texto": "O Kactus conta até os quilômetros de cada tênis." },
+        { "quem": "tenis", "texto": "Seiscentos quilômetros! Me aposenta!" }
+      ]
+    },
+    {
+      "n": 10,
+      "nome": "Story",
+      "acao": "Beto aperta Compartilhar, escolhe um Story com a rota animada e posta. Os celulares dos amigos explodem em corações. Um amigo responde.",
+      "falas": [
+        { "quem": "beto", "texto": "E no fim, um toque em Compartilhar vira Story, com imagem ou vídeo da rota." },
+        { "quem": "amigo", "texto": "Quem é você e o que fez com o Beto?" }
+      ]
+    },
+    {
+      "n": 11,
+      "nome": "Fecho",
+      "acao": "Três cartões entram em fila: Treina, Importa, o Kactus explica e a Duni planeja. Logo do Kactus. Beto vai abraçar a Duni.",
+      "falas": [
+        { "quem": "beto", "texto": "Resumindo: você treina, importa, o Kactus explica e a Duni planeja." },
+        { "quem": "duni", "texto": "Agora vai correr. E nada de abraço." },
+        { "quem": "beto", "texto": "Ai." }
+      ]
+    }
+  ]
+}

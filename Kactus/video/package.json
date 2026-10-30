@@ -1,0 +1,24 @@
+{
+  "name": "kactus-video",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Video animado 'Como funciona o Kactus' (Remotion)",
+  "scripts": {
+    "studio": "remotion studio src/index.ts --port 3022",
+    "storyboard": "node scripts/storyboard.mjs",
+    "render": "remotion render src/index.ts ComoFuncionaKactus out/como-funciona-kactus.mp4"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.536",
+    "@remotion/cli": "4.0.536",
+    "@remotion/media-utils": "4.0.536",
+    "@remotion/renderer": "4.0.536",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.536"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "typescript": "5.6.3"
+  }
+}
