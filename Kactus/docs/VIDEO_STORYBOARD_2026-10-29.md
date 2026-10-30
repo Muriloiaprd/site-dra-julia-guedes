@@ -55,10 +55,22 @@ npx remotion render src/index.ts ComoFuncionaKactus out/fase3-vozes.mp4 --concur
 - Para conferir uma cena sem renderizar o filme: a composição `FolhaCena` mostra 6 momentos da cena lado a lado.
 
 ```powershell
-'{"cena":4}' | Set-Content out/p4.json -Encoding ascii
-npx remotion still src/index.ts FolhaCena out/folha-04.png --props=out/p4.json
+npm run folhas -- 4 5        # out/folha-04.png e out/folha-05.png
 ```
 
-## O que falta (próximas fases)
+## Cenas animadas (Fase 5: cenas 6 a 11)
 
-Animar as cenas 6 a 11 (Fase 5) e pôr efeitos sonoros e acabamento (Fase 6).
+- **6 Desempenho:** os cartões saltam em "forma", "exagerando" e "prova"; a gaveta do Modo avançado abre em "avançado", as siglas voam em "também" e voltam para dentro quando o Beto diz "Hoje não".
+- **7 Duni:** ela salta do celular, o chat se preenche fala a fala e a etiqueta de amanhã troca na hora ("Trocado", e o tiro entra em "tiro").
+- **8 Calendário:** as etiquetas pipocam por cor ("verde", "cinza", "vermelho"); a vermelha cresce e encara o Beto; a escada do plano sobe em "plano" e um mini Beto pula de degrau em degrau até chegar em "prova".
+- **9 Equipamentos:** o contador de km sobe até 600 e muda de cor; o tênis velho pula, treme e mexe a boca com a própria voz.
+- **10 Story:** toque em Compartilhar, a rota se desenha e os celulares dos amigos chegam cheios de corações.
+- **11 Fecho:** os três passos entram na palavra, o Beto tenta o abraço em "abraço", se espeta e a câmera fecha na logo.
+
+```powershell
+npx remotion render src/index.ts ComoFuncionaKactus out/fase5-filme.mp4 --concurrency=4
+```
+
+## O que falta (próxima fase)
+
+Efeitos sonoros, mixagem, transições entre as cenas, legendas finais e o render final (Fase 6).

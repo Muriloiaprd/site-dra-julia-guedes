@@ -8,7 +8,8 @@
     "storyboard": "tsx scripts/storyboard.ts",
     "render": "remotion render src/index.ts ComoFuncionaKactus out/como-funciona-kactus.mp4",
     "vozes": "uv run --with edge-tts --with miniaudio python scripts/gerar_vozes.py",
-    "legendas": "tsx scripts/legendas.ts"
+    "legendas": "tsx scripts/legendas.ts",
+    "folhas": "tsx scripts/folhas.ts"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.536",
