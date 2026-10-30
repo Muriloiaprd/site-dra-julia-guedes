@@ -12,6 +12,7 @@ const serveUrl = await bundle({entryPoint: path.join(raiz, 'src/index.ts')});
 const opcoes = {browserExecutable: EDGE, chromeMode: 'chrome-for-testing'};
 const comps = await getCompositions(serveUrl, opcoes);
 for (const composition of comps) {
+	if (!/^(Cena\d+|Folha)$/.test(composition.id)) continue;
 	if (so.length && !so.includes(composition.id)) continue;
 	const output = path.join(raiz, 'storyboard', (composition.id === 'Folha' ? 'storyboard' : composition.id.replace(/^Cena/, 'cena-')) .toLowerCase() + '.png');
 	await renderStill({composition, serveUrl, output, ...opcoes});

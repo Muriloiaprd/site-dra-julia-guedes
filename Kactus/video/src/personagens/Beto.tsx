@@ -3,7 +3,8 @@ import {COR, TRACO} from '../tema';
 
 // Beto, o corredor. Origem (0, 0) no quadril; a cabeça fica em y = -290.
 // Braços: cotovelo (e) e mão (m) relativos ao ombro.
-type Braco = {e: [number, number]; m: [number, number]};
+export type Braco = {e: [number, number]; m: [number, number]};
+export type Bracos = {l: Braco; r: Braco};
 export type PoseBeto =
 	| 'parado'
 	| 'relogio'
@@ -16,7 +17,7 @@ export type PoseBeto =
 	| 'tchau';
 export type BocaBeto = 'neutra' | 'sorriso' | 'aberta' | 'dor' | 'preocupada' | 'o';
 
-const POSES: Record<PoseBeto, {l: Braco; r: Braco}> = {
+export const POSES: Record<PoseBeto, Bracos> = {
 	parado: {l: {e: [-30, 75], m: [-42, 155]}, r: {e: [30, 75], m: [42, 155]}},
 	relogio: {l: {e: [-30, 75], m: [-42, 155]}, r: {e: [70, 95], m: [-25, 45]}},
 	desespero: {l: {e: [-85, -35], m: [-40, -120]}, r: {e: [85, -35], m: [40, -120]}},
@@ -28,12 +29,35 @@ const POSES: Record<PoseBeto, {l: Braco; r: Braco}> = {
 	tchau: {l: {e: [-30, 75], m: [-42, 155]}, r: {e: [80, -40], m: [95, -140]}},
 };
 
+// Mistura duas poses (t = 0 → a, t = 1 → b), para os braços irem de uma pose à outra.
+export function misturarPoses(a: PoseBeto | Bracos, b: PoseBeto | Bracos, t: number): Bracos {
+	const pa = typeof a === 'string' ? POSES[a] : a;
+	const pb = typeof b === 'string' ? POSES[b] : b;
+	const lerp = (u: [number, number], v: [number, number]): [number, number] => [u[0] + (v[0] - u[0]) * t, u[1] + (v[1] - u[1]) * t];
+	const br = (u: Braco, v: Braco): Braco => ({e: lerp(u.e, v.e), m: lerp(u.m, v.m)});
+	return {l: br(pa.l, pb.l), r: br(pa.r, pb.r)};
+}
+
+// Braços balançando ao andar, em oposição às pernas (mesma fase do `andar`).
+export function bracosAndando(fase: number, forca = 1): Bracos {
+	const s = Math.sin(fase) * forca;
+	return {
+		l: {e: [-30 + s * 14, 75], m: [-42 + s * 40, 150]},
+		r: {e: [30 - s * 14, 75], m: [42 - s * 40, 150]},
+	};
+}
+
 export const Beto: React.FC<{
 	x: number;
 	y: number;
 	escala?: number;
-	pose?: PoseBeto;
+	pose?: PoseBeto | Bracos;
 	boca?: BocaBeto;
+	fala?: number; // abertura da boca falando, 0..1 (substitui `boca` quando definida)
+	andar?: number; // fase do passo em radianos (pernas balançam)
+	andarForca?: number; // 0..1, para o passo começar e parar suave
+	respiro?: number; // deslocamento vertical do tronco e da cabeça
+	inclinar?: number; // graus, gira o corpo em torno do quadril
 	olhar?: [number, number];
 	sentado?: boolean;
 	suor?: boolean;
@@ -48,6 +72,11 @@ export const Beto: React.FC<{
 	escala = 1,
 	pose = 'parado',
 	boca = 'neutra',
+	fala,
+	andar,
+	andarForca = 1,
+	respiro = 0,
+	inclinar = 0,
 	olhar = [0, 0],
 	sentado = false,
 	suor = false,
@@ -57,7 +86,7 @@ export const Beto: React.FC<{
 	espelhar = false,
 	children,
 }) => {
-	const {l, r} = POSES[pose];
+	const {l, r} = typeof pose === 'string' ? POSES[pose] : pose;
 	const ombroL: [number, number] = [-46, -185];
 	const ombroR: [number, number] = [46, -185];
 	const mao = (o: [number, number], b: Braco): [number, number] => [o[0] + b.m[0], o[1] + b.m[1]];
@@ -70,23 +99,39 @@ export const Beto: React.FC<{
 	const mR = mao(ombroR, r);
 	const mL = mao(ombroL, l);
 
+	// passo: cada pé vai para frente e para trás em oposição, levantando um pouco
+	const passo = (lado: number) => {
+		if (andar === undefined) return {dx: 0, sobe: 0};
+		const s = Math.sin(andar + (lado > 0 ? Math.PI : 0));
+		return {dx: s * 38 * andarForca, sobe: Math.max(0, Math.cos(andar + (lado > 0 ? Math.PI : 0))) * 22 * andarForca};
+	};
+	const pL = passo(-1);
+	const pR = passo(1);
 	const pernas = sentado
 		? ['M -24 0 Q -44 40 -46 150', 'M 24 0 Q 44 40 46 150']
-		: ['M -24 0 Q -36 95 -38 190', 'M 24 0 Q 36 95 38 190'];
+		: [
+				`M -24 0 Q ${-36 + pL.dx / 2} 95 ${-38 + pL.dx} ${190 - pL.sobe}`,
+				`M 24 0 Q ${36 + pR.dx / 2} 95 ${38 + pR.dx} ${190 - pR.sobe}`,
+			];
 	const pe = sentado ? 150 : 190;
+	const pes = sentado
+		? [{x: -50, y: pe + 4}, {x: 50, y: pe + 4}]
+		: [{x: -50 + pL.dx, y: pe + 4 - pL.sobe}, {x: 50 + pR.dx, y: pe + 4 - pR.sobe}];
 	const olhoH = 38 * (1 - piscar * 0.92);
 	const [ox, oy] = olhar;
 
 	return (
-		<g transform={`translate(${x} ${y}) scale(${espelhar ? -escala : escala} ${escala})`}>
+		<g transform={`translate(${x} ${y}) scale(${espelhar ? -escala : escala} ${escala}) rotate(${inclinar} 0 ${sentado ? 150 : 190})`}>
 			{/* pernas */}
 			{pernas.map((d, i) => (
 				<path key={i} d={d} fill="none" {...TRACO} strokeWidth={6} />
 			))}
-			<ellipse cx={-50} cy={pe + 4} rx={22} ry={11} fill={COR.tinta} />
-			<ellipse cx={50} cy={pe + 4} rx={22} ry={11} fill={COR.tinta} />
+			{pes.map((p, i) => (
+				<ellipse key={i} cx={p.x} cy={p.y} rx={22} ry={11} fill={COR.tinta} />
+			))}
 			{/* short */}
 			<path d="M -56 -30 L 56 -30 L 60 38 L 6 38 L 0 14 L -6 38 L -60 38 Z" fill={COR.short} {...TRACO} />
+			<g transform={`translate(0 ${respiro})`}>
 			{/* tronco (camiseta) */}
 			<rect x={-58} y={-212} width={116} height={196} rx={34} fill={COR.camiseta} {...TRACO} />
 			<path d="M -22 -150 q 22 16 44 0" fill="none" stroke={COR.tinta} strokeWidth={3} opacity={0.35} />
@@ -131,7 +176,7 @@ export const Beto: React.FC<{
 					<path d="M 16 -360 q 20 -12 40 0" fill="none" {...TRACO} strokeWidth={6} />
 				</>
 			) : null}
-			<BocaDesenho tipo={boca} />
+			{fala !== undefined ? <BocaFala abertura={fala} /> : <BocaDesenho tipo={boca} />}
 			{suor ? (
 				<g fill={COR.azul} stroke={COR.tinta} strokeWidth={3}>
 					<path d="M -98 -330 q -12 20 0 26 q 12 -6 0 -26 Z" />
@@ -139,9 +184,17 @@ export const Beto: React.FC<{
 					<path d="M 92 -360 q -8 13 0 17 q 8 -4 0 -17 Z" />
 				</g>
 			) : null}
+			</g>
 		</g>
 	);
 };
+
+const BocaFala: React.FC<{abertura: number}> = ({abertura}) =>
+	abertura < 0.08 ? (
+		<path d="M -12 -242 L 16 -242" {...TRACO} />
+	) : (
+		<ellipse cx={2} cy={-242} rx={14 + abertura * 4} ry={3 + abertura * 13} fill={COR.tinta} />
+	);
 
 const BocaDesenho: React.FC<{tipo: BocaBeto}> = ({tipo}) => {
 	switch (tipo) {

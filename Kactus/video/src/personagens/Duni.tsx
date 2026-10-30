@@ -8,21 +8,27 @@ export const Duni: React.FC<{
 	y: number;
 	escala?: number;
 	boca?: 'sorriso' | 'aberta' | 'sarcastica' | 'brava';
+	fala?: number; // abertura da boca falando, 0..1 (substitui `boca` quando definida)
+	pulo?: number; // achatamento/esticada do corpo (-1..1), para quicar
+	bracoEsquerdo?: number;
 	olhar?: [number, number];
 	piscar?: number;
 	bracoDireito?: number; // rotação em graus (aceno)
 	vaso?: boolean;
-}> = ({x, y, escala = 1, boca = 'sorriso', olhar = [0, 0], piscar = 0, bracoDireito = 0, vaso = true}) => {
+}> = ({x, y, escala = 1, boca = 'sorriso', fala, pulo = 0, bracoEsquerdo = 0, olhar = [0, 0], piscar = 0, bracoDireito = 0, vaso = true}) => {
 	const [ox, oy] = olhar;
 	const olhoH = 30 * (1 - piscar * 0.92);
 	return (
 		<g transform={`translate(${x} ${y}) scale(${escala})`}>
+			<g transform={`scale(${1 - pulo * 0.06} ${1 + pulo * 0.08})`}>
 			{/* braço esquerdo (para baixo) */}
+			<g transform={`rotate(${bracoEsquerdo} -60 -170)`}>
 			<path
 				d="M -60 -150 L -96 -150 Q -112 -150 -112 -166 L -112 -228 Q -112 -246 -96 -246 Q -80 -246 -80 -228 L -80 -182 L -60 -182"
 				fill={COR.cacto}
 				{...TRACO}
 			/>
+			</g>
 			{/* braço direito (levantado, acena) */}
 			<g transform={`rotate(${bracoDireito} 60 -200)`}>
 				<path
@@ -64,10 +70,17 @@ export const Duni: React.FC<{
 			<path d="M 46 -276 l 10 -8 M 36 -282 l 6 -10" {...TRACO} strokeWidth={3} />
 			<ellipse cx={-44} cy={-206} rx={13} ry={7} fill={COR.rosa} />
 			<ellipse cx={44} cy={-206} rx={13} ry={7} fill={COR.rosa} />
-			{boca === 'aberta' ? <ellipse cx={0} cy={-200} rx={15} ry={12} fill={COR.tinta} /> : null}
-			{boca === 'sorriso' ? <path d="M -18 -206 q 18 20 36 0" fill="none" {...TRACO} /> : null}
-			{boca === 'sarcastica' ? <path d="M -16 -200 q 18 4 32 -10" fill="none" {...TRACO} /> : null}
-			{boca === 'brava' ? <path d="M -16 -196 q 16 -12 32 0" fill="none" {...TRACO} /> : null}
+			{fala !== undefined ? (
+				fala < 0.08 ? (
+					<path d="M -14 -202 L 14 -202" {...TRACO} />
+				) : (
+					<ellipse cx={0} cy={-202} rx={12 + fala * 4} ry={3 + fala * 11} fill={COR.tinta} />
+				)
+			) : null}
+			{fala === undefined && boca === 'aberta' ? <ellipse cx={0} cy={-200} rx={15} ry={12} fill={COR.tinta} /> : null}
+			{fala === undefined && boca === 'sorriso' ? <path d="M -18 -206 q 18 20 36 0" fill="none" {...TRACO} /> : null}
+			{fala === undefined && boca === 'sarcastica' ? <path d="M -16 -200 q 18 4 32 -10" fill="none" {...TRACO} /> : null}
+			{fala === undefined && boca === 'brava' ? <path d="M -16 -196 q 16 -12 32 0" fill="none" {...TRACO} /> : null}
 			{/* coroa */}
 			<g transform="rotate(-10 0 -340)">
 				<path
@@ -77,7 +90,8 @@ export const Duni: React.FC<{
 				/>
 				<circle cx={0} cy={-356} r={7} fill={COR.vermelho} stroke={COR.tinta} strokeWidth={3} />
 			</g>
-			{/* vaso */}
+			</g>
+			{/* vaso (não estica junto) */}
 			{vaso ? (
 				<path d="M -84 -12 L 84 -12 L 66 86 L -66 86 Z" fill={COR.vermelho} {...TRACO} />
 			) : null}

@@ -25,6 +25,16 @@ node scripts/storyboard.mjs Cena04     # só uma
 
 Para mexer olhando: `npm run studio` (Remotion Studio na porta 3022, ou a config `kactus-video` do `.claude/launch.json` da raiz).
 
+## Teste de movimento (Fase 2)
+
+A composição `TestePersonagens` (5 s) mostra o Beto entrando andando, acenando e falando, e a Duni brotando do chão, quicando e falando. Para gerar (pelo PowerShell):
+
+```powershell
+npx remotion render src/index.ts TestePersonagens out/teste-personagens.mp4
+```
+
+Os movimentos ficam em `video/src/anim.ts` (piscar, respirar, mola, boca falando) e nas props dos personagens (`andar`, `andarForca`, `fala`, `respiro`, `inclinar`, `misturarPoses`, `bracosAndando`; na Duni, `pulo`, `fala` e os braços). Até a Fase 3, a boca mexe num padrão fixo; depois passa a seguir o volume da voz.
+
 ## O que falta (próximas fases)
 
-Ainda não há movimento, voz nem som: isso vem nas Fases 2 a 6 do planejamento.
+Vozes, cenas animadas e som: Fases 3 a 6 do planejamento.
