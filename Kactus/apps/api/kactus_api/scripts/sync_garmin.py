@@ -1,9 +1,13 @@
-"""Importa atividades do Garmin Connect para o Kactus.
+"""Importa atividades do Garmin Connect para o Kactus pela API pessoal oficial.
 
-Primeira vez (pede senha e, se a conta tiver, o codigo MFA):
-    uv run python -m kactus_api.scripts.sync_garmin --email seu@email.com --garmin-login
+Antes, uma vez: crie a chave em connect.garmin.com/app/settings/personalApiToken
+e cole em GARMIN_PERSONAL_API_KEY no .env. Nao ha senha nem MFA.
 
-Depois disso o token em ~/.garminconnect renova sozinho:
+Conferir se o arquivo da API traz todos os campos do Garmin (baixa 3 treinos,
+compara com os mesmos ja salvos no Kactus, nao grava nada):
+    uv run python -m kactus_api.scripts.sync_garmin --email seu@email.com --conferir 3 --days 14
+
+Importar (incremental a partir do ultimo treino vindo do Garmin):
     uv run python -m kactus_api.scripts.sync_garmin --email seu@email.com
 
 Ver o que seria importado, sem gravar nada:
@@ -13,7 +17,6 @@ Ver o que seria importado, sem gravar nada:
 import argparse
 import sys
 from datetime import date, timedelta
-from getpass import getpass
 
 from sqlalchemy import select
 
@@ -22,6 +25,7 @@ from kactus_api.models import User
 from kactus_api.services.garmin_sync import (
     GarminSyncError,
     build_client,
+    check_api_files,
     last_synced_date,
     parse_start,
     sync_activities,
@@ -36,12 +40,16 @@ _DEFAULT_DAYS = 30
 def main() -> int:
     parser = argparse.ArgumentParser(description="Importa atividades do Garmin Connect.")
     parser.add_argument("--email", required=True, help="e-mail da conta no Kactus")
-    parser.add_argument("--garmin-email", help="e-mail do Garmin, se diferente")
-    parser.add_argument("--garmin-login", action="store_true", help="forca login com senha")
     parser.add_argument("--since", help="data inicial AAAA-MM-DD (padrao: incremental)")
     parser.add_argument("--days", type=int, help=f"ultimos N dias (padrao: {_DEFAULT_DAYS})")
     parser.add_argument("--limit", type=int, help="maximo de atividades nesta rodada")
     parser.add_argument("--dry-run", action="store_true", help="so lista, nao importa")
+    parser.add_argument(
+        "--conferir",
+        type=int,
+        metavar="N",
+        help="baixa N treinos e compara os campos do Garmin com os ja salvos (nao grava)",
+    )
     args = parser.parse_args()
 
     with SessionLocal() as db:
@@ -54,20 +62,22 @@ def main() -> int:
         print(f"Buscando atividades do Garmin desde {start.isoformat()}...")
 
         try:
-            client = _connect(args)
+            client = build_client()
+            if args.conferir:
+                checks = check_api_files(db, user.id, client, start=start, limit=args.conferir)
+                return _print_checks(checks)
+            report = sync_activities(
+                db, user.id, client, start=start, limit=args.limit, dry_run=args.dry_run
+            )
         except GarminSyncError as e:
             print(f"\n{e}", file=sys.stderr)
             return 1
-        except Exception as e:  # noqa: BLE001 - erro de rede/credencial vira mensagem, nao traceback
-            print(f"\nFalha ao conectar no Garmin: {type(e).__name__}: {e}", file=sys.stderr)
+        except Exception as e:  # noqa: BLE001 - erro de rede vira mensagem, nao traceback
+            print(f"\nFalha ao falar com o Garmin: {type(e).__name__}: {e}", file=sys.stderr)
             return 1
 
-        report = sync_activities(
-            db, user.id, client, start=start, limit=args.limit, dry_run=args.dry_run
-        )
-
     _print_report(report, dry_run=args.dry_run)
-    return 1 if report.failed else 0
+    return 1 if report.failed or report.stopped else 0
 
 
 def _resolve_start(db, user_id, args) -> date:
@@ -76,21 +86,13 @@ def _resolve_start(db, user_id, args) -> date:
     if args.days:
         return date.today() - timedelta(days=args.days)
     last = last_synced_date(db, user_id)
-    if last:
+    if last and not args.conferir:
         return last - timedelta(days=_OVERLAP_DAYS)
     return date.today() - timedelta(days=_DEFAULT_DAYS)
 
 
-def _connect(args):
-    if not args.garmin_login:
-        return build_client()
-    email = args.garmin_email or args.email
-    password = getpass(f"Senha do Garmin ({email}): ")
-    return build_client(email, password)
-
-
 def _print_report(report, *, dry_run: bool) -> None:
-    if not report.items:
+    if not report.items and not report.stopped:
         print("Nenhuma atividade no periodo.")
         return
 
@@ -106,6 +108,39 @@ def _print_report(report, *, dry_run: bool) -> None:
     )
     if report.failed:
         print("Atividades com erro nao foram importadas; rode de novo para tentar outra vez.")
+    if report.stopped:
+        print(f"\nO lote parou no meio: {report.stopped}", file=sys.stderr)
+
+
+def _print_checks(checks) -> int:
+    if not checks:
+        print("Nenhuma atividade no periodo.")
+        return 0
+
+    compared = [c for c in checks if c.compared]
+    for c in checks:
+        print(f"\n  {c.garmin_id}  {c.name}")
+        if not c.compared:
+            print(f"    . {c.detail}")
+            continue
+        if not c.missing and not c.different:
+            print("    = todos os campos do Garmin bateram")
+        for name in c.missing:
+            print(f"    - faltou na API: {name}")
+        for name, have, got in c.different:
+            print(f"    ~ diferente: {name} (Kactus {have} · API {got})")
+
+    if not compared:
+        print(
+            "\nNenhum treino para comparar: e preciso ter no Kactus o mesmo treino subido "
+            "por arquivo (upload ou relogio no USB). Use --days para olhar mais para tras."
+        )
+        return 1
+    if any(c.missing for c in compared):
+        print("\nO arquivo da API veio sem alguns campos do Garmin.")
+        return 1
+    print(f"\nO arquivo da API veio completo nos {len(compared)} treino(s) comparados.")
+    return 0
 
 
 if __name__ == "__main__":

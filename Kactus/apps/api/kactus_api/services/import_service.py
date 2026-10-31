@@ -45,7 +45,7 @@ def import_activity(
     file_path: str | None = None,
     recompute_metrics: bool = True,
 ) -> ImportResult:
-    existing = _find_duplicate(db, user_id, norm, file_hash)
+    existing = find_duplicate(db, user_id, norm, file_hash)
     if existing is not None and existing.deleted_at is not None:
         # importar de novo um treino que esta na lixeira tira ele de la
         # (file_hash e unico: nao da para criar outro)
@@ -155,7 +155,7 @@ def _default_equipment(db: Session, user_id: uuid.UUID, sport: str) -> uuid.UUID
     ).scalar_one_or_none()
 
 
-def _find_duplicate(
+def find_duplicate(
     db: Session, user_id: uuid.UUID, norm: NormalizedActivity, file_hash: str | None
 ) -> Activity | None:
     if file_hash:

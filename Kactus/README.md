@@ -95,13 +95,19 @@ No dia a dia o Kactus e ligado pelo **Kactus Controle** (`apps/controle`): um ic
 Baixa o arquivo `.FIT` original de cada atividade e reusa o mesmo parser do upload manual,
 entao um treino ja subido a mao nao duplica.
 
-Primeira vez (pede a senha e, se a conta tiver MFA, o codigo):
+Usa a API pessoal oficial do Garmin (gratis, sem senha nem MFA). Antes, uma vez:
+crie a chave em https://connect.garmin.com/app/settings/personalApiToken (Create Key)
+e cole em `GARMIN_PERSONAL_API_KEY` no `.env`. A chave vence (30 dias a 1 ano, voce
+escolhe); o token de 24 h que ela gera fica em `~/.config/garmin`.
+
+Conferir se o arquivo da API traz todos os campos do Garmin (baixa 3 treinos e compara
+com os mesmos ja salvos no Kactus, sem gravar nada):
 
 ```bash
-uv run --directory apps/api python -m kactus_api.scripts.sync_garmin --email SEU@EMAIL --garmin-login
+uv run --directory apps/api python -m kactus_api.scripts.sync_garmin --email SEU@EMAIL --conferir 3 --days 14
 ```
 
-Depois disso o token fica em `~/.garminconnect` e renova sozinho:
+Importar:
 
 ```bash
 uv run --directory apps/api python -m kactus_api.scripts.sync_garmin --email SEU@EMAIL
@@ -112,8 +118,9 @@ com 3 dias de margem). Use `--dry-run` para so listar, e `--limit N` para limita
 
 > Comando em uma linha so, sem `cd ... &&`: o PowerShell do Windows nao aceita `&&`.
 
-> A API do Garmin usada aqui nao e oficial e pode mudar sem aviso; o upload manual continua
-> funcionando como alternativa. Nenhuma credencial fica no repositorio.
+> O Garmin apaga dos arquivos entregues por API os campos que nao documenta (suor, FC de
+> recuperacao, sensacao...). Por isso o `--conferir`: se faltar campo, o relogio no USB
+> (Kactus Controle) continua trazendo o arquivo completo. Nenhuma credencial fica no repositorio.
 
 ## Estrutura
 
