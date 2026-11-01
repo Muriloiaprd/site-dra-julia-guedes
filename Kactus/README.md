@@ -105,13 +105,13 @@ Conferir se o arquivo da API traz todos os campos do Garmin (baixa 3 treinos e c
 com os mesmos ja salvos no Kactus, sem gravar nada):
 
 ```bash
-uv run --directory apps/api python -m kactus_api.scripts.sync_garmin --email SEU@EMAIL --conferir 3 --days 14
+uv run --directory apps/api python -m kactus_api.scripts.sync_garmin --conferir 3 --days 14
 ```
 
 Importar:
 
 ```bash
-uv run --directory apps/api python -m kactus_api.scripts.sync_garmin --email SEU@EMAIL
+uv run --directory apps/api python -m kactus_api.scripts.sync_garmin
 ```
 
 Sem `--since`/`--days`, o sync e incremental (parte da ultima atividade ja vinda do Garmin,
@@ -121,11 +121,15 @@ Automatico: no Kactus Controle, secao **Garmin Connect**, marque "Buscar sozinho
 (vem desmarcado; ligue depois de o `--conferir` mostrar o arquivo completo). O botao
 "Buscar agora" roda na hora. Sem `--email`, o script usa a `INITIAL_USER_EMAIL` do `.env`.
 
+Quando a chave vencer, o Controle avisa que o Garmin recusou a chave: crie outra na mesma
+pagina e troque no `.env` (criar uma nova invalida a anterior).
+
 > Comando em uma linha so, sem `cd ... &&`: o PowerShell do Windows nao aceita `&&`.
 
-> O Garmin apaga dos arquivos entregues por API os campos que nao documenta (suor, FC de
-> recuperacao, sensacao...). Por isso o `--conferir`: se faltar campo, o relogio no USB
-> (Kactus Controle) continua trazendo o arquivo completo. Nenhuma credencial fica no repositorio.
+> O Garmin avisa que pode apagar dos arquivos entregues por API os campos que nao documenta
+> (suor, FC de recuperacao, sensacao...). Em 2026-11-01 o `--conferir` comparou 3 treinos e
+> todos vieram completos. Se um dia faltar campo, o relogio no USB (Kactus Controle) continua
+> trazendo o arquivo completo. Nenhuma credencial fica no repositorio.
 
 ## Estrutura
 

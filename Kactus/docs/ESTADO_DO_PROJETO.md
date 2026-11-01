@@ -1,6 +1,6 @@
 # Kactus — Estado do Projeto
 
-**Última atualização deste doc**: 2026-09-29 (aba Desempenho, menu, cabeçalho, fotos dos equipamentos e 6 modelos novos de Story — ver as últimas sessões abaixo)
+**Última atualização deste doc**: 2026-11-01 (sync do Garmin pela API pessoal oficial e busca automática no Kactus Controle — ver a última sessão abaixo). Entre 2026-10-07 e 2026-10-31 o histórico de cada mudança está nos `PLANEJAMENTO_*.md` e no histórico do fluxograma (`fluxograma/areas/meta.js`).
 **Nome**: o projeto se chamava **Ondilow** até 2026-09-26; os documentos anteriores a essa data (planejamentos, resumos) mantêm o nome antigo de propósito.
 **Branch**: master
 **Backlog priorizado do que falta melhorar**: ver [`BACKLOG.md`](./BACKLOG.md)
@@ -36,11 +36,12 @@
 - `routers/predictions.py`: `GET /predictions/overview`, `POST /predictions/simulate`
 - Página `/predictions`: previsões de prova, risco, simulador de TSB interativo
 
-### ✅ Sprint 5 — Garmin Connect Sync (implementado e depois revertido)
+### ✅ Sprint 5 — Garmin Connect Sync (revertido; voltou em 2026-10-31 pela API oficial)
 - Commit `77a68ec` implementou sync automático via lib `garminconnect` (login/senha, sem developer account)
 - Commit `f3209e5` **removeu** essa integração: "o Garmin Connect bloqueia o acesso via API não-oficial, então a sincronização automática não é viável"
 - No lugar: página `/import` — upload manual de `.fit/.gpx/.tcx/.csv` (drag-and-drop, fila, dedup)
 - Ficou preparado mas não usado ainda: modelo `UserIntegration` (genérico, não específico de provedor) e infraestrutura Fernet — ver Sprint 8 abaixo.
+- **Hoje:** o sync voltou, pela API pessoal oficial do Garmin (sem senha, chave no `.env`), e roda sozinho no Kactus Controle. Ver a sessão 2026-10-31 abaixo.
 
 ### ✅ Sprint 6 — Gerador Visual (commit `3eb7b80`) — SUBSTITUÍDO em 2026-09-15
 - `rendering/` com Pillow + `staticmap` (mapa OSM local, sem API paga): card 1080×1080, story 1080×1920, overlay em foto enviada
@@ -151,6 +152,16 @@ Detalhes em [`PLANEJAMENTO_2026-09-29_2.md`](./PLANEJAMENTO_2026-09-29_2.md).
   - `public/sw.js` mínimo: com o servidor fora (502) ou o PC dormindo, mostra `desligado.html` com "Ligar agora" no lugar da tela branca.
   - 19 testes em `apps/controle/tests`.
 - **Sem tela branca no iPhone:** depois que o app abriu uma vez em modo rápido, o service worker instalado mostra "PC desligado ou dormindo" (PC fora) ou "Kactus desligado — Ligar agora" (servidor fora).
+
+### ✅ Sessões 2026-10-31 e 11-01 — Garmin pela API pessoal oficial
+
+- **Por quê:** o sync de 2026-09-19 usava a biblioteca não oficial `garminconnect` (senha + MFA) e nunca passou do login (429 por IP). Em 2026-10-21 o Garmin lançou a **API pessoal**: o usuário cria uma chave em connect.garmin.com/app/settings/personalApiToken, grátis e sem aprovação.
+- **API** (commit `aec8034`): `services/garmin_sync.py` ganhou o `PersonalApiClient` (httpx). A chave (`GARMIN_PERSONAL_API_KEY` no `.env`) vira um token de 24 h guardado em `~/.config/garmin`. O cliente lista as atividades, baixa o `.FIT` original e importa pelo mesmo caminho do upload (dedup por arquivo, id do Garmin e horário). Um 429 para o lote sem insistir. A dependência `garminconnect` saiu.
+- **`--conferir N`:** baixa N treinos e compara os campos do Garmin com o mesmo treino já salvo por arquivo, sem gravar. Em 2026-11-01, **3 de 3 treinos bateram em todos os campos** (suor, FC de recuperação, sensação, RPE, dinâmica de corrida): a API entrega o arquivo completo.
+- **Correção** (commit `7e82aaa`): o download precisava do mesmo `Accept` do cliente oficial (`application/x-zip-compressed`), senão o Garmin respondia 406.
+- **Kactus Controle** (commit `e2f2100`, `apps/controle/kactus_controle/garmin.py`): seção **Garmin Connect** com **Buscar agora** e **Buscar sozinho a cada 3 h** (vem desmarcada; ligada pelo usuário em 2026-11-01). Conta as 3 h da última tentativa, mesmo que falhe; avisa no Windows só treino novo ou erro, e o mesmo erro uma vez só. O script ganhou `--json` e usa a `INITIAL_USER_EMAIL` sem `--email`.
+- **Quando a chave vencer** (30 a 365 dias, escolhido ao criar): o Controle avisa que o Garmin recusou a chave; criar outra e colar no `.env`.
+- Testes: 34 do sync na API e 48 no Controle.
 
 ---
 

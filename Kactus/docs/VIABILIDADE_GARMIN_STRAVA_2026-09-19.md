@@ -3,6 +3,11 @@
 **Data:** 2026-09-19 · **Origem:** Fase 9 do `PLANEJAMENTO_2026-09-18.md` (investigação, não entrega)
 **Status:** investigação concluída **e script implementado** no mesmo dia (ver "Adendo — entrega").
 
+> **Superado em 2026-10-31.** O login pela `python-garminconnect` nunca passou do 429 e foi
+> substituído pela API pessoal oficial do Garmin (chave no `.env`, sem senha nem MFA), que
+> funciona desde 2026-11-01. O estado atual está no `README.md` ("Importar treinos do Garmin")
+> e em `ESTADO_DO_PROJETO.md`. Este relatório fica como registro da investigação.
+
 ---
 
 ## Resumo

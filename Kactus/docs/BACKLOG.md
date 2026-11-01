@@ -45,7 +45,7 @@ Consolidado em 2026-09-10 a partir de uma auditoria completa (histórico de comm
 
 Todas de custo zero e para uso local. Ordem = valor × esforço (as primeiras rendem mais por menos trabalho). O usuário escolhe; nada é executado sem pedido.
 
-1. **Importar sozinho pela pasta do relógio.** O relógio Garmin ligado no USB tem a pasta `GARMIN/Activity` com os `.FIT`. Um botão (ou script agendado) que lê essa pasta e importa só o que é novo contorna o sync do Garmin bloqueado (item 17). *Esforço baixo.*
+1. **Importar sozinho pela pasta do relógio.** O relógio Garmin ligado no USB tem a pasta `GARMIN/Activity` com os `.FIT`. Um botão (ou script agendado) que lê essa pasta e importa só o que é novo contorna o sync do Garmin bloqueado (item 17). *Esforço baixo.* **FEITO** (Kactus Controle, relógio no USB); o sync do Garmin também voltou pela API oficial (item 17).
 2. **Tênis padrão por esporte.** Hoje cada corrida precisa ser ligada ao tênis na mão; com um "tênis padrão da corrida", toda importação já soma o km e o alerta de troca da Fase 5 fica sempre certo. *Esforço baixo.*
 3. **"Planejado × feito" no dia seguinte.** Um cartão no dashboard: "Ontem era rodagem leve de 6 km; você fez 8 km em ritmo moderado", com um toque para pedir o comentário da Duni. *Esforço baixo.*
 4. **Evolução da dinâmica de corrida.** Gráfico mensal de cadência, contato com o solo, oscilação e passada no mesmo ritmo (os dados chegaram na Fase 3). Mostra se a técnica melhora com o tempo. *Esforço médio.*
