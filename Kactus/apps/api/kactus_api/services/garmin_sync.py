@@ -497,7 +497,8 @@ class PersonalApiClient:
     def download_activity(self, activity_id: str) -> bytes:
         r = self._get(
             _DOWNLOAD_PATH.format(activity_id=int(activity_id)),
-            accept="application/zip, application/octet-stream",
+            # o mesmo do cliente oficial: sem o x-zip-compressed o Garmin responde 406
+            accept="application/zip, application/x-zip-compressed, application/octet-stream",
         )
         return r.content
 
