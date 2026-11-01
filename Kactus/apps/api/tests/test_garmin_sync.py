@@ -26,6 +26,8 @@ from kactus_api.services.garmin_sync import (
     SOURCE,
     GarminSyncError,
     PersonalApiClient,
+    SyncItem,
+    SyncReport,
     check_api_files,
     compare_fields,
     extract_activity_file,
@@ -531,3 +533,27 @@ def test_resolve_api_key_reads_official_client_file(monkeypatch, tmp_path: Path)
     monkeypatch.setattr(garmin_sync.settings, "garmin_personal_api_key", "")
     monkeypatch.setattr(garmin_sync, "KEY_FILE", key_file)
     assert resolve_api_key() == "chave-do-arquivo"
+
+
+# ---------- resumo do --json (Kactus Controle) ----------
+
+
+def test_script_summary_for_the_controle() -> None:
+    from kactus_api.scripts.sync_garmin import summary
+
+    report = SyncReport(
+        items=[
+            SyncItem("1", "a", "importada"),
+            SyncItem("2", "b", "duplicada"),
+            SyncItem("3", "c", "erro", "quebrado"),
+        ],
+        stopped="O Garmin limitou as requisicoes",
+    )
+    assert summary(report) == {
+        "importadas": 1,
+        "duplicadas": 1,
+        "ignoradas": 0,
+        "erros": 1,
+        "parou": "O Garmin limitou as requisicoes",
+        "erro": None,
+    }

@@ -43,6 +43,10 @@ class Acoes(Protocol):
     def importar_relogio_agora(self) -> None: ...
     def alternar_relogio(self) -> None: ...
     def relogio_ativo(self) -> bool: ...
+    def garmin_agora(self) -> None: ...
+    def alternar_garmin(self) -> None: ...
+    def garmin_ativo(self) -> bool: ...
+    def texto_garmin(self) -> str: ...
     def backup_agora(self) -> None: ...
     def abrir_backups(self) -> None: ...
     def texto_ultimo_backup(self) -> str: ...
@@ -219,6 +223,24 @@ class Janela:
             activeforeground=TEXTO, font=(FONTE, 9), anchor="w", highlightthickness=0, cursor="hand2",
         ).pack(fill="x", pady=(4, 0))
 
+        # Garmin pela API pessoal
+        tk.Label(corpo, text="GARMIN CONNECT", bg=BG, fg=MUDO, font=(FONTE, 8, "bold")).pack(anchor="w", pady=(16, 4))
+        gar = tk.Frame(corpo, bg=BG)
+        gar.pack(fill="x")
+        self.gar_texto = tk.Label(
+            gar, text=acoes.texto_garmin(), bg=BG, fg=MUDO, font=(FONTE, 9), justify="left", wraplength=230, anchor="w",
+        )
+        self.gar_texto.pack(side="left", fill="x", expand=True)
+        self.b_garmin = Botao(gar, "Buscar agora", acoes.garmin_agora)
+        self.b_garmin.configure(padx=10, pady=3, font=(FONTE, 9, "bold"))
+        self.b_garmin.pack(side="right")
+        self.gar_auto = tk.BooleanVar(value=acoes.garmin_ativo())
+        tk.Checkbutton(
+            corpo, text="Buscar sozinho a cada 3 h", variable=self.gar_auto,
+            command=acoes.alternar_garmin, bg=BG, fg=TEXTO, selectcolor=PAINEL, activebackground=BG,
+            activeforeground=TEXTO, font=(FONTE, 9), anchor="w", highlightthickness=0, cursor="hand2",
+        ).pack(fill="x", pady=(4, 0))
+
         # backup semanal
         tk.Label(corpo, text="BACKUP SEMANAL", bg=BG, fg=MUDO, font=(FONTE, 8, "bold")).pack(anchor="w", pady=(16, 4))
         bk = tk.Frame(corpo, bg=BG)
@@ -322,6 +344,10 @@ class Janela:
     def atualizar_relogio(self, texto: str, ocupado: bool = False) -> None:
         self.rel_texto.configure(text=texto, fg=TEXTO)
         self.b_relogio.habilitar(not ocupado)
+
+    def atualizar_garmin(self, texto: str, ocupado: bool = False) -> None:
+        self.gar_texto.configure(text=texto, fg=TEXTO)
+        self.b_garmin.habilitar(not ocupado)
 
     def atualizar_backup(self, texto: str, ocupado: bool = False) -> None:
         self.bk_texto.configure(text=texto, fg=TEXTO)

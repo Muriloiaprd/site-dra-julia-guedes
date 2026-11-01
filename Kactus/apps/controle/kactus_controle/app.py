@@ -28,7 +28,7 @@ from tkinter import messagebox
 
 import pystray
 
-from . import backup, icones, relogio, sistema, tailscale, web
+from . import backup, garmin, icones, relogio, sistema, tailscale, web
 from .config import Config
 from .janela import ROTULO, Janela
 from .servidor import (
@@ -84,6 +84,12 @@ class App:
             ativo=lambda: self.config.importar_relogio,
             ao_terminar=lambda texto, res: self.na_tela(lambda: self._relogio_terminou(texto, res)),
         )
+        self.garmin = garmin.VigiaGarmin(
+            ativo=lambda: self.config.sync_garmin,
+            ultimo=lambda: self.config.ultimo_garmin,
+            ao_tentar=lambda quando: self.na_tela(lambda: self._garmin_tentou(quando)),
+            ao_terminar=lambda texto, res, avisar: self.na_tela(lambda: self._garmin_terminou(texto, avisar)),
+        )
         self.backup = backup.VigiaBackup(
             ultimo=lambda: self.config.ultimo_backup,
             pasta=self.pasta_backup,
@@ -97,6 +103,7 @@ class App:
         self.acordado.iniciar()
         threading.Thread(target=self._vigiar_tailscale, name="kactus-tailscale", daemon=True).start()
         self.relogio.iniciar()
+        self.garmin.iniciar()
         self.backup.iniciar()
         self.icone.run_detached()
         self.comando(acao)
@@ -277,6 +284,38 @@ class App:
         if res is None or res.get("importadas") or res.get("erros"):
             self._avisar(texto)
 
+    # ── Garmin pela API pessoal ──────────────────────────────────────────
+    def garmin_ativo(self) -> bool:
+        return self.config.sync_garmin
+
+    def alternar_garmin(self) -> None:
+        self.config.sync_garmin = not self.config.sync_garmin
+        self.config.salvar()
+        self.janela.gar_auto.set(self.config.sync_garmin)
+        self.janela.atualizar_garmin(self.texto_garmin())
+        self.icone.update_menu()
+
+    def texto_garmin(self) -> str:
+        if not self.config.sync_garmin:
+            return "Desligado: ligue depois de rodar o --conferir (README)."
+        u = self.config.ultimo_garmin
+        if not u:
+            return "A primeira busca sai alguns minutos depois de abrir o Controle."
+        return f"Última busca: {time.strftime('%d/%m às %H:%M', time.localtime(u))}"
+
+    def garmin_agora(self) -> None:
+        self.janela.atualizar_garmin("Buscando no Garmin…", ocupado=True)
+        threading.Thread(target=lambda: self.garmin.sincronizar(manual=True), daemon=True).start()
+
+    def _garmin_tentou(self, quando: float) -> None:
+        self.config.ultimo_garmin = quando
+        self.config.salvar()
+
+    def _garmin_terminou(self, texto: str, avisar: bool) -> None:
+        self.janela.atualizar_garmin(f"{texto} ({time.strftime('%H:%M')})")
+        if avisar:
+            self._avisar(texto)
+
     # ── backup semanal ───────────────────────────────────────────────────
     def pasta_backup(self) -> Path:
         return Path(self.config.pasta_backup) if self.config.pasta_backup else backup.PASTA_PADRAO
@@ -405,6 +444,7 @@ class App:
         self.financas.parar_vigia()
         self._ts_parar.set()
         self.relogio.parar()
+        self.garmin.parar()
         self.backup.parar()
         self.acordado.parar()
         self.icone.stop()
@@ -455,6 +495,12 @@ class App:
                 checked=lambda _i: self.config.importar_relogio,
             ),
             pystray.MenuItem("Importar do relógio agora", tela(self.importar_relogio_agora)),
+            pystray.MenuItem(
+                "Buscar no Garmin a cada 3 h",
+                tela(self.alternar_garmin),
+                checked=lambda _i: self.config.sync_garmin,
+            ),
+            pystray.MenuItem("Buscar no Garmin agora", tela(self.garmin_agora)),
             pystray.MenuItem("Fazer backup agora", tela(self.backup_agora)),
             pystray.MenuItem("Abrir pasta de backups", tela(self.abrir_backups)),
             pystray.MenuItem("Ver log", tela(self.ver_log)),

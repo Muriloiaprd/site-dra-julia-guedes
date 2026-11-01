@@ -4,7 +4,7 @@ KACTUS_MAPA.areas.push({
   n: 1,
   titulo: "Acesso e servidor",
   resumo:
-    "O Kactus Controle é um programa em Python com ícone perto do relógio e uma janelinha. Também importa sozinho os treinos do relógio Garmin ligado no USB. Ele liga o site (porta 3003) e a API (porta 8000), vigia os dois e religa se caírem. No modo rápido o site roda o build de produção, bem mais leve no iPhone; no modo desenvolvimento mostra mudanças de código na hora. O iPhone entra pelo Tailscale. Se o servidor estiver fora do ar, o service worker mostra a tela 'Kactus desligado', que fala com o Controle na porta 8443 para ligar e, se o aparelho já abriu o dashboard antes, mostra o último painel visto com a faixa 'Sem conexão com o PC'. O Controle também liga e desliga as Finanças (o site Mago das Finanças, pasta Gestao-Financeira, porta 5000 no PC e 10000 no iPhone), um servidor separado com os próprios botões, que liga junto no início do Windows.",
+    "O Kactus Controle é um programa em Python com ícone perto do relógio e uma janelinha. Também importa sozinho os treinos do relógio Garmin ligado no USB e, se ligado na janela, busca no Garmin Connect a cada 3 h. Ele liga o site (porta 3003) e a API (porta 8000), vigia os dois e religa se caírem. No modo rápido o site roda o build de produção, bem mais leve no iPhone; no modo desenvolvimento mostra mudanças de código na hora. O iPhone entra pelo Tailscale. Se o servidor estiver fora do ar, o service worker mostra a tela 'Kactus desligado', que fala com o Controle na porta 8443 para ligar e, se o aparelho já abriu o dashboard antes, mostra o último painel visto com a faixa 'Sem conexão com o PC'. O Controle também liga e desliga as Finanças (o site Mago das Finanças, pasta Gestao-Financeira, porta 5000 no PC e 10000 no iPhone), um servidor separado com os próprios botões, que liga junto no início do Windows.",
   rotas: ["/desligado.html", "Controle :3010 (PC)", "Controle :8443 (iPhone)", "Finanças :5000 (PC)", "Finanças :10000 (iPhone)"],
   arquivos: [
     "apps/controle/kactus_controle/app.py",
@@ -17,6 +17,7 @@ KACTUS_MAPA.areas.push({
     "apps/controle/kactus_controle/config.py",
     "apps/controle/kactus_controle/relogio.py",
     "apps/controle/kactus_controle/backup.py",
+    "apps/controle/kactus_controle/garmin.py",
     "apps/controle/kactus_controle/relogio.ps1",
     "apps/web/public/sw.js",
     "apps/web/public/desligado.html",
@@ -110,6 +111,23 @@ flowchart TD
 `,
     },
     {
+      titulo: "Garmin pela API pessoal",
+      mermaid: `
+flowchart TD
+  GOFF{"Buscar sozinho a cada 3 h<br/>marcado? (vem desmarcado)"}:::decisao
+  GINI(["5 min depois de abrir o Controle,<br/>depois a cada 10 min"]):::estado --> GOFF
+  GOFF -->|não| GINI
+  GOFF -->|sim| GVENC{"Passaram 3 h<br/>da última tentativa?"}:::decisao
+  GVENC -->|não| GINI
+  GVENC -->|sim| GRUN[/"uv run … scripts.sync_garmin --json"/]:::api
+  GAGORA("Buscar agora · janela ou menu"):::acao --> GRUN
+  GRUN --> GTENT[["Guarda a hora da tentativa<br/>em config.json"]]:::calc
+  GRUN -->|treinos novos| GOK["Aviso no Windows:<br/>N treinos novos do Garmin no Kactus"]:::ok
+  GRUN -->|nada novo| GNADA["Só na janela:<br/>Nada novo no Garmin"]:::estado
+  GRUN -->|sem chave, 429, erro| GERR["Aviso uma vez; o mesmo erro<br/>não repete a cada 3 h"]:::erro
+`,
+    },
+    {
       titulo: "Backup semanal",
       mermaid: `
 flowchart TD
@@ -150,7 +168,7 @@ flowchart TD
     },
   ],
   inventario: [
-    { tipo: "menu", nome: "Ícone no relógio", acao: "Menu com Abrir o painel, Ligar, Desligar, Reiniciar, Abrir no PC, Copiar endereço do iPhone, Finanças (submenu), modo, Iniciar com o Windows, Manter o PC acordado, Importar do relógio no USB, Importar do relógio agora, Fazer backup agora, Abrir pasta de backups, Ver log e Sair.", onde: "apps/controle/kactus_controle/app.py:265" },
+    { tipo: "menu", nome: "Ícone no relógio", acao: "Menu com Abrir o painel, Ligar, Desligar, Reiniciar, Abrir no PC, Copiar endereço do iPhone, Finanças (submenu), modo, Iniciar com o Windows, Manter o PC acordado, Importar do relógio no USB, Importar do relógio agora, Buscar no Garmin a cada 3 h, Buscar no Garmin agora, Fazer backup agora, Abrir pasta de backups, Ver log e Sair.", onde: "apps/controle/kactus_controle/app.py:456" },
     { tipo: "botão", nome: "Ligar", acao: "Sobe API e site no modo escolhido. Só fica ativo com o servidor desligado ou com erro.", onde: "apps/controle/kactus_controle/app.py:273", no: "MODO" },
     { tipo: "botão", nome: "Desligar", acao: "Mata os processos nas portas 3003 e 8000 e os .bat que os lançaram.", onde: "apps/controle/kactus_controle/servidor.py:221" },
     { tipo: "botão", nome: "Reiniciar", acao: "Desliga e liga de novo. Necessário no modo rápido para pegar código novo.", onde: "apps/controle/kactus_controle/servidor.py:243" },
@@ -168,6 +186,12 @@ flowchart TD
     { tipo: "API", nome: "Importação direto no banco", acao: "O Controle roda o script da API com os arquivos; a conta é a INITIAL_USER_EMAIL do .env. Mesmo caminho da tela Importar (duplicados ignorados, carga recalculada uma vez).", api: "uv run python -m kactus_api.scripts.import_files --json", onde: "apps/controle/kactus_controle/relogio.py:116", no: "IMP" },
     { tipo: "sucesso", nome: "Treinos do relógio importados", acao: "Aviso no Windows e na janela, com a hora.", msg: "N treinos novos do relógio no Kactus · N já estavam lá · N com erro", onde: "apps/controle/kactus_controle/app.py:209", no: "AV" },
     { tipo: "erro", nome: "Falha ao importar do relógio", acao: "Nada é marcado como visto: tenta de novo na próxima conferência.", msg: "Não consegui importar do relógio: …", onde: "apps/controle/kactus_controle/relogio.py:189", no: "RERR" },
+    { tipo: "seção", nome: "Garmin Connect", acao: "Na janela: a última busca ou o último resultado, o botão Buscar agora e a opção Buscar sozinho a cada 3 h, que vem desmarcada (ligar depois de o --conferir mostrar que o arquivo da API vem completo).", msg: "Desligado: ligue depois de rodar o --conferir (README). · A primeira busca sai alguns minutos depois de abrir o Controle. · Última busca: dd/mm às HH:MM", onde: "apps/controle/kactus_controle/janela.py:227", no: "GOFF" },
+    { tipo: "cálculo", nome: "Quando buscar no Garmin", acao: "5 min depois de abrir o Controle e depois a cada 10 min: com a opção marcada e 3 h desde a última tentativa (salva em config.json), roda. Falha também conta como tentativa, para não insistir depois de um 429.", onde: "apps/controle/kactus_controle/garmin.py:100", no: "GINI,GVENC,GTENT" },
+    { tipo: "API", nome: "Sync do Garmin pelo Controle", acao: "O Controle roda o sync_garmin incremental com --json; a conta é a INITIAL_USER_EMAIL do .env e a chave a GARMIN_PERSONAL_API_KEY.", api: "uv run python -m kactus_api.scripts.sync_garmin --json", onde: "apps/controle/kactus_controle/garmin.py:24", no: "GRUN" },
+    { tipo: "botão", nome: "Buscar no Garmin agora", acao: "Na janela e no menu do ícone; funciona mesmo com a busca automática desmarcada e sempre avisa o resultado.", msg: "Buscando no Garmin…", onde: "apps/controle/kactus_controle/app.py:306", no: "GAGORA" },
+    { tipo: "sucesso", nome: "Treinos do Garmin importados", acao: "Aviso no Windows e na janela, com a hora. 'Nada novo' fica só na janela.", msg: "N treinos novos do Garmin no Kactus · N já estavam lá · Nada novo no Garmin", onde: "apps/controle/kactus_controle/garmin.py:41", no: "GOK,GNADA" },
+    { tipo: "erro", nome: "Busca no Garmin falhou", acao: "Sem chave, chave recusada, 429 ou o script quebrou: avisa uma vez e tenta de novo depois de 3 h; o mesmo texto não vira outro aviso.", msg: "Falta a chave pessoal do Garmin… · Não consegui buscar no Garmin: …", onde: "apps/controle/kactus_controle/garmin.py:104", no: "GERR" },
     { tipo: "seção", nome: "Backup semanal", acao: "Na janela: quando foi o último backup (clique abre a pasta) e o botão Fazer agora.", msg: "Ainda sem backup: o primeiro sai alguns minutos depois de abrir o Controle. · Último: dd/mm às HH:MM", onde: "apps/controle/kactus_controle/janela.py:189", no: "BINI" },
     { tipo: "cálculo", nome: "Quando fazer o backup", acao: "2 min depois de abrir o Controle e depois de hora em hora: se passou uma semana do último (salvo em config.json), roda.", onde: "apps/controle/kactus_controle/backup.py:43", no: "BVENC" },
     { tipo: "integração", nome: "Script de backup", acao: "Exporta tudo (o mesmo do Exportar meus dados) em kactus_backup_AAAA-MM-DD_HHMMSS.json.gz e apaga as cópias além das 8 mais novas. Com os dados reais: ~8 MB e ~25 s.", api: "uv run python -m kactus_api.scripts.backup --pasta … --json", onde: "apps/controle/kactus_controle/backup.py:22", no: "BRUN,BGZ" },

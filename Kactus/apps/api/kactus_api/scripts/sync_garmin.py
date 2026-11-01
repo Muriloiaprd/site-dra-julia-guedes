@@ -12,14 +12,19 @@ Importar (incremental a partir do ultimo treino vindo do Garmin):
 
 Ver o que seria importado, sem gravar nada:
     uv run python -m kactus_api.scripts.sync_garmin --email seu@email.com --dry-run
+
+Sem --email usa a INITIAL_USER_EMAIL do .env. Com --json (usado pelo Kactus Controle)
+imprime uma linha {"importadas", "duplicadas", "ignoradas", "erros", "parou", "erro"}.
 """
 
 import argparse
+import json
 import sys
 from datetime import date, timedelta
 
 from sqlalchemy import select
 
+from kactus_api.config import settings
 from kactus_api.db import SessionLocal
 from kactus_api.models import User
 from kactus_api.services.garmin_sync import (
@@ -39,7 +44,7 @@ _DEFAULT_DAYS = 30
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Importa atividades do Garmin Connect.")
-    parser.add_argument("--email", required=True, help="e-mail da conta no Kactus")
+    parser.add_argument("--email", help="e-mail da conta no Kactus (padrao: INITIAL_USER_EMAIL)")
     parser.add_argument("--since", help="data inicial AAAA-MM-DD (padrao: incremental)")
     parser.add_argument("--days", type=int, help=f"ultimos N dias (padrao: {_DEFAULT_DAYS})")
     parser.add_argument("--limit", type=int, help="maximo de atividades nesta rodada")
@@ -50,16 +55,21 @@ def main() -> int:
         metavar="N",
         help="baixa N treinos e compara os campos do Garmin com os ja salvos (nao grava)",
     )
+    parser.add_argument("--json", action="store_true", help="imprime o resumo em JSON (Kactus Controle)")
     args = parser.parse_args()
 
+    email = args.email or settings.initial_user_email
+    if not email:
+        return _fail("Informe --email (ou INITIAL_USER_EMAIL no .env).", as_json=args.json)
+
     with SessionLocal() as db:
-        user = db.execute(select(User).where(User.email == args.email)).scalar_one_or_none()
+        user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
         if user is None:
-            print(f"Usuario '{args.email}' nao encontrado no Kactus.", file=sys.stderr)
-            return 1
+            return _fail(f"Usuario '{email}' nao encontrado no Kactus.", as_json=args.json)
 
         start = _resolve_start(db, user.id, args)
-        print(f"Buscando atividades do Garmin desde {start.isoformat()}...")
+        if not args.json:
+            print(f"Buscando atividades do Garmin desde {start.isoformat()}...")
 
         try:
             client = build_client()
@@ -70,14 +80,35 @@ def main() -> int:
                 db, user.id, client, start=start, limit=args.limit, dry_run=args.dry_run
             )
         except GarminSyncError as e:
-            print(f"\n{e}", file=sys.stderr)
-            return 1
+            return _fail(str(e), as_json=args.json)
         except Exception as e:  # noqa: BLE001 - erro de rede vira mensagem, nao traceback
-            print(f"\nFalha ao falar com o Garmin: {type(e).__name__}: {e}", file=sys.stderr)
-            return 1
+            return _fail(f"Falha ao falar com o Garmin: {type(e).__name__}: {e}", as_json=args.json)
 
-    _print_report(report, dry_run=args.dry_run)
+    if args.json:
+        print(json.dumps(summary(report), ensure_ascii=False))
+    else:
+        _print_report(report, dry_run=args.dry_run)
     return 1 if report.failed or report.stopped else 0
+
+
+def summary(report) -> dict:
+    """Resumo do --json (o Kactus Controle le a ultima linha que comeca com "{")."""
+    return {
+        "importadas": report.imported,
+        "duplicadas": report.duplicates,
+        "ignoradas": report.skipped,
+        "erros": report.failed,
+        "parou": report.stopped,
+        "erro": None,
+    }
+
+
+def _fail(message: str, *, as_json: bool) -> int:
+    if as_json:
+        print(json.dumps({"erro": message}, ensure_ascii=False))
+    else:
+        print(f"\n{message}", file=sys.stderr)
+    return 1
 
 
 def _resolve_start(db, user_id, args) -> date:
