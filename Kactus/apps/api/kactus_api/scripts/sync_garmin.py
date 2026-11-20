@@ -28,25 +28,21 @@ from kactus_api.config import settings
 from kactus_api.db import SessionLocal
 from kactus_api.models import User
 from kactus_api.services.garmin_sync import (
+    DEFAULT_DAYS,
     GarminSyncError,
     build_client,
     check_api_files,
-    last_synced_date,
+    incremental_start,
     parse_start,
     sync_activities,
 )
-
-# Margem para tras do ultimo sync: uma atividade salva com atraso no relogio
-# pode ter data anterior a ultima importada. O dedup cuida da repeticao.
-_OVERLAP_DAYS = 3
-_DEFAULT_DAYS = 30
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Importa atividades do Garmin Connect.")
     parser.add_argument("--email", help="e-mail da conta no Kactus (padrao: INITIAL_USER_EMAIL)")
     parser.add_argument("--since", help="data inicial AAAA-MM-DD (padrao: incremental)")
-    parser.add_argument("--days", type=int, help=f"ultimos N dias (padrao: {_DEFAULT_DAYS})")
+    parser.add_argument("--days", type=int, help=f"ultimos N dias (padrao: {DEFAULT_DAYS})")
     parser.add_argument("--limit", type=int, help="maximo de atividades nesta rodada")
     parser.add_argument("--dry-run", action="store_true", help="so lista, nao importa")
     parser.add_argument(
@@ -116,10 +112,9 @@ def _resolve_start(db, user_id, args) -> date:
         return parse_start(args.since)
     if args.days:
         return date.today() - timedelta(days=args.days)
-    last = last_synced_date(db, user_id)
-    if last and not args.conferir:
-        return last - timedelta(days=_OVERLAP_DAYS)
-    return date.today() - timedelta(days=_DEFAULT_DAYS)
+    if args.conferir:
+        return date.today() - timedelta(days=DEFAULT_DAYS)
+    return incremental_start(db, user_id)
 
 
 def _print_report(report, *, dry_run: bool) -> None:

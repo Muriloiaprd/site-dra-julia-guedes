@@ -174,6 +174,16 @@ class UploadResponse(BaseModel):
     error: str | None = None
 
 
+class GarminSyncOut(BaseModel):
+    """Resultado do botao Atualizar (busca no Garmin na hora)."""
+
+    imported: int
+    duplicates: int
+    skipped: int
+    failed: int
+    stopped: str | None = None
+
+
 class NormalizedPointIn(BaseModel):
     elapsed_time_s: int
     lat: float | None = None

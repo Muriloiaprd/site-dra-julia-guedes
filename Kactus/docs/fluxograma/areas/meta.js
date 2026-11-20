@@ -2,8 +2,8 @@
 // achados do mapeamento e histórico. Atualizar "atualizado", "commit" e "historico"
 // a cada mudança funcional (regra em Kactus/CLAUDE.md).
 KACTUS_MAPA.meta = {
-  atualizado: "31/10/2026",
-  commit: "Kactus Controle busca no Garmin a cada 3 h",
+  atualizado: "20/11/2026",
+  commit: "Botão Atualizar busca no Garmin na hora",
 
   existe: [
     { existe: false, nome: "Cadastro pela tela", detalhe: "Só por script (seed_user) ou pela rota /auth/register com ALLOW_REGISTRATION=true.", onde: "apps/api/kactus_api/routers/auth.py:40" },
@@ -13,7 +13,7 @@ KACTUS_MAPA.meta = {
     { existe: false, nome: "Recursos sociais", detalhe: "Sem amigos, curtidas ou feed. Compartilhar é só pelo Story." },
     { existe: false, nome: "Papéis e permissões", detalhe: "Uma conta por pessoa; todos os dados são filtrados pelo usuário logado." },
     { existe: false, nome: "Revogar sessão", detalhe: "Sair só apaga o token do navegador; trocar a senha não derruba outros aparelhos (o token vale 7 dias)." },
-    { existe: false, nome: "Garmin pela tela", detalhe: "A sincronização pela internet roda pelo Kactus Controle (a cada 3 h, se ligado, ou no botão Buscar agora) ou na linha de comando (sync_garmin, pela chave pessoal oficial do Garmin); no site não há tela. Os outros caminhos: ligar o relógio no USB (o Controle importa sozinho) ou exportar o .fit e arrastar em Importar.", onde: "apps/api/kactus_api/scripts/sync_garmin.py" },
+    { existe: true, nome: "Garmin pela tela", detalhe: "Botão ↻ Atualizar em Atividades e no topo do Dashboard busca no Garmin na hora (POST /activities/garmin-sync, só a conta dona da chave). Continuam o Kactus Controle (a cada 3 h, se ligado, ou Buscar agora), a linha de comando (sync_garmin), o relógio no USB e arrastar o .fit em Importar.", onde: "apps/web/components/GarminRefresh.tsx" },
     { existe: false, nome: "Strava", detalhe: "Descartado (exige OAuth). A rota /activities/import-normalized já aceitaria os dados." },
     { existe: false, nome: "Funcionar com o PC desligado", detalhe: "Tudo roda no PC; com ele desligado o iPhone mostra 'Kactus desligado'." },
     { existe: true, nome: "Lixeira de atividades", detalhe: "Excluir é reversível até limpar a lixeira; reimportar tira da lixeira.", onde: "apps/web/components/activities/TrashPanel.tsx" },
@@ -35,6 +35,7 @@ KACTUS_MAPA.meta = {
   ],
 
   historico: [
+    { data: "20/11/2026", commit: "garmin-atualizar", mudanca: "Botão ↻ Atualizar em Atividades e no topo do Dashboard: busca o treino novo no Garmin na hora, sem esperar a rodada de 3 h do Controle. Nova rota POST /activities/garmin-sync (mesmo sync incremental do script, só a conta dona da chave, uma busca de cada vez); a lista e o painel recarregam quando entra treino." },
     { data: "31/10/2026", commit: "controle-garmin", mudanca: "O Kactus Controle ganhou a seção Garmin Connect: Buscar agora (janela e menu) e a opção Buscar sozinho a cada 3 h, que vem desmarcada até o --conferir confirmar o arquivo da API. Notifica treino novo ou erro (o mesmo erro só uma vez). O sync_garmin ganhou --json e usa a INITIAL_USER_EMAIL sem --email." },
     { data: "31/10/2026", commit: "garmin-api-pessoal", mudanca: "O sync_garmin trocou o login não oficial (senha, MFA, bloqueado por 429) pela API pessoal oficial do Garmin: chave em GARMIN_PERSONAL_API_KEY, token de 24 h guardado. Ganhou --conferir N, que compara os campos do Garmin do arquivo da API com o mesmo treino já salvo. A dependência garminconnect saiu." },
     { data: "22/10/2026", commit: "plano-sync", mudanca: "A Duni passou a trocar o treino de verdade pelo chat (antes respondia 'Feito' e nada mudava) e toda mudança de treino atualiza todas as telas abertas (Calendário com as quatro abas e Dashboard). Tocar no dia do Calendário permite editar o treino (tipo, km, tempo, intensidade, ritmo, FC, descrição). Gerar plano da semana vale só para a semana de hoje, até domingo (hoje entra se ainda não treinou), e trava na API até a segunda." },

@@ -450,6 +450,45 @@ export async function deleteActivity(id: string): Promise<void> {
   return voidFetch(`/activities/${id}`, { method: "DELETE" });
 }
 
+/** Resultado do botao Atualizar (POST /activities/garmin-sync). */
+export interface GarminSyncResult {
+  imported: number;
+  duplicates: number;
+  skipped: number;
+  failed: number;
+  /** Lote parou no meio (429 do Garmin, por exemplo); o que entrou fica. */
+  stopped: string | null;
+}
+
+/**
+ * Busca no Garmin agora, sem esperar a rodada de 3 h do Kactus Controle.
+ * Fetch direto, sem o apiFetch: baixar do Garmin demora de verdade, e o aviso de
+ * "acordando o servidor" mentiria; o prazo e o mesmo do upload.
+ */
+export async function syncGarminNow(): Promise<GarminSyncResult> {
+  const token = getToken();
+  let res: Response;
+  try {
+    res = await fetch("/api/activities/garmin-sync", {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS),
+    });
+  } catch (e) {
+    if (e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError")) {
+      throw new Error("O Garmin demorou demais para responder. Tente de novo.");
+    }
+    throw e;
+  }
+  if (res.status === 401) {
+    clearToken();
+    window.location.href = "/login";
+    throw new Error("Sessão expirada");
+  }
+  if (!res.ok) throw await errorFromResponse(res, "Não consegui buscar no Garmin");
+  return res.json() as Promise<GarminSyncResult>;
+}
+
 /** Atividade na lixeira (excluida, ainda da para restaurar). */
 export interface TrashItem {
   id: string;

@@ -257,6 +257,21 @@ def sync_activities(
     return report
 
 
+# Margem para tras do ultimo sync: uma atividade salva com atraso no relogio
+# pode ter data anterior a ultima importada. O dedup cuida da repeticao.
+OVERLAP_DAYS = 3
+DEFAULT_DAYS = 30
+
+
+def incremental_start(db: Session, user_id, *, today: date | None = None) -> date:
+    """De onde buscar numa rodada normal (script, Controle e botao Atualizar do site)."""
+    today = today or date.today()
+    last = last_synced_date(db, user_id)
+    if last:
+        return last - timedelta(days=OVERLAP_DAYS)
+    return today - timedelta(days=DEFAULT_DAYS)
+
+
 def last_synced_date(db: Session, user_id) -> date | None:
     """Data da atividade mais recente ja vinda do Garmin, para sync incremental."""
     latest = db.execute(

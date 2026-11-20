@@ -1,3 +1,4 @@
+import threading
 import uuid
 from dataclasses import asdict
 from datetime import UTC, date, datetime, timedelta
@@ -7,7 +8,9 @@ from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Uplo
 from sqlalchemy import delete, select, update
 
 from kactus_api.checkin_tags import CHECKIN_TAG_GROUPS
+from kactus_api.config import settings
 from kactus_api.deps import CurrentUser, DbSession
+from kactus_api.logger import get_logger
 from kactus_api.metrics import compute_splits, hr_zone_distribution, resolve_hr_zones
 from kactus_api.metrics.basic import PointLike
 from kactus_api.metrics.load import update_daily_metrics
@@ -23,6 +26,7 @@ from kactus_api.schemas.activity import (
     ActivityUpdate,
     CheckinIn,
     CheckinTagGroupOut,
+    GarminSyncOut,
     NormalizedActivityIn,
     SplitOut,
     TrashItemOut,
@@ -30,10 +34,54 @@ from kactus_api.schemas.activity import (
     UploadResponse,
     ZoneBucketOut,
 )
+from kactus_api.services import garmin_sync
 from kactus_api.services.batch_import import MAX_BYTES, derived_hash, import_batch, persist_raw
 from kactus_api.services.import_service import file_sha256, import_activity
 
 router = APIRouter(prefix="/activities", tags=["activities"])
+log = get_logger(__name__)
+
+# Um clique de cada vez: dois cliques seguidos baixariam o mesmo treino em paralelo.
+_garmin_lock = threading.Lock()
+
+
+@router.post("/garmin-sync", response_model=GarminSyncOut)
+def garmin_sync_now(current_user: CurrentUser, db: DbSession) -> GarminSyncOut:
+    """Botao Atualizar: busca no Garmin agora, sem esperar a rodada de 3 h do Controle.
+
+    Mesmo caminho do script (`scripts/sync_garmin.py`): incremental a partir do
+    ultimo treino vindo do Garmin, dedup cuida do que ja existe.
+    """
+    # a chave do .env e da conta do dono; outra conta (a de teste) nao pode puxar os treinos dele
+    owner = (settings.initial_user_email or "").strip().lower()
+    if owner and current_user.email.strip().lower() != owner:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "A busca no Garmin só funciona na conta dona da chave."
+        )
+    if not _garmin_lock.acquire(blocking=False):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Já estou buscando no Garmin, espere terminar.")
+    try:
+        client = garmin_sync.build_client()
+        report = garmin_sync.sync_activities(
+            db, current_user.id, client, start=garmin_sync.incremental_start(db, current_user.id)
+        )
+    except garmin_sync.GarminSyncError as e:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
+    except Exception as e:  # noqa: BLE001 - erro de rede vira mensagem, nao 500
+        log.exception("garmin_sync_now_failed")
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY, f"Não consegui falar com o Garmin ({type(e).__name__})."
+        ) from e
+    finally:
+        _garmin_lock.release()
+    return GarminSyncOut(
+        imported=report.imported,
+        duplicates=report.duplicates,
+        skipped=report.skipped,
+        failed=report.failed,
+        stopped=report.stopped,
+    )
+
 
 
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { TrashPanel } from "@/components/activities/TrashPanel";
+import { GarminRefreshButton } from "@/components/GarminRefresh";
 import { EquipmentSection } from "@/components/equipment/EquipmentSection";
 import { SportTile } from "@/components/SportIcon";
 import { Alert, EmptyState, PageContainer, PageHeader, Panel, Segmented, Skeleton } from "@/components/ui/primitives";
@@ -254,6 +255,7 @@ function ActivitiesScreen() {
         icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M3 12h4l3 8 4-16 3 8h4" /></svg>}
         actions={aba === "historico" &&
           <div className="flex flex-wrap gap-2">
+            <GarminRefreshButton onImported={reloadList} />
             <button
               type="button"
               onClick={() => setComparando((v) => (v ? null : []))}

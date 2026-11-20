@@ -42,6 +42,23 @@ flowchart TD
 `,
     },
     {
+      titulo: "Atualizar: treino novo do Garmin na hora",
+      mermaid: `
+flowchart TD
+  GA("↻ Atualizar em Atividades<br/>ou ↻ no topo do Dashboard"):::acao --> GSP(["Ícone girando · Buscando…"]):::estado
+  GSP --> GPOST[/"POST /activities/garmin-sync"/]:::api
+  GPOST --> GDONO{"Conta dona da chave?<br/>(INITIAL_USER_EMAIL)"}:::decisao
+  GDONO -->|não| G403["A busca no Garmin só funciona<br/>na conta dona da chave."]:::erro
+  GDONO -->|sim| GTRAVA{"Já tem uma busca rodando?"}:::decisao
+  GTRAVA -->|sim| G409["Já estou buscando no Garmin,<br/>espere terminar."]:::erro
+  GTRAVA -->|não| GINC[["Incremental: 3 dias antes do último<br/>treino do Garmin (ou 30 dias)<br/>dedup ignora o que já existe"]]:::calc
+  GINC --> GAPI["Garmin Connect<br/>API pessoal"]:::ext
+  GAPI -->|treinos novos| GNOVO["N treinos novos do Garmin<br/>e a lista recarrega"]:::ok
+  GAPI -->|nada novo| GNADA2["Nada novo no Garmin"]:::estado
+  GAPI -->|sem chave, recusada, 429, rede| G502["Mensagem do Garmin<br/>aviso amarelo por 10 s"]:::erro
+`,
+    },
+    {
       titulo: "Comparar dois treinos",
       mermaid: `
 flowchart TD
@@ -85,7 +102,7 @@ flowchart TD
   ],
   inventario: [
     { tipo: "filtro", nome: "Sub-abas Histórico · Equipamentos", acao: "Ficam na URL (?aba=equipamentos), então o link direto e o voltar do navegador funcionam. Trocar de sub-aba não perde os filtros; Equipamentos carrega na primeira vez que abre (área 11).", onde: "apps/web/app/activities/page.tsx:280", no: "ABA" },
-    { tipo: "tela", nome: "Atividades", acao: "Cabeçalho 'Histórico · Atividades'; na sub-aba Histórico mostra ⇄ Comparar, Lixeira e + Importar.", msg: "Todos os seus treinos importados, com filtros por modalidade, período e esforço.", onde: "apps/web/app/activities/page.tsx:248", no: "LIST" },
+    { tipo: "tela", nome: "Atividades", acao: "Cabeçalho 'Histórico · Atividades'; na sub-aba Histórico mostra ↻ Atualizar, ⇄ Comparar, Lixeira e + Importar.", msg: "Todos os seus treinos importados, com filtros por modalidade, período e esforço.", onde: "apps/web/app/activities/page.tsx:248", no: "LIST" },
     { tipo: "API", nome: "Lista paginada", acao: "100 por página, mais recentes primeiro, sem os excluídos.", api: "GET /activities?limit=100&offset=N", onde: "apps/web/app/activities/page.tsx:105", no: "L,L2" },
     { tipo: "carregando", nome: "Esqueleto", acao: "Seis linhas cinza enquanto carrega; os totais também.", onde: "apps/web/app/activities/page.tsx:411", no: "LD" },
     { tipo: "erro", nome: "Erro ao carregar", msg: "Erro ao carregar atividades", onde: "apps/web/app/activities/page.tsx:116", no: "E1" },
@@ -103,6 +120,9 @@ flowchart TD
     { tipo: "API", nome: "Excluir (lixeira)", acao: "Preenche deleted_at e recalcula carga do dia em diante e os recordes (em segundo plano).", api: "DELETE /activities/{id}", onde: "apps/api/kactus_api/routers/activities.py:393", no: "DEL,SOFT" },
     { tipo: "erro", nome: "Erro ao excluir", acao: "Aparece quando a API recusa; o item continua na lista.", msg: "Erro ao excluir atividade", onde: "apps/web/app/activities/page.tsx:160" },
     { tipo: "botão", nome: "Carregar mais atividades", acao: "Aparece enquanto vierem páginas cheias de 100.", msg: "Carregando…", onde: "apps/web/app/activities/page.tsx:574", no: "MAIS" },
+    { tipo: "botão", nome: "↻ Atualizar", acao: "Busca no Garmin na hora, sem esperar a rodada de 3 h do Kactus Controle; o ícone gira enquanto busca e não aceita outro clique. Entrou treino novo: a lista recarrega. O resultado aparece num aviso embaixo da tela (some em 6 s; erro em 10 s; toque fecha).", msg: "Buscando… · N treinos novos do Garmin · Nada novo no Garmin · … · parou no meio: …", onde: "apps/web/components/GarminRefresh.tsx:30", no: "GA,GSP,GNOVO,GNADA2" },
+    { tipo: "API", nome: "Buscar no Garmin agora", acao: "O mesmo sync do script (incremental, 3 dias antes do último treino vindo do Garmin ou 30 dias, dedup), rodando dentro da API. Só a conta da INITIAL_USER_EMAIL (dona da chave); uma busca de cada vez.", api: "POST /activities/garmin-sync", onde: "apps/api/kactus_api/routers/activities.py:48", no: "GPOST,GDONO,GTRAVA,GINC,GAPI" },
+    { tipo: "erro", nome: "Atualizar falhou", acao: "Outra conta (403), clique durante outra busca (409), sem chave, chave recusada, 429 ou rede (502), ou passou de 5 min.", msg: "A busca no Garmin só funciona na conta dona da chave. · Já estou buscando no Garmin, espere terminar. · Falta a chave pessoal do Garmin… · Não consegui falar com o Garmin (…). · O Garmin demorou demais para responder. Tente de novo.", onde: "apps/api/kactus_api/routers/activities.py:56", no: "G403,G409,G502" },
     { tipo: "botão", nome: "⇄ Comparar", acao: "Liga e desliga o modo comparar: caixinha em cada linha (no celular o cartão inteiro marca), clique na linha marca em vez de abrir; com dois marcados, marcar outro troca o mais antigo. ?comparar=1 abre o modo; ?comparar=<id> já vem com o treino marcado.", onde: "apps/web/app/activities/page.tsx:120", no: "CB,CQ,CM,CK" },
     { tipo: "seção", nome: "Barra Comparar treinos", acao: "Fixa embaixo da lista: quantos faltam, Cancelar e Comparar (só com dois).", msg: "Marque dois treinos para comparar (0/2). · Pronto: 2 treinos marcados.", onde: "apps/web/app/activities/page.tsx:549", no: "CW,LIST2" },
     { tipo: "tela", nome: "Comparar treinos", acao: "Cartões Treino A (verde) e B (azul) com link para cada um; tabela de métricas que existem em pelo menos um (distância, tempo, ritmo ou velocidade, GAP, FC média e máxima, deriva, subida, cadência, potência, contato, temperatura, efeito aeróbico, carga, calorias) com B − A em verde quando B foi melhor.", api: "GET /activities/{id} · GET /activities/{id}/splits", msg: "Erro ao carregar os treinos", onde: "apps/web/app/activities/compare/page.tsx:92", no: "CP,CA,CE,CT" },

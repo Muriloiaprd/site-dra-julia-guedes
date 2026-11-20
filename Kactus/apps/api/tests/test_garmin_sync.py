@@ -9,9 +9,10 @@ aqui e a resposta real do Garmin -- para isso existe o `--conferir`.
 import base64
 import io
 import json
+import threading
 import time
 import zipfile
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -20,8 +21,11 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from kactus_api.config import settings
 from kactus_api.models import Activity
 from kactus_api.parsers.dispatch import UnsupportedFormatError
+from kactus_api.routers import activities as activities_router
+from kactus_api.services import garmin_sync
 from kactus_api.services.garmin_sync import (
     SOURCE,
     GarminSyncError,
@@ -32,6 +36,7 @@ from kactus_api.services.garmin_sync import (
     compare_fields,
     extract_activity_file,
     import_downloaded,
+    incremental_start,
     jwt_expiry,
     last_synced_date,
     resolve_api_key,
@@ -325,6 +330,81 @@ def test_last_synced_date_ignores_manual_uploads(
     )
     assert up.status_code in (200, 201)
     assert last_synced_date(db_session, user["id"]) is None
+
+
+def test_incremental_start_without_garmin_activity_looks_30_days_back(
+    auth_client, db_session: Session
+) -> None:
+    _client, user = auth_client
+    today = date(2026, 11, 20)
+    assert incremental_start(db_session, user["id"], today=today) == today - timedelta(days=30)
+
+
+def test_incremental_start_backs_off_3_days_from_last_garmin_activity(
+    auth_client, db_session: Session, tcx_bytes: bytes
+) -> None:
+    _client, user = auth_client
+    fake = FakeGarmin(listing=[{"activityId": 1, "activityName": "Pedal"}],
+                      downloads={"1": _zipped("a.tcx", tcx_bytes)})
+    sync_activities(db_session, user["id"], fake, start=date(2020, 1, 1))
+    last = last_synced_date(db_session, user["id"])
+    assert incremental_start(db_session, user["id"]) == last - timedelta(days=3)
+
+
+# ---------- botao Atualizar do site: POST /activities/garmin-sync ----------
+
+
+def test_garmin_sync_button_imports_and_reports(
+    auth_client, tcx_bytes: bytes, gpx_bytes: bytes, monkeypatch
+) -> None:
+    client, user = auth_client
+    monkeypatch.setattr(settings, "initial_user_email", user["email"])
+    fake = FakeGarmin(
+        listing=[{"activityId": 1, "activityName": "Pedal"}, {"activityId": 2, "activityName": "Corrida"}],
+        downloads={"1": _zipped("a.tcx", tcx_bytes), "2": _zipped("b.gpx", gpx_bytes)},
+    )
+    monkeypatch.setattr(garmin_sync, "build_client", lambda: fake)
+
+    r = client.post("/activities/garmin-sync")
+    assert r.status_code == 200, r.text
+    assert r.json() == {"imported": 2, "duplicates": 0, "skipped": 0, "failed": 0, "stopped": None}
+    assert len(client.get("/activities").json()) == 2
+
+    # segundo clique: nada novo, nada baixado de novo
+    fake.downloaded.clear()
+    r = client.post("/activities/garmin-sync")
+    assert r.json()["imported"] == 0 and r.json()["duplicates"] == 2
+    assert fake.downloaded == []
+
+
+def test_garmin_sync_button_refuses_account_that_does_not_own_the_key(
+    auth_client, monkeypatch
+) -> None:
+    client, _user = auth_client
+    monkeypatch.setattr(settings, "initial_user_email", "dono@kactus.test")
+    monkeypatch.setattr(garmin_sync, "build_client", lambda: pytest.fail("nao devia chamar o Garmin"))
+    assert client.post("/activities/garmin-sync").status_code == 403
+
+
+def test_garmin_sync_button_turns_garmin_error_into_message(auth_client, monkeypatch) -> None:
+    client, user = auth_client
+    monkeypatch.setattr(settings, "initial_user_email", user["email"])
+
+    def sem_chave():
+        raise GarminSyncError("Falta a chave pessoal do Garmin.")
+
+    monkeypatch.setattr(garmin_sync, "build_client", sem_chave)
+    r = client.post("/activities/garmin-sync")
+    assert r.status_code == 502
+    assert "chave" in r.json()["detail"]
+
+
+def test_garmin_sync_button_one_click_at_a_time(auth_client, monkeypatch) -> None:
+    client, user = auth_client
+    monkeypatch.setattr(settings, "initial_user_email", user["email"])
+    monkeypatch.setattr(activities_router, "_garmin_lock", threading.Lock())
+    activities_router._garmin_lock.acquire()
+    assert client.post("/activities/garmin-sync").status_code == 409
 
 
 def test_sync_stops_batch_on_429_but_keeps_what_was_imported(

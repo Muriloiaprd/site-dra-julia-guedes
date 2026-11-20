@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { GarminRefreshButton } from "@/components/GarminRefresh";
 import { StatusDot } from "@/components/ui/primitives";
 import { relativeDay } from "@/lib/utils";
 
@@ -16,7 +17,7 @@ export interface HeaderAlert {
 const TONE_COLOR = { accent: "#00FF66", warning: "#FFC145", danger: "#F85149" } as const;
 
 export function DashboardHeader({
-  name, avatarUrl, syncState, lastActivityIso, alerts,
+  name, avatarUrl, syncState, lastActivityIso, alerts, onRefreshed,
 }: {
   /** null enquanto o perfil carrega (mostra skeleton em vez do nome tirado do e-mail). */
   name: string | null;
@@ -24,6 +25,8 @@ export function DashboardHeader({
   syncState: "loading" | "ok" | "error";
   lastActivityIso: string | null;
   alerts: HeaderAlert[];
+  /** Botao Atualizar trouxe treino novo do Garmin: o painel recarrega. */
+  onRefreshed: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const popRef = useRef<HTMLDivElement>(null);
@@ -68,6 +71,7 @@ export function DashboardHeader({
         <div className="flex shrink-0 items-center gap-4">
           <div className="hidden flex-col items-end gap-1 sm:flex">{status}</div>
           <div className="flex items-center gap-2">
+            <GarminRefreshButton variant="icon" onImported={onRefreshed} />
             <div className="relative" ref={popRef}>
               <button
                 type="button"

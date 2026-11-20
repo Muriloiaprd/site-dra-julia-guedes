@@ -233,6 +233,7 @@ export default function DashboardPage() {
         syncState={syncState}
         lastActivityIso={activities[0]?.start_time ?? null}
         alerts={alerts}
+        onRefreshed={() => { load(); fetchLoadMetrics(60).then(setLoadMetrics).catch(() => {}); fetchPredictionsOverview().then(setOverview).catch(() => {}); }}
       />
 
       {loading && slow && (
